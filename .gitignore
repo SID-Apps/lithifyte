@@ -1,0 +1,12 @@
+# bank credentials & fetched data — NEVER commit these
+feeder/config.json
+feeder/state.json
+feeder/out/
+
+# personal builds (a Money Map file with YOUR transactions embedded)
+*personal*.html
+*my-*.html
+
+# local scratch
+node_modules/
+.DS_Store

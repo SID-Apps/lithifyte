@@ -1,0 +1,7 @@
+{
+  "secretId": "PASTE — bankaccountdata.gocardless.com → User secrets",
+  "secretKey": "PASTE",
+  "country": "ie",
+  "redirect": "http://localhost:1/done",
+  "outputDir": ""
+}
