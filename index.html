@@ -395,7 +395,7 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
   .tour-arrow[data-dir="right"]{border-top:10px solid transparent; border-bottom:10px solid transparent; border-left:14px solid #38bdf8}
   .tour-arrow[data-dir="up"]{border-left:10px solid transparent; border-right:10px solid transparent; border-bottom:14px solid #38bdf8}
   .tour-arrow[data-dir="down"]{border-left:10px solid transparent; border-right:10px solid transparent; border-top:14px solid #38bdf8}
-  #tourCard{position:fixed; z-index:500; pointer-events:auto; width:min(380px, calc(100vw - 28px));
+  #tourCard{position:fixed; z-index:520; pointer-events:auto; width:min(380px, calc(100vw - 28px));
     background:#0a1628; border:1px solid rgba(56,189,248,.65);
     border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,.75), 0 0 0 1px rgba(125,211,252,.15);
     padding:14px 14px 12px; color:#e8f1ff; font:13.5px/1.45 system-ui,sans-serif;
@@ -407,7 +407,7 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
   #tourCard .tour-nav{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
   #tourCard .tour-nav .btn{font-size:12.5px; pointer-events:auto; position:relative; z-index:1}
   #tourCard .tour-progress{margin-left:auto; font:600 11.5px system-ui,sans-serif; color:#8aa0bd}
-  #tourParts{position:fixed; z-index:500; pointer-events:auto; left:14px; bottom:14px;
+  #tourParts{position:fixed; z-index:510; pointer-events:auto; left:14px; bottom:14px;
     width:min(520px, calc(100vw - 28px)); display:flex; flex-wrap:wrap; gap:6px;
     padding:10px; border-radius:14px; background:#0a1628; border:1px solid rgba(56,189,248,.55);
     box-shadow:0 12px 40px rgba(0,0,0,.65); opacity:1; filter:none; isolation:isolate}
@@ -420,7 +420,9 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
   body.touring #spaceDock[data-tour-elev="1"],
   body.touring #spacePanel[data-tour-elev="1"],
   body.touring #miniPanel[data-tour-elev="1"],
-  body.touring #spaceTop[data-tour-elev="1"]{
+  body.touring #spaceTop[data-tour-elev="1"],
+  body.touring #spaceHud[data-tour-elev="1"],
+  body.touring #spaceStage[data-tour-elev="1"]{
     z-index:450 !important;
   }
   body.touring #spaceDock[data-tour-elev="1"]{
@@ -431,6 +433,19 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
   body.touring #miniPanel[data-tour-elev="1"]{
     box-shadow:0 20px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(56,189,248,.4);
   }
+  body.touring #spaceHud[data-tour-elev="1"]{
+    background:rgba(2,11,26,.94) !important;
+    box-shadow:0 8px 28px rgba(0,0,0,.45);
+  }
+  body.touring #spaceTop[data-tour-elev="1"] .top-ic{
+    background:rgba(2,11,26,.94) !important;
+    box-shadow:0 4px 16px rgba(0,0,0,.4);
+  }
+  /* Coach text ALWAYS above part picker */
+  #tourCard{z-index:520 !important}
+  #tourParts{z-index:510 !important}
+  #tourArrow{z-index:515 !important}
+
   .tour-dock-spot{outline:2.5px solid rgba(52,211,153,.98) !important; outline-offset:2px;
     border-radius:9px !important; background:rgba(52,211,153,.22) !important;
     border-color:rgba(52,211,153,.55) !important; color:#fff !important}
@@ -451,7 +466,6 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
   @keyframes tourPulse{0%,100%{outline-color:rgba(56,189,248,.5)} 50%{outline-color:rgba(186,230,253,1)}}
   @media (prefers-reduced-motion: reduce){ .tour-spot{animation:none} }
   /* Ensure coach UI always sits above shades/ring and is interactable */
-  #tourCard, #tourParts{z-index:90}
   #tourRoot{z-index:80}
   body.touring #tourCard, body.touring #tourParts{visibility:visible; opacity:1}
 
@@ -7912,24 +7926,24 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // Part 1 — Space shell
       {part:1, dock:'map', target:'#spaceDock', title:'Space view is the app',
        loc:'Space shell — map behind, dock on the left',
-       body:'You are in Space view — the money map fills the screen and every feature opens as a glass panel over it. This tour walks the real controls (highlighted). Pick any part below, or press Next to play through in order. Use End tour anytime.'},
+       body:'You are in Space view — the money map fills the screen and every feature opens as a glass panel over it. This tour walks the real controls (highlighted). Pick any part below, or press Next to play through in order. Use End tutorial anytime.'},
       {part:1, dock:'map', target:'#spaceDock', title:'The left dock',
        loc:'Left edge · Overview / Planning / Wealth / Data',
-       body:'This is your main menu. Groups: Overview (Goals, Cashflow, Categories, Leaks), Planning (Budget, Simulate, Forecast, Plan), Wealth (Pulse, Net worth, Invest, Debts, Readiness), and Data (Audit, Rules, Settings). Click a row anytime after the tour.'},
+       body:'This is your main menu. Groups: Overview (Goals, Cashflow, Categories, Leaks), Planning (Budget, Simulate, Forecast, Plan), Wealth (Pulse, Net worth, Invest, Debts, Readiness), and Data (Audit, Rules, Settings). Click a row anytime after the tutorial.'},
       {part:1, dock:'map', target:'#spaceTop', title:'Date range & Search',
-       loc:'Top-right icons',
-       body:'📅 opens the date range (charts and flows follow it). 🔎 opens transaction search. Both open as mini cards so the map stays visible.'},
+       loc:'Top-right 📅 and 🔎 icons',
+       body:'📅 opens the date range (charts and flows follow it). 🔎 opens transaction search. Both open as mini cards so the map stays visible. They stay highlighted bright above the fade — try them after the tutorial.'},
       {part:1, dock:'map', target:'#spaceHud', title:'The HUD',
        loc:'Top centre strip',
        body:'At a glance: primary goal progress (ring), monthly “machine” surplus, cash on hand, and Pulse score. The 👁 toggles privacy mode — every euro can mask as € •••. Tap cash to hide/show; hold to peek.'},
 
       // Part 2 — First data
-      {part:2, dock:'map', target:'#onboarding, #goalHero', title:'Getting your data in',
-       loc:'Onboarding on the map (first run) · or Goals once you have data',
-       body:'First run is four steps on the map: (1) your name — You appears, (2) first account — pick current / credit / savings carefully, (3) upload a CSV statement, (4) set a goal. If you already have data, the goal hero replaces onboarding — that is fine; use People in Settings to add more statements.'},
-      {part:2, dock:'settings', target:'#sec-people, #settingsCard', title:'People, accounts & uploads',
-       loc:'Settings 🛠️ · People card',
-       body:'Add household members, more accounts, and upload further CSVs under the right account. Re-uploads are safe — duplicates are skipped. Set opening balances so cash, net worth, and linked goals reconcile to reality.'},
+      {part:2, dock:'settings', target:'#sec-people, #settingsCard', title:'Getting your data in',
+       loc:'Settings 🛠️ → People, accounts & statements',
+       body:'This is where household data lives day to day. Add people and accounts, then Upload a statement (CSV). First run also has a four-step onboarding on the map (name → account → CSV → goal). Re-uploads are safe — duplicates are skipped. Set opening balances so cash and goals reconcile to reality.'},
+      {part:2, dock:'settings', target:'#sec-people, #settingsCard', title:'People, accounts & statements',
+       loc:'Settings 🛠️ → People, accounts & statements',
+       body:'Add each household member and their accounts (current / credit / savings — kind changes the maths). Upload CSVs under the right account. Opening balances power cash-on-hand, net worth, and linked goals. Confirm internal-transfer rulings so income is not double-counted.'},
       {part:2, dock:'goals', target:'#goalHero, .kpis', title:'Goals',
        loc:'Overview → Goals',
        body:'Goals are funded from the cautious forecast surplus in priority order. Link a goal to a savings account (with an opening balance) for the strongest pot. Verdicts always quote the cautious date first.'},
@@ -8050,6 +8064,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         delete el.dataset.tourElev;
         el.classList.remove('tour-panel-spot', 'tour-dock-spot');
       });
+      document.querySelectorAll('.tour-dock-spot, .tour-panel-spot').forEach(el => {
+        el.classList.remove('tour-dock-spot', 'tour-panel-spot');
+      });
     }
     function elevate(el){
       if (!el) return;
@@ -8071,8 +8088,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (blocker && blocker.parentNode !== document.body) document.body.appendChild(blocker);
       if (arrow && arrow.parentNode !== document.body) document.body.appendChild(arrow);
       if (tourRings && tourRings.parentNode !== document.body) document.body.appendChild(tourRings);
-      card.style.zIndex = '500';
-      partsEl.style.zIndex = '500';
+      card.style.zIndex = '520';
+      partsEl.style.zIndex = '510';
       if (blocker) blocker.style.cssText = 'display:block;position:fixed;inset:0;z-index:490;pointer-events:auto;background:transparent;cursor:default';
       if (tourRings) tourRings.style.cssText = 'position:fixed;inset:0;z-index:460;pointer-events:none';
     }
@@ -8230,8 +8247,44 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           if (cr){ rings.push({r: cr, kind: 'content', radius: 12}); primary = cr; }
         }
       } else {
-        // Map / shell: highlight target (dock/hud/top) — already elevated dock
-        if (contentEl){
+        // Map / shell chrome: elevate whatever is being taught so it is NOT under the fade
+        const topEl = document.getElementById('spaceTop');
+        const hudEl = document.getElementById('spaceHud');
+        const stageEl = document.getElementById('spaceStage');
+        const tid = contentEl && (contentEl.id || (contentEl.closest && contentEl.closest('#spaceTop, #spaceHud, #spaceStage, #graphCard') && contentEl.closest('#spaceTop, #spaceHud, #spaceStage, #graphCard').id));
+        // Date range / Search icons
+        if (contentEl && (contentEl.id === 'spaceTop' || (contentEl.closest && contentEl.closest('#spaceTop')))){
+          if (topEl) elevate(topEl);
+          const tr = document.getElementById('topRange');
+          const ts = document.getElementById('topSearch');
+          if (tr){ tr.classList.add('tour-dock-spot'); }
+          if (ts){ ts.classList.add('tour-dock-spot'); }
+          const br = readRect(topEl || contentEl);
+          if (br){ rings.push({r: br, kind: 'dock', radius: 12}); primary = br; }
+        } else if (contentEl && (contentEl.id === 'spaceHud' || (contentEl.closest && contentEl.closest('#spaceHud')))){
+          if (hudEl) elevate(hudEl);
+          hudEl && hudEl.classList.add('tour-panel-spot');
+          const br = readRect(hudEl || contentEl);
+          if (br){ rings.push({r: br, kind: 'panel', radius: 14}); primary = br; }
+        } else if (contentEl && (
+            contentEl.id === 'graphCanvas' || contentEl.id === 'graphCard' || contentEl.id === 'spaceStage' ||
+            (contentEl.closest && contentEl.closest('#spaceStage, #graphCard'))
+          )){
+          // Money map — lift the stage above the dim so the graph is fully visible
+          if (stageEl) elevate(stageEl);
+          // Keep dock elevated too (already done) so nav stays readable
+          const br = readRect(stageEl || contentEl);
+          if (br){
+            // Prefer a large but not full-bleed ring — use graph card if available
+            const gc = document.getElementById('graphCard') || stageEl;
+            const gr = readRect(gc) || br;
+            rings.push({r: gr, kind: 'content', radius: 0});
+            primary = gr;
+          }
+        } else if (contentEl){
+          // Generic: elevate the node if it is fixed chrome
+          const fixed = getComputedStyle(contentEl).position === 'fixed' ? contentEl : (contentEl.closest && contentEl.closest('#spaceDock, #spaceTop, #spaceHud, #spacePanel, #miniPanel'));
+          if (fixed) elevate(fixed);
           const cr = readRect(contentEl);
           if (cr){
             rings.push({r: cr, kind: contentEl.id === 'spaceDock' ? 'dock' : 'content', radius: 12});
@@ -8267,7 +8320,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const cw = Math.min(380, vw - 28);
       card.style.display = 'block';
       card.style.visibility = 'visible';
-      card.style.zIndex = '500';
+      card.style.zIndex = '520';
       const ch = Math.max(160, card.offsetHeight || 220);
       let cx, cy;
       if (primary && primary.left > vw * 0.35 && pl > cw + 24){
@@ -8289,7 +8342,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const dockW = (dock && dock.dataset.tourElev) ? (readRect(dock) || {width:172}).width : 0;
       partsEl.style.left = (14 + (dock && dock.dataset.tourElev ? dockW + 12 : 0)) + 'px';
       partsEl.style.bottom = '14px';
-      partsEl.style.zIndex = '500';
+      partsEl.style.zIndex = '510';
       partsEl.style.pointerEvents = 'auto';
 
       const hx = pl + pw / 2, hy = pt + ph / 2;
