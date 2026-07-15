@@ -669,6 +669,24 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
   .lapse-bar.playing .lapse-track{display:block}
   #lapseProg{height:100%; width:0; background:#8fd0ff; border-radius:2px; transition:width .4s linear}
   body.space .lapse-bar{position:fixed; left:50%; bottom:14px; transform:translateX(-50%)}
+  /* Active map filters (search isolate, etc.) — sits above ▶ Play history */
+  .map-filter-stack{position:absolute; left:50%; bottom:52px; transform:translateX(-50%); z-index:5;
+    display:none; flex-direction:column; gap:6px; align-items:center; pointer-events:none;
+    max-width:min(440px, 94vw)}
+  .map-filter-stack.on{display:flex}
+  body.space .map-filter-stack{position:fixed; left:50%; bottom:58px; transform:translateX(-50%)}
+  body.space .map-filter-stack.low{bottom:14px} /* when play-history bar is hidden */
+  .map-filter-chip{pointer-events:auto; display:flex; align-items:center; gap:8px;
+    background:rgba(2,11,26,.92); border:1px solid rgba(56,189,248,.5); border-radius:999px;
+    padding:7px 8px 7px 12px; color:#e8f1ff; font:600 12.5px system-ui,sans-serif;
+    box-shadow:0 8px 24px rgba(0,0,0,.45); backdrop-filter:blur(10px); max-width:100%}
+  .map-filter-chip .mfc-ic{flex:0 0 auto; font-size:14px; line-height:1}
+  .map-filter-chip .mfc-text{flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .map-filter-chip .mfc-text b{color:#7dd3fc; font-weight:700}
+  .map-filter-chip .mfc-x{flex:0 0 auto; width:26px; height:26px; border-radius:50%; border:1px solid rgba(56,189,248,.4);
+    background:rgba(56,189,248,.12); color:#e0f2ff; cursor:pointer; font:700 13px system-ui,sans-serif;
+    line-height:1; padding:0; display:inline-flex; align-items:center; justify-content:center}
+  .map-filter-chip .mfc-x:hover{background:rgba(251,113,133,.25); border-color:rgba(251,113,133,.55); color:#fff}
   /* ── money flow (P7-33) ── */
   .sk-mini-card{margin-top:14px; position:relative; cursor:zoom-in}
   .sk-big-btn{position:absolute; top:10px; right:12px; z-index:2; background:var(--surface); color:var(--ink-2);
@@ -939,6 +957,7 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
         <span><i class="sw" style="background:#6d93bd"></i>Merchants</span>
       </div>
       <div class="graph-hint">click a hub to dive in · double-click to fold · scroll = zoom</div>
+      <div class="map-filter-stack" id="mapFilterStack" aria-live="polite"></div>
       <div class="lapse-bar" id="lapseBar">
         <button class="btn small" id="lapsePlay" type="button" title="Replay your money history month by month — watch hubs and merchants appear as they entered your life">▶ Play history</button>
         <span id="lapseLbl" class="num"></span>
@@ -3604,6 +3623,60 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
     });
   });
 
+  // ══ Map filter chips (search isolate, etc.) — above ▶ Play history ══
+  // When a feature dims the map to a subset of nodes, show what is active and
+  // let the user clear it without reopening that panel.
+  const MapFilter = {
+    layers: Object.create(null), // id -> {ic, label, clear}
+    set(id, spec){
+      if (!spec){ delete this.layers[id]; }
+      else this.layers[id] = spec;
+      this.render();
+    },
+    clear(id){
+      const L = this.layers[id];
+      delete this.layers[id];
+      this.render();
+      if (L && typeof L.clear === 'function') L.clear();
+    },
+    clearAll(){
+      const ids = Object.keys(this.layers);
+      ids.forEach(id => this.clear(id));
+    },
+    render(){
+      const stack = document.getElementById('mapFilterStack');
+      if (!stack) return;
+      const ids = Object.keys(this.layers);
+      stack.innerHTML = '';
+      if (!ids.length){
+        stack.classList.remove('on');
+        stack.innerHTML = '';
+        return;
+      }
+      stack.classList.add('on');
+      for (const id of ids){
+        const L = this.layers[id];
+        const chip = document.createElement('div');
+        chip.className = 'map-filter-chip';
+        chip.setAttribute('role', 'status');
+        chip.dataset.filter = id;
+        chip.innerHTML = '<span class="mfc-ic" aria-hidden="true">' + (L.ic || '◎') + '</span>' +
+          '<span class="mfc-text">' + L.label + '</span>' +
+          '<button type="button" class="mfc-x" aria-label="Clear ' + id + ' filter">✕</button>';
+        chip.querySelector('.mfc-x').addEventListener('click', e => {
+          e.preventDefault(); e.stopPropagation();
+          this.clear(id);
+        });
+        stack.appendChild(chip);
+      }
+      // sit above play-history when that bar is visible
+      const lb = document.getElementById('lapseBar');
+      const lapseOn = lb && getComputedStyle(lb).display !== 'none';
+      stack.classList.toggle('low', !lapseOn);
+    }
+  };
+  window.__ddMapFilter = MapFilter;
+
   // ══ transaction search ══
   function renderTxSearch(){
     const qRaw = (document.getElementById('txSearch').value || '').trim();
@@ -3613,6 +3686,7 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
       tb.innerHTML = '<tr><td colspan="5" style="color:var(--muted)">Type above to search all transactions.</td></tr>';
       found.textContent = '';
       if (graph) graph.highlight(null);
+      MapFilter.set('search', null);
       return;
     }
     const q = qRaw.toUpperCase();
@@ -3653,7 +3727,7 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
     // matches illuminate the money map: their categories, merchants and
     // accounts glow while everything else fades (hover still wins)
     if (graph){
-      if (!total){ graph.highlight(null); }
+      if (!total){ graph.highlight(null); MapFilter.set('search', null); }
       else {
         const ids = new Set();
         for (const t of hits){
@@ -3665,6 +3739,16 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
           }
         }
         graph.highlight([...ids]);
+        const shown = qRaw.length > 28 ? qRaw.slice(0, 28) + '…' : qRaw;
+        MapFilter.set('search', {
+          ic: '🔎',
+          label: 'Search on map · <b>' + esc(shown) + '</b> · other nodes faded',
+          clear: () => {
+            const inp = document.getElementById('txSearch');
+            if (inp) inp.value = '';
+            renderTxSearch();
+          }
+        });
       }
     }
   }
@@ -6791,6 +6875,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     else graph.draw();
     const lb = document.getElementById('lapseBar');
     if (lb) lb.style.display = MONTHS.length >= 3 ? 'flex' : 'none';
+    if (typeof MapFilter !== 'undefined') MapFilter.render();
   }
 
   // ══ time-lapse playback (P7-35) ══
