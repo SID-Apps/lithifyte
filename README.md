@@ -55,6 +55,12 @@ Releases use [`tools/swap-data.mjs`](tools/swap-data.mjs): one shared shell of c
 - Single-currency (EUR) and Irish-first: the tax layer, schemes and merchant knowledge are tuned for Ireland. The rest travels fine.
 - The at-rest encryption lock is opt-in. Turn it on if the machine is shared.
 
+## Security
+
+Threat model, encryption notes, residual risks, and how to report a vulnerability: **[SECURITY.md](SECURITY.md)**.
+
+Prefer [private vulnerability reporting](https://github.com/SID-Apps/lithifyte/security/advisories/new) for sensitive findings — do not post exploit detail in a public issue.
+
 ## License
 
 **AGPL-3.0-or-later** — see [LICENSE](LICENSE). Plain-language summary: use it, study it, modify it, share it, self-host it for your household freely. But if you publish or host a derivative, it must remain open source under this same license with attribution intact. Stripping this notice and selling Lithifyte as your own closed product is a license violation, and the kind we would pursue.
