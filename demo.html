@@ -913,7 +913,12 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
   <div class="section" id="sec-cashflow">
     <div class="section-head">
       <h2>Cashflow, month by month</h2>
-      <p>Income vs spending, month by month, for the selected date range — with your category corrections applied. <b>Hover any month</b> for its totals; <b>click a month</b> and the full breakdown opens below: where the income came from, where the money went, what was saved. Unusual spikes are worth a click — a car bought, a fee paid, a late salary — the drill-down names the exact transactions behind them. Below the chart, the <b>money flow</b> card draws the whole picture as one river — income sources on the left, where it all went on the right (savings, top categories, and what was left over) — click it for the full-size view.</p>
+      <p>Income vs spending for the selected <b>account scope</b> and date range — with your category corrections applied. Pick <b>All accounts</b> for the household picture, or one account to see only that ledger. <b>Hover any month</b> for totals; <b>click a month</b> for the full breakdown. The Sankey below follows the same scope.</p>
+    </div>
+    <div class="filter-row" id="cashAcctBar" style="margin:0 0 10px; flex-wrap:wrap; gap:8px; align-items:center">
+      <span class="filter-label">Account</span>
+      <select id="cashAcctSel" class="inp" style="max-width:min(320px,100%)" aria-label="Cashflow account scope"></select>
+      <span class="hint num" id="cashAcctHint" style="margin:0"></span>
     </div>
     <div class="chart-card">
       <div class="legend">
@@ -934,7 +939,12 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
   <div class="section" id="sec-cats">
     <div class="section-head">
       <h2>Where a month goes</h2>
-      <p>Average monthly outgoings over the selected date range, with your categories, colours and corrections applied. <b>Click a bar</b> to see every transaction behind it.</p>
+      <p>Average monthly outgoings for the selected <b>account scope</b> and date range. Pick one account or all; <b>click a bar</b> to isolate that category (list every transaction and light it on the money map).</p>
+    </div>
+    <div class="filter-row" id="catAcctBar" style="margin:0 0 10px; flex-wrap:wrap; gap:8px; align-items:center">
+      <span class="filter-label">Account</span>
+      <select id="catAcctSel" class="inp" style="max-width:min(320px,100%)" aria-label="Categories account scope"></select>
+      <span class="hint num" id="catAcctHint" style="margin:0"></span>
     </div>
     <div class="chart-card"><div id="catChart"></div><div id="catDetail"></div></div>
   </div>
@@ -3041,8 +3051,150 @@ rewrite the static advice cards if the picture has changed.</div>
   }
   const hideTip = () => tip.style.display = 'none';
 
+  // ══ Account / category scope (cashflow + categories + map isolate) ══
+  // null viewAcct = household (all accounts). Optional catSel already exists for
+  // category drill-down; together they drive MapFilter chips like search.
+  let viewAcct = null;
+
+  function acctLabel(id){
+    if (!id) return 'All accounts';
+    const a = typeof acctOf === 'function' ? acctOf(id) : null;
+    return (a && a.name) || id;
+  }
+  function scopedTxe(){
+    if (!A || !A.txe) return [];
+    return viewAcct ? A.txe.filter(t => t.acct === viewAcct) : A.txe;
+  }
+  function monthlyFromTxe(txe){
+    const byMonth = new Map(MONTHS.map(m => [m, {month:m, income:0, spend:0, save:0}]));
+    for (const t of txe){
+      const b = byMonth.get(t.mo); if (!b) continue;
+      if (t.ec === SAVE_CAT) b.save += t.de - t.cr;
+      else if (t.ec !== INT_CAT){ b.income += t.cr; b.spend += t.de; }
+    }
+    return MONTHS.map(m => byMonth.get(m));
+  }
+  function catsFromTxe(txe){
+    const catsP = new Map();
+    for (const t of txe){
+      if (!RANGE.has(t.mo) || t.ec === INT_CAT) continue;
+      if (t.ec === SAVE_CAT){
+        const net = t.de - t.cr;
+        if (Math.abs(net) < 0.005) continue;
+        const v = catsP.get(SAVE_CAT) || {category: SAVE_CAT, total12:0, n:0};
+        v.total12 += net; v.n++; catsP.set(SAVE_CAT, v);
+      } else if (t.de > 0){
+        const v = catsP.get(t.ec) || {category: t.ec, total12:0, n:0};
+        v.total12 += t.de; v.n++; catsP.set(t.ec, v);
+      }
+    }
+    const nMo = Math.max(1, RN || 1);
+    return [...catsP.values()].map(c => Object.assign({}, c, {avgMonth: c.total12 / nMo}))
+      .filter(c => Math.abs(c.avgMonth) >= 0.5)
+      .sort((a,b) => Math.abs(b.avgMonth) - Math.abs(a.avgMonth));
+  }
+  function fillAcctScopeSelects(){
+    const accts = typeof allAccounts === 'function' ? allAccounts() : [];
+    const opts = '<option value="">All accounts (household)</option>' +
+      accts.map(a => `<option value="${esc(a.id)}">${esc(a.name)}${a.kind ? ' · ' + esc(a.kind) : ''}</option>`).join('');
+    for (const id of ['cashAcctSel', 'catAcctSel']){
+      const el = document.getElementById(id);
+      if (!el) continue;
+      const cur = viewAcct || '';
+      el.innerHTML = opts;
+      if ([...el.options].some(o => o.value === cur)) el.value = cur;
+      else { el.value = ''; viewAcct = null; }
+    }
+    const hint = viewAcct
+      ? 'Showing <b>' + esc(acctLabel(viewAcct)) + '</b> only — map focuses this account'
+      : 'Showing <b>all accounts</b> combined';
+    const ch = document.getElementById('cashAcctHint');
+    const th = document.getElementById('catAcctHint');
+    if (ch) ch.innerHTML = hint;
+    if (th) th.innerHTML = hint;
+  }
+  function syncScopeMapHighlight(){
+    if (!graph || !A) return;
+    // Search isolate wins on the map (chip stays separate)
+    if (typeof MapFilter !== 'undefined' && MapFilter.layers && MapFilter.layers.search){
+      // still keep account/category chips for the panels, but don't fight map highlight
+      updateScopeChips(false);
+      return;
+    }
+    if (catSel){
+      const ids = new Set();
+      for (const t of A.txe){
+        if (!RANGE.has(t.mo) || t.ec !== catSel) continue;
+        if (viewAcct && t.acct !== viewAcct) continue;
+        ids.add('acct:' + t.acct);
+        ids.add('cat:' + t.acct + ':' + catSel);
+        ids.add('m:' + canonOf(t.m));
+      }
+      graph.highlight([...ids]);
+      updateScopeChips(true);
+      return;
+    }
+    if (viewAcct){
+      const ids = new Set(['acct:' + viewAcct, 'inc:' + viewAcct]);
+      for (const t of A.txe){
+        if (t.acct !== viewAcct || !RANGE.has(t.mo) || t.ec === INT_CAT) continue;
+        ids.add('cat:' + t.acct + ':' + t.ec);
+        ids.add('m:' + canonOf(t.m));
+      }
+      // owner person node if present
+      const ac = acctOf(viewAcct);
+      if (ac && ac.userId) ids.add('user:' + ac.userId);
+      graph.highlight([...ids]);
+      updateScopeChips(true);
+      return;
+    }
+    graph.highlight(null);
+    updateScopeChips(false);
+  }
+  function updateScopeChips(mapActive){
+    if (typeof MapFilter === 'undefined') return;
+    if (viewAcct){
+      MapFilter.set('account', {
+        ic: '🏦',
+        label: 'Account · <b>' + esc(acctLabel(viewAcct)) + '</b>' + (mapActive && !catSel ? ' · map focused' : ' · cashflow & categories'),
+        clear: () => setViewAcct(null)
+      });
+    } else MapFilter.set('account', null);
+    if (catSel){
+      MapFilter.set('category', {
+        ic: '🧩',
+        label: 'Category · <b>' + esc(catSel) + '</b>' +
+          (viewAcct ? ' on <b>' + esc(acctLabel(viewAcct)) + '</b>' : '') +
+          (mapActive ? ' · map focused' : ''),
+        clear: () => {
+          catSel = null;
+          if (typeof renderCats === 'function') renderCats();
+          syncScopeMapHighlight();
+        }
+      });
+    } else MapFilter.set('category', null);
+  }
+  function setViewAcct(id){
+    viewAcct = id || null;
+    fillAcctScopeSelects();
+    if (typeof renderCashflow === 'function') renderCashflow();
+    if (typeof renderCats === 'function') renderCats();
+    if (typeof renderSankey === 'function') renderSankey();
+    syncScopeMapHighlight();
+  }
+  function bindAcctScopeSelects(){
+    for (const id of ['cashAcctSel', 'catAcctSel']){
+      const el = document.getElementById(id);
+      if (!el || el.dataset.bound) continue;
+      el.dataset.bound = '1';
+      el.addEventListener('change', () => setViewAcct(el.value || null));
+    }
+  }
+
   function renderCashflow(){
-    const M = A.monthly, n = M.length;
+    fillAcctScopeSelects();
+    bindAcctScopeSelects();
+    const M = monthlyFromTxe(scopedTxe()), n = M.length;
     const W = Math.max(860, n*28), H = 240, padL = 46, padR = 8, padT = 10, padB = 34;
     const plotW = W - padL - padR, plotH = H - padT - padB;
     const maxV = Math.max(...M.map(m => Math.max(m.income, m.spend)), 1);
@@ -3111,7 +3263,7 @@ rewrite the static advice cards if the picture has changed.</div>
     const mo = cashSel;
     const incomes = new Map(), expenses = new Map(), savings = [];
     let iTot = 0, eTot = 0, sTot = 0;
-    for (const t of A.txe){
+    for (const t of scopedTxe()){
       if (t.mo !== mo || t.ec === INT_CAT) continue;
       if (t.ec === SAVE_CAT){
         const net = t.de - t.cr;
@@ -3138,7 +3290,7 @@ rewrite the static advice cards if the picture has changed.</div>
         <span>${cashCatSel === k ? '▾' : '▸'} ${esc(k)}</span><b>−${eur(v)}</b></div>` +
       (cashCatSel === k ? expTx(k) : '')).join('');
     el.innerHTML = `<div class="drill">
-      <div class="drill-head">📅 ${fmtMoLbl(mo)}
+      <div class="drill-head">📅 ${fmtMoLbl(mo)} · ${esc(acctLabel(viewAcct))}
         <span class="hint num">in ${eur(iTot)} · out ${eur(eTot)} · saved ${eur(sTot)} · margin ${eur(iTot - eTot - sTot)}</span>
         <button class="btn small" id="cashDetailClose" type="button">✕</button></div>
       <div class="drill-cols">
@@ -3165,7 +3317,7 @@ rewrite the static advice cards if the picture has changed.</div>
   const skMonth = () => (cashSel && RANGE.has(cashSel)) ? cashSel : null;
   function sankeyModel(){
     const sel = skMonth();
-    return Engine.sankeyFlows({txe: A.txe, inRange: mo => sel ? mo === sel : RANGE.has(mo),
+    return Engine.sankeyFlows({txe: scopedTxe(), inRange: mo => sel ? mo === sel : RANGE.has(mo),
                                saveCat: SAVE_CAT, intCat: INT_CAT, maxCats: 7, maxSrcs: 5});
   }
   function drawSankey(mount, VW, VH, big){
@@ -3241,10 +3393,11 @@ rewrite the static advice cards if the picture has changed.</div>
     if (!mini) return;
     drawSankey(mini, 860, 260, false);
     const sel = skMonth();
+    const scopeBit = viewAcct ? acctLabel(viewAcct) : 'all accounts';
     document.getElementById('skHint').textContent = sel
-      ? 'Where ' + fmtMoLbl(sel) + '’s money flowed — following the month selected above. Click that month again (or ✕ on its breakdown) for range averages.'
-      : 'Where the money flows — monthly averages over the selected range. Hover any band for the number; click for the full-size view.';
-    document.getElementById('skTitle').textContent = 'Money flow · ' + (sel ? fmtMoLbl(sel) : 'monthly average');
+      ? 'Where ' + fmtMoLbl(sel) + '’s money flowed (' + scopeBit + ') — click that month again (or ✕) for range averages.'
+      : 'Where the money flows (' + scopeBit + ') — monthly averages over the selected range. Hover any band for the number; click for the full-size view.';
+    document.getElementById('skTitle').textContent = 'Money flow · ' + (sel ? fmtMoLbl(sel) : 'monthly average') + ' · ' + scopeBit;
     if (!document.getElementById('skOverlay').hidden)
       drawSankey(document.getElementById('sankeyBig'), 1120, 560, true);
   }
@@ -3261,7 +3414,9 @@ rewrite the static advice cards if the picture has changed.</div>
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.getElementById('skOverlay').hidden) skClose(); });
 
   function renderCats(){
-    const C = A.cats12;
+    fillAcctScopeSelects();
+    bindAcctScopeSelects();
+    const C = catsFromTxe(scopedTxe());
     const W = 860, rowH = 30, padL = 200, padR = 74, padT = 4;
     const H = padT + Math.max(1, C.length)*rowH + 8;
     const maxV = Math.max(...C.map(c=>c.avgMonth), 1);
@@ -3276,19 +3431,19 @@ rewrite the static advice cards if the picture has changed.</div>
     s += '</svg>';
     const el = document.getElementById('catChart');
     el.innerHTML = s;
-    if (catSel && !A.cats12.some(c => c.category === catSel)) catSel = null;
+    if (catSel && !C.some(c => c.category === catSel)) catSel = null;
     const bars = [...el.querySelectorAll('.cat-bar')];
     const applyCatDim = hoverIdx => {
       bars.forEach(b => {
         const i = +b.dataset.i;
         b.style.opacity = hoverIdx != null ? (i === hoverIdx ? 1 : 0.3)
-                        : catSel ? (A.cats12[i].category === catSel ? 1 : 0.4) : 1;
+                        : catSel ? (C[i].category === catSel ? 1 : 0.4) : 1;
       });
     };
     bars.forEach(r=>{
       r.style.cursor = 'pointer';
       r.addEventListener('mousemove', e=>{
-        const c = A.cats12[+r.dataset.i];
+        const c = C[+r.dataset.i];
         applyCatDim(+r.dataset.i);
         showTip(`<div class="t-title">${esc(c.category)}</div>
           <div class="t-row"><span>Per month</span><b>${eur(c.avgMonth)}</b></div>
@@ -3297,10 +3452,11 @@ rewrite the static advice cards if the picture has changed.</div>
       });
       r.addEventListener('mouseleave', ()=>{ hideTip(); applyCatDim(null); });
       r.addEventListener('click', ()=>{
-        const name = A.cats12[+r.dataset.i].category;
+        const name = C[+r.dataset.i].category;
         catSel = catSel === name ? null : name;
         renderCatDetail();
         applyCatDim(null);
+        syncScopeMapHighlight();
       });
     });
     applyCatDim(null);
@@ -3311,20 +3467,20 @@ rewrite the static advice cards if the picture has changed.</div>
     const el = document.getElementById('catDetail');
     if (!catSel){ el.innerHTML = ''; return; }
     const name = catSel;
-    const txs = A.txe.filter(t => RANGE.has(t.mo) && t.ec === name && (t.de > 0 || t.cr > 0))
+    const txs = scopedTxe().filter(t => RANGE.has(t.mo) && t.ec === name && (t.de > 0 || t.cr > 0))
       .sort((a,b) => b.d < a.d ? -1 : 1);
     const tot = txs.reduce((s,t) => s + t.de - (name === SAVE_CAT ? t.cr : 0), 0);
     const shown = txs.slice(0, 60);
     el.innerHTML = `<div class="drill">
       <div class="drill-head"><span class="nc-dot" style="background:${catColor(name)}; color:${catColor(name)}; width:11px; height:11px; border-radius:50%"></span>
-        ${esc(name)} <span class="hint num">${eur(tot)} across ${txs.length} transaction${txs.length === 1 ? '' : 's'} in this range${txs.length > 60 ? ' · showing the latest 60' : ''}</span>
+        ${esc(name)} · ${esc(acctLabel(viewAcct))} <span class="hint num">${eur(tot)} across ${txs.length} transaction${txs.length === 1 ? '' : 's'} in this range${txs.length > 60 ? ' · showing the latest 60' : ''}</span>
         <button class="btn small" id="catDetailClose" type="button">✕</button></div>
       <div class="drill-cols" style="grid-template-columns:1fr">
         <div class="drill-col">${shown.map(t =>
           `<div class="drill-row"><span class="dr-date">${t.d}</span><span style="flex:1">${esc(t.m)}</span>
            <b style="color:${t.de > 0 ? 'var(--ink)' : 'var(--good-text)'}">${t.de > 0 ? '−' + eur(t.de) : '+' + eur(t.cr)}</b></div>`).join('')}</div>
       </div></div>`;
-    document.getElementById('catDetailClose').addEventListener('click', ()=>{ catSel = null; renderCats(); });
+    document.getElementById('catDetailClose').addEventListener('click', ()=>{ catSel = null; renderCats(); syncScopeMapHighlight(); });
   }
 
   function renderLeaks(){
@@ -3689,6 +3845,7 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
       found.textContent = '';
       if (graph) graph.highlight(null);
       MapFilter.set('search', null);
+      if (typeof syncScopeMapHighlight === 'function') syncScopeMapHighlight();
       return;
     }
     const q = qRaw.toUpperCase();
@@ -3749,6 +3906,7 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
             const inp = document.getElementById('txSearch');
             if (inp) inp.value = '';
             renderTxSearch();
+            if (typeof syncScopeMapHighlight === 'function') syncScopeMapHighlight();
           }
         });
       }
@@ -7481,6 +7639,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     guard('leaks', renderLeaks);
     guard('audit', ()=>renderAudit());
     guard('search', ()=>renderTxSearch());
+    guard('scope map', ()=>{ if (typeof MapFilter === 'undefined') return; if (!(MapFilter.layers && MapFilter.layers.search)) syncScopeMapHighlight(); });
     guard('category manager', renderCatManager);
     guard('people & accounts', renderOrg);
     guard('transfers', renderXfers);
@@ -8594,7 +8753,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
              <div class="nc-bar"><div style="width:${Math.max(3, v/mx*100)}%; background:${color}"></div></div>`).join('') + '</div>';
         }
       }
-      act = `<button class="btn small" data-act="cats" type="button">All categories</button>`;
+      // cat nodes are per-account: id = cat:<acctId>:<category>
+      const catM = String(info.id || '').match(/^cat:([^:]+):(.+)$/);
+      const catAcct = catM ? catM[1] : '';
+      const catName = catM ? catM[2] : name;
+      act = `<button class="btn small" data-act="cats" data-cat="${esc(catName)}" data-acct="${esc(catAcct)}" type="button">View category</button>
+             <button class="btn small" data-act="cash" data-acct="${esc(catAcct)}" type="button">Cashflow</button>`;
     } else if (info.type === 'merch'){
       title = info.full; color = '#8fb8dd';
       let tot = 0, cnt = 0; const cats = new Map(), raws = new Set();
@@ -8615,7 +8779,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       html = row('In (period)', eur(info.inc || 0)) + row('Out (period)', eur(info.out || 0)) +
              (derived != null ? row('Derived balance', eur(derived)) : '') +
              row('Statements', uploads.statements.filter(s => s.accountId === acctId).length);
-      act = `<button class="btn small" data-act="people" type="button">Manage accounts</button>`;
+      act = `<button class="btn small" data-act="cash" data-acct="${esc(acctId)}" type="button">View cashflow</button>
+             <button class="btn small" data-act="people" type="button">Manage account</button>`;
     } else if (info.type === 'user' || info.type === 'hh'){
       color = '#e2f3ff';
       const uid2 = info.type === 'user' ? info.id.slice(5) : null;
@@ -8695,6 +8860,17 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         document.getElementById('txSearch').value = btn.dataset.m;
         renderTxSearch();
         goSection('search', 'sec-search');
+      } else if (k === 'cash'){
+        if (btn.dataset.acct) setViewAcct(btn.dataset.acct);
+        goSection('cash', 'sec-cashflow');
+      } else if (k === 'cats'){
+        if (btn.dataset.acct) setViewAcct(btn.dataset.acct);
+        if (btn.dataset.cat){
+          catSel = btn.dataset.cat;
+        }
+        goSection('cats', 'sec-cats');
+        if (typeof renderCats === 'function') renderCats();
+        syncScopeMapHighlight();
       } else {
         const sec = {cats:'sec-cats', people:'sec-people', goals:'goalHero', cash:'sec-cashflow',
                      invest:'holdCard', wealth:'nwCard', debts:'debtCard'}[k];
