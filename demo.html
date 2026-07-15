@@ -669,6 +669,24 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
   .lapse-bar.playing .lapse-track{display:block}
   #lapseProg{height:100%; width:0; background:#8fd0ff; border-radius:2px; transition:width .4s linear}
   body.space .lapse-bar{position:fixed; left:50%; bottom:14px; transform:translateX(-50%)}
+  /* Excel/CSV export bar + budget spreadsheet mode */
+  .xl-bar{display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:0 0 10px}
+  .xl-bar .btn{font-size:12px}
+  .xl-bar .hint{margin:0; font-size:12px}
+  #budgetLive.budget-excel #budgetTable{border-collapse:collapse; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12.5px}
+  #budgetLive.budget-excel #budgetTable th,#budgetLive.budget-excel #budgetTable td{
+    border:1px solid #9ca3af; padding:4px 6px; background:#fff; color:#111}
+  #budgetLive.budget-excel #budgetTable th{background:#e5e7eb; font-weight:700; position:sticky; top:0}
+  #budgetLive.budget-excel #budgetTable input.bg-amt{
+    border:1px solid #6b7280; background:#fff; color:#111; width:88px; font:inherit; text-align:right; padding:2px 4px}
+  #budgetLive.budget-excel .track{background:#e5e7eb; border:1px solid #9ca3af}
+  #budgetLive.budget-excel .card{background:#f3f4f6; border:1px solid #9ca3af; border-radius:0}
+  #budgetLive.budget-excel .kpis .kpi{background:#fff; border:1px solid #9ca3af; border-radius:0}
+  [data-theme="dark"] #budgetLive.budget-excel #budgetTable th,
+  [data-theme="dark"] #budgetLive.budget-excel #budgetTable td{background:#1f2937; color:#f3f4f6; border-color:#4b5563}
+  [data-theme="dark"] #budgetLive.budget-excel #budgetTable th{background:#374151}
+  [data-theme="dark"] #budgetLive.budget-excel #budgetTable input.bg-amt{background:#111827; color:#f3f4f6; border-color:#6b7280}
+
   /* Active map filters (search isolate, etc.) — sits above ▶ Play history */
   .map-filter-stack{position:absolute; left:50%; bottom:52px; transform:translateX(-50%); z-index:5;
     display:none; flex-direction:column; gap:6px; align-items:center; pointer-events:none;
@@ -915,6 +933,10 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
       <h2>Cashflow, month by month</h2>
       <p>Income vs spending for the selected <b>account scope</b> and date range — with your category corrections applied. Pick <b>All accounts</b> for the household picture, or one account to see only that ledger. <b>Hover any month</b> for totals; <b>click a month</b> for the full breakdown. The Sankey below follows the same scope.</p>
     </div>
+    <div class="xl-bar" id="cashXlBar">
+      <button type="button" class="btn small" id="cashExportXl">⬇ Export cashflow CSV</button>
+      <span class="hint">Respects account scope &amp; date range</span>
+    </div>
     <div class="filter-row" id="cashAcctBar" style="margin:0 0 10px; flex-wrap:wrap; gap:8px; align-items:center">
       <span class="filter-label">Account</span>
       <select id="cashAcctSel" class="inp" style="max-width:min(320px,100%)" aria-label="Cashflow account scope"></select>
@@ -942,6 +964,11 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
     <div class="section-head">
       <h2>Where a month goes</h2>
       <p>Average monthly outgoings for the selected <b>account scope</b> and date range. Pick one account or all; <b>click a bar</b> to isolate that category (list every transaction and light it on the money map).</p>
+    </div>
+    <div class="xl-bar" id="catXlBar">
+      <button type="button" class="btn small" id="catExportXl">⬇ Export categories CSV</button>
+      <button type="button" class="btn small" id="catExportTxXl">⬇ Export category transactions</button>
+      <span class="hint">Respects account scope; transactions export uses selected category if any</span>
     </div>
     <div class="filter-row" id="catAcctBar" style="margin:0 0 10px; flex-wrap:wrap; gap:8px; align-items:center">
       <span class="filter-label">Account</span>
@@ -1085,7 +1112,9 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
       <h2>Find any transaction</h2>
       <p>Search by merchant name (e.g. <i>tesco</i>) or by amount (e.g. <i>1250</i>). Respects the date range at the top and shows the corrected category — and the matches <b>light up on the money map</b> while everything else fades.</p>
     </div>
-    <div class="hint num" id="txFound" style="margin:-6px 0 10px; color:var(--ink)"></div>
+        <div class="xl-bar"><button type="button" class="btn small" id="txExportXl">⬇ Export search results CSV</button>
+      <span class="hint">Exports current matches (account scope + date range + query)</span></div>
+<div class="hint num" id="txFound" style="margin:-6px 0 10px; color:var(--ink)"></div>
     <div class="card">
       <input id="txSearch" class="search-input" placeholder="Merchant name or amount…" aria-label="Search transactions">
       <div style="overflow-x:auto">
@@ -1159,7 +1188,15 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
   <div class="section" id="sec-budget">
     <div class="section-head">
       <h2>Budget — spending pace</h2>
-      <p>Set a monthly allowance per category and this tracks whether the month is on pace — not just at the end, but on any day. Regular bills (rent, insurance) are treated as committed from day 1, so a big bill landing early never looks like overspending; only day-to-day spending paces with the calendar. Budgets are seeded from your own history — change any number and it sticks.</p>
+      <p>Set a monthly allowance per category and this tracks whether the month is on pace — not just at the end, but on any day. Regular bills (rent, insurance) are treated as committed from day 1, so a big bill landing early never looks like overspending; only day-to-day spending paces with the calendar. Budgets are seeded from your own history — change any number and it sticks. Prefer Excel? Switch to the spreadsheet layout, or download a template you can edit offline and re-import.</p>
+    </div>
+    <div class="xl-bar" id="budgetXlBar">
+      <button type="button" class="btn small" id="bgExcelMode" title="Familiar spreadsheet-style budget table">▦ Excel layout</button>
+      <button type="button" class="btn small" id="bgExportXl" title="Export this budget for Excel">⬇ Export budget CSV</button>
+      <button type="button" class="btn small" id="bgTplDl" title="Blank/prefilled template for Excel">⬇ Budget template</button>
+      <button type="button" class="btn small" id="bgImportXl" title="Import budget lines from Lithifyte/Excel CSV">⬆ Import budget CSV</button>
+      <input type="file" id="bgImportFile" accept=".csv,text/csv,.txt" style="display:none">
+      <span class="hint" id="bgXlStatus"></span>
     </div>
     <div id="budgetSetup" class="card" style="display:none">
       <h3 style="margin:0 0 4px">Set up budgets in one click</h3>
@@ -1194,7 +1231,9 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
       <h2>Scenario simulator</h2>
       <p>Sliders are generated from your actual categories in the selected date range — recategorise something or change the range and they regenerate, keeping your settings. Suggested cuts reflect how flexible each category usually is (dining bends further than groceries); fixed costs like rent and insurance are excluded. Drag and watch the goal dates and forecast move.</p>
     </div>
-    <div class="sim">
+        <div class="xl-bar"><button type="button" class="btn small" id="simExportXl">⬇ Export simulator CSV</button>
+      <span class="hint">Current lever positions and suggested cuts</span></div>
+<div class="sim">
       <div>
         <div class="sim-summary">
           <span>Extra saved <b class="num" id="simExtra">€0</b>/mo</span>
@@ -1220,7 +1259,9 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
       <h2>Forecast &amp; recurring costs</h2>
       <p>Similar amounts in 3+ of the last 4 months are treated as monthly; quarterly, 6-monthly and yearly rhythms (insurance renewals, motor tax) are detected across your full history and spread into the forecast. Fine-tune it: set when each one <b>ends</b> (car finance ends Jan 2028…), add items your statements can't see yet, and adjust the <b>safety buffer</b> — the cautious path holds back a share of your historical spending swings, and every goal verdict above uses it. Decembers get your historical uplift automatically.</p>
     </div>
-    <div class="chart-card" style="margin-bottom:14px">
+        <div class="xl-bar"><button type="button" class="btn small" id="fcExportXl">⬇ Export forecast CSV</button>
+      <span class="hint">Recurring lines + month-by-month expected/cautious paths</span></div>
+<div class="chart-card" style="margin-bottom:14px">
       <div class="filter-row" style="margin-bottom:8px">
         <span class="filter-label">Safety buffer</span>
         <input type="range" id="bufSlider" min="0" max="100" step="5" style="width:180px; margin:0" aria-label="Safety buffer percentage">
@@ -1300,7 +1341,9 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
       <p>Every layer counted once: reconciled cash from your accounts, goal pots that live in accounts this file doesn't track, priced investments, and anything you add below — property, vehicles, a pension valuation — minus tracked debts and credit-card balances. Each manual value carries its as-of date and goes amber as it ages instead of silently pretending to be current; possible double counts are flagged, never guessed away.</p>
       </div>
       <div class="card">
-      <div class="kpis" id="nwStrip" style="margin:0 0 12px"></div>
+      <div class="xl-bar" style="margin-bottom:8px"><button type="button" class="btn small" id="nwExportXl">⬇ Export net worth CSV</button>
+      <span class="hint">Composition + daily log</span></div>
+    <div class="kpis" id="nwStrip" style="margin:0 0 12px"></div>
       <div id="nwComp"></div>
       <div id="nwNotes"></div>
       <div id="nwTrend" style="margin-top:10px"></div>
@@ -1344,7 +1387,8 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
         <div><label for="db-merch" title="If the repayments already show in your statements, pick the merchant — the forecast then ends that item at payoff instead of adding a duplicate line">In statements as</label>
           <select id="db-merch" class="inp"><option value="">not in my statements</option></select></div>
         <div><label for="db-fixed" title="Irish fixed-rate rollover: you'll be nudged to shop around before this month">Fixed rate until</label><input id="db-fixed" class="inp" type="month"></div>
-        <div><button class="btn primary" id="db-save" type="button">Add debt</button></div>
+        <div><button class="btn" id="dbExportXl" type="button" title="Export debts for Excel">⬇ CSV</button>
+        <button class="btn primary" id="db-save" type="button">Add debt</button></div>
       </div>
       <div id="debtWhatIf" style="margin-top:12px"></div>
       <div id="debtStrategy" style="margin-top:12px"></div>
@@ -1373,6 +1417,7 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
         <div><label for="hd-qdate">Quote as of</label><input id="hd-qdate" class="inp" type="date"></div>
         <div><button class="btn primary" id="hd-save" type="button">Add holding</button></div>
         <div><button class="btn" id="hdRefresh" type="button" title="Keyless CoinGecko fetch — works when this file is opened locally">↻ Crypto prices</button></div>
+        <div><button class="btn" id="hdExportXl" type="button" title="Export holdings for Excel">⬇ CSV</button></div>
         <div><button class="btn" id="hdImport" type="button" title="Import a quotes-YYYY-MM-DD.json written by the feeder CLI (node feeder.mjs prices AAPL VWCE=VWCE.DE …) — stock/ETF prices in EUR, keylessly">📥 Import quotes file</button><input type="file" id="hdImportFile" accept=".json,application/json" style="display:none"></div>
       </div>
       <div class="hint num" id="hdStatus" style="margin-top:6px"></div>
@@ -4018,6 +4063,290 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
       if (e.key === 'Escape' && modal && !modal.hidden && modal.style.display === 'flex') closeCashTxModal();
     });
   })();
+
+
+  // ══ Excel/CSV interoperability (template + scoped exports) ══
+  // Format is UTF-8 CSV with a machine header so Excel opens cleanly and
+  // re-import is unambiguous:
+  //   #LITIFYTE,v1,<kind>
+  //   #scope,account=...,range=YYYY-MM:YYYY-MM,...
+  //   header,row,...
+  const XL = {
+    esc(v){
+      const s = v == null ? '' : String(v);
+      if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    },
+    row(cells){ return cells.map(c => this.esc(c)).join(','); },
+    download(name, body){
+      const bom = '\uFEFF'; // Excel-friendly UTF-8
+      const blob = new Blob([bom + body], {type:'text/csv;charset=utf-8'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    },
+    stamp(){ return new Date().toISOString().slice(0,10); },
+    scopeLines(extra){
+      const bits = [
+        'account=' + (viewAcct || 'all'),
+        'accountName=' + (typeof acctLabel === 'function' ? acctLabel(viewAcct) : (viewAcct || 'all')),
+        'range=' + (rangeFrom || '') + ':' + (rangeTo || ''),
+        'category=' + (typeof catSel !== 'undefined' && catSel ? catSel : ''),
+        'month=' + (typeof cashSel !== 'undefined' && cashSel ? cashSel : '')
+      ];
+      if (extra) for (const [k,v] of Object.entries(extra)) bits.push(k + '=' + v);
+      return '#scope,' + bits.join(',');
+    },
+    header(kind, extraScope){
+      return ['#LITIFYTE,v1,' + kind, this.scopeLines(extraScope), '#generated,' + new Date().toISOString(), ''].join('\n');
+    },
+    // ── Budget template (round-trip) ──
+    budgetTemplate(prefill){
+      const lines = [this.header('budget')];
+      lines.push(this.row(['category','budget_eur','note']));
+      if (prefill && budgetStore){
+        for (const [c, v] of Object.entries(budgetStore.cats || {}))
+          lines.push(this.row([c, v, '']));
+        if (budgetStore.other != null) lines.push(this.row(['__OTHER__', budgetStore.other, 'Everything else (uncategorised spend)']));
+      } else {
+        lines.push(this.row(['Groceries', '', 'Monthly cap']));
+        lines.push(this.row(['Dining', '', '']));
+        lines.push(this.row(['Transport', '', '']));
+        lines.push(this.row(['__OTHER__', '', 'Catch-all for categories not listed']));
+      }
+      lines.push('');
+      lines.push('#notes,Edit budget_eur in Excel. Re-import with Import budget CSV. __OTHER__ is the everything-else line.');
+      return lines.join('\n');
+    },
+    exportBudget(){
+      if (!budgetStore){ alert('Set up budgets first (or download a blank template).'); return; }
+      const bo = typeof computeBudgets === 'function' ? computeBudgets() : null;
+      const lines = [this.header('budget-status')];
+      lines.push(this.row(['category','budget_eur','spent','vs_pace','projected','verdict','note']));
+      if (bo && bo.rows){
+        for (const r of bo.rows){
+          lines.push(this.row([r.cat, r.budget, r.pace.spent, r.pace.delta, r.pace.projected, r.pace.verdict, r.isOther ? 'everything else' : '']));
+        }
+      } else {
+        for (const [c, v] of Object.entries(budgetStore.cats || {}))
+          lines.push(this.row([c, v, '', '', '', '', '']));
+        if (budgetStore.other != null) lines.push(this.row(['__OTHER__', budgetStore.other, '', '', '', '', 'everything else']));
+      }
+      this.download('lithifyte-budget-' + this.stamp() + '.csv', lines.join('\n'));
+    },
+    importBudgetCsv(text){
+      const lines = String(text || '').replace(/^\uFEFF/, '').split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith('#notes'));
+      let kind = 'budget';
+      const cats = {}, rows = [];
+      let other = null;
+      for (const line of lines){
+        if (line.startsWith('#LITIFYTE')){ const p = line.split(','); kind = p[2] || kind; continue; }
+        if (line.startsWith('#')) continue;
+        // simple CSV split (handles quotes)
+        const cells = [];
+        let cur = '', q = false;
+        for (let i = 0; i < line.length; i++){
+          const ch = line[i];
+          if (q){
+            if (ch === '"' && line[i+1] === '"'){ cur += '"'; i++; }
+            else if (ch === '"') q = false;
+            else cur += ch;
+          } else {
+            if (ch === '"') q = true;
+            else if (ch === ','){ cells.push(cur); cur = ''; }
+            else cur += ch;
+          }
+        }
+        cells.push(cur);
+        if (cells[0] === 'category' || cells[0] === 'Category') continue;
+        const cat = (cells[0] || '').trim();
+        const val = parseFloat(String(cells[1] || '').replace(/[€,\s]/g, ''));
+        if (!cat || !(val >= 0)) continue;
+        if (cat === '__OTHER__' || /^everything else$/i.test(cat)) other = val;
+        else cats[cat] = val;
+      }
+      if (!Object.keys(cats).length && other == null) throw new Error('No budget rows found. Use the Lithifyte budget template columns: category,budget_eur');
+      budgetStore = {cats, other: other != null ? other : (budgetStore && budgetStore.other != null ? budgetStore.other : 0), seededOn: new Date().toISOString().slice(0,10)};
+      save(LS.budget, budgetStore);
+      if (typeof renderBudget === 'function') renderBudget();
+      if (typeof renderAll === 'function') renderAll();
+      return Object.keys(cats).length + (other != null ? 1 : 0);
+    },
+    // ── Transactions (scoped) ──
+    exportTransactions(list, tag){
+      const lines = [this.header('transactions', {export: tag || 'tx'})];
+      lines.push(this.row(['date','description','category','subcategory','debit','credit','account','account_id','note','cash_link']));
+      for (const t of list){
+        const an = (typeof acctOf === 'function' && acctOf(t.acct)) ? acctOf(t.acct).name : t.acct;
+        const cat = t.ec != null ? t.ec : t.c;
+        const link = t.link ? (t.link.d + ' ' + t.link.m + ' ' + (t.link.de || t.link.cr || '')) : '';
+        lines.push(this.row([t.d, t.m, cat, t.s || '', t.de || '', t.cr || '', an, t.acct, t.note || '', link]));
+      }
+      this.download('lithifyte-' + (tag || 'transactions') + '-' + this.stamp() + '.csv', lines.join('\n'));
+    },
+    exportCashflow(){
+      const M = monthlyFromTxe(scopedTxe()).filter(m => RANGE.has(m.month));
+      const lines = [this.header('cashflow')];
+      lines.push(this.row(['month','income','spending','to_savings','margin']));
+      for (const m of M) lines.push(this.row([m.month, m.income, m.spend, m.save, m.income - m.spend]));
+      // also append transactions for scope
+      lines.push('');
+      lines.push('#transactions_in_scope');
+      lines.push(this.row(['date','description','category','debit','credit','account_id']));
+      for (const t of scopedTxe()){
+        if (!RANGE.has(t.mo) || t.ec === INT_CAT) continue;
+        lines.push(this.row([t.d, t.m, t.ec, t.de || '', t.cr || '', t.acct]));
+      }
+      this.download('lithifyte-cashflow-' + this.stamp() + '.csv', lines.join('\n'));
+    },
+    exportCategories(){
+      const C = catsFromTxe(scopedTxe());
+      const lines = [this.header('categories')];
+      lines.push(this.row(['category','avg_month','period_total','transactions']));
+      for (const c of C) lines.push(this.row([c.category, c.avgMonth, c.total12, c.n]));
+      this.download('lithifyte-categories-' + this.stamp() + '.csv', lines.join('\n'));
+    },
+    exportCategoryTx(){
+      const name = (typeof catSel !== 'undefined' && catSel) ? catSel : null;
+      let list = scopedTxe().filter(t => RANGE.has(t.mo) && t.ec !== INT_CAT && (t.de > 0 || t.cr > 0));
+      if (name) list = list.filter(t => t.ec === name);
+      this.exportTransactions(list, name ? 'category-' + name.replace(/\W+/g,'_') : 'category-tx');
+    },
+    exportSearch(){
+      const qRaw = (document.getElementById('txSearch') && document.getElementById('txSearch').value || '').trim();
+      if (!qRaw){ alert('Run a search first, then export.'); return; }
+      const q = qRaw.toUpperCase();
+      const qNum = parseFloat(qRaw.replace(',', '.').replace('€',''));
+      const numeric = !isNaN(qNum) && /^[€]?\s*[\d.,]+$/.test(qRaw);
+      const hits = [];
+      for (const t of TX){
+        if (!RANGE.has(t.mo)) continue;
+        if (viewAcct && t.acct !== viewAcct) continue;
+        const match = numeric
+          ? (Math.abs(t.de - qNum) < 0.005 || Math.abs(t.cr - qNum) < 0.005)
+          : (t.m.toUpperCase().includes(q) || (typeof canonOf === 'function' && canonOf(t.m).toUpperCase().includes(q)));
+        if (match) hits.push(Object.assign({}, t, {ec: typeof effCatFull === 'function' ? effCatFull(t) : t.c}));
+      }
+      hits.sort((a,b) => b.d < a.d ? -1 : 1);
+      this.exportTransactions(hits, 'search');
+    },
+    exportForecast(){
+      if (!FC || !FC.length){ alert('Forecast not ready yet.'); return; }
+      const lines = [this.header('forecast')];
+      lines.push(this.row(['month','income','expense','surplus_expected','cum_expected','surplus_cautious','cum_cautious']));
+      for (const r of FC) lines.push(this.row([r.m, r.inc, r.exp, r.surplus, r.cum, r.surplusC, r.cumC]));
+      lines.push('');
+      lines.push('#recurring');
+      lines.push(this.row(['merchant','kind','avg_mo','period','end_month','confidence','source']));
+      for (const r of (REC || [])) lines.push(this.row([r.merchant, r.kind, r.avgMo, r.period, r.endMonth || '', r.conf, r.source || '']));
+      this.download('lithifyte-forecast-' + this.stamp() + '.csv', lines.join('\n'));
+    },
+    exportSimulate(){
+      const lines = [this.header('simulate')];
+      lines.push(this.row(['category','current_mo','suggested_cut','max_cut','your_cut','note']));
+      for (const l of (LEVERS || [])){
+        const cut = typeof cutOf === 'function' ? cutOf(l) : (cutStore[l.cat] || 0);
+        lines.push(this.row([l.name || l.cat, l.cur, l.sug, l.max, cut, l.note || '']));
+      }
+      lines.push('');
+      lines.push(this.row(['metric','value']));
+      lines.push(this.row(['extra_saved_mo', typeof cutsTotal === 'function' ? cutsTotal() : '']));
+      this.download('lithifyte-simulator-' + this.stamp() + '.csv', lines.join('\n'));
+    },
+    exportInvest(){
+      if (!HV){ alert('Holdings not ready.'); return; }
+      const lines = [this.header('invest')];
+      lines.push(this.row(['name','symbol','kind','units','cost','price','value','unrealised_gain','tax_if_sold','acquired','quote_asof']));
+      const rows = HV.rows || HV.items || [];
+      for (const r of rows){
+        lines.push(this.row([
+          r.name, r.symbol, r.kind, r.units, r.cost,
+          r.price != null ? r.price : (r.quote && r.quote.price),
+          r.value != null ? r.value : r.val,
+          r.gain != null ? r.gain : r.unrealised,
+          r.tax != null ? r.tax : r.taxIfSold,
+          r.acquiredOn || r.acquired || '',
+          r.quoteAsOf || (r.quote && r.quote.asOf) || ''
+        ]));
+      }
+      lines.push('');
+      lines.push(this.row(['portfolio_total', HV.total != null ? HV.total : '']));
+      this.download('lithifyte-invest-' + this.stamp() + '.csv', lines.join('\n'));
+    },
+    exportDebts(){
+      if (!DP){ alert('Debt plan not ready.'); return; }
+      const lines = [this.header('debts')];
+      lines.push(this.row(['name','kind','balance','apr','payment','payoff_month','interest_remaining','merchant','done']));
+      for (const d of DP.rows) lines.push(this.row([d.name, d.kind, d.balance, d.apr, d.pay, d.payoffMonth || '', d.interest, d.merchant || '', d.done ? 'yes' : '']));
+      lines.push('');
+      lines.push(this.row(['total_balance', DP.totBal]));
+      lines.push(this.row(['monthly_service', DP.service]));
+      lines.push(this.row(['weighted_apr', DP.wApr]));
+      this.download('lithifyte-debts-' + this.stamp() + '.csv', lines.join('\n'));
+    },
+    exportNetWorth(){
+      if (!NW){ alert('Net worth not ready.'); return; }
+      const lines = [this.header('networth')];
+      lines.push(this.row(['layer','value']));
+      lines.push(this.row(['total', NW.total]));
+      if (NW.cash != null) lines.push(this.row(['cash', NW.cash]));
+      if (NW.pots != null) lines.push(this.row(['goal_pots', NW.pots]));
+      if (NW.holdings != null) lines.push(this.row(['holdings', NW.holdings]));
+      if (NW.assets != null) lines.push(this.row(['assets', NW.assets]));
+      if (NW.debts != null) lines.push(this.row(['debts', NW.debts]));
+      if (NW.parts && typeof NW.parts === 'object')
+        for (const [k,v] of Object.entries(NW.parts)) lines.push(this.row([k, v]));
+      if (assetStore && assetStore.items)
+        for (const a of assetStore.items) lines.push(this.row(['asset:' + a.name, a.value]));
+      lines.push('');
+      lines.push('#daily_log');
+      lines.push(this.row(['date','net_worth','pulse']));
+      for (const pt of (nwLog || [])) lines.push(this.row([pt.d, pt.t, pt.p != null ? pt.p : '']));
+      this.download('lithifyte-networth-' + this.stamp() + '.csv', lines.join('\n'));
+    },
+    bind(){
+      const on = (id, fn) => { const el = document.getElementById(id); if (el && !el.dataset.xl){ el.dataset.xl = '1'; el.addEventListener('click', fn); } };
+      on('cashExportXl', () => this.exportCashflow());
+      on('catExportXl', () => this.exportCategories());
+      on('catExportTxXl', () => this.exportCategoryTx());
+      on('fcExportXl', () => this.exportForecast());
+      on('simExportXl', () => this.exportSimulate());
+      on('hdExportXl', () => this.exportInvest());
+      on('dbExportXl', () => this.exportDebts());
+      on('nwExportXl', () => this.exportNetWorth());
+      on('txExportXl', () => this.exportSearch());
+      on('bgExportXl', () => this.exportBudget());
+      on('bgTplDl', () => this.download('lithifyte-budget-template.csv', this.budgetTemplate(!!budgetStore)));
+      on('bgImportXl', () => document.getElementById('bgImportFile').click());
+      const f = document.getElementById('bgImportFile');
+      if (f && !f.dataset.xl){
+        f.dataset.xl = '1';
+        f.addEventListener('change', async () => {
+          const file = f.files && f.files[0]; if (!file) return;
+          try {
+            const n = this.importBudgetCsv(await file.text());
+            const st = document.getElementById('bgXlStatus');
+            if (st) st.textContent = 'Imported ' + n + ' budget line' + (n===1?'':'s') + ' from ' + file.name;
+          } catch (e) {
+            alert(e.message || String(e));
+          }
+          f.value = '';
+        });
+      }
+      on('bgExcelMode', () => {
+        FCONF.budgetExcel = !FCONF.budgetExcel;
+        save(LS.fcast, FCONF);
+        const live = document.getElementById('budgetLive');
+        if (live) live.classList.toggle('budget-excel', !!FCONF.budgetExcel);
+        const b = document.getElementById('bgExcelMode');
+        if (b) b.textContent = FCONF.budgetExcel ? '▦ Pace layout' : '▦ Excel layout';
+        if (typeof renderBudget === 'function') renderBudget();
+      });
+    }
+  };
+  window.__ddExcel = XL;
 
   // ══ Map filter chips (search isolate, etc.) — above ▶ Play history ══
   // When a feature dims the map to a subset of nodes, show what is active and
@@ -7701,6 +8030,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       return;
     }
     setup.style.display = 'none'; live.style.display = '';
+    live.classList.toggle('budget-excel', !!FCONF.budgetExcel);
+    const bx = document.getElementById('bgExcelMode');
+    if (bx) bx.textContent = FCONF.budgetExcel ? '▦ Pace layout' : '▦ Excel layout';
     const bo = computeBudgets();
     if (!bo) return;
     const {pm, rows, total} = bo;
@@ -8919,6 +9251,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
 
     return {start, startPart, stop, next, prev, isActive: () => active};
   })();
+  if (window.__ddExcel) try { window.__ddExcel.bind(); } catch(e) { console.warn(e); }
   window.__ddTour = SpaceTour;
 
   // Onboarding "Open the Tutorial guide" → demo.html?tutorial=1 boots the
