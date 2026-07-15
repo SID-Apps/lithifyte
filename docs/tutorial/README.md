@@ -4,7 +4,7 @@ Webhosted guide for new users, plus the knowledge corpus that powers **Ask**.
 
 | Asset | Path | Role |
 |---|---|---|
-| **Hosted tutorial** | [`/tutorial.html`](../../tutorial.html) | Journey UI, section notes, Ask panel |
+| **Hosted tutorial** | [`/tutorial`](../../tutorial) | Journey UI, section notes, Ask panel |
 | **RAG corpus** | [`docs/rag/chunks.json`](../rag/chunks.json) | 40+ feature chunks (id, order, phase, location, body, tags, selectors) |
 | **Tour definition** | [`docs/tutorial/tour.json`](tour.json) | Same order + CSS selectors for a future in-app spotlight |
 | **Live URL** | https://lithifyte.sid-labs.com/tutorial.html | Cloudflare Pages (static) |
@@ -80,7 +80,7 @@ Do **not** auto-start the tour for returning users with data.
 1. Edit generation inputs or `docs/rag/chunks.json` directly (keep `schema: 1`).
 2. Keep `id`s stable — Ask links and deep links use `#chunk-<id>`.
 3. Recompute nothing in the finance engine; this is docs only.
-4. Open `/tutorial.html` and smoke Ask: `Where do I upload?`, `What is cautious forecast?`
+4. Open `/tutorial` and smoke Ask: `Where do I upload?`, `What is cautious forecast?`
 
 ## Privacy
 
