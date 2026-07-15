@@ -135,8 +135,11 @@ refs "*X", SEPA/DD tails — always a prefix of the raw name); merch.rules
 force-merge by substring, merch.keep exempts a raw name. Raw strings stay
 the identity for rules, recurring, transfers, debt links and dedupe.
 stores.budget =
-{cats:{name:€/mo}, other:€/mo, seededOn} — monthly spending budgets,
-pace-tracked in the Budget section (browser store only, not in this file).
+{v:2, packs:[{id, name, scope:null|acctId, cats:{name:€/mo}, other:€|null,
+rules:[{id, name, keywords:[…], budget}], seededOn}], activeId} —
+monthly spending budgets (category and/or keyword-rule lines), scoped to
+all accounts or one account; pace-tracked in Budget (browser store only).
+Legacy {cats, other, seededOn} is migrated on load.
 stores.debts = {items:[{id, name, kind "mortgage"|"personal"|"car"|
 "credit-card"|"student"|"other", balance, asOf "YYYY-MM", apr %, payment|null,
 endMonth|null, merchant|null, fixedUntil|null}]} — the debt tracker (browser
@@ -675,17 +678,46 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
   .xl-bar .hint{margin:0; font-size:12px}
   #budgetLive.budget-excel #budgetTable{border-collapse:collapse; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12.5px}
   #budgetLive.budget-excel #budgetTable th,#budgetLive.budget-excel #budgetTable td{
-    border:1px solid #9ca3af; padding:4px 6px; background:#fff; color:#111}
-  #budgetLive.budget-excel #budgetTable th{background:#e5e7eb; font-weight:700; position:sticky; top:0}
+    border:1px solid #1f2937; padding:5px 7px; background:#fff; color:#111}
+  #budgetLive.budget-excel #budgetTable th{
+    background:#111827; color:#f9fafb; font-weight:700; position:sticky; top:0; z-index:1;
+    border-color:#030712; letter-spacing:.02em; text-transform:uppercase; font-size:11px}
+  #budgetLive.budget-excel #budgetTable thead th:first-child{border-left:2px solid #030712}
+  #budgetLive.budget-excel #budgetTable tbody tr:nth-child(even) td{background:#f3f4f6}
+  #budgetLive.budget-excel #budgetTable tbody tr:hover td{background:#e0f2fe}
   #budgetLive.budget-excel #budgetTable input.bg-amt{
-    border:1px solid #6b7280; background:#fff; color:#111; width:88px; font:inherit; text-align:right; padding:2px 4px}
-  #budgetLive.budget-excel .track{background:#e5e7eb; border:1px solid #9ca3af}
-  #budgetLive.budget-excel .card{background:#f3f4f6; border:1px solid #9ca3af; border-radius:0}
-  #budgetLive.budget-excel .kpis .kpi{background:#fff; border:1px solid #9ca3af; border-radius:0}
+    border:1px solid #374151; background:#fff; color:#111; width:88px; font:inherit; text-align:right; padding:2px 4px}
+  #budgetLive.budget-excel .track{background:#e5e7eb; border:1px solid #374151}
+  #budgetLive.budget-excel .card{background:#f9fafb; border:1px solid #1f2937; border-radius:0}
+  #budgetLive.budget-excel .kpis .kpi{background:#fff; border:1px solid #1f2937; border-radius:0}
+  #budgetLive.budget-excel .bg-hits{cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px}
+  #budgetLive .bg-hits{cursor:pointer}
+  #budgetLive .bg-hits:hover span{filter:brightness(1.15)}
+  .bg-pack-bar{display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:0 0 12px}
+  .bg-pack-chip{font:600 12px system-ui,sans-serif; padding:5px 10px; border-radius:999px;
+    border:1px solid var(--border, #334155); background:transparent; color:inherit; cursor:pointer}
+  .bg-pack-chip.on{background:#111827; color:#f9fafb; border-color:#111827}
+  [data-theme="dark"] .bg-pack-chip.on{background:#e5e7eb; color:#111; border-color:#e5e7eb}
+  .bg-mode-pick{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin:10px 0}
+  .bg-mode-card{border:1px solid var(--border,#334155); border-radius:10px; padding:12px; cursor:pointer; background:transparent}
+  .bg-mode-card:hover,.bg-mode-card.on{border-color:#38bdf8; box-shadow:0 0 0 1px #38bdf8}
+  .bg-mode-card h4{margin:0 0 4px; font-size:14px}
+  .bg-mode-card p{margin:0; font-size:12.5px; opacity:.85; line-height:1.4}
+  .bg-kw-list{display:flex; flex-wrap:wrap; gap:4px; margin-top:6px}
+  .bg-kw{font:600 11px system-ui,sans-serif; background:rgba(56,189,248,.15); border:1px solid rgba(56,189,248,.4);
+    border-radius:999px; padding:2px 8px}
+  #budgetDetailModal .bd-mo-table th{background:#111827; color:#f9fafb; font-size:11px; text-transform:uppercase}
+  #budgetDetailModal .bd-mo-table{width:100%; border-collapse:collapse; font-size:13px}
+  #budgetDetailModal .bd-mo-table th,#budgetDetailModal .bd-mo-table td{border:1px solid #374151; padding:6px 8px}
+  #budgetDetailModal .bd-mo-table .r{text-align:right}
+  #budgetDetailModal .bd-tx{max-height:240px; overflow:auto; font-size:12.5px}
   [data-theme="dark"] #budgetLive.budget-excel #budgetTable th,
-  [data-theme="dark"] #budgetLive.budget-excel #budgetTable td{background:#1f2937; color:#f3f4f6; border-color:#4b5563}
-  [data-theme="dark"] #budgetLive.budget-excel #budgetTable th{background:#374151}
-  [data-theme="dark"] #budgetLive.budget-excel #budgetTable input.bg-amt{background:#111827; color:#f3f4f6; border-color:#6b7280}
+  [data-theme="dark"] #budgetLive.budget-excel #budgetTable td{border-color:#4b5563}
+  [data-theme="dark"] #budgetLive.budget-excel #budgetTable th{background:#030712; color:#f9fafb; border-color:#000}
+  [data-theme="dark"] #budgetLive.budget-excel #budgetTable td{background:#111827; color:#f3f4f6}
+  [data-theme="dark"] #budgetLive.budget-excel #budgetTable tbody tr:nth-child(even) td{background:#1f2937}
+  [data-theme="dark"] #budgetLive.budget-excel #budgetTable tbody tr:hover td{background:#164e63}
+  [data-theme="dark"] #budgetLive.budget-excel #budgetTable input.bg-amt{background:#030712; color:#f3f4f6; border-color:#6b7280}
 
   /* Active map filters (search isolate, etc.) — sits above ▶ Play history */
   .map-filter-stack{position:absolute; left:50%; bottom:52px; transform:translateX(-50%); z-index:5;
@@ -1188,7 +1220,7 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
   <div class="section" id="sec-budget">
     <div class="section-head">
       <h2>Budget — spending pace</h2>
-      <p>Set a monthly allowance per category and this tracks whether the month is on pace — not just at the end, but on any day. Regular bills (rent, insurance) are treated as committed from day 1, so a big bill landing early never looks like overspending; only day-to-day spending paces with the calendar. Budgets are seeded from your own history — change any number and it sticks. Prefer Excel? Switch to the spreadsheet layout, or download a template you can edit offline and re-import.</p>
+      <p>Set monthly allowances and track whether the month is on pace — any day, not just month-end. Create budgets <b>by category</b> (existing spend groups) or <b>by rule</b> (bespoke merchant groups like “Lidl + Tesco + Aldi”). Scope each budget to the whole household or a single account. Regular bills count from day 1 so early rent never false-alarms. Prefer Excel? Switch to the dark-header spreadsheet layout, or export a template and re-import.</p>
     </div>
     <div class="xl-bar" id="budgetXlBar">
       <button type="button" class="btn small" id="bgExcelMode" title="Familiar spreadsheet-style budget table">▦ Excel layout</button>
@@ -1199,25 +1231,55 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
       <span class="hint" id="bgXlStatus"></span>
     </div>
     <div id="budgetSetup" class="card" style="display:none">
-      <h3 style="margin:0 0 4px">Set up budgets in one click</h3>
-      <p class="rule-hint" style="margin:0 0 12px">Two ways to seed them — both editable afterwards:</p>
-      <div class="rule-actions" style="align-items:flex-start; flex-wrap:wrap">
-        <div style="max-width:340px"><button class="btn primary" id="bgSeedHist" type="button">📊 Match my history</button>
-          <p class="rule-hint" style="margin:6px 0 0">Each category gets the median of your recent complete months — a budget you already live within. Start here, then trim.</p></div>
-        <div style="max-width:340px"><button class="btn primary" id="bgSeedGoal" type="button">🎯 Align to my goal</button>
-          <p class="rule-hint" style="margin:6px 0 0" id="bgSeedGoalHint">History-based, then day-to-day categories are trimmed so total spending fits what the primary goal needs each month.</p></div>
+      <h3 style="margin:0 0 4px">Create a budget</h3>
+      <p class="rule-hint" style="margin:0 0 10px">Choose who it covers, then how you want to define the lines.</p>
+      <div class="rule-form" style="grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px">
+        <div><label for="bgSetupScope">Covers</label>
+          <select id="bgSetupScope" class="inp"><option value="">All accounts (household)</option></select></div>
+        <div><label for="bgSetupName">Budget name</label>
+          <input id="bgSetupName" class="inp" placeholder="e.g. Household · July"></div>
+      </div>
+      <div class="bg-mode-pick" id="bgModePick">
+        <div class="bg-mode-card on" data-mode="category" tabindex="0" role="button">
+          <h4>Budget by Category</h4>
+          <p>Set a monthly limit on each existing category (Groceries, Dining…). Seeded from your history; edit any number later.</p>
+        </div>
+        <div class="bg-mode-card" data-mode="rule" tabindex="0" role="button">
+          <h4>Budget by Rule</h4>
+          <p>Build bespoke groups with keywords — e.g. Lidl + Tesco + Aldi in one line, SuperValu + Mace in another. Matched spend is carved out and paced on its own.</p>
+        </div>
+      </div>
+      <div id="bgSetupCategory" style="margin-top:8px">
+        <p class="rule-hint" style="margin:0 0 10px">Seed the category lines:</p>
+        <div class="rule-actions" style="align-items:flex-start; flex-wrap:wrap">
+          <div style="max-width:340px"><button class="btn primary" id="bgSeedHist" type="button">📊 Match my history</button>
+            <p class="rule-hint" style="margin:6px 0 0">Each category gets the median of your recent complete months — a budget you already live within. Start here, then trim.</p></div>
+          <div style="max-width:340px"><button class="btn primary" id="bgSeedGoal" type="button">🎯 Align to my goal</button>
+            <p class="rule-hint" style="margin:6px 0 0" id="bgSeedGoalHint">History-based, then day-to-day categories are trimmed so total spending fits what the primary goal needs each month.</p></div>
+        </div>
+      </div>
+      <div id="bgSetupRule" style="display:none; margin-top:8px">
+        <p class="rule-hint" style="margin:0 0 10px">Add one or more merchant groups. Keywords match statement names (case-insensitive contains).</p>
+        <div id="bgRuleDrafts"></div>
+        <button class="btn small" id="bgRuleAddDraft" type="button">＋ Add merchant group</button>
+        <div class="rule-actions" style="margin-top:12px">
+          <button class="btn primary" id="bgRuleCreate" type="button">Create rule budget</button>
+        </div>
       </div>
     </div>
     <div id="budgetLive" style="display:none">
+      <div class="bg-pack-bar" id="bgPackBar"></div>
       <div class="kpis" id="budgetTiles" style="margin-bottom:14px"></div>
       <div class="card" style="padding:6px 8px; overflow-x:auto">
         <table id="budgetTable">
-          <thead><tr><th>Category</th><th class="r">Budget €/mo</th><th class="r">Spent</th><th style="min-width:140px">Pace</th><th class="r">vs pace</th><th class="r">Projected</th><th class="r">Last 6 mo</th><th></th></tr></thead>
+          <thead><tr><th>Line</th><th class="r">Budget €/mo</th><th class="r">Spent</th><th style="min-width:140px">Pace</th><th class="r">vs pace</th><th class="r">Projected</th><th class="r">Last 6 mo</th><th></th></tr></thead>
           <tbody></tbody>
         </table>
-        <div class="rule-actions" style="padding:10px 6px">
+        <div class="rule-actions" style="padding:10px 6px; flex-wrap:wrap">
           <select id="bgAddCat" class="inp" style="max-width:220px"><option value="">add a category…</option></select>
-          <button class="btn small" id="bgReseed" type="button" title="Re-derive every budget from recent history (overwrites your numbers)">↺ Re-seed from history</button>
+          <button class="btn small" id="bgAddRuleLine" type="button" title="Add a keyword merchant group to this budget">＋ Rule group</button>
+          <button class="btn small" id="bgNewPack" type="button" title="Create another budget (different account or mode)">＋ New budget</button>
+          <button class="btn small" id="bgReseed" type="button" title="Re-derive category budgets from recent history (overwrites category numbers)">↺ Re-seed categories</button>
           <button class="btn small danger" id="bgOff" type="button">Turn budgets off</button>
           <span class="hint" id="bgNote"></span>
         </div>
@@ -1575,6 +1637,26 @@ rewrite the static advice cards if the picture has changed.</div>
 <div id="spaceOb"></div>
 
 
+<!-- Budget Last-6-mo detail dialog -->
+<div id="budgetDetailModal" hidden style="position:fixed;inset:0;z-index:610;display:none;align-items:center;justify-content:center;background:rgba(2,8,20,.72);padding:16px">
+  <div role="dialog" aria-modal="true" aria-labelledby="bdTitle" style="width:min(720px,100%);background:var(--page,#0a1628);border:1px solid rgba(56,189,248,.45);border-radius:14px;padding:16px;box-shadow:0 20px 60px rgba(0,0,0,.55);max-height:92vh;overflow:auto">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px">
+      <div>
+        <h3 id="bdTitle" style="margin:0 0 4px">Budget history</h3>
+        <p class="hint" id="bdSub" style="margin:0"></p>
+      </div>
+      <button type="button" class="btn small" id="bdClose" aria-label="Close">✕</button>
+    </div>
+    <div id="bdMonths" style="margin-bottom:14px"></div>
+    <h4 style="margin:0 0 6px;font-size:13px">Transactions captured</h4>
+    <p class="hint" id="bdTxHint" style="margin:0 0 6px">Last 6 complete months for this line</p>
+    <div class="bd-tx" id="bdTxs"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:14px">
+      <button type="button" class="btn primary" id="bdClose2">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Manual cash transaction dialog -->
 <div id="cashTxModal" hidden style="position:fixed;inset:0;z-index:600;display:none;align-items:center;justify-content:center;background:rgba(2,8,20,.72);padding:16px">
   <div role="dialog" aria-modal="true" aria-labelledby="cashTxTitle" style="width:min(440px,100%);background:var(--page,#0a1628);border:1px solid rgba(56,189,248,.45);border-radius:14px;padding:16px;box-shadow:0 20px 60px rgba(0,0,0,.55);max-height:92vh;overflow:auto">
@@ -1913,7 +1995,7 @@ rewrite the static advice cards if the picture has changed.</div>
   let xferStore = load(LS.xfers, (()=>{ const m={}; (raw.transfers||[]).forEach(t=>m[t.key]=t.decision); return m; })());
   let manrec = load(LS.manrec, JSON.parse(JSON.stringify(raw.manualRecurring || [])));
   let FCONF = load(LS.fcast, {bufferPct: 70});
-  let budgetStore = load(LS.budget, null);   // null = budgets not set up yet; {cats:{name:€}, other:€, seededOn}
+  let budgetStore = load(LS.budget, null);   // null | v2 packs | legacy {cats,other,seededOn} (migrated on use)
   let debtStore = load(LS.debts, {items:[]});   // P5-21: {items:[{id, name, kind, balance, asOf, apr, payment|endMonth, merchant|null, fixedUntil|null}]}
   let holdStore = load(LS.holds, {items:[], quotes:{}});   // P5-22: items:[{id, name, symbol, kind, units, cost, acquiredOn|null}], quotes:{SYM:{price, asOf}}
   let assetStore = load(LS.assets, {items:[]});   // P5-23: {items:[{id, name, class, value, asOf "YYYY-MM", note}]}
@@ -4106,40 +4188,49 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
     budgetTemplate(prefill){
       const lines = [this.header('budget')];
       lines.push(this.row(['category','budget_eur','note']));
-      if (prefill && budgetStore){
-        for (const [c, v] of Object.entries(budgetStore.cats || {}))
+      const pack = (typeof activePack === 'function' && activePack()) || null;
+      if (prefill && pack){
+        for (const r of (pack.rules || []))
+          lines.push(this.row([r.name, r.budget, 'RULE:' + (r.keywords || []).join('|')]));
+        for (const [c, v] of Object.entries(pack.cats || {}))
           lines.push(this.row([c, v, '']));
-        if (budgetStore.other != null) lines.push(this.row(['__OTHER__', budgetStore.other, 'Everything else (uncategorised spend)']));
+        if (pack.other != null) lines.push(this.row(['__OTHER__', pack.other, 'Everything else (uncategorised spend)']));
       } else {
         lines.push(this.row(['Groceries', '', 'Monthly cap']));
         lines.push(this.row(['Dining', '', '']));
         lines.push(this.row(['Transport', '', '']));
+        lines.push(this.row(['Discount grocers', '', 'RULE:Lidl|Tesco|Aldi']));
         lines.push(this.row(['__OTHER__', '', 'Catch-all for categories not listed']));
       }
       lines.push('');
-      lines.push('#notes,Edit budget_eur in Excel. Re-import with Import budget CSV. __OTHER__ is the everything-else line.');
+      lines.push('#notes,Edit budget_eur in Excel. Re-import with Import budget CSV. __OTHER__ is the everything-else line. Prefix note with RULE:kw1|kw2 for a keyword rule group.');
       return lines.join('\n');
     },
     exportBudget(){
       if (!budgetStore){ alert('Set up budgets first (or download a blank template).'); return; }
       const bo = typeof computeBudgets === 'function' ? computeBudgets() : null;
-      const lines = [this.header('budget-status')];
+      const pack = (typeof activePack === 'function' && activePack()) || null;
+      const lines = [this.header('budget-status', pack ? {budgetPack: pack.name, budgetScope: pack.scope || 'all'} : null)];
       lines.push(this.row(['category','budget_eur','spent','vs_pace','projected','verdict','note']));
       if (bo && bo.rows){
         for (const r of bo.rows){
-          lines.push(this.row([r.cat, r.budget, r.pace.spent, r.pace.delta, r.pace.projected, r.pace.verdict, r.isOther ? 'everything else' : '']));
+          const note = r.isOther ? 'everything else' : (r.isRule ? 'RULE:' + (r.keywords || []).join('|') : '');
+          lines.push(this.row([r.cat, r.budget, r.pace.spent, r.pace.delta, r.pace.projected, r.pace.verdict, note]));
         }
-      } else {
-        for (const [c, v] of Object.entries(budgetStore.cats || {}))
+      } else if (pack){
+        for (const r of (pack.rules || []))
+          lines.push(this.row([r.name, r.budget, '', '', '', '', 'RULE:' + (r.keywords || []).join('|')]));
+        for (const [c, v] of Object.entries(pack.cats || {}))
           lines.push(this.row([c, v, '', '', '', '', '']));
-        if (budgetStore.other != null) lines.push(this.row(['__OTHER__', budgetStore.other, '', '', '', '', 'everything else']));
+        if (pack.other != null) lines.push(this.row(['__OTHER__', pack.other, '', '', '', '', 'everything else']));
       }
       this.download('lithifyte-budget-' + this.stamp() + '.csv', lines.join('\n'));
     },
     importBudgetCsv(text){
       const lines = String(text || '').replace(/^\uFEFF/, '').split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith('#notes'));
       let kind = 'budget';
-      const cats = {}, rows = [];
+      const cats = {};
+      const ruleLines = [];
       let other = null;
       for (const line of lines){
         if (line.startsWith('#LITIFYTE')){ const p = line.split(','); kind = p[2] || kind; continue; }
@@ -4164,15 +4255,30 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
         const cat = (cells[0] || '').trim();
         const val = parseFloat(String(cells[1] || '').replace(/[€,\s]/g, ''));
         if (!cat || !(val >= 0)) continue;
-        if (cat === '__OTHER__' || /^everything else$/i.test(cat)) other = val;
-        else cats[cat] = val;
+        if (cat === '__OTHER__' || /^everything else$/i.test(cat)){ other = val; continue; }
+        const note = (cells[2] || cells[6] || '').trim();
+        const ruleM = /^RULE:\s*(.+)$/i.exec(note);
+        if (ruleM){
+          const keywords = ruleM[1].split(/[|,]/).map(s => s.trim()).filter(Boolean);
+          ruleLines.push({name: cat, keywords, budget: val});
+        } else cats[cat] = val;
       }
-      if (!Object.keys(cats).length && other == null) throw new Error('No budget rows found. Use the Lithifyte budget template columns: category,budget_eur');
-      budgetStore = {cats, other: other != null ? other : (budgetStore && budgetStore.other != null ? budgetStore.other : 0), seededOn: new Date().toISOString().slice(0,10)};
+      if (!Object.keys(cats).length && other == null && !ruleLines.length)
+        throw new Error('No budget rows found. Use the Lithifyte budget template columns: category,budget_eur');
+      const pack = (typeof normalizeBudgetPack === 'function' ? normalizeBudgetPack : (p => p))({
+        id: (typeof uid === 'function' ? uid('bp') : 'bp' + Date.now()),
+        name: 'Imported',
+        scope: null,
+        cats,
+        other: other != null ? other : 0,
+        rules: ruleLines.map(r => ({id: (typeof uid === 'function' ? uid('br') : 'br' + Date.now()), name: r.name, keywords: r.keywords, budget: r.budget})),
+        seededOn: new Date().toISOString().slice(0,10)
+      });
+      budgetStore = {v: 2, packs: [pack], activeId: pack.id};
       save(LS.budget, budgetStore);
       if (typeof renderBudget === 'function') renderBudget();
       if (typeof renderAll === 'function') renderAll();
-      return Object.keys(cats).length + (other != null ? 1 : 0);
+      return Object.keys(cats).length + ruleLines.length + (other != null ? 1 : 0);
     },
     // ── Transactions (scoped) ──
     exportTransactions(list, tag){
@@ -7898,11 +8004,16 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       <div class="p-worth">Worth: ${esc(c.worth)}</div></div>`).join('');
   }
 
-  // ══ Budget (P4): pace-based category budgets, seeded from history ══
+  // ══ Budget (P4): pace-based category + rule budgets, multi-pack / account scope ══
   // Philosophy: no envelope ceremony — budgets default to what your own data
   // says you spend, then the month is paced against them recurring-aware
-  // (Engine.budgetPace). Breaches feed the visit digest and the insight rail.
+  // (Engine.budgetPace). Rule lines carve merchant-keyword groups out of parent
+  // categories so Lidl/Tesco and SuperValu never double-count. Packs can be
+  // household-wide or single-account. Breaches feed the visit digest + rail.
   const OTHER_LBL = 'Everything else';
+  let bgSetupMode = 'category';   // setup wizard: 'category' | 'rule'
+  let bgForceSetup = false;      // true when "+ New budget" while packs exist
+
   function budgetMonths(){        // complete months (never the one in progress)
     const nowMo = new Date().toISOString().slice(0, 7);
     return MONTHS.filter(m => m < nowMo).slice(-6);
@@ -7929,18 +8040,234 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
     return m;
   }
+
+  // ── store shape helpers (v2 packs; migrate legacy on read) ──
+  function normalizeBudgetRule(r){
+    return {
+      id: (r && r.id) || uid('br'),
+      name: (r && r.name) || 'Rule group',
+      keywords: Array.isArray(r && r.keywords) ? r.keywords.map(k => String(k).trim()).filter(Boolean) : [],
+      budget: Math.max(0, Math.round(+(r && r.budget) || 0))
+    };
+  }
+  function normalizeBudgetPack(p){
+    return {
+      id: (p && p.id) || uid('bp'),
+      name: (p && p.name) || 'Budget',
+      scope: (p && p.scope) || null,
+      cats: (p && p.cats && typeof p.cats === 'object') ? Object.assign({}, p.cats) : {},
+      other: (p && p.other != null) ? p.other : null,
+      rules: Array.isArray(p && p.rules) ? p.rules.map(normalizeBudgetRule) : [],
+      seededOn: (p && p.seededOn) || null
+    };
+  }
+  function migrateBudgetStore(raw){
+    if (!raw || typeof raw !== 'object') return null;
+    if (raw.v === 2 && Array.isArray(raw.packs)){
+      const packs = raw.packs.map(normalizeBudgetPack);
+      if (!packs.length) return null;
+      let activeId = raw.activeId;
+      if (!packs.some(p => p.id === activeId)) activeId = packs[0].id;
+      return {v: 2, packs, activeId};
+    }
+    // legacy single-pack {cats, other, seededOn}
+    if (raw.cats || raw.other != null || raw.rules){
+      const pack = normalizeBudgetPack({
+        id: uid('bp'), name: 'Household', scope: raw.scope || null,
+        cats: raw.cats || {}, other: raw.other != null ? raw.other : null,
+        rules: raw.rules || [], seededOn: raw.seededOn || null
+      });
+      return {v: 2, packs: [pack], activeId: pack.id};
+    }
+    return null;
+  }
+  function ensureBudgetV2(){
+    if (!budgetStore) return null;
+    const m = migrateBudgetStore(budgetStore);
+    if (m !== budgetStore){ budgetStore = m; if (m) save(LS.budget, budgetStore); }
+    return budgetStore;
+  }
+  function activePack(){
+    ensureBudgetV2();
+    if (!budgetStore || !budgetStore.packs || !budgetStore.packs.length) return null;
+    return budgetStore.packs.find(p => p.id === budgetStore.activeId) || budgetStore.packs[0] || null;
+  }
+  function saveBudget(){
+    if (budgetStore) save(LS.budget, budgetStore);
+    else storeRemove(LS.budget);
+  }
+  function budgetTxPool(pack){
+    if (!A || !A.txe) return [];
+    return A.txe.filter(t => {
+      if (t.de <= 0 || t.ec === SAVE_CAT || t.ec === INT_CAT) return false;
+      if (pack && pack.scope && t.acct !== pack.scope) return false;
+      return true;
+    });
+  }
+  function ruleMatchesTx(rule, t){
+    const hay = ((t.cm || '') + ' ' + (t.m || '')).toUpperCase();
+    return (rule.keywords || []).some(kw => kw && hay.includes(String(kw).toUpperCase()));
+  }
+  function ruleFixedExpected(rule, mo){
+    let amt = 0;
+    for (const r of REC){
+      if (r.kind !== 'expense' || r.period !== 1 || r.source === 'manual' || r.isSave) continue;
+      if (r.endMonth && r.endMonth < mo) continue;
+      const hay = String(r.merchant || '').toUpperCase();
+      if ((rule.keywords || []).some(kw => kw && hay.includes(String(kw).toUpperCase()))) amt += r.avgMo;
+    }
+    return amt;
+  }
+  function setupScopeValue(){
+    const el = document.getElementById('bgSetupScope');
+    return el && el.value ? el.value : null;
+  }
+  function setupNameValue(fallback){
+    const el = document.getElementById('bgSetupName');
+    const v = el && el.value.trim();
+    if (v) return v;
+    const scope = setupScopeValue();
+    return fallback || (scope ? acctLabel(scope) + ' budget' : 'Household');
+  }
+  function fillBudgetScopeSelects(){
+    const accts = typeof allAccounts === 'function' ? allAccounts() : [];
+    const opts = '<option value="">All accounts (household)</option>' +
+      accts.map(a => `<option value="${esc(a.id)}">${esc(a.name)}${a.kind ? ' · ' + esc(a.kind) : ''}</option>`).join('');
+    const el = document.getElementById('bgSetupScope');
+    if (el){
+      const cur = el.value;
+      el.innerHTML = opts;
+      if ([...el.options].some(o => o.value === cur)) el.value = cur;
+    }
+  }
+  function setBgSetupMode(mode){
+    bgSetupMode = mode === 'rule' ? 'rule' : 'category';
+    document.querySelectorAll('#bgModePick .bg-mode-card').forEach(c => {
+      c.classList.toggle('on', c.dataset.mode === bgSetupMode);
+    });
+    const cat = document.getElementById('bgSetupCategory');
+    const rule = document.getElementById('bgSetupRule');
+    if (cat) cat.style.display = bgSetupMode === 'category' ? '' : 'none';
+    if (rule) rule.style.display = bgSetupMode === 'rule' ? '' : 'none';
+  }
+  function parseKeywords(str){
+    return String(str || '').split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+  }
+  function ensureBudgetCategory(name){
+    if (!name) return;
+    if (!catStore.custom.some(x => x.name === name) && !(A && A.allCats && A.allCats.includes(name))){
+      catStore.custom.push({name});
+      save(LS.cats, catStore);
+    }
+  }
+  function ensureBudgetKeywordRules(name, keywords){
+    // Create first-match recategorise rules so the rest of the app sees the group.
+    // Skip if an identical enabled rule already exists.
+    let added = 0;
+    for (const kw of keywords){
+      const exists = rules.some(r => r.enabled !== false &&
+        String(r.merchantContains || '').toUpperCase() === kw.toUpperCase() &&
+        r.setCategory === name);
+      if (exists) continue;
+      rules.push({
+        label: 'Budget · ' + name, merchantContains: kw, amountEquals: null,
+        amountMin: null, amountMax: null, setCategory: name,
+        note: 'Auto from Budget by Rule', enabled: true
+      });
+      added++;
+    }
+    if (added){
+      save(LS.rules, rules);
+      if (typeof onRulesChanged === 'function') onRulesChanged();
+      else if (typeof renderAll === 'function') renderAll();
+    }
+    return added;
+  }
+  function emptyRuleDraftHtml(){
+    return `<div class="card bg-rule-draft" style="padding:10px; margin:0 0 8px; border:1px solid var(--border,#334155)">
+      <div class="rule-form" style="grid-template-columns:1.2fr 1fr .7fr auto; gap:8px">
+        <div><label>Group name</label><input class="inp bg-rd-name" placeholder="e.g. Discount grocers"></div>
+        <div><label>Keywords (comma-separated)</label><input class="inp bg-rd-kw" placeholder="Lidl, Tesco, Aldi"></div>
+        <div><label>Budget €/mo</label><input class="inp bg-rd-amt num" type="number" min="0" step="10" value="100"></div>
+        <div style="align-self:end"><button type="button" class="btn small danger bg-rd-del">✕</button></div>
+      </div>
+      <p class="rule-hint" style="margin:6px 0 0">Matching merchants are paced under this line and carved out of parent category budgets in this pack.</p>
+    </div>`;
+  }
+  function readRuleDrafts(){
+    const box = document.getElementById('bgRuleDrafts');
+    if (!box) return [];
+    const out = [];
+    box.querySelectorAll('.bg-rule-draft').forEach(card => {
+      const name = (card.querySelector('.bg-rd-name') || {}).value || '';
+      const kw = parseKeywords((card.querySelector('.bg-rd-kw') || {}).value || '');
+      const budget = Math.max(0, Math.round(+((card.querySelector('.bg-rd-amt') || {}).value) || 0));
+      if (name.trim() && kw.length) out.push({name: name.trim(), keywords: kw, budget});
+    });
+    return out;
+  }
+  function pushPack(pack, note){
+    ensureBudgetV2();
+    if (!budgetStore) budgetStore = {v: 2, packs: [], activeId: null};
+    budgetStore.packs.push(pack);
+    budgetStore.activeId = pack.id;
+    bgForceSetup = false;
+    saveBudget();
+    renderBudget();
+    const el = document.getElementById('bgNote'); if (el && note) el.textContent = note;
+  }
+
   function computeBudgets(){
-    if (!budgetStore || !A || !MONTHS.length) return null;
+    ensureBudgetV2();
+    const pack = activePack();
+    if (!pack || !A || !MONTHS.length) return null;
     const pm = budgetPaceMonth();
     const fixedMap = recFixedByCat(pm.mo);
-    const budSet = new Set(Object.keys(budgetStore.cats));
-    const spent = new Map(); const otherSp = {fixed: 0, var: 0};
     const histMonths = budgetMonths();
     const histSet = new Set(histMonths);
-    const hist = new Map();      // cat -> mo -> spend (for the hit/miss dots)
-    let otherHist = new Map();
-    for (const t of A.txe){
-      if (t.de <= 0 || t.ec === SAVE_CAT || t.ec === INT_CAT) continue;
+    const txPool = budgetTxPool(pack);
+    const claimed = new Set();
+
+    const mkRow = (cat, budget, sp, fixedExpected, hm, extra) => {
+      const pace = Engine.budgetPace({budget, fixedExpected,
+        fixedSpent: sp.fixed, varSpent: sp.var, day: pm.day, daysInMonth: pm.daysInMonth});
+      const monthSpend = histMonths.map(mo => {
+        const spent = (hm && hm.get(mo)) || 0;
+        return {mo, spent, budget, hit: spent <= budget};
+      });
+      const hits = monthSpend.map(m => ({mo: m.mo, hit: m.hit, spent: m.spent}));
+      return Object.assign({cat, budget, pace, hits, monthSpend}, extra || {});
+    };
+
+    // 1) Rule lines first — keyword match, carve out of category totals
+    const ruleRows = [];
+    for (const rule of pack.rules){
+      const sp = {fixed: 0, var: 0};
+      const hm = new Map();
+      const fx = ruleFixedExpected(rule, pm.mo);
+      for (const t of txPool){
+        if (!ruleMatchesTx(rule, t)) continue;
+        claimed.add(t);
+        if (histSet.has(t.mo)) hm.set(t.mo, (hm.get(t.mo) || 0) + t.de);
+        if (t.mo !== pm.mo) continue;
+        const fm = fixedMap.get(t.ec);
+        const isFix = !!(fm && fm.merchants.has(t.m));
+        sp[isFix ? 'fixed' : 'var'] += t.de;
+      }
+      ruleRows.push(mkRow(rule.name, rule.budget, sp, fx, hm, {
+        isRule: true, ruleId: rule.id, keywords: rule.keywords.slice(), key: 'rule:' + rule.id
+      }));
+    }
+
+    // 2) Category lines (exclude names that are pure rule lines to avoid twin rows)
+    const ruleNames = new Set(pack.rules.map(r => r.name));
+    const budSet = new Set(Object.keys(pack.cats).filter(c => !ruleNames.has(c)));
+    const spent = new Map();
+    const otherSp = {fixed: 0, var: 0};
+    const hist = new Map();
+    const otherHist = new Map();
+    for (const t of txPool){
+      if (claimed.has(t)) continue;
       if (histSet.has(t.mo)){
         if (budSet.has(t.ec)){
           let hm = hist.get(t.ec); if (!hm){ hm = new Map(); hist.set(t.ec, hm); }
@@ -7955,46 +8282,75 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       else bucket = otherSp;
       bucket[isFix ? 'fixed' : 'var'] += t.de;
     }
-    const mkRow = (cat, budget, sp, fixedExpected, hm) => {
-      const pace = Engine.budgetPace({budget, fixedExpected,
-        fixedSpent: sp.fixed, varSpent: sp.var, day: pm.day, daysInMonth: pm.daysInMonth});
-      const hits = histMonths.map(mo => ({mo, hit: (hm && hm.get(mo) || 0) <= budget}));
-      return {cat, budget, pace, hits};
-    };
-    const rows = Object.entries(budgetStore.cats).map(([cat, b]) =>
-      mkRow(cat, b, spent.get(cat) || {fixed: 0, var: 0}, (fixedMap.get(cat) || {}).amt || 0, hist.get(cat)));
-    rows.sort((a, b) => b.budget - a.budget);
+    const catRows = [...budSet].map(cat =>
+      mkRow(cat, pack.cats[cat], spent.get(cat) || {fixed: 0, var: 0},
+        (fixedMap.get(cat) || {}).amt || 0, hist.get(cat), {isRule: false, key: 'cat:' + cat}));
+    catRows.sort((a, b) => b.budget - a.budget);
+
     let otherRow = null;
-    if (budgetStore.other != null){
+    if (pack.other != null){
       let otherFx = 0;
-      for (const [cat, e] of fixedMap) if (!budSet.has(cat)) otherFx += e.amt;
-      otherRow = mkRow(OTHER_LBL, budgetStore.other, otherSp, otherFx, otherHist);
-      otherRow.isOther = true;
+      for (const [cat, e] of fixedMap) if (!budSet.has(cat) && !ruleNames.has(cat)) otherFx += e.amt;
+      otherRow = mkRow(OTHER_LBL, pack.other, otherSp, otherFx, otherHist, {isOther: true, key: 'other'});
     }
-    const all = otherRow ? rows.concat([otherRow]) : rows;
-    // total pace: aggregate the raw parts, not the row verdicts
-    let tFx = 0, tFxSp = 0, tVarSp = 0;
-    for (const [cat, e] of fixedMap) if (budSet.has(cat) || budgetStore.other != null) tFx += e.amt;
-    for (const [, sp] of spent){ tFxSp += sp.fixed; tVarSp += sp.var; }
-    if (budgetStore.other != null){ tFxSp += otherSp.fixed; tVarSp += otherSp.var; }
+
+    const all = ruleRows.concat(catRows);
+    if (otherRow) all.push(otherRow);
+
+    // total pace: exclusive line sums (rule carve-outs already remove double-count)
+    let tFx = 0;
+    for (const r of pack.rules) tFx += ruleFixedExpected(r, pm.mo);
+    for (const [cat, e] of fixedMap) if (budSet.has(cat) || pack.other != null) tFx += e.amt;
+    const tSpent = all.reduce((s, r) => s + r.pace.spent, 0);
+    // Treat total spent as variable relative to fixedExpected so delta/project still work
     const tBudget = all.reduce((s, r) => s + r.budget, 0);
-    const total = {budget: tBudget, pace: Engine.budgetPace({budget: tBudget, fixedExpected: tFx,
-      fixedSpent: tFxSp, varSpent: tVarSp, day: pm.day, daysInMonth: pm.daysInMonth})};
-    return {pm, rows: all, total, histMonths};
+    const total = {budget: tBudget, pace: Engine.budgetPace({budget: tBudget, fixedExpected: Math.min(tFx, tBudget),
+      fixedSpent: Math.min(tFx, tSpent), varSpent: Math.max(0, tSpent - Math.min(tFx, tSpent)),
+      day: pm.day, daysInMonth: pm.daysInMonth})};
+    return {pm, rows: all, total, histMonths, pack};
   }
+
+  function budgetLineTxs(row, monthsSet){
+    const pack = activePack();
+    if (!pack || !A) return [];
+    const pool = budgetTxPool(pack);
+    // Rebuild claim order so category rows exclude rule-matched txs
+    const ruleClaimed = new Set();
+    for (const rule of pack.rules){
+      for (const t of pool) if (ruleMatchesTx(rule, t)) ruleClaimed.add(t);
+    }
+    let list;
+    if (row.isRule){
+      const rule = pack.rules.find(r => r.id === row.ruleId);
+      list = pool.filter(t => rule && ruleMatchesTx(rule, t));
+    } else if (row.isOther){
+      const budSet = new Set(Object.keys(pack.cats));
+      for (const r of pack.rules) budSet.delete(r.name);
+      list = pool.filter(t => !ruleClaimed.has(t) && !budSet.has(t.ec));
+    } else {
+      list = pool.filter(t => !ruleClaimed.has(t) && t.ec === row.cat);
+    }
+    if (monthsSet) list = list.filter(t => monthsSet.has(t.mo));
+    return list.slice().sort((a, b) => b.d.localeCompare(a.d) || b.de - a.de);
+  }
+
   function budgetOverview(){      // digest hook: which lines are over pace right now
     const bo = computeBudgets();
     if (!bo) return null;
     return {month: bo.pm.mo, over: bo.rows.filter(r => r.pace.verdict === 'hot').map(r => r.cat)};
   }
+
   function seedBudgets(goalAligned){
     const months = budgetMonths();
     if (!months.length || !A) return;
-    const sug = Engine.suggestBudgets({txe: A.txe, months, intCat: INT_CAT, saveCat: SAVE_CAT});
+    const scope = setupScopeValue();
+    const scopeTxe = scope ? A.txe.filter(t => t.acct === scope) : A.txe;
+    const sug = Engine.suggestBudgets({txe: scopeTxe, months, intCat: INT_CAT, saveCat: SAVE_CAT});
     const top = sug.slice(0, 7);
     const cats = {}; top.forEach(r => { cats[r.cat] = r.median; });
     let other = Math.round(sug.slice(7).reduce((s, r) => s + r.median, 0) / 10) * 10;
-    let note = 'Seeded from the median of ' + months.length + ' complete months.';
+    let note = 'Seeded from the median of ' + months.length + ' complete months' +
+      (scope ? ' on ' + acctLabel(scope) : '') + '.';
     if (goalAligned && lastAs && lastAs[0] && FC && FC.meta){
       const P = lastAs[0];
       const required = Math.max(P.reqMo != null && isFinite(P.reqMo) ? P.reqMo : 0, A.saveAvg12);
@@ -8012,36 +8368,222 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
                '/mo flowing to the goal after the ' + eur(FC.meta.buffer) + ' safety buffer. Fixed bills were not cut.';
       } else note = 'Your history already fits the goal — no trimming needed.';
     }
-    budgetStore = {cats, other, seededOn: new Date().toISOString().slice(0, 10)};
-    save(LS.budget, budgetStore);
-    renderBudget();
-    const el = document.getElementById('bgNote'); if (el) el.textContent = note;
+    const pack = normalizeBudgetPack({
+      id: uid('bp'),
+      name: setupNameValue(scope ? acctLabel(scope) : 'Household'),
+      scope, cats, other, rules: [],
+      seededOn: new Date().toISOString().slice(0, 10)
+    });
+    // If reseed of active pack (not force setup / not empty store creating new)
+    const cur = activePack();
+    if (cur && !bgForceSetup && budgetStore && budgetStore.packs && budgetStore.packs.length &&
+        document.getElementById('budgetLive') && document.getElementById('budgetLive').style.display !== 'none'){
+      // reseed only category lines on active pack; keep rules + scope + name
+      cur.cats = cats;
+      cur.other = other;
+      cur.seededOn = pack.seededOn;
+      saveBudget();
+      renderBudget();
+      const el = document.getElementById('bgNote'); if (el) el.textContent = note;
+      return;
+    }
+    pushPack(pack, note);
   }
+
+  function createRuleBudgetFromDrafts(appendToActive){
+    const drafts = readRuleDrafts();
+    if (!drafts.length){ alert('Add at least one merchant group with a name and keywords (e.g. Lidl, Tesco, Aldi).'); return; }
+    const rules = drafts.map(d => normalizeBudgetRule({id: uid('br'), name: d.name, keywords: d.keywords, budget: d.budget}));
+    // Ensure categories + recategorise rules so audit/cashflow reflect the groups
+    for (const r of rules){
+      ensureBudgetCategory(r.name);
+      ensureBudgetKeywordRules(r.name, r.keywords);
+    }
+    if (appendToActive){
+      const pack = activePack();
+      if (!pack) return;
+      pack.rules = pack.rules.concat(rules);
+      saveBudget();
+      renderBudget();
+      const el = document.getElementById('bgNote');
+      if (el) el.textContent = 'Added ' + rules.length + ' rule group' + (rules.length === 1 ? '' : 's') + ' — matched spend is carved out of parent categories.';
+      return;
+    }
+    const scope = setupScopeValue();
+    const pack = normalizeBudgetPack({
+      id: uid('bp'),
+      name: setupNameValue(scope ? acctLabel(scope) + ' · rules' : 'Rule budget'),
+      scope, cats: {}, other: null, rules,
+      seededOn: new Date().toISOString().slice(0, 10)
+    });
+    pushPack(pack, 'Rule budget live — ' + rules.length + ' merchant group' + (rules.length === 1 ? '' : 's') +
+      '. Click Last 6 mo dots to see monthly totals and the transactions captured.');
+    const box = document.getElementById('bgRuleDrafts');
+    if (box) box.innerHTML = '';
+  }
+
+  function openBudgetDetail(row){
+    const modal = document.getElementById('budgetDetailModal');
+    if (!modal || !row) return;
+    const pack = activePack();
+    const histMonths = budgetMonths();
+    const monthsSet = new Set(histMonths);
+    const txs = budgetLineTxs(row, monthsSet);
+    const scopeLbl = pack && pack.scope ? acctLabel(pack.scope) : 'All accounts';
+    document.getElementById('bdTitle').textContent = row.cat + ' — last 6 months';
+    let sub = scopeLbl + ' · budget ' + eur(row.budget) + '/mo';
+    if (row.isRule && row.keywords && row.keywords.length)
+      sub += ' · keywords: ' + row.keywords.join(', ');
+    if (row.isOther) sub += ' · every unbudgeted category';
+    document.getElementById('bdSub').textContent = sub;
+
+    const monthRows = (row.monthSpend || row.hits || []).map(m => {
+      const spent = m.spent != null ? m.spent : 0;
+      const budget = m.budget != null ? m.budget : row.budget;
+      const delta = spent - budget;
+      const ok = spent <= budget;
+      const moTxs = txs.filter(t => t.mo === m.mo);
+      return {mo: m.mo, spent, budget, delta, ok, n: moTxs.length};
+    });
+    document.getElementById('bdMonths').innerHTML =
+      `<table class="bd-mo-table"><thead><tr>
+        <th>Month</th><th class="r">Budget</th><th class="r">Spent</th><th class="r">vs budget</th><th class="r">Txs</th><th></th>
+      </tr></thead><tbody>` +
+      (monthRows.length ? monthRows.map(m =>
+        `<tr data-mo="${esc(m.mo)}" class="bd-mo-row" style="cursor:pointer" title="Filter transactions to this month">
+          <td><b>${esc(fmtMoLbl(m.mo))}</b></td>
+          <td class="r num">${eur(m.budget)}</td>
+          <td class="r num">${eur(m.spent)}</td>
+          <td class="r num" style="color:${m.delta > 0 ? 'var(--critical)' : 'var(--good-text)'}">${m.delta > 0 ? '+' : '−'}${eur(Math.abs(m.delta))} ${m.ok ? '✓' : 'over'}</td>
+          <td class="r num">${m.n}</td>
+          <td class="r"><button type="button" class="btn small bd-mo-filter" data-mo="${esc(m.mo)}">Show</button></td>
+        </tr>`).join('') : '<tr><td colspan="6" class="hint">No complete months yet</td></tr>') +
+      `</tbody></table>
+       <p class="rule-hint" style="margin:8px 0 0">Green ✓ = month stayed within budget. Click a month to filter the transaction list.</p>`;
+
+    const renderTx = (filterMo) => {
+      const list = filterMo ? txs.filter(t => t.mo === filterMo) : txs;
+      document.getElementById('bdTxHint').textContent = filterMo
+        ? fmtMoLbl(filterMo) + ' · ' + list.length + ' transaction' + (list.length === 1 ? '' : 's') + ' · ' + eur(list.reduce((s, t) => s + t.de, 0))
+        : 'Last 6 complete months · ' + list.length + ' transaction' + (list.length === 1 ? '' : 's') + ' · ' + eur(list.reduce((s, t) => s + t.de, 0));
+      const show = list.slice(0, 200);
+      document.getElementById('bdTxs').innerHTML = show.length
+        ? `<table style="width:100%;border-collapse:collapse"><thead><tr>
+            <th style="text-align:left;padding:4px 6px">Date</th>
+            <th style="text-align:left;padding:4px 6px">Merchant</th>
+            <th style="text-align:left;padding:4px 6px">Category</th>
+            <th style="text-align:right;padding:4px 6px">Amount</th>
+            <th style="text-align:left;padding:4px 6px">Account</th>
+          </tr></thead><tbody>` +
+          show.map(t => `<tr>
+            <td class="num" style="padding:3px 6px;white-space:nowrap">${esc(t.d)}</td>
+            <td style="padding:3px 6px">${esc(t.cm || t.m)}</td>
+            <td style="padding:3px 6px">${esc(t.ec)}</td>
+            <td class="r num" style="padding:3px 6px">${eur(t.de)}</td>
+            <td style="padding:3px 6px">${esc(acctLabel(t.acct))}</td>
+          </tr>`).join('') +
+          `</tbody></table>` + (list.length > 200 ? '<p class="hint">Showing latest 200 of ' + list.length + '</p>' : '')
+        : '<p class="hint">No matching transactions in this window.</p>';
+    };
+    renderTx(null);
+    document.getElementById('bdMonths').querySelectorAll('.bd-mo-filter, .bd-mo-row').forEach(el => {
+      el.addEventListener('click', e => {
+        const mo = el.dataset.mo || (e.currentTarget && e.currentTarget.dataset.mo);
+        if (mo) renderTx(mo);
+      });
+    });
+
+    modal.hidden = false;
+    modal.style.display = 'flex';
+  }
+  function closeBudgetDetail(){
+    const modal = document.getElementById('budgetDetailModal');
+    if (!modal) return;
+    modal.hidden = true;
+    modal.style.display = 'none';
+  }
+
   function renderBudget(){
+    ensureBudgetV2();
     const setup = document.getElementById('budgetSetup'), live = document.getElementById('budgetLive');
     if (!setup) return;
     if (!TX.length || !A){ setup.style.display = 'none'; live.style.display = 'none'; return; }
-    if (!budgetStore){
-      setup.style.display = ''; live.style.display = 'none';
+    fillBudgetScopeSelects();
+    const hasPacks = !!(budgetStore && budgetStore.packs && budgetStore.packs.length);
+    if (!hasPacks || bgForceSetup){
+      setup.style.display = '';
+      live.style.display = 'none';
+      setBgSetupMode(bgSetupMode);
+      const drafts = document.getElementById('bgRuleDrafts');
+      if (drafts && !drafts.children.length) drafts.innerHTML = emptyRuleDraftHtml();
       const P = lastAs && lastAs[0];
-      if (P && FC && FC.meta) document.getElementById('bgSeedGoalHint').textContent =
+      const hint = document.getElementById('bgSeedGoalHint');
+      if (hint && P && FC && FC.meta) hint.textContent =
         'History-based, then day-to-day categories are trimmed so total spending fits what “' + P.g.name +
         '” needs (' + eur(Math.max(0, A.incomeAvg12 - Math.max(isFinite(P.reqMo) ? P.reqMo || 0 : 0, A.saveAvg12) - FC.meta.buffer)) + '/mo). Fixed bills are never cut.';
+      // When adding another pack, offer a cancel back to the live view
+      if (bgForceSetup && hasPacks && !document.getElementById('bgCancelNew')){
+        const actions = document.querySelector('#budgetSetup .rule-actions');
+        // inject cancel once via a fixed button below modes
+      }
+      let cancel = document.getElementById('bgCancelNew');
+      if (bgForceSetup && hasPacks){
+        if (!cancel){
+          cancel = document.createElement('button');
+          cancel.type = 'button'; cancel.className = 'btn small'; cancel.id = 'bgCancelNew';
+          cancel.textContent = '← Back to current budgets';
+          cancel.style.marginTop = '10px';
+          cancel.addEventListener('click', () => { bgForceSetup = false; renderBudget(); });
+          setup.appendChild(cancel);
+        }
+        cancel.style.display = '';
+      } else if (cancel) cancel.style.display = 'none';
       return;
     }
+    const cancelBtn = document.getElementById('bgCancelNew');
+    if (cancelBtn) cancelBtn.style.display = 'none';
     setup.style.display = 'none'; live.style.display = '';
     live.classList.toggle('budget-excel', !!FCONF.budgetExcel);
     const bx = document.getElementById('bgExcelMode');
     if (bx) bx.textContent = FCONF.budgetExcel ? '▦ Pace layout' : '▦ Excel layout';
+
+    // pack switcher
+    const bar = document.getElementById('bgPackBar');
+    if (bar){
+      bar.innerHTML = budgetStore.packs.map(p => {
+        const on = p.id === budgetStore.activeId;
+        const scopeBit = p.scope ? acctLabel(p.scope) : 'All accounts';
+        const nRule = (p.rules || []).length;
+        const nCat = Object.keys(p.cats || {}).length;
+        return `<button type="button" class="bg-pack-chip${on ? ' on' : ''}" data-id="${esc(p.id)}" title="${esc(scopeBit)} · ${nCat} cat · ${nRule} rule">${esc(p.name)} <span class="hint" style="font-weight:500;opacity:.85">· ${esc(scopeBit)}</span></button>`;
+      }).join('') +
+      (budgetStore.packs.length > 1
+        ? `<button type="button" class="btn small danger" id="bgDelPack" title="Remove the active budget pack">Remove this budget</button>` : '');
+      bar.querySelectorAll('.bg-pack-chip').forEach(b => b.addEventListener('click', () => {
+        budgetStore.activeId = b.dataset.id; saveBudget(); renderBudget();
+      }));
+      const del = document.getElementById('bgDelPack');
+      if (del) del.addEventListener('click', () => {
+        const old = JSON.parse(JSON.stringify(budgetStore));
+        const id = budgetStore.activeId;
+        budgetStore.packs = budgetStore.packs.filter(p => p.id !== id);
+        if (!budgetStore.packs.length){ budgetStore = null; saveBudget(); renderBudget(); }
+        else { budgetStore.activeId = budgetStore.packs[0].id; saveBudget(); renderBudget(); }
+        undoToast('Budget pack removed', () => { budgetStore = old; saveBudget(); renderBudget(); });
+      });
+    }
+
     const bo = computeBudgets();
     if (!bo) return;
-    const {pm, rows, total} = bo;
-    const asOf = pm.live ? 'day ' + pm.day + ' of ' + pm.daysInMonth : 'complete month';
+    const {pm, rows, total, pack} = bo;
     const t = total.pace;
     const spentAll = t.spent;
+    const nCat = Object.keys(pack.cats || {}).length;
+    const nRule = (pack.rules || []).length;
     const tiles = [
       {l: 'Budget month', v: fmtMoLbl(pm.mo), n: pm.live ? 'in progress — data to day ' + pm.day : 'last full month in the data'},
-      {l: 'Total budget', v: eur(total.budget) + '/mo', n: Object.keys(budgetStore.cats).length + ' categories' + (budgetStore.other != null ? ' + everything else' : '')},
+      {l: 'Scope', v: pack.scope ? acctLabel(pack.scope) : 'All accounts', n: pack.name + (nRule ? ' · ' + nRule + ' rule group' + (nRule === 1 ? '' : 's') : '') + (nCat ? ' · ' + nCat + ' categor' + (nCat === 1 ? 'y' : 'ies') : '')},
+      {l: 'Total budget', v: eur(total.budget) + '/mo', n: rows.length + ' line' + (rows.length === 1 ? '' : 's') + (pack.other != null ? ' incl. everything else' : '')},
       {l: 'Spent so far', v: eur(spentAll), n: t.delta > 0 ? eur(t.delta) + ' over pace' : eur(-t.delta) + ' under pace'},
       pm.live
         ? {l: 'Safe to spend', v: eur(t.safePerDay) + '/day', n: 'for the remaining ' + (pm.daysInMonth - pm.day) + ' days'}
@@ -8056,53 +8598,154 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const p = r.pace;
       const pct = Math.min(100, r.budget > 0 ? p.spent / r.budget * 100 : 100);
       const barCol = p.verdict === 'ok' ? 'var(--save)' : p.verdict === 'warm' ? '#f59e0b' : 'var(--critical)';
-      return `<tr>
-        <td><b>${esc(r.cat)}</b>${r.isOther ? '<div class="rule-meta">every unbudgeted category</div>' : ''}</td>
-        <td class="r"><input type="number" min="0" step="10" class="inp bg-amt num" data-c="${r.isOther ? '' : esc(r.cat)}" value="${r.budget}" style="width:90px; padding:4px 6px; text-align:right"></td>
+      const meta = r.isOther ? 'every unbudgeted category'
+        : r.isRule ? ('rule · ' + (r.keywords || []).join(', '))
+        : '';
+      const amtAttrs = r.isOther ? 'data-kind="other"'
+        : r.isRule ? `data-kind="rule" data-id="${esc(r.ruleId)}"`
+        : `data-kind="cat" data-c="${esc(r.cat)}"`;
+      const delBtn = r.isOther ? ''
+        : r.isRule ? `<button class="btn small danger bg-del" data-kind="rule" data-id="${esc(r.ruleId)}" type="button" aria-label="Remove rule ${esc(r.cat)}">✕</button>`
+        : `<button class="btn small danger bg-del" data-kind="cat" data-c="${esc(r.cat)}" type="button" aria-label="Remove budget for ${esc(r.cat)}">✕</button>`;
+      return `<tr data-key="${esc(r.key || r.cat)}">
+        <td><b>${esc(r.cat)}</b>${meta ? '<div class="rule-meta">' + esc(meta) + '</div>' : ''}${r.isRule ? '<div class="bg-kw-list">' + (r.keywords || []).map(k => '<span class="bg-kw">' + esc(k) + '</span>').join('') + '</div>' : ''}</td>
+        <td class="r"><input type="number" min="0" step="10" class="inp bg-amt num" ${amtAttrs} value="${r.budget}" style="width:90px; padding:4px 6px; text-align:right"></td>
         <td class="r num">${eur(p.spent)}</td>
         <td><div class="track" style="margin:0"><div class="fill" style="width:${pct}%; background:${barCol}"></div></div></td>
         <td class="r num" style="color:${p.delta > 0 ? 'var(--critical)' : 'var(--good-text)'}">${p.delta > 0 ? '+' : '−'}${eur(Math.abs(p.delta))}</td>
         <td class="r num">${eur(p.projected)} <span class="flag ${p.verdict === 'ok' ? 'ok' : p.verdict === 'warm' ? 'warm' : 'hot'}">${vLbl[p.verdict]}${p.lowConfidence ? '·early' : ''}</span></td>
-        <td class="r num" title="✓ = month came in under this budget">${r.hits.map(h => h.hit ? '<span style="color:var(--good-text)">●</span>' : '<span style="color:var(--critical)">●</span>').join('')}</td>
-        <td class="r">${r.isOther ? '' : `<button class="btn small danger bg-del" data-c="${esc(r.cat)}" type="button" aria-label="Remove budget for ${esc(r.cat)}">✕</button>`}</td>
+        <td class="r num bg-hits" data-key="${esc(r.key || r.cat)}" title="Click for monthly budget vs spend and the transactions captured" role="button" tabindex="0">${r.hits.map(h => h.hit ? '<span style="color:var(--good-text)">●</span>' : '<span style="color:var(--critical)">●</span>').join('') || '—'}</td>
+        <td class="r">${delBtn}</td>
       </tr>`;
     }).join('');
     tb.querySelectorAll('.bg-amt').forEach(inp => inp.addEventListener('change', () => {
+      const pack = activePack(); if (!pack) return;
       const v = Math.max(0, Math.round(+inp.value || 0));
-      if (inp.dataset.c) budgetStore.cats[inp.dataset.c] = v; else budgetStore.other = v;
-      save(LS.budget, budgetStore); renderBudget();
+      if (inp.dataset.kind === 'other') pack.other = v;
+      else if (inp.dataset.kind === 'rule'){
+        const r = pack.rules.find(x => x.id === inp.dataset.id);
+        if (r) r.budget = v;
+      } else if (inp.dataset.c) pack.cats[inp.dataset.c] = v;
+      saveBudget(); renderBudget();
     }));
     tb.querySelectorAll('.bg-del').forEach(b => b.addEventListener('click', () => {
-      const c = b.dataset.c, old = budgetStore.cats[c];
-      delete budgetStore.cats[c];
-      save(LS.budget, budgetStore); renderBudget();
-      undoToast('Removed budget for ' + c, () => { budgetStore.cats[c] = old; save(LS.budget, budgetStore); renderBudget(); });
+      const pack = activePack(); if (!pack) return;
+      if (b.dataset.kind === 'rule'){
+        const i = pack.rules.findIndex(x => x.id === b.dataset.id);
+        if (i < 0) return;
+        const old = pack.rules[i];
+        pack.rules.splice(i, 1); saveBudget(); renderBudget();
+        undoToast('Removed rule group “' + old.name + '”', () => {
+          pack.rules.splice(Math.min(i, pack.rules.length), 0, old); saveBudget(); renderBudget();
+        });
+      } else {
+        const c = b.dataset.c, old = pack.cats[c];
+        delete pack.cats[c]; saveBudget(); renderBudget();
+        undoToast('Removed budget for ' + c, () => { pack.cats[c] = old; saveBudget(); renderBudget(); });
+      }
     }));
+    tb.querySelectorAll('.bg-hits').forEach(cell => {
+      const open = () => {
+        const key = cell.dataset.key;
+        const row = rows.find(r => (r.key || r.cat) === key);
+        if (row) openBudgetDetail(row);
+      };
+      cell.addEventListener('click', open);
+      cell.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(); } });
+    });
     const sel = document.getElementById('bgAddCat');
-    sel.innerHTML = '<option value="">add a category…</option>' +
-      A.allCats.filter(c => c !== SAVE_CAT && c !== INT_CAT && !(c in budgetStore.cats))
-        .map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    if (sel){
+      const pack = activePack();
+      const used = new Set(Object.keys((pack && pack.cats) || {}));
+      for (const r of (pack && pack.rules) || []) used.add(r.name);
+      sel.innerHTML = '<option value="">add a category…</option>' +
+        A.allCats.filter(c => c !== SAVE_CAT && c !== INT_CAT && !used.has(c))
+          .map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    }
   }
+
+  // setup mode cards
+  document.querySelectorAll('#bgModePick .bg-mode-card').forEach(card => {
+    card.addEventListener('click', () => setBgSetupMode(card.dataset.mode));
+    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); setBgSetupMode(card.dataset.mode); } });
+  });
+  document.getElementById('bgRuleAddDraft').addEventListener('click', () => {
+    const box = document.getElementById('bgRuleDrafts');
+    if (box) box.insertAdjacentHTML('beforeend', emptyRuleDraftHtml());
+  });
+  document.getElementById('bgRuleDrafts').addEventListener('click', e => {
+    const del = e.target.closest('.bg-rd-del');
+    if (!del) return;
+    const card = del.closest('.bg-rule-draft');
+    const box = document.getElementById('bgRuleDrafts');
+    if (card && box){
+      card.remove();
+      if (!box.children.length) box.innerHTML = emptyRuleDraftHtml();
+    }
+  });
+  document.getElementById('bgRuleCreate').addEventListener('click', () => createRuleBudgetFromDrafts(false));
   document.getElementById('bgSeedHist').addEventListener('click', () => seedBudgets(false));
   document.getElementById('bgSeedGoal').addEventListener('click', () => seedBudgets(true));
   document.getElementById('bgReseed').addEventListener('click', () => {
-    const old = budgetStore;
+    const old = budgetStore ? JSON.parse(JSON.stringify(budgetStore)) : null;
+    bgForceSetup = false;
     seedBudgets(false);
-    undoToast('Budgets re-seeded from history', () => { budgetStore = old; save(LS.budget, budgetStore); renderBudget(); });
+    undoToast('Category budgets re-seeded from history', () => { budgetStore = old; saveBudget(); renderBudget(); });
   });
   document.getElementById('bgOff').addEventListener('click', () => {
     const old = budgetStore;
-    budgetStore = null; storeRemove(LS.budget); renderBudget();
-    undoToast('Budgets turned off', () => { budgetStore = old; save(LS.budget, budgetStore); renderBudget(); });
+    budgetStore = null; storeRemove(LS.budget); bgForceSetup = false; renderBudget();
+    undoToast('Budgets turned off', () => { budgetStore = old; saveBudget(); renderBudget(); });
   });
   document.getElementById('bgAddCat').addEventListener('change', e => {
     const c = e.target.value;
-    if (!c || !budgetStore) return;
+    const pack = activePack();
+    if (!c || !pack) return;
     const months = budgetMonths();
-    const sug = Engine.suggestBudgets({txe: A.txe, months, intCat: INT_CAT, saveCat: SAVE_CAT}).find(r => r.cat === c);
-    budgetStore.cats[c] = sug ? sug.median : 100;
-    save(LS.budget, budgetStore); renderBudget();
+    const scopeTxe = pack.scope ? A.txe.filter(t => t.acct === pack.scope) : A.txe;
+    const sug = Engine.suggestBudgets({txe: scopeTxe, months, intCat: INT_CAT, saveCat: SAVE_CAT}).find(r => r.cat === c);
+    pack.cats[c] = sug ? sug.median : 100;
+    saveBudget(); renderBudget();
   });
+  document.getElementById('bgAddRuleLine').addEventListener('click', () => {
+    const name = prompt('Group name (bespoke category)', 'Discount grocers');
+    if (!name || !name.trim()) return;
+    const kwStr = prompt('Keywords, comma-separated (e.g. Lidl, Tesco, Aldi)', 'Lidl, Tesco, Aldi');
+    if (!kwStr) return;
+    const keywords = parseKeywords(kwStr);
+    if (!keywords.length){ alert('Need at least one keyword.'); return; }
+    const amtStr = prompt('Monthly budget €', '200');
+    const budget = Math.max(0, Math.round(+amtStr || 0));
+    const pack = activePack();
+    if (!pack) return;
+    ensureBudgetCategory(name.trim());
+    ensureBudgetKeywordRules(name.trim(), keywords);
+    pack.rules.push(normalizeBudgetRule({id: uid('br'), name: name.trim(), keywords, budget}));
+    saveBudget(); renderBudget();
+  });
+  document.getElementById('bgNewPack').addEventListener('click', () => {
+    bgForceSetup = true;
+    setBgSetupMode('category');
+    const drafts = document.getElementById('bgRuleDrafts');
+    if (drafts) drafts.innerHTML = emptyRuleDraftHtml();
+    const nameEl = document.getElementById('bgSetupName');
+    if (nameEl) nameEl.value = '';
+    renderBudget();
+    const setup = document.getElementById('budgetSetup');
+    if (setup){ setup.style.display = ''; setup.scrollIntoView({behavior: 'smooth', block: 'start'}); }
+  });
+  // detail modal close
+  ['bdClose', 'bdClose2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', closeBudgetDetail);
+  });
+  const bdModal = document.getElementById('budgetDetailModal');
+  if (bdModal){
+    bdModal.addEventListener('click', e => { if (e.target === bdModal) closeBudgetDetail(); });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && bdModal && !bdModal.hidden && bdModal.style.display === 'flex') closeBudgetDetail();
+    });
+  }
 
   let alertsShown = false;
   function showSpaceAlerts(){
@@ -8724,7 +9367,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // Part 6 — Plan
       {part:6, dock:'budget', target:'#sec-budget', title:'Budget — spending pace',
        loc:'Planning → Budget',
-       body:'Per-category monthly budgets with a pace engine: recurring bills count from day 1 (rent never false-alarms). Seed with “match my history” or “align to my goal”. Watch safe-to-spend €/day and projected month-end.'},
+       body:'Budgets by category or by rule (keyword merchant groups like Lidl+Tesco). Scope to all accounts or one. Pace engine: recurring bills count from day 1. Click Last 6 mo dots for monthly budget vs spend and the transactions captured.'},
       {part:6, dock:'fcast', target:'#sec-forecast', title:'Forecast & recurring',
        loc:'Planning → Forecast',
        body:'Detected bills, manual future costs, and a MAD-robust safety buffer. Two paths: expected vs cautious. Goal dates use the cautious path. End a recurring item when it truly stops so surplus releases.'},
