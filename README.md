@@ -8,6 +8,8 @@ Lithifyte turns your bank statements into a living picture of your household's m
 
 **Try it first:** [the live demo](https://lithifyte.sid-labs.com/demo.html) is a fully loaded sample household — two earners, four accounts, two years of invented transactions — so you can explore everything without uploading a thing. The demo keeps its own separate storage and can never touch data you later add to the real app.
 
+**Hosted at** [lithifyte.sid-labs.com](https://lithifyte.sid-labs.com) on **Cloudflare Pages** (auto-deploys from `main`). That is the only public host for now — not GitHub Pages.
+
 ## Quick start
 
 1. **Open the app** — either the hosted page, or download `index.html` and open it locally (the local file unlocks a couple of extras, see below).
