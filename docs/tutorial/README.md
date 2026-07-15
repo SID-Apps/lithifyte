@@ -64,7 +64,24 @@ User question
 - Prefer “open Budget in Planning → …” location language.
 - Refuse out-of-scope (tax legal advice beyond the in-app estimates disclaimer).
 
-## In-app spotlight (future)
+## In-app Space tour (shipped)
+
+Live inside **Space view** (not only the hosted HTML guide):
+
+| Entry | Action |
+|---|---|
+| Floating **📘 Tour** (bottom-left in Space) | Start full playthrough |
+| Settings → **▶ Guided Space tour** | Same |
+| `window.__ddTour.start()` / `.startPart(n)` | Programmatic (tests) |
+
+**7 parts** (user can jump to any): Space shell · First data · Look around · Clean data · Understand · Plan · Wealth & backup.
+
+Each step: opens the real dock panel / mini tool, **spotlights** the control (outline pulse), **fades** the rest of the viewport (four shade rects + hole ring), **arrow** from the coach card to the feature, **Next / Back / End**, keyboard ←/→/Esc.
+
+Implementation lives in the single HTML shell (`SpaceTour`); hosted `/tutorial` remains the long-form + Ask RAG companion.
+
+## In-app spotlight (tour.json — content source / future parity)
+
 
 `tour.json` steps include CSS selectors already present in the shell (`#onboarding`, `#sec-budget`, `#pulseCard`, …). A small runtime can:
 

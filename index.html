@@ -376,6 +376,55 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
   body.space .panel-body .goal-card, body.space .panel-body .kpi, body.space .panel-body .org-user,
   body.space .panel-body details{
     background:color-mix(in srgb, var(--surface) 72%, transparent)}
+
+  /* ── In-app Space tour (guided playthrough) ── */
+  #tourRoot{display:none; position:fixed; inset:0; z-index:80; pointer-events:none}
+  body.touring #tourRoot{display:block}
+  body.touring{/* keep space interactions limited while coach is up */}
+  .tour-shade{position:fixed; background:rgba(2,8,20,.72); pointer-events:auto; transition:all .2s ease}
+  @media (prefers-reduced-motion: reduce){ .tour-shade{transition:none} }
+  .tour-hole-ring{position:fixed; pointer-events:none; border:2px solid rgba(56,189,248,.95);
+    border-radius:12px; box-shadow:0 0 0 1px rgba(56,189,248,.35), 0 0 28px rgba(56,189,248,.35);
+    z-index:81; transition:all .2s ease}
+  .tour-arrow{position:fixed; z-index:82; pointer-events:none; width:0; height:0;
+    filter:drop-shadow(0 2px 4px rgba(0,0,0,.45)); transition:all .2s ease}
+  .tour-arrow[data-dir="left"]{border-top:10px solid transparent; border-bottom:10px solid transparent; border-right:14px solid #38bdf8}
+  .tour-arrow[data-dir="right"]{border-top:10px solid transparent; border-bottom:10px solid transparent; border-left:14px solid #38bdf8}
+  .tour-arrow[data-dir="up"]{border-left:10px solid transparent; border-right:10px solid transparent; border-bottom:14px solid #38bdf8}
+  .tour-arrow[data-dir="down"]{border-left:10px solid transparent; border-right:10px solid transparent; border-top:14px solid #38bdf8}
+  #tourCard{position:fixed; z-index:83; pointer-events:auto; width:min(380px, calc(100vw - 28px));
+    background:color-mix(in srgb, #07101f 88%, transparent); border:1px solid rgba(56,189,248,.45);
+    border-radius:14px; backdrop-filter:blur(16px) saturate(1.1); box-shadow:0 18px 50px rgba(0,0,0,.55);
+    padding:14px 14px 12px; color:#e8f1ff; font:13.5px/1.45 system-ui,sans-serif}
+  #tourCard .tour-kicker{font:700 10px system-ui,sans-serif; letter-spacing:.12em; text-transform:uppercase; color:#7dd3fc; margin:0 0 4px}
+  #tourCard h3{margin:0 0 6px; font:700 16px/1.25 system-ui,sans-serif; color:#fff}
+  #tourCard .tour-body{margin:0 0 12px; color:#c9daf0; max-height:28vh; overflow:auto; white-space:pre-wrap}
+  #tourCard .tour-loc{margin:0 0 10px; font-size:12px; color:#6ee7b7}
+  #tourCard .tour-nav{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
+  #tourCard .tour-nav .btn{font-size:12.5px}
+  #tourCard .tour-progress{margin-left:auto; font:600 11.5px system-ui,sans-serif; color:#8aa0bd}
+  #tourParts{position:fixed; z-index:83; pointer-events:auto; left:14px; bottom:14px;
+    width:min(520px, calc(100vw - 28px)); display:flex; flex-wrap:wrap; gap:6px;
+    padding:10px; border-radius:14px; background:rgba(2,11,26,.82); border:1px solid rgba(56,189,248,.3);
+    backdrop-filter:blur(12px)}
+  #tourParts .tp{appearance:none; border:1px solid rgba(56,189,248,.28); background:rgba(56,189,248,.08);
+    color:#dbeafe; border-radius:999px; padding:5px 10px; font:600 11.5px system-ui,sans-serif; cursor:pointer}
+  #tourParts .tp:hover{border-color:rgba(56,189,248,.6)}
+  #tourParts .tp.on{background:rgba(56,189,248,.28); border-color:rgba(56,189,248,.75); color:#fff}
+  #tourParts .tp-label{width:100%; font:700 10px system-ui,sans-serif; letter-spacing:.1em; text-transform:uppercase; color:#7dd3fc; margin:0 0 2px}
+  #tourFab{display:none}
+  body.space:not(.fresh) #tourFab{display:flex; position:fixed; left:14px; bottom:14px; z-index:31;
+    align-items:center; gap:8px; padding:8px 12px; border-radius:999px; cursor:pointer;
+    background:rgba(2,11,26,.8); border:1px solid rgba(56,189,248,.4); color:#e0f2ff;
+    font:700 12.5px system-ui,sans-serif; backdrop-filter:blur(10px); box-shadow:0 8px 24px rgba(0,0,0,.35)}
+  body.space.touring #tourFab{display:none}
+  body.fresh #tourFab{display:none !important}
+  #tourFab:hover{border-color:rgba(56,189,248,.75); background:rgba(56,189,248,.16)}
+  .tour-spot{position:relative; z-index:81 !important; outline:2px solid rgba(56,189,248,.9); outline-offset:3px;
+    border-radius:10px; animation:tourPulse 1.6s ease-in-out infinite}
+  @keyframes tourPulse{0%,100%{outline-color:rgba(56,189,248,.55)} 50%{outline-color:rgba(125,211,252,1)}}
+  @media (prefers-reduced-motion: reduce){ .tour-spot{animation:none} }
+
   @media (prefers-reduced-motion: no-preference){
     body.space #spacePanel.open{animation:panelIn .22s ease}
     @keyframes panelIn{from{opacity:0; transform:translateX(26px)} to{opacity:1; transform:none}}
@@ -1293,6 +1342,7 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
     <h3>View</h3>
     <p class="hint" style="margin:0 0 10px">You're in the Space view — the map is the app and sections open as panels. The classic layout puts every section on one scrolling page (it's also the accessibility fallback). Feature walkthrough: <a href="tutorial">Tutorial &amp; Ask</a>.</p>
     <button class="btn" id="setClassicBtn" type="button">🖥️ Switch to classic view</button>
+    <button class="btn" id="setTourBtn" type="button" style="margin-left:8px">▶ Guided Space tour</button>
     <a class="btn" href="tutorial" style="margin-left:8px">📘 Tutorial &amp; Ask</a>
   </div>
 
@@ -1401,6 +1451,33 @@ rewrite the static advice cards if the picture has changed.</div>
 </div>
 <!-- P6: onboarding floats over the live map when space view hosts first-run -->
 <div id="spaceOb"></div>
+
+<!-- In-app Space tour -->
+<button type="button" id="tourFab" title="Guided tour of features in Space view">📘 Tour</button>
+<div id="tourRoot" aria-live="polite" hidden>
+  <div class="tour-shade" id="tourS1"></div>
+  <div class="tour-shade" id="tourS2"></div>
+  <div class="tour-shade" id="tourS3"></div>
+  <div class="tour-shade" id="tourS4"></div>
+  <div class="tour-hole-ring" id="tourRing" hidden></div>
+  <div class="tour-arrow" id="tourArrow" hidden></div>
+  <div id="tourCard" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
+    <div class="tour-kicker" id="tourKicker">Guided tour</div>
+    <h3 id="tourTitle">Title</h3>
+    <p class="tour-loc" id="tourLoc"></p>
+    <div class="tour-body" id="tourBody"></div>
+    <div class="tour-nav">
+      <button type="button" class="btn" id="tourPrev">Back</button>
+      <button type="button" class="btn primary" id="tourNext">Next</button>
+      <button type="button" class="btn" id="tourSkip">End tour</button>
+      <span class="tour-progress" id="tourProg"></span>
+    </div>
+  </div>
+  <div id="tourParts">
+    <div class="tp-label">Choose a part · or play through all</div>
+  </div>
+</div>
+
 
 <!-- Space view entry: always visible in classic (the nav scrolls, this doesn't) -->
 <a href="#" id="viewToggle" title="The map becomes the app — sections open as panels">🪐 Space view</a>
@@ -7660,8 +7737,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       panel.classList.remove('open');
       dock.querySelectorAll('.dock-btn').forEach(b => b.classList.remove('active'));
     }
-    function openPanel(item){
-      if (active === item.k){ closePanel(); return; }
+    function openPanel(item, opts){
+      opts = opts || {};
+      if (active === item.k && !opts.force){ if (!opts.keep) closePanel(); return; }
+      if (active === item.k && opts.force){ /* already showing — keep */ return; }
       closePanel(); closeMini();
       document.getElementById('nodeCard').classList.remove('show');
       document.getElementById('panelIc').textContent = item.ic;
@@ -7709,8 +7788,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       mini.classList.remove('open');
       document.querySelectorAll('#spaceTop .top-ic').forEach(b => b.classList.remove('active'));
     }
-    function openMini(kind){
-      if (miniActive === kind){ closeMini(); return; }
+    function openMini(kind, opts){
+      opts = opts || {};
+      if (miniActive === kind && !(opts.force || opts.keep)){ closeMini(); return; }
+      if (miniActive === kind && (opts.force || opts.keep)) return;
       closeMini(); closePanel();
       const d = miniDefs[kind];
       document.getElementById('miniIc').textContent = d.ic;
@@ -7761,16 +7842,319 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     document.getElementById('viewToggle').addEventListener('click', e => { e.preventDefault(); enter(); });
     document.getElementById('graphSpaceBtn').addEventListener('click', enter);
     const ALIAS = {people:'settings', backup:'settings'};   // old section keys → new homes
-    return {enter, exit, closePanel, refreshDock: renderDock,
+    return {enter, exit, closePanel, closeMini, refreshDock: renderDock,
             isSpace: () => document.body.classList.contains('space'),
-            open: k => {
+            active: () => active,
+            open: (k, opts) => {
               if (!document.body.classList.contains('space')) return;
-              if (k === 'range' || k === 'search'){ openMini(k); return; }
+              if (k === 'range' || k === 'search'){ openMini(k, opts || {force:true, keep:true}); return; }
+              if (k === 'map' || k === 'close'){ closePanel(); closeMini(); return; }
               const it = items.find(i => i.k === (ALIAS[k] || k));
-              if (it) openPanel(it);
+              if (it) openPanel(it, opts || {force:true, keep:true});
             }};
   })();
   window.__ddSpace = Space;   // testing hook
+
+  // ══ In-app Space tour: 7-part playthrough with spotlight + coach card ══
+  // Opt-in only. Walks the real Space dock/panels; never touches finance data.
+  const SpaceTour = (function(){
+    const PARTS = [
+      {id:1, name:'1 · Space shell', blurb:'Map, dock, panels'},
+      {id:2, name:'2 · First data', blurb:'Name → CSV → goal'},
+      {id:3, name:'3 · Look around', blurb:'Map, range, HUD'},
+      {id:4, name:'4 · Clean data', blurb:'People, audit, rules'},
+      {id:5, name:'5 · Understand', blurb:'Cashflow & leaks'},
+      {id:6, name:'6 · Plan', blurb:'Goals, budget, forecast'},
+      {id:7, name:'7 · Wealth & backup', blurb:'Pulse, debts, export'}
+    ];
+    // target: CSS selector resolved after dock/panel open
+    // dock: Space.open key | 'map' | 'range' | 'search' | null
+    // pad: spotlight padding
+    const STEPS = [
+      // Part 1 — Space shell
+      {part:1, dock:'map', target:'#spaceStage', title:'Space view is the app',
+       loc:'Full-screen map stage',
+       body:'You are in Space view — the money map fills the screen and every feature opens as a glass panel over it. This tour walks the real controls. Pick any part below, or press Next to play through in order.'},
+      {part:1, dock:'map', target:'#spaceDock', title:'The left dock',
+       loc:'Left edge · Overview / Planning / Wealth / Data',
+       body:'This is your main menu. Groups: Overview (Goals, Cashflow, Categories, Leaks), Planning (Budget, Simulate, Forecast, Plan), Wealth (Pulse, Net worth, Invest, Debts, Readiness), and Data (Audit, Rules, Settings). Click a row anytime after the tour.'},
+      {part:1, dock:'map', target:'#spaceTop', title:'Date range & Search',
+       loc:'Top-right icons',
+       body:'📅 opens the date range (charts and flows follow it). 🔎 opens transaction search. Both open as mini cards so the map stays visible.'},
+      {part:1, dock:'map', target:'#spaceHud', title:'The HUD',
+       loc:'Top centre strip',
+       body:'At a glance: primary goal progress (ring), monthly “machine” surplus, cash on hand, and Pulse score. The 👁 toggles privacy mode — every euro can mask as € •••. Tap cash to hide/show; hold to peek.'},
+
+      // Part 2 — First data
+      {part:2, dock:'map', target:'#onboarding, #goalHero', title:'Getting your data in',
+       loc:'Onboarding on the map (first run) · or Goals once you have data',
+       body:'First run is four steps on the map: (1) your name — You appears, (2) first account — pick current / credit / savings carefully, (3) upload a CSV statement, (4) set a goal. If you already have data, the goal hero replaces onboarding — that is fine; use People in Settings to add more statements.'},
+      {part:2, dock:'settings', target:'#sec-people, #settingsCard', title:'People, accounts & uploads',
+       loc:'Settings 🛠️ · People card',
+       body:'Add household members, more accounts, and upload further CSVs under the right account. Re-uploads are safe — duplicates are skipped. Set opening balances so cash, net worth, and linked goals reconcile to reality.'},
+      {part:2, dock:'goals', target:'#goalHero, .kpis', title:'Goals',
+       loc:'Overview → Goals',
+       body:'Goals are funded from the cautious forecast surplus in priority order. Link a goal to a savings account (with an opening balance) for the strongest pot. Verdicts always quote the cautious date first.'},
+
+      // Part 3 — Look around
+      {part:3, dock:'map', target:'#spaceStage .graph-card, #graphCanvas, #spaceStage', title:'The money map',
+       loc:'Background stage',
+       body:'Click a category hub to dive into merchants; double-click to fold. Scroll zooms, drag pans. Click any node for its story card and shortcuts. ▶ Play history time-lapses month by month. Goals wear a gold ring; debts draw hollow.'},
+      {part:3, dock:'range', target:'#miniPanel, #topRange', title:'Date range',
+       loc:'Top-right 📅',
+       body:'Almost every chart and the map’s flow view follow this range. Change it when you want “this year only” or a custom window, then reopen Cashflow or Categories to read the same period.'},
+      {part:3, dock:'search', target:'#miniPanel, #sec-search, #topSearch', title:'Search',
+       loc:'Top-right 🔎',
+       body:'Find any transaction by merchant (raw or merged name). Use this when a number looks wrong — Search is the fastest path to the underlying rows, and can highlight related map nodes.'},
+
+      // Part 4 — Clean data
+      {part:4, dock:'settings', target:'#xferCard, #sec-people', title:'Internal transfers',
+       loc:'Settings → People → Between your own accounts',
+       body:'Card payments and savings moves appear on two accounts. High-confidence pairs are excluded automatically so income is not inflated; weaker pairs wait for your yes/no. Confirm these early.'},
+      {part:4, dock:'audit', target:'#sec-audit', title:'Audit — auto-categories',
+       loc:'Data → Audit',
+       body:'Every merchant→category decision, biggest money first. Hit Fix to pre-fill a rule. Statement name variants (store numbers, SEPA tails) group under one merchant — open “N names” to split or merge.'},
+      {part:4, dock:'rules', target:'#sec-rules', title:'Rules',
+       loc:'Data → Rules',
+       body:'First-match-wins permanent fixes. Use a short stable token (e.g. PROVINCEF), optional amount range, and put narrow rules above broad ones. Deposit savings counts toward goals; do not invent Internal transfer rules — the matcher owns those.'},
+
+      // Part 5 — Understand
+      {part:5, dock:'cash', target:'#sec-cashflow', title:'Cashflow',
+       loc:'Overview → Cashflow',
+       body:'Income vs spending by month. Click a month for Income / Expenses / Savings drill-down; click a category for the transactions. The Sankey card below draws the whole river of money — click it for the large view.'},
+      {part:5, dock:'cats', target:'#sec-cats', title:'Categories',
+       loc:'Overview → Categories',
+       body:'Average monthly outgoings by category in the selected range. Click a bar to list every transaction behind it. This is the bridge between raw merchants and your budget lines.'},
+      {part:5, dock:'leaks', target:'#sec-leaks', title:'Leaks',
+       loc:'Overview → Leaks',
+       body:'Where money dribbles away — subscriptions and habits ranked by monthly average. Start here for quick wins, then encode fixes as Rules if something is miscategorised.'},
+
+      // Part 6 — Plan
+      {part:6, dock:'budget', target:'#sec-budget', title:'Budget — spending pace',
+       loc:'Planning → Budget',
+       body:'Per-category monthly budgets with a pace engine: recurring bills count from day 1 (rent never false-alarms). Seed with “match my history” or “align to my goal”. Watch safe-to-spend €/day and projected month-end.'},
+      {part:6, dock:'fcast', target:'#sec-forecast', title:'Forecast & recurring',
+       loc:'Planning → Forecast',
+       body:'Detected bills, manual future costs, and a MAD-robust safety buffer. Two paths: expected vs cautious. Goal dates use the cautious path. End a recurring item when it truly stops so surplus releases.'},
+      {part:6, dock:'sim', target:'#sec-sim', title:'Scenario simulator',
+       loc:'Planning → Simulate',
+       body:'Sliders cut discretionary categories; the forecast and goal dates update live. Add or remove levers with the chip list. Ask “what if dining drops €100?” here — not by rewriting history.'},
+      {part:6, dock:'plan', target:'#sec-plan', title:'Live plan cards',
+       loc:'Planning → Plan',
+       body:'Action cards computed from your data (savings pattern, leaks, schemes, readiness). They rewrite when you recategorise or upload — not static brochure copy.'},
+
+      // Part 7 — Wealth & backup
+      {part:7, dock:'pulse', target:'#pulseCard', title:'Financial pulse',
+       loc:'Wealth → Pulse',
+       body:'One 0–100 dial over absolute benchmarks (not “your average”). Toggle Month/Quarter/Year/Overall. Measures without data stay unscored and say why — e.g. set opening balances to light up liquidity.'},
+      {part:7, dock:'wealth', target:'#nwCard', title:'Net worth',
+       loc:'Wealth → Net worth',
+       body:'Reconciled cash + pots + holdings + manual assets − debts, with stale values amber and double-count warnings. Add property or vehicles with an as-of date. A sparkline logs one point per day you open the app.'},
+      {part:7, dock:'debts', target:'#debtCard', title:'Loans & debt',
+       loc:'Wealth → Debts',
+       body:'Track balances with APR and payment or end date. Link a statement merchant so the forecast ends that bill at payoff. Feeds readiness capacity and net worth.'},
+      {part:7, dock:'invest', target:'#holdCard', title:'Investments & crypto',
+       loc:'Wealth → Invest',
+       body:'Positions with quotes you control (manual, local crypto refresh, or feeder import). Irish tax layer shows CGT vs fund exit tax and the 8-year deemed-disposal clock on funds.'},
+      {part:7, dock:'ready', target:'#sec-ready', title:'Mortgage readiness',
+       loc:'Wealth → Readiness',
+       body:'Underwriter-style checks: savings streak, gambling flags (you rule on ambiguous names), uncategorised %, missed payments, commitments, overdraft. Fail-first — fix these before a mortgage chat.'},
+      {part:7, dock:'settings', target:'#sec-alive, #settingsCard', title:'Backup & trust',
+       loc:'Settings → Backup',
+       body:'Export a backup file (optional passphrase encryption). Import on another browser to restore. Self-test must stay green. This is your durability story — the server never holds your data. End of tour — open any dock item freely.'}
+    ];
+
+    const root = document.getElementById('tourRoot');
+    const card = document.getElementById('tourCard');
+    const partsEl = document.getElementById('tourParts');
+    const fab = document.getElementById('tourFab');
+    const shades = [1,2,3,4].map(i => document.getElementById('tourS' + i));
+    const ring = document.getElementById('tourRing');
+    const arrow = document.getElementById('tourArrow');
+    let active = false, partFilter = null, idx = 0, spotEl = null, raf = 0;
+
+    PARTS.forEach(p => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'tp'; b.dataset.part = p.id;
+      b.textContent = p.name;
+      b.title = p.blurb;
+      b.addEventListener('click', () => startPart(p.id));
+      partsEl.appendChild(b);
+    });
+    const allBtn = document.createElement('button');
+    allBtn.type = 'button'; allBtn.className = 'tp'; allBtn.textContent = '▶ All parts';
+    allBtn.addEventListener('click', () => { partFilter = null; idx = 0; show(); });
+    partsEl.appendChild(allBtn);
+
+    function list(){
+      if (partFilter == null) return STEPS;
+      return STEPS.filter(s => s.part === partFilter);
+    }
+    function paintParts(){
+      partsEl.querySelectorAll('.tp[data-part]').forEach(b => {
+        b.classList.toggle('on', partFilter != null && +b.dataset.part === partFilter);
+      });
+    }
+    function clearSpot(){
+      if (spotEl){ spotEl.classList.remove('tour-spot'); spotEl = null; }
+    }
+    function resolveTarget(sel){
+      if (!sel) return null;
+      for (const s of sel.split(',').map(x => x.trim()).filter(Boolean)){
+        const el = document.querySelector(s);
+        if (el && el.getClientRects().length) return el;
+        // try inside open panels even if display quirks
+        const el2 = document.querySelector(s);
+        if (el2) return el2;
+      }
+      return null;
+    }
+    function layout(el){
+      const pad = 8;
+      let r;
+      if (el){
+        r = el.getBoundingClientRect();
+        if (r.width < 4 || r.height < 4){
+          // fallback: dock or stage
+          const fb = document.getElementById('spaceDock') || document.getElementById('spaceStage');
+          r = fb.getBoundingClientRect();
+        }
+      } else {
+        const fb = document.getElementById('spaceDock');
+        r = fb ? fb.getBoundingClientRect() : {top:80,left:80,width:200,height:120,right:280,bottom:200};
+      }
+      const t = Math.max(0, r.top - pad), l = Math.max(0, r.left - pad);
+      const w = Math.min(window.innerWidth - l, r.width + pad * 2);
+      const h = Math.min(window.innerHeight - t, r.height + pad * 2);
+      const b = t + h, ri = l + w;
+      // four shades
+      shades[0].style.cssText = `top:0;left:0;right:0;height:${t}px`;
+      shades[1].style.cssText = `top:${t}px;left:0;width:${l}px;height:${h}px`;
+      shades[2].style.cssText = `top:${t}px;left:${ri}px;right:0;height:${h}px`;
+      shades[3].style.cssText = `top:${b}px;left:0;right:0;bottom:0`;
+      ring.hidden = false;
+      ring.style.cssText = `top:${t}px;left:${l}px;width:${w}px;height:${h}px`;
+      // coach card placement — prefer left of hole if panel on right, else bottom
+      const cw = Math.min(380, window.innerWidth - 28);
+      const ch = card.offsetHeight || 220;
+      let cx, cy;
+      if (l > cw + 40){ cx = l - cw - 18; cy = Math.min(Math.max(12, t), window.innerHeight - ch - 80); }
+      else if (window.innerWidth - ri > cw + 40){ cx = ri + 18; cy = Math.min(Math.max(12, t), window.innerHeight - ch - 80); }
+      else { cx = Math.max(14, (window.innerWidth - cw) / 2); cy = Math.min(b + 16, window.innerHeight - ch - 90); if (cy < 12) cy = 12; }
+      card.style.left = cx + 'px';
+      card.style.top = cy + 'px';
+      // arrow from card toward hole center
+      const hx = l + w / 2, hy = t + h / 2;
+      const ccx = cx + cw / 2, ccy = cy + Math.min(ch, 160) / 2;
+      const dx = hx - ccx, dy = hy - ccy;
+      let dir, ax, ay;
+      if (Math.abs(dx) > Math.abs(dy)){
+        if (dx > 0){ dir = 'right'; ax = cx + cw; ay = Math.min(Math.max(cy + 24, hy - 10), cy + ch - 24); }
+        else { dir = 'left'; ax = cx - 14; ay = Math.min(Math.max(cy + 24, hy - 10), cy + ch - 24); }
+      } else {
+        if (dy > 0){ dir = 'down'; ax = Math.min(Math.max(cx + 24, hx - 10), cx + cw - 24); ay = cy + Math.min(ch, 200); }
+        else { dir = 'up'; ax = Math.min(Math.max(cx + 24, hx - 10), cx + cw - 24); ay = cy - 14; }
+      }
+      arrow.hidden = false;
+      arrow.dataset.dir = dir;
+      arrow.style.left = ax + 'px';
+      arrow.style.top = ay + 'px';
+    }
+    function applyStep(step){
+      clearSpot();
+      if (!Space) return;
+      if (!Space.isSpace()) Space.enter();
+      // open target surface
+      if (step.dock === 'map' || !step.dock) Space.open('map');
+      else Space.open(step.dock, {force:true, keep:true});
+      const paint = () => {
+        const el = resolveTarget(step.target);
+        clearSpot();
+        if (el){
+          spotEl = el;
+          el.classList.add('tour-spot');
+          try { el.scrollIntoView({block:'nearest', inline:'nearest', behavior: 'smooth'}); } catch {}
+        }
+        document.getElementById('tourKicker').textContent = 'Part ' + step.part + ' of 7 · Guided Space tour';
+        document.getElementById('tourTitle').textContent = step.title;
+        document.getElementById('tourLoc').textContent = step.loc ? ('Where: ' + step.loc) : '';
+        document.getElementById('tourBody').textContent = step.body;
+        const L = list();
+        document.getElementById('tourProg').textContent = (idx + 1) + ' / ' + L.length;
+        document.getElementById('tourPrev').disabled = idx <= 0;
+        document.getElementById('tourNext').textContent = idx >= L.length - 1 ? 'Finish' : 'Next';
+        paintParts();
+        layout(el);
+      };
+      // panel hosts move DOM async-ish — paint twice for stable geometry
+      requestAnimationFrame(() => { paint(); setTimeout(paint, 70); });
+    }
+    function show(){
+      const L = list();
+      if (!L.length) return;
+      if (idx < 0) idx = 0;
+      if (idx >= L.length) idx = L.length - 1;
+      active = true;
+      document.body.classList.add('touring');
+      root.hidden = false;
+      root.style.display = 'block';
+      applyStep(L[idx]);
+    }
+    function stop(){
+      active = false;
+      document.body.classList.remove('touring');
+      root.hidden = true;
+      root.style.display = 'none';
+      clearSpot();
+      ring.hidden = true; arrow.hidden = true;
+      cancelAnimationFrame(raf);
+      partFilter = null; idx = 0;
+      paintParts();
+    }
+    function start(part){
+      if (Space && !Space.isSpace()) Space.enter();
+      partFilter = part == null ? null : part;
+      idx = 0;
+      show();
+    }
+    function startPart(p){ start(p); }
+    function next(){
+      const L = list();
+      if (idx >= L.length - 1){ stop(); return; }
+      idx++; show();
+    }
+    function prev(){
+      if (idx <= 0) return;
+      idx--; show();
+    }
+
+    document.getElementById('tourNext').addEventListener('click', next);
+    document.getElementById('tourPrev').addEventListener('click', prev);
+    document.getElementById('tourSkip').addEventListener('click', stop);
+    if (fab) fab.addEventListener('click', () => start(null));
+    const setTour = document.getElementById('setTourBtn');
+    if (setTour) setTour.addEventListener('click', () => {
+      if (Space && !Space.isSpace()) Space.enter();
+      // close settings panel so dock is clear, then start
+      if (Space) Space.closePanel();
+      start(null);
+    });
+    window.addEventListener('resize', () => { if (active) show(); });
+    document.getElementById('panelBody').addEventListener('scroll', () => { if (active && spotEl) layout(spotEl); }, {passive:true});
+    document.getElementById('miniBody').addEventListener('scroll', () => { if (active && spotEl) layout(spotEl); }, {passive:true});
+    document.addEventListener('keydown', e => {
+      if (!active) return;
+      if (e.key === 'Escape'){ e.preventDefault(); stop(); }
+      else if (e.key === 'ArrowRight' || e.key === 'Enter'){ e.preventDefault(); next(); }
+      else if (e.key === 'ArrowLeft'){ e.preventDefault(); prev(); }
+    }, true);
+    // shade click does not close — user must End or Finish
+    shades.forEach(s => s.addEventListener('click', e => e.stopPropagation()));
+
+    return {start, startPart, stop, next, prev, isActive: () => active};
+  })();
+  window.__ddTour = SpaceTour;
+
   document.getElementById('spaceHud').addEventListener('click', ()=>{ if (Space) Space.open('goals'); });
   document.getElementById('spaceHud').addEventListener('keydown', e => { if (e.key === 'Enter' && Space) Space.open('goals'); });
   bindCashWidget(document.getElementById('hudCash'));
