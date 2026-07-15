@@ -377,24 +377,20 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
   body.space .panel-body details{
     background:color-mix(in srgb, var(--surface) 72%, transparent)}
 
-  /* ── In-app Space tour (guided playthrough) ── */
+  /* ── In-app Space tutorial (guided playthrough) ── */
   #tourRoot{display:none; position:fixed; inset:0; z-index:400; pointer-events:none}
   body.touring #tourRoot{display:block !important}
-  body.touring{/* tour modal layer active */}
-  /* Full-screen click trap — blocks ALL app interaction under the tour */
-  #tourBlocker{position:fixed; inset:0; z-index:410; background:transparent; pointer-events:auto; cursor:default}
-  /* SVG dim with accurate holes (multi-target: panel + dock btn) */
-  #tourSvg{position:fixed; inset:0; z-index:420; width:100%; height:100%; pointer-events:none;
+  #tourBlocker{position:fixed; inset:0; z-index:490; background:transparent; pointer-events:auto; cursor:default}
+  #tourSvg{position:fixed; inset:0; z-index:400; width:100%; height:100%; pointer-events:none;
     display:block; overflow:visible}
-  /* Rings sit on true getBoundingClientRect edges (border-box, no content-box drift) */
   .tour-hole-ring{position:fixed; pointer-events:none; box-sizing:border-box;
     border:2.5px solid rgba(125,211,252,.98); border-radius:12px;
     box-shadow:0 0 0 1px rgba(56,189,248,.35), 0 0 28px rgba(56,189,248,.4);
-    z-index:440; margin:0; padding:0; background:transparent; transition:top .15s,left .15s,width .15s,height .15s}
+    z-index:460; margin:0; padding:0; background:transparent}
   .tour-hole-ring.secondary{border-color:rgba(52,211,153,.95); border-radius:10px;
-    box-shadow:0 0 0 1px rgba(52,211,153,.35), 0 0 18px rgba(52,211,153,.35)}
-  .tour-arrow{position:fixed; z-index:450; pointer-events:none; width:0; height:0;
-    filter:drop-shadow(0 2px 4px rgba(0,0,0,.45)); transition:all .15s ease}
+    box-shadow:0 0 0 1px rgba(52,211,153,.35), 0 0 18px rgba(52,211,153,.35); z-index:461}
+  .tour-arrow{position:fixed; z-index:495; pointer-events:none; width:0; height:0;
+    filter:drop-shadow(0 2px 4px rgba(0,0,0,.45))}
   .tour-arrow[data-dir="left"]{border-top:10px solid transparent; border-bottom:10px solid transparent; border-right:14px solid #38bdf8}
   .tour-arrow[data-dir="right"]{border-top:10px solid transparent; border-bottom:10px solid transparent; border-left:14px solid #38bdf8}
   .tour-arrow[data-dir="up"]{border-left:10px solid transparent; border-right:10px solid transparent; border-bottom:14px solid #38bdf8}
@@ -420,15 +416,31 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
   #tourParts .tp:hover{border-color:rgba(56,189,248,.75); background:rgba(56,189,248,.22)}
   #tourParts .tp.on{background:rgba(56,189,248,.35); border-color:rgba(125,211,252,.9); color:#fff}
   #tourParts .tp-label{width:100%; font:700 10px system-ui,sans-serif; letter-spacing:.1em; text-transform:uppercase; color:#7dd3fc; margin:0 0 2px}
-  /* Dock/nav button callout during panel steps — outline only, never change position */
-  .tour-dock-spot{outline:2.5px solid rgba(52,211,153,.95) !important; outline-offset:2px;
-    border-radius:9px; background:rgba(52,211,153,.14) !important}
+  /* Elevated Space chrome during tutorial — ABOVE the dim so nav/panel stay bright */
+  body.touring #spaceDock[data-tour-elev="1"],
+  body.touring #spacePanel[data-tour-elev="1"],
+  body.touring #miniPanel[data-tour-elev="1"],
+  body.touring #spaceTop[data-tour-elev="1"]{
+    z-index:450 !important;
+  }
+  body.touring #spaceDock[data-tour-elev="1"]{
+    background:rgba(2,11,26,.94) !important;
+    box-shadow:0 8px 28px rgba(0,0,0,.5);
+  }
+  body.touring #spacePanel[data-tour-elev="1"],
+  body.touring #miniPanel[data-tour-elev="1"]{
+    box-shadow:0 20px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(56,189,248,.4);
+  }
+  .tour-dock-spot{outline:2.5px solid rgba(52,211,153,.98) !important; outline-offset:2px;
+    border-radius:9px !important; background:rgba(52,211,153,.22) !important;
+    border-color:rgba(52,211,153,.55) !important; color:#fff !important}
+  .tour-panel-spot{outline:2.5px solid rgba(125,211,252,.98) !important; outline-offset:0}
   #tourFab{display:none}
   body.space:not(.fresh) #tourFab{display:flex; position:fixed; left:14px; bottom:14px; z-index:31;
     align-items:center; gap:8px; padding:8px 12px; border-radius:999px; cursor:pointer;
     background:rgba(2,11,26,.8); border:1px solid rgba(56,189,248,.4); color:#e0f2ff;
     font:700 12.5px system-ui,sans-serif; backdrop-filter:blur(10px); box-shadow:0 8px 24px rgba(0,0,0,.35)}
-  body.space.touring #tourFab{display:none}
+  body.space.touring #tourFab{display:none !important}
   body.fresh #tourFab{display:none !important}
   #tourFab:hover{border-color:rgba(56,189,248,.75); background:rgba(56,189,248,.16)}
   /* NEVER set position/transform on .tour-spot — targets include position:fixed
@@ -1360,7 +1372,7 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
     <h3>View</h3>
     <p class="hint" style="margin:0 0 10px">You're in the Space view — the map is the app and sections open as panels. The classic layout puts every section on one scrolling page (it's also the accessibility fallback). Feature walkthrough: <a href="tutorial">Tutorial &amp; Ask</a>.</p>
     <button class="btn" id="setClassicBtn" type="button">🖥️ Switch to classic view</button>
-    <button class="btn" id="setTourBtn" type="button" style="margin-left:8px">▶ Guided Space tour</button>
+    <button class="btn" id="setTourBtn" type="button" style="margin-left:8px">▶ Guided Space tutorial</button>
     <a class="btn" href="tutorial" style="margin-left:8px">📘 Tutorial &amp; Ask</a>
   </div>
 
@@ -1471,7 +1483,7 @@ rewrite the static advice cards if the picture has changed.</div>
 <div id="spaceOb"></div>
 
 <!-- In-app Space tour -->
-<button type="button" id="tourFab" title="Guided tour of features in Space view">📘 Tour</button>
+<button type="button" id="tourFab" title="Guided tutorial of features in Space view">📘 Tutorial</button>
 <div id="tourRoot" aria-live="polite" hidden>
   <div id="tourBlocker" aria-hidden="true" title="Use the tour buttons to navigate"></div>
   <svg id="tourSvg" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
@@ -1486,14 +1498,14 @@ rewrite the static advice cards if the picture has changed.</div>
   <div id="tourRings" aria-hidden="true"></div>
   <div class="tour-arrow" id="tourArrow" hidden></div>
   <div id="tourCard" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
-    <div class="tour-kicker" id="tourKicker">Guided tour</div>
+    <div class="tour-kicker" id="tourKicker">Guided tutorial</div>
     <h3 id="tourTitle">Title</h3>
     <p class="tour-loc" id="tourLoc"></p>
     <div class="tour-body" id="tourBody"></div>
     <div class="tour-nav">
       <button type="button" class="btn" id="tourPrev">Back</button>
       <button type="button" class="btn primary" id="tourNext">Next</button>
-      <button type="button" class="btn" id="tourSkip">End tour</button>
+      <button type="button" class="btn" id="tourSkip">End tutorial</button>
       <span class="tour-progress" id="tourProg"></span>
     </div>
   </div>
@@ -1573,13 +1585,15 @@ rewrite the static advice cards if the picture has changed.</div>
   if (raw.demo){
     document.title = 'Lithifyte demo — a sample household, nothing here is real';
     const db = document.createElement('a');
+    db.id = 'demoBadge';
     db.href = './';
-    db.textContent = '🧪 Demo — every number is invented. Ready for your own? Start fresh →';
-    db.setAttribute('aria-label', 'This is the demo with sample data — open the real app');
-    db.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:62;' +
-      'background:rgba(16,20,34,.88);border:1px solid rgba(240,180,60,.55);color:#f0c464;' +
-      'padding:5px 14px;border-radius:999px;font-size:12px;text-decoration:none;white-space:nowrap;' +
-      'backdrop-filter:blur(8px);max-width:92vw;overflow:hidden;text-overflow:ellipsis';
+    db.textContent = 'Demo Account';
+    db.setAttribute('aria-label', 'Demo Account — sample data only; open the real app');
+    db.title = 'Sample data only — click to open the real app';
+    db.style.cssText = 'position:fixed;top:12px;left:14px;z-index:62;' +
+      'background:rgba(16,20,34,.92);border:1px solid rgba(240,180,60,.55);color:#f0c464;' +
+      'padding:6px 12px;border-radius:999px;font:700 12px system-ui,sans-serif;text-decoration:none;white-space:nowrap;' +
+      'backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,.35)';
     document.body.appendChild(db);
   } else if (/^https?:$/.test(location.protocol)){
     // hosted real app: onboarding offers the demo (a separate build whose
@@ -7920,7 +7934,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     const tourSvg = document.getElementById('tourSvg');
     const tourMask = document.getElementById('tourMask');
     const tourRings = document.getElementById('tourRings');
-    let active = false, partFilter = null, idx = 0, spotEl = null, dockSpotEl = null, raf = 0;
+    let active = false, partFilter = null, idx = 0, spotEl = null, dockSpotEl = null, raf = 0, currentStep = null, homeCard = null, homeParts = null, homeBlocker = null;
 
     PARTS.forEach(p => {
       const b = document.createElement('button');
@@ -7947,11 +7961,50 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     function clearSpot(){
       if (spotEl){ spotEl.classList.remove('tour-spot'); spotEl = null; }
       if (dockSpotEl){ dockSpotEl.classList.remove('tour-dock-spot'); dockSpotEl = null; }
+      document.querySelectorAll('.tour-panel-spot').forEach(el => el.classList.remove('tour-panel-spot'));
       if (tourRings) tourRings.innerHTML = '';
       if (tourMask){
-        // keep white bg, remove hole rects
         [...tourMask.querySelectorAll('rect.tour-hole')].forEach(n => n.remove());
       }
+    }
+    function resetElevate(){
+      document.querySelectorAll('[data-tour-elev]').forEach(el => {
+        el.style.zIndex = '';
+        delete el.dataset.tourElev;
+        el.classList.remove('tour-panel-spot', 'tour-dock-spot');
+      });
+    }
+    function elevate(el){
+      if (!el) return;
+      el.dataset.tourElev = '1';
+      el.style.zIndex = '450';
+    }
+    function relayout(){
+      if (!active || !currentStep) return;
+      layout(currentStep, resolveTarget(currentStep.target));
+    }
+    function mountCoach(){
+      if (!homeCard){
+        homeCard = card.parentNode;
+        homeParts = partsEl.parentNode;
+        homeBlocker = blocker ? blocker.parentNode : null;
+      }
+      if (card.parentNode !== document.body) document.body.appendChild(card);
+      if (partsEl.parentNode !== document.body) document.body.appendChild(partsEl);
+      if (blocker && blocker.parentNode !== document.body) document.body.appendChild(blocker);
+      if (arrow && arrow.parentNode !== document.body) document.body.appendChild(arrow);
+      if (tourRings && tourRings.parentNode !== document.body) document.body.appendChild(tourRings);
+      card.style.zIndex = '500';
+      partsEl.style.zIndex = '500';
+      if (blocker) blocker.style.cssText = 'display:block;position:fixed;inset:0;z-index:490;pointer-events:auto;background:transparent;cursor:default';
+      if (tourRings) tourRings.style.cssText = 'position:fixed;inset:0;z-index:460;pointer-events:none';
+    }
+    function unmountCoach(){
+      if (homeCard && card.parentNode === document.body) homeCard.appendChild(card);
+      if (homeParts && partsEl.parentNode === document.body) homeParts.appendChild(partsEl);
+      if (homeBlocker && blocker && blocker.parentNode === document.body) homeBlocker.appendChild(blocker);
+      if (root && arrow && arrow.parentNode === document.body) root.appendChild(arrow);
+      if (root && tourRings && tourRings.parentNode === document.body) root.appendChild(tourRings);
     }
     function resolveTarget(sel){
       if (!sel) return null;
@@ -8040,94 +8093,129 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         tourSvg.setAttribute('viewBox', '0 0 ' + vw + ' ' + vh);
         tourSvg.setAttribute('width', String(vw));
         tourSvg.setAttribute('height', String(vh));
+        tourSvg.style.cssText = 'position:fixed;inset:0;z-index:400;width:' + vw + 'px;height:' + vh + 'px;pointer-events:none;display:block';
       }
       const maskBg = document.getElementById('tourMaskBg');
-      if (maskBg){
-        maskBg.setAttribute('width', String(vw));
-        maskBg.setAttribute('height', String(vh));
-      }
-      // reset holes + rings
+      if (maskBg){ maskBg.setAttribute('width', String(vw)); maskBg.setAttribute('height', String(vh)); }
+      const dim = document.getElementById('tourDim');
+      if (dim){ dim.setAttribute('width', String(vw)); dim.setAttribute('height', String(vh)); }
       if (tourMask) [...tourMask.querySelectorAll('rect.tour-hole')].forEach(n => n.remove());
       if (tourRings) tourRings.innerHTML = '';
+      resetElevate();
       if (dockSpotEl){ dockSpotEl.classList.remove('tour-dock-spot'); dockSpotEl = null; }
+      document.querySelectorAll('.tour-panel-spot').forEach(el => el.classList.remove('tour-panel-spot'));
 
-      const items = collectRects(step, contentEl);
-      // Expand hole slightly for breathing room (symmetric — no horizontal bias)
-      const PAD = 4;
+      const panel = document.getElementById('spacePanel');
+      const mini = document.getElementById('miniPanel');
+      const dock = document.getElementById('spaceDock');
+      const top = document.getElementById('spaceTop');
+      const dockKey = step && step.dock;
       let primary = null;
-      items.forEach((it, i) => {
+      const rings = [];
+      const PAD = 3;
+
+      // Always elevate the left nav so it stays bright above the fade
+      if (dock) elevate(dock);
+
+      if (dockKey === 'range' || dockKey === 'search'){
+        if (top) elevate(top);
+        const topBtn = document.getElementById(dockKey === 'range' ? 'topRange' : 'topSearch');
+        if (topBtn){
+          dockSpotEl = topBtn;
+          topBtn.classList.add('tour-dock-spot');
+          const br = readRect(topBtn);
+          if (br) rings.push({r: br, kind: 'dock', radius: 19});
+        }
+        if (mini && mini.classList.contains('open')){
+          elevate(mini);
+          mini.classList.add('tour-panel-spot');
+          void mini.offsetWidth;
+          const mr = readRect(mini);
+          if (mr){ rings.push({r: mr, kind: 'panel', radius: 14}); primary = mr; }
+        }
+      } else if (dockKey && dockKey !== 'map'){
+        // Specific dock item for this section
+        const btn = document.querySelector('#spaceDock .dock-btn[data-k="' + dockKey + '"]');
+        if (btn){
+          dockSpotEl = btn;
+          btn.classList.add('tour-dock-spot');
+          const br = readRect(btn);
+          if (br) rings.push({r: br, kind: 'dock', radius: 9});
+        }
+        if (panel && panel.classList.contains('open')){
+          elevate(panel);
+          panel.classList.add('tour-panel-spot');
+          void panel.offsetWidth;
+          const pr = readRect(panel);
+          if (pr){ rings.push({r: pr, kind: 'panel', radius: 14}); primary = pr; }
+        } else if (contentEl){
+          const cr = readRect(contentEl);
+          if (cr){ rings.push({r: cr, kind: 'content', radius: 12}); primary = cr; }
+        }
+      } else {
+        // Map / shell: highlight target (dock/hud/top) — already elevated dock
+        if (contentEl){
+          const cr = readRect(contentEl);
+          if (cr){
+            rings.push({r: cr, kind: contentEl.id === 'spaceDock' ? 'dock' : 'content', radius: 12});
+            primary = cr;
+          }
+        }
+      }
+
+      // Rings use exact floor/ceil rects (readRect) + small pad
+      rings.forEach(it => {
         const r = it.r;
-        // Symmetric pad in viewport space
         const t = Math.max(0, r.top - PAD);
         const l = Math.max(0, r.left - PAD);
         const right = Math.min(vw, r.right + PAD);
         const bottom = Math.min(vh, r.bottom + PAD);
         const w = Math.max(1, right - l);
         const h = Math.max(1, bottom - t);
-        // SVG hole (black in mask = transparent dim)
-        if (tourMask){
-          const hr = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-          hr.setAttribute('class', 'tour-hole');
-          hr.setAttribute('x', String(l));
-          hr.setAttribute('y', String(t));
-          hr.setAttribute('width', String(w));
-          hr.setAttribute('height', String(h));
-          hr.setAttribute('rx', String(it.radius || 12));
-          hr.setAttribute('fill', 'black');
-          tourMask.appendChild(hr);
-        }
-        // Ring anchored on all four edges (matches target even if width calc drifts)
         if (tourRings){
           const ring = document.createElement('div');
           ring.className = 'tour-hole-ring' + (it.kind === 'dock' ? ' secondary' : '');
-          ring.style.cssText = [
-            'position:fixed',
-            'box-sizing:border-box',
-            'top:' + t + 'px',
-            'left:' + l + 'px',
-            'width:' + w + 'px',
-            'height:' + h + 'px',
-            'right:auto',
-            'bottom:auto',
-            'margin:0',
-            'border-radius:' + (it.radius || 12) + 'px'
-          ].join(';');
+          ring.style.cssText = 'position:fixed;box-sizing:border-box;top:' + t + 'px;left:' + l +
+            'px;width:' + w + 'px;height:' + h + 'px;border-radius:' + (it.radius || 12) + 'px;margin:0;padding:0;z-index:460';
           tourRings.appendChild(ring);
         }
-        if (it.kind === 'dock' && it.el){
-          dockSpotEl = it.el;
-          it.el.classList.add('tour-dock-spot');
-        }
-        if (it.kind === 'panel' || it.kind === 'content') primary = {t, l, w, h};
-        else if (!primary) primary = {t, l, w, h};
       });
-      if (!primary && items[0]){
-        const r = items[0].r;
-        primary = {t: r.top, l: r.left, w: r.width, h: r.height};
-      }
-      // Arrow + coach toward primary (panel) highlight
-      const t = primary ? primary.t : 80, l = primary ? primary.l : 14;
-      const w = primary ? primary.w : 172, h = primary ? primary.h : 200;
-      const b = t + h, ri = l + w;
+
+      if (!primary && rings[0]) primary = rings[0].r;
+      const pt = primary ? primary.top - PAD : 80;
+      const pl = primary ? primary.left - PAD : 14;
+      const pw = primary ? primary.width + PAD * 2 : 172;
+      const ph = primary ? primary.height + PAD * 2 : 200;
+      const pb = pt + ph, pri = pl + pw;
       const cw = Math.min(380, vw - 28);
       card.style.display = 'block';
       card.style.visibility = 'visible';
+      card.style.zIndex = '500';
       const ch = Math.max(160, card.offsetHeight || 220);
       let cx, cy;
-      if (ri + cw + 24 < vw){ cx = ri + 16; cy = Math.min(Math.max(12, t), vh - ch - 24); }
-      else if (l > cw + 24){ cx = l - cw - 16; cy = Math.min(Math.max(12, t), vh - ch - 24); }
-      else { cx = Math.max(14, (vw - cw) / 2); cy = (t > ch + 24) ? Math.max(12, t - ch - 12) : Math.min(b + 12, vh - ch - 24); }
+      if (primary && primary.left > vw * 0.35 && pl > cw + 24){
+        cx = Math.max(12, pl - cw - 16);
+        cy = Math.min(Math.max(12, pt), vh - ch - 24);
+      } else if (pri + cw + 24 < vw){
+        cx = pri + 16; cy = Math.min(Math.max(12, pt), vh - ch - 24);
+      } else if (pl > cw + 24){
+        cx = pl - cw - 16; cy = Math.min(Math.max(12, pt), vh - ch - 24);
+      } else {
+        cx = Math.max(14, (vw - cw) / 2);
+        cy = Math.min(vh - ch - 24, Math.max(12, (primary ? primary.bottom + 12 : 80)));
+      }
       cx = Math.max(12, Math.min(cx, vw - cw - 12));
-      cy = Math.max(12, Math.min(cy, vh - ch - 12));
+      cy = Math.max(12, Math.min(cy, vh - ch - 24));
       card.style.left = cx + 'px';
       card.style.top = cy + 'px';
-      partsEl.style.left = '14px';
-      partsEl.style.right = 'auto';
+      // Part chips sit clear of the elevated dock
+      const dockW = (dock && dock.dataset.tourElev) ? (readRect(dock) || {width:172}).width : 0;
+      partsEl.style.left = (14 + (dock && dock.dataset.tourElev ? dockW + 12 : 0)) + 'px';
       partsEl.style.bottom = '14px';
       partsEl.style.zIndex = '500';
       partsEl.style.pointerEvents = 'auto';
-      // arrow from card toward primary hole center
-      const hx = l + w / 2, hy = t + h / 2;
+
+      const hx = pl + pw / 2, hy = pt + ph / 2;
       const ccx = cx + cw / 2, ccy = cy + Math.min(ch, 160) / 2;
       const dx = hx - ccx, dy = hy - ccy;
       let dir, ax, ay;
@@ -8142,26 +8230,25 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       arrow.dataset.dir = dir;
       arrow.style.left = ax + 'px';
       arrow.style.top = ay + 'px';
+      arrow.style.zIndex = '495';
     }
     function applyStep(step){
-      clearSpot();
+      currentStep = step;
       if (!Space) return;
       if (!Space.isSpace()) Space.enter();
-      // open target surface
       if (step.dock === 'map' || !step.dock) Space.open('map');
       else Space.open(step.dock, {force:true, keep:true});
       const paint = () => {
+        if (!active || currentStep !== step) return;
         const el = resolveTarget(step.target);
-        clearSpot();
+        spotEl = el || null;
         if (el){
-          spotEl = el;
-          // No outline on content (rings are authoritative — avoids double offset look)
           try {
             if (el.closest && el.closest('#panelBody, #miniBody'))
               el.scrollIntoView({block:'nearest', inline:'nearest', behavior: 'smooth'});
           } catch {}
         }
-        document.getElementById('tourKicker').textContent = 'Part ' + step.part + ' of 7 · Guided Space tour';
+        document.getElementById('tourKicker').textContent = 'Part ' + step.part + ' of 7 · Guided Space tutorial';
         document.getElementById('tourTitle').textContent = step.title;
         document.getElementById('tourLoc').textContent = step.loc ? ('Where: ' + step.loc) : '';
         document.getElementById('tourBody').textContent = step.body;
@@ -8170,19 +8257,17 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         document.getElementById('tourPrev').disabled = idx <= 0;
         document.getElementById('tourNext').textContent = idx >= L.length - 1 ? 'Finish' : 'Next';
         paintParts();
-        // Ensure open panel has finished flex layout before measuring
         const pan = document.getElementById('spacePanel');
         const mini = document.getElementById('miniPanel');
         if (pan) void pan.offsetWidth;
         if (mini) void mini.offsetWidth;
         layout(step, el);
       };
-      // Panel DOM move needs a beat before measuring rects
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           paint();
-          setTimeout(paint, 100);
-          setTimeout(paint, 220);
+          setTimeout(paint, 80);
+          setTimeout(paint, 180);
         });
       });
     }
@@ -8196,22 +8281,21 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (Space && !Space.isSpace()) Space.enter();
       root.hidden = false;
       root.removeAttribute('hidden');
-      // Root is a stacking context ABOVE the whole app; only coach controls receive clicks
       root.style.cssText = 'display:block;position:fixed;inset:0;z-index:400;pointer-events:none';
-      card.style.cssText = (card.style.cssText || '').replace(/z-index:\s*\d+;?/g, '') ;
-      card.style.zIndex = '500';
+      mountCoach();
       card.style.pointerEvents = 'auto';
       card.style.opacity = '1';
-      partsEl.style.zIndex = '500';
       partsEl.style.pointerEvents = 'auto';
       partsEl.style.opacity = '1';
-      if (blocker) blocker.style.cssText = 'display:block;position:fixed;inset:0;z-index:410;pointer-events:auto';
       applyStep(L[idx]);
     }
     function stop(){
       active = false;
       document.body.classList.remove('touring');
       clearSpot();
+      resetElevate();
+      unmountCoach();
+      currentStep = null;
       root.hidden = true;
       root.setAttribute('hidden', '');
       root.style.display = 'none';
@@ -8249,9 +8333,14 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (Space) Space.closePanel();
       start(null);
     });
-    window.addEventListener('resize', () => { if (active) show(); });
-    document.getElementById('panelBody').addEventListener('scroll', () => { if (active && spotEl) layout(spotEl); }, {passive:true});
-    document.getElementById('miniBody').addEventListener('scroll', () => { if (active && spotEl) layout(spotEl); }, {passive:true});
+    let resizeTimer = 0;
+    window.addEventListener('resize', () => {
+      if (!active) return;
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(relayout, 40);
+    });
+    document.getElementById('panelBody').addEventListener('scroll', () => { if (active) relayout(); }, {passive:true});
+    document.getElementById('miniBody').addEventListener('scroll', () => { if (active) relayout(); }, {passive:true});
 
     // While touring: ONLY tour chrome may receive pointer/keyboard navigation.
     // Capture-phase trap stops dock buttons, map nodes, panels, etc.
