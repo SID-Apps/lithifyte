@@ -839,7 +839,7 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
         <span class="hint num" id="ob-name-done"></span></li>
       <li class="ob-step" id="obs2"><span class="ob-num">2</span><b>Your first account</b>
         <input id="ob-acct" class="inp" placeholder="e.g. AIB current account" style="min-width:200px">
-        <select id="ob-kind" class="inp"><option value="current">Current</option><option value="credit">Credit card</option><option value="savings">Savings</option></select>
+        <select id="ob-kind" class="inp"><option value="current">Current</option><option value="credit">Credit card</option><option value="savings">Savings</option><option value="cash">Cash</option></select>
         <button class="btn primary" id="ob-acct-go" type="button">Add account</button>
         <span class="hint num" id="ob-acct-done"></span></li>
       <li class="ob-step" id="obs3"><span class="ob-num">3</span><b>Your first statement</b>
@@ -925,7 +925,9 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
         <span><i class="sw" style="background:var(--income)"></i>Income</span>
         <span><i class="sw" style="background:var(--spend)"></i>Spending (excl. deposit savings)</span>
       </div>
-      <div id="cashflowChart"></div>
+      <div id="cashflowChartWrap" style="overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;max-width:100%">
+        <div id="cashflowChart"></div>
+      </div>
       <div id="cashDetail"></div>
     </div>
     <div class="chart-card sk-mini-card" id="skCard" title="Click to view large">
@@ -1001,7 +1003,7 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
         <div><label for="upOwner">Who does this account belong to?</label><select id="upOwner" class="inp"></select></div>
         <div id="upNewOwnerWrap" style="display:none"><label for="upOwnerName">Name (person or business)</label><input id="upOwnerName" class="inp" placeholder="e.g. Sally, or Sally's Bakery Ltd"></div>
         <div id="upNewOwnerTypeWrap" style="display:none"><label for="upOwnerType">Type</label><select id="upOwnerType" class="inp"><option value="personal">Personal</option><option value="business">Business</option></select></div>
-        <div><label for="upKind">Account type</label><select id="upKind" class="inp"><option value="current">Current</option><option value="credit">Credit card</option><option value="savings">Savings</option></select></div>
+        <div><label for="upKind">Account type</label><select id="upKind" class="inp"><option value="current">Current</option><option value="credit">Credit card</option><option value="savings">Savings</option><option value="cash">Cash</option></select></div>
       </div>
       <p class="hint" id="upStatus" style="margin:10px 0 0"></p>
     </div>
@@ -1527,6 +1529,33 @@ rewrite the static advice cards if the picture has changed.</div>
 <!-- P6: onboarding floats over the live map when space view hosts first-run -->
 <div id="spaceOb"></div>
 
+
+<!-- Manual cash transaction dialog -->
+<div id="cashTxModal" hidden style="position:fixed;inset:0;z-index:600;display:none;align-items:center;justify-content:center;background:rgba(2,8,20,.72);padding:16px">
+  <div role="dialog" aria-modal="true" aria-labelledby="cashTxTitle" style="width:min(440px,100%);background:var(--page,#0a1628);border:1px solid rgba(56,189,248,.45);border-radius:14px;padding:16px;box-shadow:0 20px 60px rgba(0,0,0,.55);max-height:92vh;overflow:auto">
+    <h3 id="cashTxTitle" style="margin:0 0 10px">Cash transaction</h3>
+    <p class="hint" id="cashTxAcct" style="margin:0 0 12px"></p>
+    <input type="hidden" id="ctx-id">
+    <div class="goal-form" style="grid-template-columns:1fr 1fr; gap:8px">
+      <div style="grid-column:1/-1"><label for="ctx-name">Description</label><input id="ctx-name" class="inp" placeholder="e.g. Groceries · market"></div>
+      <div><label for="ctx-date">Date</label><input id="ctx-date" class="inp" type="date"></div>
+      <div><label for="ctx-dir">Direction</label>
+        <select id="ctx-dir" class="inp"><option value="out">Cash out (spent)</option><option value="in">Cash in (received)</option></select></div>
+      <div><label for="ctx-amt">Amount €</label><input id="ctx-amt" class="inp" type="number" min="0.01" step="0.01" placeholder="20.00"></div>
+      <div><label for="ctx-cat">Category</label><select id="ctx-cat" class="inp"></select></div>
+      <div style="grid-column:1/-1"><label for="ctx-link">Linked bank transaction (optional)</label>
+        <select id="ctx-link" class="inp"><option value="">— none —</option></select>
+        <div class="hint" style="margin-top:4px">e.g. link grocery spend to an ATM cash withdrawal</div></div>
+      <div style="grid-column:1/-1"><label for="ctx-note">Note</label><textarea id="ctx-note" class="inp" rows="2" placeholder="Optional note"></textarea></div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;justify-content:flex-end">
+      <button type="button" class="btn" id="ctx-del" style="margin-right:auto;display:none;color:var(--critical)">Delete</button>
+      <button type="button" class="btn" id="ctx-cancel">Cancel</button>
+      <button type="button" class="btn primary" id="ctx-save">Save</button>
+    </div>
+  </div>
+</div>
+
 <!-- In-app Space tour -->
 <button type="button" id="tourFab" title="Guided tutorial of features in Space view">📘 Tutorial</button>
 <div id="tourRoot" aria-live="polite" hidden>
@@ -1622,7 +1651,7 @@ rewrite the static advice cards if the picture has changed.</div>
   const MAP_LEGEND = false;
 
   // ══ persistent stores (all in this browser — self-hosted) ══
-  const LS = {rules:'dd-rules-v2', cats:'dd-cats-v2', goals:'dd-goals-v1', org:'dd-org-v1', recur:'dd-recur-v1', uploads:'dd-uploads-v1', xfers:'dd-xfers-v1', manrec:'dd-manrec-v1', fcast:'dd-fcast-v1', cuts:'dd-cuts-v1', visit:'dd-visit-v1', budget:'dd-budget-v1', priv:'dd-privacy-v1', debts:'dd-debts-v1', holds:'dd-holdings-v1', assets:'dd-assets-v1', nwlog:'dd-nwlog-v1', merch:'dd-merch-v1', notes:'dd-notes-v1', lm:'dd-lm-v1'};
+  const LS = {rules:'dd-rules-v2', cats:'dd-cats-v2', goals:'dd-goals-v1', org:'dd-org-v1', recur:'dd-recur-v1', uploads:'dd-uploads-v1', xfers:'dd-xfers-v1', manrec:'dd-manrec-v1', fcast:'dd-fcast-v1', cuts:'dd-cuts-v1', visit:'dd-visit-v1', budget:'dd-budget-v1', priv:'dd-privacy-v1', debts:'dd-debts-v1', holds:'dd-holdings-v1', assets:'dd-assets-v1', nwlog:'dd-nwlog-v1', merch:'dd-merch-v1', notes:'dd-notes-v1', lm:'dd-lm-v1', cash:'dd-cash-v1'};
   // demo build (raw.demo:true in the data block): every store gets its own
   // namespace — the hosted demo shares an origin with the real app, and
   // playing with sample data must never be able to touch someone's real data
@@ -1847,6 +1876,8 @@ rewrite the static advice cards if the picture has changed.</div>
   let merchStore = load(LS.merch, {rules:[], keep:[]});   // P7-32: rules=[{contains, name}] manual merges; keep=[raw] exempt from auto-normalisation
   let noteStore = load(LS.notes, {});   // P7-36: free-text notes keyed by map-node id ('m:ALDI', 'goal:house', 'debt:d1', …)
   let lmStore = load(LS.lm, {endpoint:'http://localhost:11434/v1/chat/completions', model:'', dismissed:{}});   // build-5: local-LM categoriser config + dismissed merchants
+  // Manual cash ledger: items on kind=cash accounts (ATM→spend links, notes, edit/delete)
+  let cashStore = load(LS.cash, {items:[]}); // {id, acctId, d, m, c, s, de, cr, note, link:{acctId,d,m,de,cr}|null}
   const merchCanon = new Map();                   // raw → canonical cache; cleared on merchStore change
   function canonOf(m){
     let v = merchCanon.get(m);
@@ -2608,6 +2639,15 @@ rewrite the static advice cards if the picture has changed.</div>
     for (const st of uploads.statements)
       for (const a of st.rows)
         base.push({d:a[0], mo:a[0].slice(0,7), m:a[1], c:a[2], s:a[3], de:a[4], cr:a[5], cf:(a[6]!=null?a[6]:0.5), acct:st.accountId, stmt:st.id});
+    // Manual cash ledger (kind=cash accounts)
+    for (const it of (cashStore.items || [])){
+      if (!it || !it.d || !it.acctId) continue;
+      base.push({
+        d: it.d, mo: String(it.d).slice(0,7), m: it.m || 'Cash', c: it.c || 'Uncategorized', s: it.s || 'Other',
+        de: +it.de || 0, cr: +it.cr || 0, cf: 1, acct: it.acctId, stmt: 'cash:' + it.id,
+        manual: true, cashId: it.id, note: it.note || '', link: it.link || null
+      });
+    }
     base.sort((x,y) => x.d < y.d ? -1 : 1);
     TX = base;
     MONTHS = [...new Set(TX.map(t=>t.mo))].sort();
@@ -3194,14 +3234,25 @@ rewrite the static advice cards if the picture has changed.</div>
   function renderCashflow(){
     fillAcctScopeSelects();
     bindAcctScopeSelects();
-    const M = monthlyFromTxe(scopedTxe()), n = M.length;
-    const W = Math.max(860, n*28), H = 240, padL = 46, padR = 8, padT = 10, padB = 34;
+    // Must match A.monthly: months inside the selected date RANGE only.
+    // Bug fix: monthlyFromTxe() over all MONTHS made bars 13+ map to
+    // A.monthly[i] === undefined (range is typically last 12 months).
+    const M = monthlyFromTxe(scopedTxe()).filter(m => RANGE.has(m.month));
+    const n = Math.max(1, M.length);
+    const padL = 46, padR = 12, padT = 10, padB = 36, H = 240, groupMin = 42;
+    const W = Math.max(640, padL + padR + n * groupMin);
     const plotW = W - padL - padR, plotH = H - padT - padB;
-    const maxV = Math.max(...M.map(m => Math.max(m.income, m.spend)), 1);
-    const yMax = Math.max(2000, Math.ceil(maxV/2000)*2000);
-    const y = v => padT + plotH - (v/yMax)*plotH;
-    const group = plotW/n, bw = Math.min(9, (group-8)/2);
-    let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Monthly income versus spending">`;
+    const maxV = Math.max(1, ...M.map(m => Math.max(m.income || 0, m.spend || 0)));
+    const yMax = Math.max(2000, Math.ceil(maxV / 2000) * 2000);
+    const y = v => padT + plotH - (v / yMax) * plotH;
+    const group = plotW / n, bw = Math.max(4, Math.min(14, (group - 10) / 2));
+    if (!M.length){
+      document.getElementById('cashflowChart').innerHTML =
+        '<div class="hint" style="padding:28px 8px">No months in the selected date range for this account scope. Widen 📅 range or pick another account.</div>';
+      renderCashDetail();
+      return;
+    }
+    let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="display:block;max-width:none" role="img" aria-label="Monthly income versus spending">`;
     for (let g = 0; g <= yMax; g += 2000){
       s += `<line x1="${padL}" x2="${W-padR}" y1="${y(g)}" y2="${y(g)}" stroke="var(--grid)" stroke-width="1"/>`;
       s += `<text x="${padL-6}" y="${y(g)+4}" text-anchor="end">${g===0?'0':(g/1000)+'k'}</text>`;
@@ -3214,11 +3265,14 @@ rewrite the static advice cards if the picture has changed.</div>
       s += `<rect x="${x0+bw+2}" y="${ys}" width="${bw}" height="${Math.max(0,padT+plotH-ys)}" rx="3" fill="var(--spend)"/>`;
       s += `</g>`;
       const [yy,mm] = m.month.split('-');
-      if (mm === '01' || i === 0) s += `<text x="${padL + i*group + group/2}" y="${H-12}" text-anchor="middle">${mm==='01' ? yy : ''}</text>`;
-      if (mm === '07') s += `<text x="${padL + i*group + group/2}" y="${H-12}" text-anchor="middle">Jul</text>`;
+      const lab = (mm === '01' || i === 0) ? (mm === '01' ? yy : yy.slice(2) + '-' + mm)
+                : (n <= 16 || mm === '04' || mm === '07' || mm === '10' ? mm : '');
+      if (lab) s += `<text x="${padL + i*group + group/2}" y="${H-14}" text-anchor="middle" font-size="11">${lab}</text>`;
     });
     s += `<line x1="${padL}" x2="${W-padR}" y1="${padT+plotH}" y2="${padT+plotH}" stroke="var(--baseline)" stroke-width="1"/>`;
-    M.forEach((m,i)=>{ s += `<rect class="cf-hit" data-i="${i}" x="${padL+i*group}" y="${padT}" width="${group}" height="${plotH}" fill="transparent" style="cursor:pointer"/>`; });
+    M.forEach((m,i)=>{
+      s += `<rect class="cf-hit" data-i="${i}" x="${padL+i*group}" y="${padT}" width="${group}" height="${plotH}" fill="rgba(0,0,0,0)" style="cursor:pointer" pointer-events="all"/>`;
+    });
     s += '</svg>';
     const el = document.getElementById('cashflowChart');
     el.innerHTML = s;
@@ -3233,10 +3287,11 @@ rewrite the static advice cards if the picture has changed.</div>
     };
     el.querySelectorAll('.cf-hit').forEach(r=>{
       r.addEventListener('mousemove', e=>{
-        const m = A.monthly[+r.dataset.i];
+        const m = M[+r.dataset.i];
+        if (!m) return;
         const net = m.income - m.spend;
         applyCfDim(+r.dataset.i);
-        showTip(`<div class="t-title">${fmtMoLbl(m.month)}</div>
+        showTip(`<div class="t-title">${fmtMoLbl(m.month)} · ${esc(acctLabel(viewAcct))}</div>
           <div class="t-row"><span>Income</span><b>${eur(m.income)}</b></div>
           <div class="t-row"><span>Spending</span><b>${eur(m.spend)}</b></div>
           <div class="t-row"><span>Margin</span><b style="color:${net>=0?'var(--good-text)':'var(--critical)'}">${net>=0?'+':'−'}${eur(Math.abs(net))}</b></div>
@@ -3245,8 +3300,9 @@ rewrite the static advice cards if the picture has changed.</div>
       });
       r.addEventListener('mouseleave', ()=>{ hideTip(); applyCfDim(null); });
       r.addEventListener('click', ()=>{
-        const mo = A.monthly[+r.dataset.i].month;
-        cashSel = cashSel === mo ? null : mo;
+        const m = M[+r.dataset.i];
+        if (!m) return;
+        cashSel = cashSel === m.month ? null : m.month;
         cashCatSel = null;
         renderCashDetail();
         renderSankey();
@@ -3257,6 +3313,7 @@ rewrite the static advice cards if the picture has changed.</div>
     renderCashDetail();
   }
   let cashSel = null, cashCatSel = null;
+
   function renderCashDetail(){
     const el = document.getElementById('cashDetail');
     if (!cashSel){ el.innerHTML = ''; return; }
@@ -3277,7 +3334,7 @@ rewrite the static advice cards if the picture has changed.</div>
       .map(([k, v]) => `<div class="drill-row"><span>${esc(k)}</span><b>${sign}${eur(v)}</b></div>`).join('');
     // expense categories expand: click one to see the transactions behind it
     const expTx = cat => {
-      const list = A.txe.filter(t => t.mo === mo && t.ec === cat && t.de > 0 && t.ec !== SAVE_CAT)
+      const list = scopedTxe().filter(t => t.mo === mo && t.ec === cat && t.de > 0 && t.ec !== SAVE_CAT)
         .sort((a, b) => b.de - a.de);
       const shown = list.slice(0, 15);
       return `<div class="drill-sub">` + shown.map(t =>
@@ -3671,7 +3728,7 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
   function lmSaveCfg(){
     lmStore.endpoint = document.getElementById('lm-endpoint').value.trim() || lmStore.endpoint;
     lmStore.model = document.getElementById('lm-model').value.trim();
-    save(LS.lm, lmStore);
+    save(LS.lm, lmStore); save(LS.cash, cashStore);
   }
   async function lmChat(messages, timeoutMs){
     const ctl = new AbortController();
@@ -3780,6 +3837,187 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
       const i = merchStore.rules.indexOf(rule); if (i >= 0) merchStore.rules.splice(i, 1); onMerchChanged();
     });
   });
+
+
+  // ══ Manual cash ledger (kind=cash accounts) ══
+  function isCashAcct(id){
+    const a = acctOf(id);
+    return !!(a && (a.kind || '') === 'cash');
+  }
+  function cashLinkKey(t){
+    return [t.acct, t.d, t.m, (+t.de||0).toFixed(2), (+t.cr||0).toFixed(2)].join('|');
+  }
+  function parseCashLinkKey(k){
+    if (!k) return null;
+    const p = String(k).split('|');
+    if (p.length < 5) return null;
+    return {acctId:p[0], d:p[1], m:p[2], de:+p[3], cr:+p[4]};
+  }
+  function fillCashCatSelect(){
+    const el = document.getElementById('ctx-cat');
+    if (!el) return;
+    const cats = (A && A.allCats) ? A.allCats.filter(c => c !== INT_CAT) : ['Groceries','Dining','Transport','Shopping','Entertainment','Health & Pharmacy','Uncategorized'];
+    const cur = el.value;
+    el.innerHTML = cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    if (cats.includes(cur)) el.value = cur;
+  }
+  function fillCashLinkSelect(acctId, preferKey){
+    const el = document.getElementById('ctx-link');
+    if (!el) return;
+    // Candidate bank debits that look like cash-out / ATM / withdrawals (not on cash accounts)
+    const cands = [];
+    for (const t of TX){
+      if (isCashAcct(t.acct)) continue;
+      if (!(t.de > 0)) continue;
+      const blob = (t.m || '') + ' ' + (t.c || '');
+      if (!/ATM|CASH|WITHDRAW|AUTOTILL|NOTE\s?ISSUE|BANCOMAT|CASHPOINT/i.test(blob) && t.de < 20) continue;
+      // prefer recent / any large debit as optional list
+      cands.push(t);
+    }
+    cands.sort((a,b) => b.d < a.d ? -1 : 1);
+    const seen = new Set();
+    const opts = ['<option value="">— none —</option>'];
+    for (const t of cands.slice(0, 80)){
+      const k = cashLinkKey(t);
+      if (seen.has(k)) continue; seen.add(k);
+      const an = (acctOf(t.acct) || {}).name || t.acct;
+      opts.push(`<option value="${esc(k)}">${esc(t.d)} · ${esc(an)} · ${esc(t.m)} · −${eur(t.de)}</option>`);
+    }
+    el.innerHTML = opts.join('');
+    if (preferKey && [...el.options].some(o => o.value === preferKey)) el.value = preferKey;
+  }
+  function openCashTxModal(acctId, existing){
+    const modal = document.getElementById('cashTxModal');
+    if (!modal) return;
+    modal.dataset.acctId = acctId;
+    const ac = acctOf(acctId);
+    if (!ac || (ac.kind || '') !== 'cash'){
+      alert('New transaction is only for Cash accounts. Add an account with type Cash first (People).');
+      return;
+    }
+    fillCashCatSelect();
+    document.getElementById('cashTxTitle').textContent = existing ? 'Edit cash transaction' : 'New cash transaction';
+    document.getElementById('cashTxAcct').textContent = 'Account: ' + (ac.name || acctId);
+    document.getElementById('ctx-id').value = existing ? existing.id : '';
+    document.getElementById('ctx-name').value = existing ? (existing.m || '') : '';
+    document.getElementById('ctx-date').value = existing ? existing.d : new Date().toISOString().slice(0,10);
+    const out = existing ? !(existing.cr > 0) : true;
+    document.getElementById('ctx-dir').value = out ? 'out' : 'in';
+    document.getElementById('ctx-amt').value = existing ? (existing.de || existing.cr || '') : '';
+    document.getElementById('ctx-cat').value = existing ? (existing.c || 'Uncategorized') : 'Uncategorized';
+    document.getElementById('ctx-note').value = existing ? (existing.note || '') : '';
+    const prefer = existing && existing.link ? cashLinkKey({acct:existing.link.acctId, d:existing.link.d, m:existing.link.m, de:existing.link.de, cr:existing.link.cr}) : '';
+    fillCashLinkSelect(acctId, prefer);
+    const del = document.getElementById('ctx-del');
+    del.style.display = existing ? '' : 'none';
+    modal.hidden = false;
+    modal.style.display = 'flex';
+    document.getElementById('ctx-name').focus();
+  }
+
+  function openCashLedger(acctId){
+    const items = (cashStore.items || []).filter(x => x.acctId === acctId).sort((a,b) => b.d < a.d ? -1 : 1);
+    const body = document.getElementById('ncBody');
+    if (!body) return;
+    let html = '<div class="rule-meta" style="margin-top:8px"><b>Cash ledger</b></div>';
+    if (!items.length) html += '<div class="hint">No manual cash transactions yet.</div>';
+    else html += items.slice(0, 40).map(it => {
+      const amt = it.de > 0 ? '−' + eur(it.de) : '+' + eur(it.cr);
+      const link = it.link ? ' · linked ATM' : '';
+      return `<div class="drill-row" style="cursor:pointer" data-cid="${esc(it.id)}" title="Click to edit">
+        <span class="dr-date">${esc(it.d)}</span><span style="flex:1">${esc(it.m)}</span>
+        <span class="hint">${esc(it.c || '')}${link}</span>
+        <b>${amt}</b></div>`;
+    }).join('');
+    html += `<div style="margin-top:8px"><button class="btn small" type="button" id="ncCashNew">＋ New transaction</button></div>`;
+    const wrap = document.createElement('div');
+    wrap.id = 'ncCashLedger';
+    wrap.innerHTML = html;
+    const old = document.getElementById('ncCashLedger');
+    if (old) old.remove();
+    body.appendChild(wrap);
+    wrap.querySelector('#ncCashNew').addEventListener('click', () => openCashTxModal(acctId, null));
+    wrap.querySelectorAll('[data-cid]').forEach(row => {
+      row.addEventListener('click', () => {
+        const it = cashStore.items.find(x => x.id === row.dataset.cid);
+        if (it) openCashTxModal(acctId, it);
+      });
+    });
+  }
+
+  function closeCashTxModal(){
+    const modal = document.getElementById('cashTxModal');
+    if (!modal) return;
+    modal.hidden = true;
+    modal.style.display = 'none';
+  }
+  function saveCashTx(){
+    const modal = document.getElementById('cashTxModal');
+    const aid = modal && modal.dataset.acctId;
+    if (!aid){ closeCashTxModal(); return; }
+    const name = document.getElementById('ctx-name').value.trim() || 'Cash';
+    const d = document.getElementById('ctx-date').value;
+    const amt = Math.abs(parseFloat(document.getElementById('ctx-amt').value) || 0);
+    const dir = document.getElementById('ctx-dir').value;
+    const cat = document.getElementById('ctx-cat').value || 'Uncategorized';
+    const note = document.getElementById('ctx-note').value.trim();
+    const linkK = document.getElementById('ctx-link').value;
+    if (!d || !(amt > 0)){ alert('Enter a date and amount.'); return; }
+    const link = parseCashLinkKey(linkK);
+    const id = document.getElementById('ctx-id').value || uid('cash');
+    const item = {
+      id, acctId: aid, d, m: name, c: cat, s: 'Cash',
+      de: dir === 'out' ? amt : 0, cr: dir === 'in' ? amt : 0,
+      note, link
+    };
+    const prev = cashStore.items.find(x => x.id === id);
+    if (prev){
+      const i = cashStore.items.indexOf(prev);
+      cashStore.items[i] = item;
+    } else cashStore.items.push(item);
+    save(LS.cash, cashStore);
+    rebuildTX();
+    if (typeof aggregate === 'function') aggregate();
+    if (typeof detectRecurring === 'function'){ REC = detectRecurring(); FC = forecast(120); }
+    renderAll();
+    closeCashTxModal();
+    undoToast(prev ? 'Cash transaction updated' : 'Cash transaction added', () => {
+      if (prev){
+        const i = cashStore.items.findIndex(x => x.id === id);
+        if (i >= 0) cashStore.items[i] = prev;
+      } else {
+        cashStore.items = cashStore.items.filter(x => x.id !== id);
+      }
+      save(LS.cash, cashStore); rebuildTX(); aggregate(); REC = detectRecurring(); FC = forecast(120); renderAll();
+    });
+  }
+  function deleteCashTx(id){
+    const prev = cashStore.items.find(x => x.id === id);
+    if (!prev) return;
+    cashStore.items = cashStore.items.filter(x => x.id !== id);
+    save(LS.cash, cashStore);
+    rebuildTX(); aggregate(); REC = detectRecurring(); FC = forecast(120); renderAll();
+    closeCashTxModal();
+    undoToast('Cash transaction deleted', () => {
+      cashStore.items.push(prev); save(LS.cash, cashStore);
+      rebuildTX(); aggregate(); REC = detectRecurring(); FC = forecast(120); renderAll();
+    });
+  }
+  (function bindCashModal(){
+    const modal = document.getElementById('cashTxModal');
+    if (!modal || modal.dataset.bound) return;
+    modal.dataset.bound = '1';
+    document.getElementById('ctx-cancel').addEventListener('click', closeCashTxModal);
+    document.getElementById('ctx-save').addEventListener('click', saveCashTx);
+    document.getElementById('ctx-del').addEventListener('click', ()=>{
+      const id = document.getElementById('ctx-id').value;
+      if (id && confirm('Delete this cash transaction?')) deleteCashTx(id);
+    });
+    modal.addEventListener('click', e => { if (e.target === modal) closeCashTxModal(); });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && modal && !modal.hidden && modal.style.display === 'flex') closeCashTxModal();
+    });
+  })();
 
   // ══ Map filter chips (search isolate, etc.) — above ▶ Play history ══
   // When a feature dims the map to a subset of nodes, show what is active and
@@ -7673,7 +7911,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       base: {txCount: raw.transactions.length, checksum: BASE_SUM,
              from: raw.transactions.length ? raw.transactions[0][0] : null,
              to: raw.transactions.length ? raw.transactions[raw.transactions.length-1][0] : null},
-      stores: {rules, cats: catStore, goals, org, recur: recurStore, uploads, xfers: xferStore, manrec, fcast: FCONF, budget: budgetStore, debts: debtStore, holdings: holdStore, assets: assetStore, nwlog: nwLog, merch: merchStore, notes: noteStore, lm: lmStore},
+      stores: {rules, cats: catStore, goals, org, recur: recurStore, uploads, xfers: xferStore, manrec, fcast: FCONF, budget: budgetStore, debts: debtStore, holdings: holdStore, assets: assetStore, nwlog: nwLog, merch: merchStore, notes: noteStore, lm: lmStore, cash: cashStore},
       ui: {cuts: {...cutStore}, rangeFrom, rangeTo, privacy: {...PRIV}}
     };
   }
@@ -7814,6 +8052,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     if (st.merch && typeof st.merch === 'object'){ merchStore = {rules: st.merch.rules || [], keep: st.merch.keep || []}; merchCanon.clear(); }
     if (st.notes && typeof st.notes === 'object') noteStore = st.notes;
     if (st.lm && typeof st.lm === 'object') lmStore = {endpoint: st.lm.endpoint || lmStore.endpoint, model: st.lm.model || '', dismissed: st.lm.dismissed || {}};
+    if (st.cash && Array.isArray(st.cash.items)) cashStore = {items: st.cash.items};
     if (Array.isArray(st.manrec)) manrec = st.manrec;
     if (st.fcast && typeof st.fcast.bufferPct === 'number') FCONF = st.fcast;
     save(LS.rules, rules); save(LS.cats, catStore); save(LS.goals, goals);
@@ -8780,7 +9019,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
              (derived != null ? row('Derived balance', eur(derived)) : '') +
              row('Statements', uploads.statements.filter(s => s.accountId === acctId).length);
       act = `<button class="btn small" data-act="cash" data-acct="${esc(acctId)}" type="button">View cashflow</button>
-             <button class="btn small" data-act="people" type="button">Manage account</button>`;
+             <button class="btn small" data-act="people" type="button">Manage account</button>` +
+             (isCashAcct(acctId) ? ` <button class="btn small" data-act="cashnew" data-acct="${esc(acctId)}" type="button">＋ New transaction</button>
+             <button class="btn small" data-act="cashlist" data-acct="${esc(acctId)}" type="button">Cash ledger</button>` : '');
     } else if (info.type === 'user' || info.type === 'hh'){
       color = '#e2f3ff';
       const uid2 = info.type === 'user' ? info.id.slice(5) : null;
@@ -8860,6 +9101,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         document.getElementById('txSearch').value = btn.dataset.m;
         renderTxSearch();
         goSection('search', 'sec-search');
+      } else if (k === 'cashnew'){
+        openCashTxModal(btn.dataset.acct, null);
+        return; // keep card? hide
+      } else if (k === 'cashlist'){
+        openCashLedger(btn.dataset.acct);
       } else if (k === 'cash'){
         if (btn.dataset.acct) setViewAcct(btn.dataset.acct);
         goSection('cash', 'sec-cashflow');
