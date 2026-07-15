@@ -378,21 +378,21 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
     background:color-mix(in srgb, var(--surface) 72%, transparent)}
 
   /* ── In-app Space tour (guided playthrough) ── */
-  #tourRoot{display:none; position:fixed; inset:0; z-index:80; pointer-events:none}
-  body.touring #tourRoot{display:block}
+  #tourRoot{display:none; position:fixed; inset:0; z-index:200; pointer-events:none}
+  body.touring #tourRoot{display:block !important}
   body.touring{/* keep space interactions limited while coach is up */}
-  .tour-shade{position:fixed; background:rgba(2,8,20,.72); pointer-events:auto; transition:all .2s ease}
+  .tour-shade{position:fixed; z-index:205; background:rgba(2,8,20,.72); pointer-events:auto; transition:all .2s ease}
   @media (prefers-reduced-motion: reduce){ .tour-shade{transition:none} }
   .tour-hole-ring{position:fixed; pointer-events:none; border:2px solid rgba(56,189,248,.95);
     border-radius:12px; box-shadow:0 0 0 1px rgba(56,189,248,.35), 0 0 28px rgba(56,189,248,.35);
-    z-index:81; transition:all .2s ease}
-  .tour-arrow{position:fixed; z-index:82; pointer-events:none; width:0; height:0;
+    z-index:210; transition:all .2s ease}
+  .tour-arrow{position:fixed; z-index:215; pointer-events:none; width:0; height:0;
     filter:drop-shadow(0 2px 4px rgba(0,0,0,.45)); transition:all .2s ease}
   .tour-arrow[data-dir="left"]{border-top:10px solid transparent; border-bottom:10px solid transparent; border-right:14px solid #38bdf8}
   .tour-arrow[data-dir="right"]{border-top:10px solid transparent; border-bottom:10px solid transparent; border-left:14px solid #38bdf8}
   .tour-arrow[data-dir="up"]{border-left:10px solid transparent; border-right:10px solid transparent; border-bottom:14px solid #38bdf8}
   .tour-arrow[data-dir="down"]{border-left:10px solid transparent; border-right:10px solid transparent; border-top:14px solid #38bdf8}
-  #tourCard{position:fixed; z-index:83; pointer-events:auto; width:min(380px, calc(100vw - 28px));
+  #tourCard{position:fixed; z-index:220; pointer-events:auto; width:min(380px, calc(100vw - 28px));
     background:color-mix(in srgb, #07101f 88%, transparent); border:1px solid rgba(56,189,248,.45);
     border-radius:14px; backdrop-filter:blur(16px) saturate(1.1); box-shadow:0 18px 50px rgba(0,0,0,.55);
     padding:14px 14px 12px; color:#e8f1ff; font:13.5px/1.45 system-ui,sans-serif}
@@ -403,7 +403,7 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
   #tourCard .tour-nav{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
   #tourCard .tour-nav .btn{font-size:12.5px}
   #tourCard .tour-progress{margin-left:auto; font:600 11.5px system-ui,sans-serif; color:#8aa0bd}
-  #tourParts{position:fixed; z-index:83; pointer-events:auto; left:14px; bottom:14px;
+  #tourParts{position:fixed; z-index:220; pointer-events:auto; left:14px; bottom:14px;
     width:min(520px, calc(100vw - 28px)); display:flex; flex-wrap:wrap; gap:6px;
     padding:10px; border-radius:14px; background:rgba(2,11,26,.82); border:1px solid rgba(56,189,248,.3);
     backdrop-filter:blur(12px)}
@@ -420,10 +420,17 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
   body.space.touring #tourFab{display:none}
   body.fresh #tourFab{display:none !important}
   #tourFab:hover{border-color:rgba(56,189,248,.75); background:rgba(56,189,248,.16)}
-  .tour-spot{position:relative; z-index:81 !important; outline:2px solid rgba(56,189,248,.9); outline-offset:3px;
-    border-radius:10px; animation:tourPulse 1.6s ease-in-out infinite}
-  @keyframes tourPulse{0%,100%{outline-color:rgba(56,189,248,.55)} 50%{outline-color:rgba(125,211,252,1)}}
+  /* NEVER set position/transform on .tour-spot — targets include position:fixed
+     Space chrome (#spaceStage, #spaceDock, #spaceHud, #spaceTop). Overriding
+     fixed → relative collapses the whole Space UI (map-only, no dock/tour card). */
+  .tour-spot{outline:2.5px solid rgba(56,189,248,.95); outline-offset:4px;
+    border-radius:12px; animation:tourPulse 1.6s ease-in-out infinite}
+  @keyframes tourPulse{0%,100%{outline-color:rgba(56,189,248,.5)} 50%{outline-color:rgba(186,230,253,1)}}
   @media (prefers-reduced-motion: reduce){ .tour-spot{animation:none} }
+  /* Ensure coach UI always sits above shades/ring and is interactable */
+  #tourCard, #tourParts{z-index:90}
+  #tourRoot{z-index:80}
+  body.touring #tourCard, body.touring #tourParts{visibility:visible; opacity:1}
 
   @media (prefers-reduced-motion: no-preference){
     body.space #spacePanel.open{animation:panelIn .22s ease}
@@ -7872,9 +7879,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     // pad: spotlight padding
     const STEPS = [
       // Part 1 — Space shell
-      {part:1, dock:'map', target:'#spaceStage', title:'Space view is the app',
-       loc:'Full-screen map stage',
-       body:'You are in Space view — the money map fills the screen and every feature opens as a glass panel over it. This tour walks the real controls. Pick any part below, or press Next to play through in order.'},
+      {part:1, dock:'map', target:'#spaceDock', title:'Space view is the app',
+       loc:'Space shell — map behind, dock on the left',
+       body:'You are in Space view — the money map fills the screen and every feature opens as a glass panel over it. This tour walks the real controls (highlighted). Pick any part below, or press Next to play through in order. Use End tour anytime.'},
       {part:1, dock:'map', target:'#spaceDock', title:'The left dock',
        loc:'Left edge · Overview / Planning / Wealth / Data',
        body:'This is your main menu. Groups: Overview (Goals, Cashflow, Categories, Leaks), Planning (Budget, Simulate, Forecast, Plan), Wealth (Pulse, Net worth, Invest, Debts, Readiness), and Data (Audit, Rules, Settings). Click a row anytime after the tour.'},
@@ -7897,7 +7904,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
        body:'Goals are funded from the cautious forecast surplus in priority order. Link a goal to a savings account (with an opening balance) for the strongest pot. Verdicts always quote the cautious date first.'},
 
       // Part 3 — Look around
-      {part:3, dock:'map', target:'#spaceStage .graph-card, #graphCanvas, #spaceStage', title:'The money map',
+      {part:3, dock:'map', target:'#graphCanvas, #spaceStage .graph-card', title:'The money map',
        loc:'Background stage',
        body:'Click a category hub to dive into merchants; double-click to fold. Scroll zooms, drag pans. Click any node for its story card and shortcuts. ▶ Play history time-lapses month by month. Goals wear a gold ring; debts draw hollow.'},
       {part:3, dock:'range', target:'#miniPanel, #topRange', title:'Date range',
@@ -8011,38 +8018,59 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
     function layout(el){
       const pad = 8;
+      const vw = window.innerWidth, vh = window.innerHeight;
       let r;
       if (el){
         r = el.getBoundingClientRect();
         if (r.width < 4 || r.height < 4){
-          // fallback: dock or stage
-          const fb = document.getElementById('spaceDock') || document.getElementById('spaceStage');
-          r = fb.getBoundingClientRect();
+          const fb = document.getElementById('spaceDock');
+          r = fb && fb.getClientRects().length ? fb.getBoundingClientRect()
+              : {top:vh*0.2,left:14,width:172,height:vh*0.6,right:186,bottom:vh*0.8};
         }
       } else {
         const fb = document.getElementById('spaceDock');
-        r = fb ? fb.getBoundingClientRect() : {top:80,left:80,width:200,height:120,right:280,bottom:200};
+        r = fb && fb.getClientRects().length ? fb.getBoundingClientRect()
+            : {top:vh*0.2,left:14,width:172,height:vh*0.6,right:186,bottom:vh*0.8};
       }
-      const t = Math.max(0, r.top - pad), l = Math.max(0, r.left - pad);
-      const w = Math.min(window.innerWidth - l, r.width + pad * 2);
-      const h = Math.min(window.innerHeight - t, r.height + pad * 2);
+      // Never cut a near-fullscreen hole (hides chrome under shade math + looks broken)
+      if (r.width > vw * 0.85 && r.height > vh * 0.85){
+        const fb = document.getElementById('spaceDock');
+        if (fb && fb.getClientRects().length) r = fb.getBoundingClientRect();
+        else r = {top:72,left:14,width:172,height:Math.min(480, vh-120),right:186,bottom:0};
+      }
+      let t = Math.max(0, r.top - pad), l = Math.max(0, r.left - pad);
+      let w = Math.max(40, Math.min(vw - l, r.width + pad * 2));
+      let h = Math.max(40, Math.min(vh - t, r.height + pad * 2));
+      // keep hole fully on-screen
+      if (l + w > vw) w = vw - l;
+      if (t + h > vh) h = vh - t;
       const b = t + h, ri = l + w;
-      // four shades
-      shades[0].style.cssText = `top:0;left:0;right:0;height:${t}px`;
+      // four shades — always cover everything except the hole
+      shades[0].style.cssText = `top:0;left:0;width:100%;height:${t}px`;
       shades[1].style.cssText = `top:${t}px;left:0;width:${l}px;height:${h}px`;
-      shades[2].style.cssText = `top:${t}px;left:${ri}px;right:0;height:${h}px`;
-      shades[3].style.cssText = `top:${b}px;left:0;right:0;bottom:0`;
+      shades[2].style.cssText = `top:${t}px;left:${ri}px;width:${Math.max(0,vw-ri)}px;height:${h}px`;
+      shades[3].style.cssText = `top:${b}px;left:0;width:100%;height:${Math.max(0,vh-b)}px`;
       ring.hidden = false;
       ring.style.cssText = `top:${t}px;left:${l}px;width:${w}px;height:${h}px`;
-      // coach card placement — prefer left of hole if panel on right, else bottom
-      const cw = Math.min(380, window.innerWidth - 28);
-      const ch = card.offsetHeight || 220;
+      // coach card — always fully on-screen, prefer right of dock / left of right panels
+      const cw = Math.min(380, vw - 28);
+      // force layout so offsetHeight is real
+      card.style.display = 'block';
+      card.style.visibility = 'visible';
+      const ch = Math.max(160, card.offsetHeight || 220);
       let cx, cy;
-      if (l > cw + 40){ cx = l - cw - 18; cy = Math.min(Math.max(12, t), window.innerHeight - ch - 80); }
-      else if (window.innerWidth - ri > cw + 40){ cx = ri + 18; cy = Math.min(Math.max(12, t), window.innerHeight - ch - 80); }
-      else { cx = Math.max(14, (window.innerWidth - cw) / 2); cy = Math.min(b + 16, window.innerHeight - ch - 90); if (cy < 12) cy = 12; }
+      if (ri + cw + 24 < vw){ cx = ri + 16; cy = Math.min(Math.max(12, t), vh - ch - 24); }
+      else if (l > cw + 24){ cx = l - cw - 16; cy = Math.min(Math.max(12, t), vh - ch - 24); }
+      else { cx = Math.max(14, (vw - cw) / 2); cy = (t > ch + 24) ? Math.max(12, t - ch - 12) : Math.min(b + 12, vh - ch - 24); }
+      cx = Math.max(12, Math.min(cx, vw - cw - 12));
+      cy = Math.max(12, Math.min(cy, vh - ch - 12));
       card.style.left = cx + 'px';
       card.style.top = cy + 'px';
+      // parts bar always visible bottom-center-ish (above home indicator)
+      partsEl.style.left = '14px';
+      partsEl.style.right = 'auto';
+      partsEl.style.bottom = '14px';
+      partsEl.style.zIndex = '90';
       // arrow from card toward hole center
       const hx = l + w / 2, hy = t + h / 2;
       const ccx = cx + cw / 2, ccy = cy + Math.min(ch, 160) / 2;
@@ -8073,7 +8101,14 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         if (el){
           spotEl = el;
           el.classList.add('tour-spot');
-          try { el.scrollIntoView({block:'nearest', inline:'nearest', behavior: 'smooth'}); } catch {}
+          // Do not scrollIntoView fixed Space chrome — it can jump the layout.
+          try {
+            const st = getComputedStyle(el).position;
+            if (st !== 'fixed' && st !== 'sticky' && el.closest && !el.closest('#spaceStage'))
+              el.scrollIntoView({block:'nearest', inline:'nearest', behavior: 'smooth'});
+            else if (el.closest && el.closest('#panelBody'))
+              el.scrollIntoView({block:'nearest', inline:'nearest', behavior: 'smooth'});
+          } catch {}
         }
         document.getElementById('tourKicker').textContent = 'Part ' + step.part + ' of 7 · Guided Space tour';
         document.getElementById('tourTitle').textContent = step.title;
@@ -8095,14 +8130,19 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (idx < 0) idx = 0;
       if (idx >= L.length) idx = L.length - 1;
       active = true;
-      document.body.classList.add('touring');
+      document.body.classList.add('touring', 'space');
+      if (Space && !Space.isSpace()) Space.enter();
       root.hidden = false;
-      root.style.display = 'block';
+      root.removeAttribute('hidden');
+      root.style.cssText = 'display:block;position:fixed;inset:0;z-index:80;pointer-events:none';
+      card.style.zIndex = '90';
+      partsEl.style.zIndex = '90';
       applyStep(L[idx]);
     }
     function stop(){
       active = false;
       document.body.classList.remove('touring');
+      clearSpot();
       root.hidden = true;
       root.style.display = 'none';
       clearSpot();
