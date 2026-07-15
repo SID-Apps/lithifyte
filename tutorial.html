@@ -1,0 +1,373 @@
+<!doctype html><meta charset="utf-8">
+<title>Lithifyte — Tutorial & Ask</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Complete Lithifyte tutorial: every feature in order of use, plus Ask (RAG help).">
+<style>
+  :root{
+    --bg:#070b14; --panel:#0d1524; --line:rgba(56,189,248,.18); --ink:#e8f1ff; --muted:#8aa0bd;
+    --cyan:#38bdf8; --mint:#34d399; --gold:#f7c95c; --rose:#fb7185; --violet:#a78bfa;
+    --card:#0f1a2c; --glow:rgba(56,189,248,.12);
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0; background:radial-gradient(1200px 600px at 10% -10%, #12203a 0%, var(--bg) 55%); color:var(--ink); line-height:1.55}
+  a{color:var(--cyan); text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{display:grid; grid-template-columns:260px 1fr 340px; gap:0; min-height:100vh}
+  @media (max-width:1100px){.wrap{grid-template-columns:1fr} .rail,.ask{position:static!important; height:auto!important; max-height:none}}
+  .rail,.ask{position:sticky; top:0; height:100vh; overflow:auto; border-right:1px solid var(--line); background:rgba(7,11,20,.92); backdrop-filter:blur(10px)}
+  .ask{border-right:0; border-left:1px solid var(--line)}
+  .rail{padding:18px 14px 40px}
+  .brand{font-weight:800; letter-spacing:.02em; font-size:15px; margin:0 0 4px}
+  .brand span{color:var(--cyan)}
+  .sub{color:var(--muted); font-size:12.5px; margin:0 0 16px}
+  .rail h2{font-size:11px; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); margin:16px 0 8px}
+  .rail a.nav{display:block; padding:6px 8px; border-radius:8px; color:var(--ink); font-size:13px; border:1px solid transparent}
+  .rail a.nav:hover,.rail a.nav.active{background:var(--glow); border-color:var(--line); text-decoration:none}
+  .rail a.nav small{display:block; color:var(--muted); font-size:11px}
+  .main{padding:28px 32px 80px; max-width:820px}
+  .hero{padding:8px 0 22px; border-bottom:1px solid var(--line); margin-bottom:22px}
+  .hero h1{margin:0 0 8px; font-size:clamp(26px,4vw,36px); line-height:1.15}
+  .hero p{margin:0; color:var(--muted); max-width:62ch}
+  .pills{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px}
+  .pill{font-size:12px; padding:4px 10px; border-radius:999px; border:1px solid var(--line); color:var(--muted)}
+  .pill b{color:var(--ink)}
+  .phase{margin:28px 0 10px; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--gold)}
+  .card{background:linear-gradient(180deg, rgba(56,189,248,.06), transparent 40%), var(--card);
+    border:1px solid var(--line); border-radius:14px; padding:16px 16px 14px; margin:0 0 14px;
+    box-shadow:0 0 0 1px rgba(0,0,0,.2)}
+  .card:target,.card.hl{border-color:rgba(56,189,248,.55); box-shadow:0 0 0 1px rgba(56,189,248,.35), 0 0 40px rgba(56,189,248,.12)}
+  .card h3{margin:0 0 6px; font-size:17px}
+  .meta{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 10px}
+  .tag{font-size:11px; padding:2px 8px; border-radius:999px; background:rgba(56,189,248,.1); color:#bfe9ff; border:1px solid var(--line)}
+  .loc{font-size:12.5px; color:var(--mint); margin:0 0 8px}
+  .loc b{color:var(--ink); font-weight:600}
+  .body{font-size:14.5px; color:#d5e4f7; white-space:pre-wrap}
+  .body p{margin:0 0 .7em}
+  .see{font-size:12.5px; color:var(--muted); margin-top:10px}
+  .ask{padding:16px 14px 24px; display:flex; flex-direction:column}
+  .ask h2{margin:0 0 6px; font-size:15px}
+  .ask .hint{font-size:12px; color:var(--muted); margin:0 0 12px}
+  .ask textarea{width:100%; min-height:72px; resize:vertical; border-radius:10px; border:1px solid var(--line);
+    background:#091018; color:var(--ink); padding:10px; font:inherit}
+  .ask .row{display:flex; gap:8px; margin-top:8px; flex-wrap:wrap}
+  .btn{appearance:none; border:1px solid var(--line); background:rgba(56,189,248,.12); color:var(--ink);
+    border-radius:10px; padding:8px 12px; font:inherit; font-size:13px; cursor:pointer}
+  .btn:hover{background:rgba(56,189,248,.22)}
+  .btn.primary{background:linear-gradient(180deg,#38bdf8,#0ea5e9); color:#041018; border-color:transparent; font-weight:700}
+  .btn.small{padding:4px 8px; font-size:12px}
+  .cfg{margin-top:12px; padding-top:12px; border-top:1px solid var(--line)}
+  .cfg label{display:block; font-size:11px; color:var(--muted); margin:8px 0 4px}
+  .cfg input{width:100%; border-radius:8px; border:1px solid var(--line); background:#091018; color:var(--ink); padding:8px; font:inherit; font-size:13px}
+  .ans{margin-top:12px; flex:1; overflow:auto}
+  .ans .hit{border:1px solid var(--line); border-radius:10px; padding:10px; margin:0 0 8px; background:#0a1422}
+  .ans .hit b{display:block; margin-bottom:4px}
+  .ans .hit .sc{float:right; color:var(--muted); font-size:11px; font-weight:600}
+  .ans .sum{border-left:3px solid var(--cyan); padding:8px 10px; margin:0 0 12px; background:rgba(56,189,248,.06); border-radius:0 10px 10px 0; font-size:14px}
+  .ans .src a{margin-right:8px; font-size:12px}
+  .foot{margin-top:40px; padding-top:16px; border-top:1px solid var(--line); color:var(--muted); font-size:12.5px}
+  .checklist{columns:1; margin:0; padding-left:18px}
+  .checklist li{margin:0 0 6px; font-size:14px}
+  .status{font-size:12px; color:var(--muted); min-height:1.2em; margin-top:6px}
+  .status.err{color:var(--rose)}
+  .status.ok{color:var(--mint)}
+</style>
+
+<div class="wrap">
+  <aside class="rail" id="rail">
+    <div class="brand">Lithifyte <span>Tutorial</span></div>
+    <p class="sub">Feature guide in order of use · Ask uses the same RAG corpus</p>
+    <a class="btn primary" href="index.html" style="display:inline-block;margin-bottom:8px">Open the app</a>
+    <a class="btn" href="demo.html" style="display:inline-block;margin-bottom:12px">Try the demo</a>
+    <h2>Journey</h2>
+    <div id="toc"></div>
+  </aside>
+
+  <main class="main" id="main">
+    <header class="hero">
+      <h1>Learn Lithifyte, feature by feature</h1>
+      <p>This is the webhosted tutorial for new users. It follows the real order of use — from your name and first CSV through budgets, wealth, and backups — and shows <b>where</b> each control lives in Space view (and Classic). Opt in anytime; it never blocks onboarding.</p>
+      <div class="pills">
+        <span class="pill"><b>Host</b> lithifyte.sid-labs.com</span>
+        <span class="pill"><b>Privacy</b> your bank data stays in the browser</span>
+        <span class="pill"><b>Ask</b> RAG help (local LM optional)</span>
+        <span class="pill"><b>Corpus</b> docs/rag/chunks.json</span>
+      </div>
+    </header>
+
+    <section class="card" id="journey-checklist">
+      <h3>Recommended order of use</h3>
+      <p class="loc"><b>Location:</b> whole product — follow this once, then jump via the left rail or Ask.</p>
+      <ol class="checklist" id="checklist"></ol>
+    </section>
+
+    <div id="chapters"></div>
+
+    <footer class="foot">
+      Lithifyte tutorial &amp; RAG corpus · AGPL-3.0-or-later · Does not include household transaction data ·
+      <a href="SECURITY.md">Security</a> ·
+      <a href="https://github.com/SID-Apps/lithifyte">GitHub</a>
+    </footer>
+  </main>
+
+  <aside class="ask" id="askPanel">
+    <h2>Ask about the app</h2>
+    <p class="hint">Answers come from the tutorial RAG corpus — <b>not</b> from your bank statements. Retrieval runs in this page. Optionally send the top chunks to a local OpenAI-compatible model for a short prose answer.</p>
+    <textarea id="q" placeholder="e.g. Where do I upload statements? What is the cautious forecast? How do I link a goal to savings?"></textarea>
+    <div class="row">
+      <button class="btn primary" id="askBtn" type="button">Ask</button>
+      <button class="btn" id="clearBtn" type="button">Clear</button>
+    </div>
+    <div class="status" id="askStatus">Loading knowledge base…</div>
+    <div class="ans" id="ans"></div>
+    <div class="cfg">
+      <div class="hint">Local LM (optional) — leave empty for extractive answers only</div>
+      <label for="lmUrl">OpenAI-compatible base URL</label>
+      <input id="lmUrl" placeholder="http://127.0.0.1:11434/v1" autocomplete="off">
+      <label for="lmModel">Model</label>
+      <input id="lmModel" placeholder="llama3.2" autocomplete="off">
+      <label for="lmKey">API key (optional)</label>
+      <input id="lmKey" type="password" placeholder="only if your server requires it" autocomplete="off">
+      <p class="hint" style="margin-top:8px">Ollama example: base <code>http://127.0.0.1:11434/v1</code>, set <code>OLLAMA_ORIGINS</code> for browser access. Hosted pages may block localhost — open this file locally if needed.</p>
+    </div>
+  </aside>
+</div>
+
+<script>
+(async function(){
+  const PHASES = {
+    start: '0 · Before you start',
+    onboarding: '1 · First run (name → goal)',
+    explore: '2 · Look around',
+    data: '3 · Clean & complete your data',
+    understand: '4 · Understand the money',
+    plan: '5 · Plan & forecast',
+    wealth: '6 · Wealth & readiness',
+    ops: '7 · Keep it alive',
+    meta: '8 · Tutorial & Ask',
+    guide: 'Guide'
+  };
+  const CHECKLIST = [
+    'Optional: open the demo to explore safely',
+    'Step 1 — Your name (You node on the map)',
+    'Step 2 — First account (current / credit / savings)',
+    'Step 3 — Upload first CSV statement',
+    'Step 4 — First savings goal',
+    'Explore map, date range, Search, cash & privacy HUD',
+    'Add people/accounts; more statements; opening balances',
+    'Confirm internal transfers',
+    'Audit categories → write Rules (optional AI categoriser)',
+    'Cashflow, Sankey, Categories, Leaks',
+    'Budget (seed from history or goal)',
+    'Forecast buffer + recurring; Simulator what-ifs',
+    'Readiness cleanup; track debts / holdings / assets',
+    'Pulse & net worth',
+    'Export a backup (encrypt if the machine is shared)'
+  ];
+
+  const toc = document.getElementById('toc');
+  const chapters = document.getElementById('chapters');
+  const checklist = document.getElementById('checklist');
+  CHECKLIST.forEach(t => {
+    const li = document.createElement('li'); li.textContent = t; checklist.appendChild(li);
+  });
+
+  let corpus = null;
+  try {
+    const res = await fetch('docs/rag/chunks.json', {cache:'no-cache'});
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    corpus = await res.json();
+    document.getElementById('askStatus').textContent = corpus.chunks.length + ' help topics loaded · ready';
+    document.getElementById('askStatus').className = 'status ok';
+  } catch (e) {
+    document.getElementById('askStatus').textContent = 'Could not load docs/rag/chunks.json (' + e.message + '). Open via the hosted site or a local static server.';
+    document.getElementById('askStatus').className = 'status err';
+    return;
+  }
+
+  const byPhase = {};
+  for (const c of corpus.chunks) {
+    (byPhase[c.phase] = byPhase[c.phase] || []).push(c);
+  }
+  const phaseOrder = ['start','onboarding','explore','data','understand','plan','wealth','ops','meta'];
+
+  for (const ph of phaseOrder) {
+    const list = (byPhase[ph] || []).slice().sort((a,b)=>a.order-b.order);
+    if (!list.length) continue;
+    const h = document.createElement('div');
+    h.className = 'phase';
+    h.id = 'phase-' + ph;
+    h.textContent = PHASES[ph] || ph;
+    chapters.appendChild(h);
+
+    const ta = document.createElement('a');
+    ta.className = 'nav';
+    ta.href = '#phase-' + ph;
+    ta.innerHTML = (PHASES[ph] || ph) + '<small>' + list.length + ' topics</small>';
+    toc.appendChild(ta);
+
+    for (const c of list) {
+      const card = document.createElement('article');
+      card.className = 'card';
+      card.id = 'chunk-' + c.id;
+      const tags = (c.tags || []).map(t => '<span class="tag">' + esc(t) + '</span>').join('');
+      const see = (c.see_also || []).map(id => '<a href="#chunk-' + encodeURIComponent(id) + '">' + esc(id) + '</a>').join(' · ');
+      card.innerHTML =
+        '<h3>' + esc(c.title) + '</h3>' +
+        '<div class="meta">' + tags + '</div>' +
+        (c.location ? '<p class="loc"><b>Where:</b> ' + esc(c.location) + '</p>' : '') +
+        '<div class="body">' + esc(c.body) + '</div>' +
+        (see ? '<div class="see">See also: ' + see + '</div>' : '');
+      chapters.appendChild(card);
+
+      const na = document.createElement('a');
+      na.className = 'nav';
+      na.href = '#chunk-' + encodeURIComponent(c.id);
+      na.textContent = c.title.replace(/^Step \d+ — /, '');
+      toc.appendChild(na);
+    }
+  }
+
+  // highlight target
+  function hl(){
+    document.querySelectorAll('.card.hl').forEach(el => el.classList.remove('hl'));
+    if (location.hash && location.hash.startsWith('#chunk-')) {
+      const el = document.querySelector(location.hash);
+      if (el) el.classList.add('hl');
+    }
+  }
+  window.addEventListener('hashchange', hl); hl();
+
+  // ── sparse retrieval (token overlap + title/tag boost) ──
+  function tokens(s){
+    return String(s || '').toLowerCase().replace(/[^a-z0-9€$%.\-]+/g, ' ').split(/\s+/).filter(t => t.length > 2);
+  }
+  function score(query, chunk){
+    const q = tokens(query);
+    if (!q.length) return 0;
+    const title = tokens(chunk.title);
+    const tags = tokens((chunk.tags || []).join(' '));
+    const body = tokens(chunk.body + ' ' + (chunk.location || '') + ' ' + (chunk.feature || ''));
+    let s = 0;
+    for (const t of q) {
+      if (title.includes(t)) s += 6;
+      if (tags.includes(t)) s += 4;
+      if (body.includes(t)) s += 1;
+      if ((chunk.id || '').includes(t)) s += 5;
+    }
+    // phrase-ish: all tokens in title
+    if (q.every(t => title.includes(t) || body.includes(t))) s += 2;
+    return s;
+  }
+  function retrieve(query, k){
+    return corpus.chunks
+      .map(c => ({c, s: score(query, c)}))
+      .filter(x => x.s > 0)
+      .sort((a,b) => b.s - a.s)
+      .slice(0, k || 5);
+  }
+
+  function extractiveAnswer(hits){
+    if (!hits.length) return 'No matching help topics. Try words like upload, budget, forecast, goal, transfer, backup, pulse, or map.';
+    const top = hits[0].c;
+    let out = top.body.split(/\n\n/)[0];
+    if (hits.length > 1) {
+      out += '\n\nRelated: ' + hits.slice(1).map(h => h.c.title).join(' · ');
+    }
+    out += '\n\nOpen the highlighted topics on the left for full detail and UI locations.';
+    return out;
+  }
+
+  async function askLM(query, hits){
+    const base = document.getElementById('lmUrl').value.trim().replace(/\/$/, '');
+    const model = document.getElementById('lmModel').value.trim();
+    if (!base || !model) return null;
+    const key = document.getElementById('lmKey').value;
+    const context = hits.map((h,i) => '[' + (i+1) + '] id=' + h.c.id + '\n' + h.c.title + '\nWhere: ' + (h.c.location||'') + '\n' + h.c.body).join('\n\n');
+    const system = `You are the Lithifyte product guide. Answer ONLY using the provided context chunks about how the app works. Be concise (under 180 words). Cite chunk ids like [#onb-statement]. Do not invent the user's balances or euro figures. If the question is about their money, tell them which panel to open. If context is insufficient, say so and suggest a better question.`;
+    const body = {
+      model,
+      temperature: 0.2,
+      messages: [
+        {role:'system', content: system},
+        {role:'user', content: 'Context:\n' + context + '\n\nQuestion: ' + query}
+      ]
+    };
+    const headers = {'Content-Type':'application/json'};
+    if (key) headers['Authorization'] = 'Bearer ' + key;
+    const res = await fetch(base + '/chat/completions', {method:'POST', headers, body: JSON.stringify(body)});
+    if (!res.ok) throw new Error('LM HTTP ' + res.status + ' — ' + (await res.text()).slice(0,200));
+    const data = await res.json();
+    return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || null;
+  }
+
+  async function runAsk(){
+    const q = document.getElementById('q').value.trim();
+    const status = document.getElementById('askStatus');
+    const ans = document.getElementById('ans');
+    if (!q) { status.textContent = 'Type a question first.'; status.className = 'status err'; return; }
+    status.textContent = 'Retrieving…'; status.className = 'status';
+    const hits = retrieve(q, 5);
+    // highlight top card
+    if (hits[0]) {
+      location.hash = 'chunk-' + hits[0].c.id;
+    }
+    let summary = extractiveAnswer(hits);
+    let mode = 'extractive (RAG only)';
+    try {
+      const lm = await askLM(q, hits);
+      if (lm) { summary = lm; mode = 'local LM + RAG'; }
+    } catch (e) {
+      mode = 'extractive (LM failed: ' + e.message + ')';
+    }
+    status.textContent = 'Answer · ' + mode + (hits[0] ? ' · top: ' + hits[0].c.id : '');
+    status.className = 'status ok';
+    ans.innerHTML =
+      '<div class="sum">' + esc(summary) + '</div>' +
+      '<div class="src">Sources: ' + hits.map(h =>
+        '<a href="#chunk-' + encodeURIComponent(h.c.id) + '">' + esc(h.c.id) + '</a>').join(' ') + '</div>' +
+      hits.map(h =>
+        '<div class="hit"><span class="sc">' + h.s + '</span><b>' + esc(h.c.title) + '</b>' +
+        '<div class="hint">' + esc((h.c.location || '').slice(0,160)) + '</div></div>'
+      ).join('');
+  }
+
+  document.getElementById('askBtn').addEventListener('click', runAsk);
+  document.getElementById('clearBtn').addEventListener('click', ()=>{
+    document.getElementById('q').value = '';
+    document.getElementById('ans').innerHTML = '';
+    document.getElementById('askStatus').textContent = corpus.chunks.length + ' help topics loaded · ready';
+    document.getElementById('askStatus').className = 'status ok';
+  });
+  document.getElementById('q').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) runAsk();
+  });
+
+  // restore LM prefs
+  try {
+    const pref = JSON.parse(localStorage.getItem('lithifyte-tutorial-lm') || '{}');
+    if (pref.url) document.getElementById('lmUrl').value = pref.url;
+    if (pref.model) document.getElementById('lmModel').value = pref.model;
+  } catch {}
+  function savePref(){
+    localStorage.setItem('lithifyte-tutorial-lm', JSON.stringify({
+      url: document.getElementById('lmUrl').value,
+      model: document.getElementById('lmModel').value
+    }));
+  }
+  document.getElementById('lmUrl').addEventListener('change', savePref);
+  document.getElementById('lmModel').addEventListener('change', savePref);
+
+  function esc(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // deep-link ?q=
+  const params = new URLSearchParams(location.search);
+  if (params.get('q')) {
+    document.getElementById('q').value = params.get('q');
+    runAsk();
+  }
+})();
+</script>

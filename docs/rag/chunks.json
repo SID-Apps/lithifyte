@@ -1,0 +1,1001 @@
+{
+  "schema": 1,
+  "product": "Lithifyte",
+  "version": "1.0",
+  "updated": "2026-07-15",
+  "purpose": "Tutorial + Ask RAG corpus. Does NOT contain user financial data. Safe to ship publicly.",
+  "retrieval_notes": "Embed title+body+tags for dense retrieval; keyword-score title/tags/body for sparse. Always cite chunk id in answers. Never use corpus to invent the user's balances.",
+  "chunks": [
+    {
+      "id": "welcome",
+      "order": 1,
+      "phase": "start",
+      "feature": "welcome",
+      "title": "What Lithifyte is",
+      "location": "https://lithifyte.sid-labs.com (or download index.html)",
+      "selectors": [],
+      "tags": [
+        "intro",
+        "privacy",
+        "overview"
+      ],
+      "body": "Lithifyte is household-finance mission control in a single HTML file. There is no account to create and no server that stores your bank data. You upload statements (CSV); everything is computed in your browser. Data lives in localStorage/IndexedDB on this device, and durability comes from backups you export yourself.\n\nPrivacy promise: the page does not phone home with your transactions. Optional network features (crypto price refresh, local AI categoriser) only run when you trigger them, and the public default for AI is a model on your own machine.\n\nTwo ways to start: (1) the live blank app at lithifyte.sid-labs.com for your real data, or (2) the demo at /demo.html — a fully loaded invented household so you can explore every feature without uploading anything. The demo namespaces its storage with a \"-demo\" suffix so it can never overwrite real data on the same origin.",
+      "see_also": []
+    },
+    {
+      "id": "demo-first",
+      "order": 2,
+      "phase": "start",
+      "feature": "demo",
+      "title": "Optional: explore the demo first",
+      "location": "https://lithifyte.sid-labs.com/demo.html · also linked from first-run onboarding",
+      "selectors": [
+        "#obDemoLine"
+      ],
+      "tags": [
+        "demo",
+        "onboarding",
+        "start"
+      ],
+      "see_also": [
+        "welcome",
+        "space-view"
+      ],
+      "body": "If you want to learn features before touching real statements, open the hosted demo. It is a deterministic sample household (two earners, four accounts, ~24 months of invented transactions) that exercises cashflow, budgets, wealth, the money map, and more.\n\nThe demo cannot touch data you later add to the real app. When you are ready for real data, open the main app (not /demo) and complete onboarding, or import a backup."
+    },
+    {
+      "id": "space-view",
+      "order": 3,
+      "phase": "start",
+      "feature": "space",
+      "title": "Space view — the map is the app",
+      "location": "Default shell. Classic: 🪐 Space view pill (top-right) or button on the money map card. Exit: Settings → Switch to classic view.",
+      "selectors": [
+        "#spaceDock",
+        "#spaceStage",
+        "#viewToggle",
+        "#graphSpaceBtn"
+      ],
+      "tags": [
+        "space",
+        "ui",
+        "navigation",
+        "dock"
+      ],
+      "see_also": [
+        "dock-nav",
+        "classic-view"
+      ],
+      "body": "Space view is the default. The neural money map fills the screen. Sections open as glass panels over the live map (not separate pages). The left dock lists features in groups; Range and Search are top-right icons; People, Backup and Classic live under Settings.\n\nWhy it matters: first-run onboarding also runs on the map — you watch your \"You\" node, account, and money appear as you complete each step.\n\nClassic view puts every section on one long scrolling page (accessibility / print fallback). Your preference is remembered."
+    },
+    {
+      "id": "dock-nav",
+      "order": 4,
+      "phase": "start",
+      "feature": "navigation",
+      "title": "Where everything lives (Space dock)",
+      "location": "Left dock in Space view; sticky nav in Classic view",
+      "selectors": [
+        "#spaceDock",
+        ".dock-btn",
+        "nav.sticky"
+      ],
+      "tags": [
+        "navigation",
+        "dock",
+        "sections",
+        "location"
+      ],
+      "see_also": [
+        "space-view"
+      ],
+      "body": "Space dock groups:\n\nOverview — Goals · Cashflow · Categories · Leaks\nPlanning — Budget · Simulate · Forecast · Plan\nWealth — Pulse · Net worth · Invest · Debts · Readiness\nData — Audit · Rules · Settings (People, Backup, Classic)\n\nTop-right mini tools: 📅 Date range · 🔎 Search\nHUD (on the map): goal progress ring · cash on hand · privacy eye · Pulse readout\n\nClassic sticky nav: Cashflow, Categories, Money map, People, Audit, Search, Rules, Leaks, Budget, Simulator, Forecast, Readiness, Wealth, Plan, Backup.\n\nWhen this guide says \"open X\", in Space view click that dock item; in Classic, scroll or use the sticky nav."
+    },
+    {
+      "id": "onb-name",
+      "order": 10,
+      "phase": "onboarding",
+      "feature": "onboarding",
+      "title": "Step 1 — Who are you? (your name)",
+      "location": "Onboarding card over the money map (first run, zero transactions)",
+      "selectors": [
+        "#onboarding",
+        "#obs1",
+        "#ob-name",
+        "#ob-name-go"
+      ],
+      "tags": [
+        "onboarding",
+        "name",
+        "people",
+        "start"
+      ],
+      "see_also": [
+        "onb-account",
+        "space-view"
+      ],
+      "body": "When the app has no transactions yet, a four-step welcome appears on the map.\n\nStep 1 asks for your name (person or business). Enter it and click \"That's me\". A \"You\" node appears on the money map. This creates the first user in the household roster. You can add more people later under People / Settings.\n\nNothing is uploaded and nothing leaves the device at this step."
+    },
+    {
+      "id": "onb-account",
+      "order": 11,
+      "phase": "onboarding",
+      "feature": "onboarding",
+      "title": "Step 2 — Your first account",
+      "location": "Onboarding step 2 · later: People → accounts",
+      "selectors": [
+        "#obs2",
+        "#ob-acct",
+        "#ob-kind",
+        "#ob-acct-go"
+      ],
+      "tags": [
+        "onboarding",
+        "accounts",
+        "current",
+        "credit",
+        "savings"
+      ],
+      "see_also": [
+        "onb-statement",
+        "people-accounts"
+      ],
+      "body": "Name the account (e.g. \"AIB current\") and pick its kind:\n- Current — everyday bank account; credits can be income\n- Credit card — purchases are spending; payments from current are internal transfers, not income\n- Savings — pot-style account; good for linking goals later\n\nClick \"Add account\". The account orb joins you on the map. Kind matters forever: wrong kind distorts income and transfer detection."
+    },
+    {
+      "id": "onb-statement",
+      "order": 12,
+      "phase": "onboarding",
+      "feature": "upload",
+      "title": "Step 3 — Upload your first statement (CSV)",
+      "location": "Onboarding step 3 · later: People → Upload a statement",
+      "selectors": [
+        "#obs3",
+        "#ob-file",
+        "#ob-file-go",
+        "#upFile",
+        "#upGo"
+      ],
+      "tags": [
+        "onboarding",
+        "csv",
+        "upload",
+        "statements",
+        "transactions"
+      ],
+      "see_also": [
+        "csv-format",
+        "dedupe",
+        "people-accounts"
+      ],
+      "body": "Upload a bank export as CSV. Required shape: date, description, and debit/credit (or amount) columns. Irish bank exports can be saved from Excel as CSV. Dates as YYYY-MM-DD or common bank formats work.\n\nDuplicates are detected and skipped (safe to re-upload overlapping months). After a successful upload the dashboard unlocks: cashflow, categories, map merchants, and forecasts light up from real data.\n\nStatements stay in this browser (IndexedDB). They are not sent to a server. Export a backup after you care about the data."
+    },
+    {
+      "id": "csv-format",
+      "order": 13,
+      "phase": "onboarding",
+      "feature": "upload",
+      "title": "CSV format the app expects",
+      "location": "Upload form hint · feeder writes this format",
+      "selectors": [
+        "#upFile",
+        "#ob-file"
+      ],
+      "tags": [
+        "csv",
+        "format",
+        "upload",
+        "feeder"
+      ],
+      "see_also": [
+        "onb-statement",
+        "feeder"
+      ],
+      "body": "Preferred columns: date, description, debit, credit (header row). Debit = money out, credit = money in; both non-negative. One row per transaction.\n\nThe optional feeder CLI (feeder/feeder.mjs) pulls banks via GoCardless PSD2 and writes exactly this CSV shape. Re-uploads are safe because of multiset dedupe per account."
+    },
+    {
+      "id": "onb-goal",
+      "order": 14,
+      "phase": "onboarding",
+      "feature": "goals",
+      "title": "Step 4 — Your first goal",
+      "location": "Onboarding step 4 · later: Goals panel / goal hero",
+      "selectors": [
+        "#obs4",
+        "#ob-goal",
+        "#ob-target",
+        "#ob-month",
+        "#ob-goal-go",
+        "#goalHero"
+      ],
+      "tags": [
+        "onboarding",
+        "goals",
+        "deposit",
+        "targets"
+      ],
+      "see_also": [
+        "goals-deep",
+        "forecast"
+      ],
+      "body": "Name a goal (e.g. House deposit), set a euro target, and optionally a deadline month. This becomes your primary goal. The map grows a gold goal orb with a progress ring; the HUD shows progress.\n\nGoals are funded from cautious forecast surplus in priority order (waterfall). You can add more goals, reorder, set confirmed pots, or link a goal to a real savings account later."
+    },
+    {
+      "id": "map-basics",
+      "order": 20,
+      "phase": "explore",
+      "feature": "money-map",
+      "title": "The money map — explore your household",
+      "location": "Space stage (always) · Classic: Money map section · dock does not list map separately in space because it IS the background",
+      "selectors": [
+        "#graphCanvas",
+        "#graphCard",
+        "#nodeCard",
+        "#lapseBar"
+      ],
+      "tags": [
+        "map",
+        "graph",
+        "merchants",
+        "nodes"
+      ],
+      "see_also": [
+        "space-view",
+        "wealth-map"
+      ],
+      "body": "The map shows people → accounts → category hubs → merchants, plus goals (gold ring), holdings, assets, and hollow debt orbs.\n\nControls: click a hub to dive in (merchants appear); double-click to fold; scroll to zoom; drag background to pan; click any node for a story card with shortcuts. ▶ Play history time-lapses month by month.\n\nShared merchants (both partners pay Netflix) are one node with two links. Recurring merchants can show a dashed orbit badge."
+    },
+    {
+      "id": "range-search",
+      "order": 21,
+      "phase": "explore",
+      "feature": "range-search",
+      "title": "Date range and Search",
+      "location": "Space: top-right 📅 and 🔎 icons · Classic: range bar under header + Search section",
+      "selectors": [
+        "#topRange",
+        "#topSearch",
+        "#sec-search",
+        ".range-bar"
+      ],
+      "tags": [
+        "range",
+        "search",
+        "filter",
+        "navigation"
+      ],
+      "see_also": [
+        "cashflow",
+        "audit"
+      ],
+      "body": "Date range scopes charts, leaks, categories, and much of the map flow. Presets and custom from/to are available. Search finds transactions by merchant (raw or canonical name) and can highlight related map nodes. Use Search when a number looks wrong and you need the underlying rows."
+    },
+    {
+      "id": "hud-cash-privacy",
+      "order": 22,
+      "phase": "explore",
+      "feature": "privacy",
+      "title": "Cash on hand and privacy mode",
+      "location": "Space HUD + classic goal hero · eye buttons",
+      "selectors": [
+        "#heroCashVal",
+        "#heroEye",
+        ".priv-eye"
+      ],
+      "tags": [
+        "cash",
+        "privacy",
+        "hud",
+        "mask"
+      ],
+      "see_also": [
+        "people-balances",
+        "net-worth"
+      ],
+      "body": "Cash on hand is reconciled non-credit account balances (needs opening balances for full accuracy). Tap the cash figure to mask it; press-and-hold peeks while masked. The 👁 button toggles app-wide privacy mode: every euro amount renders as € ••• (dates and percentages stay readable). When the at-rest lock is on, masking defaults to on. Privacy prefs ride in backups."
+    },
+    {
+      "id": "people-accounts",
+      "order": 30,
+      "phase": "data",
+      "feature": "people",
+      "title": "People, accounts & more statements",
+      "location": "Space: Settings (🛠️) includes People · Classic: People section · sec-people",
+      "selectors": [
+        "#sec-people",
+        "#upFile",
+        "#orgList",
+        "#xferCard"
+      ],
+      "tags": [
+        "people",
+        "accounts",
+        "upload",
+        "household"
+      ],
+      "see_also": [
+        "onb-account",
+        "transfers",
+        "people-balances"
+      ],
+      "body": "Add more household members, accounts, and upload further CSVs under the right account. Account kinds (current / credit / savings) change how credits count. You can rename people/accounts and delete user-added accounts (with consequences listed).\n\nAlways file each statement under the correct account so transfer matching and reconciliation work."
+    },
+    {
+      "id": "people-balances",
+      "order": 31,
+      "phase": "data",
+      "feature": "reconciliation",
+      "title": "Opening balances and reconciliation",
+      "location": "People → each account card (opening balance + as-of + checked balance)",
+      "selectors": [
+        "#sec-people",
+        "#orgList"
+      ],
+      "tags": [
+        "balance",
+        "reconciliation",
+        "opening",
+        "drift"
+      ],
+      "see_also": [
+        "goals-link",
+        "cash",
+        "net-worth"
+      ],
+      "body": "Set an account's opening balance and as-of date so Lithifyte can roll forward from transactions and compare to a checked real balance. Drift ≥ €1 is flagged (possible missing months or miscategorised transfers). Reconciled cash powers cash-on-hand, net worth, and liquidity in Pulse. Linked goals use the linked account's reconciled balance as the pot."
+    },
+    {
+      "id": "transfers",
+      "order": 32,
+      "phase": "data",
+      "feature": "transfers",
+      "title": "Internal transfers between your accounts",
+      "location": "People section → \"Between your own accounts\" card (when candidates exist)",
+      "selectors": [
+        "#xferCard",
+        "#xferTable"
+      ],
+      "tags": [
+        "transfers",
+        "dedupe",
+        "credit-card",
+        "savings"
+      ],
+      "see_also": [
+        "people-accounts",
+        "rules"
+      ],
+      "body": "Equal-and-opposite amounts on different accounts within a few days are scored as possible internal transfers (card payments, savings standing orders, top-ups). High-confidence pairs auto-apply as Internal transfer (excluded from income/spending/forecast). Weaker pairs wait for your yes/no ruling.\n\nSpecial case: if one side is Deposit savings, that side still counts toward goals — only the mirror leg is neutralised. Confirm pending transfers early; they are a top cause of \"income looks too high\"."
+    },
+    {
+      "id": "dedupe",
+      "order": 33,
+      "phase": "data",
+      "feature": "dedupe",
+      "title": "Why re-uploading is safe (dedupe)",
+      "location": "Automatic on every statement upload",
+      "selectors": [
+        "#upGo",
+        "#ob-file-go"
+      ],
+      "tags": [
+        "dedupe",
+        "upload",
+        "csv"
+      ],
+      "see_also": [
+        "onb-statement",
+        "feeder"
+      ],
+      "body": "Each row is fingerprinted date|merchant|debit|credit and compared as a multiset per account. Two identical bus fares on one day can both be real; if the file has three and the account already has two, exactly one is added. Whole-file near-duplicates ask for confirmation. Re-pulling feeder CSVs will not double-count."
+    },
+    {
+      "id": "audit",
+      "order": 34,
+      "phase": "data",
+      "feature": "audit",
+      "title": "Audit — auto-categorisation review",
+      "location": "Space dock: Data → Audit · Classic: Audit section",
+      "selectors": [
+        "#sec-audit"
+      ],
+      "tags": [
+        "audit",
+        "categories",
+        "merchants",
+        "confidence"
+      ],
+      "see_also": [
+        "rules",
+        "lm-categoriser",
+        "merchants"
+      ],
+      "body": "Lists merchant → category decisions (biggest money first) with confidence. Filter by AI-assigned vs your rules, by category, or search. Hit Fix on a wrong row to pre-fill a correction rule. Statement name variants (ALDI 887, ALDI51873) group under one merchant; open \"N names\" to split or review merges. Your rules always beat the feed's guesses."
+    },
+    {
+      "id": "rules",
+      "order": 35,
+      "phase": "data",
+      "feature": "rules",
+      "title": "Rules — fix categories permanently",
+      "location": "Space dock: Data → Rules · Classic: Rules section",
+      "selectors": [
+        "#sec-rules"
+      ],
+      "tags": [
+        "rules",
+        "categories",
+        "recategorise"
+      ],
+      "see_also": [
+        "audit",
+        "lm-categoriser"
+      ],
+      "body": "First-match-wins rules: merchant contains (substring) plus optional amount equals/from/to. Reorder with ▲▼. Narrow rules above broad ones. Special categories: Deposit savings (counts toward goals, not spending) and Internal transfer (owned by the transfer matcher — do not force via rules casually).\n\nEvery rule should have a human label. Disabled rules stay as history. After changes, re-check Audit \"why\" explainers and Search."
+    },
+    {
+      "id": "merchants",
+      "order": 36,
+      "phase": "data",
+      "feature": "merchants",
+      "title": "Merchant names merged (canonicalisation)",
+      "location": "Audit card (merge/split) · map merchant nodes",
+      "selectors": [
+        "#sec-audit"
+      ],
+      "tags": [
+        "merchants",
+        "canonical",
+        "merge",
+        "map"
+      ],
+      "see_also": [
+        "audit",
+        "map-basics"
+      ],
+      "body": "Banks mangle merchant strings (store numbers, SEPA tails, card refs). Lithifyte groups display names under a canonical prefix for the map, audit, and search — raw strings remain the identity for rules, recurring, transfers, and dedupe. You can force-merge or exempt names. One rule with a stable token (e.g. PROVINCEF) can fix a whole group."
+    },
+    {
+      "id": "lm-categoriser",
+      "order": 37,
+      "phase": "data",
+      "feature": "ai-categoriser",
+      "title": "AI categoriser (optional, local)",
+      "location": "Audit section → \"AI categoriser — your local model\" card",
+      "selectors": [
+        "#sec-audit"
+      ],
+      "tags": [
+        "ai",
+        "lm",
+        "ollama",
+        "categoriser",
+        "privacy"
+      ],
+      "see_also": [
+        "rules",
+        "audit",
+        "ask-feature"
+      ],
+      "body": "Point the card at an OpenAI-compatible server on your machine (Ollama, LM Studio; Ollama needs CORS origins configured). It proposes categories for uncategorised / low-confidence merchants — nothing auto-applies. Accepting creates a normal front-inserted rule you can undo. Savings, rent, and gambling-shaped calls are flagged for your judgement.\n\nHosted pages often cannot call localhost (browser rules). Open the downloaded HTML file for local AI. Never required for core use. A future API-key field may allow a personal gateway; the public default remains your own model so stranger bank text is not routed through SID Labs."
+    },
+    {
+      "id": "cashflow",
+      "order": 40,
+      "phase": "understand",
+      "feature": "cashflow",
+      "title": "Cashflow — month by month",
+      "location": "Space: Overview → Cashflow · Classic: Cashflow",
+      "selectors": [
+        "#sec-cashflow",
+        "#cashflowChart",
+        "#skCard"
+      ],
+      "tags": [
+        "cashflow",
+        "income",
+        "spending",
+        "sankey"
+      ],
+      "see_also": [
+        "categories",
+        "sankey",
+        "range-search"
+      ],
+      "body": "Bar chart of income vs spending (deposit savings excluded from spending) for the selected range. Hover a month for totals; click a month for a full Income / Expenses / Savings breakdown with clickable categories → transactions. Use this first when a month looks weird."
+    },
+    {
+      "id": "sankey",
+      "order": 41,
+      "phase": "understand",
+      "feature": "sankey",
+      "title": "Money flow (Sankey)",
+      "location": "Cashflow section → money flow card (click for large view)",
+      "selectors": [
+        "#skCard",
+        "#sankeyMini"
+      ],
+      "tags": [
+        "sankey",
+        "cashflow",
+        "flow"
+      ],
+      "see_also": [
+        "cashflow"
+      ],
+      "body": "Sankey diagram: income sources → money-in hub → savings, top spending categories, leftovers. Balanced to the cent: overspend shows as \"From balance\", not hidden. Follows the cashflow selected month or range averages. Privacy mode masks euro labels. Click the card or ⛶ for full-size overlay."
+    },
+    {
+      "id": "categories",
+      "order": 42,
+      "phase": "understand",
+      "feature": "categories",
+      "title": "Categories — where a month goes",
+      "location": "Space: Overview → Categories · Classic: Categories",
+      "selectors": [
+        "#sec-cats",
+        "#catChart"
+      ],
+      "tags": [
+        "categories",
+        "spending",
+        "bars"
+      ],
+      "see_also": [
+        "cashflow",
+        "leaks",
+        "budget"
+      ],
+      "body": "Average monthly outgoings by category in the selected range. Click a bar to list every transaction behind it. Colours follow your category settings. This is the bridge between raw merchants and budget lines."
+    },
+    {
+      "id": "leaks",
+      "order": 43,
+      "phase": "understand",
+      "feature": "leaks",
+      "title": "Leaks — where money dribbles away",
+      "location": "Space: Overview → Leaks · Classic: Leaks",
+      "selectors": [
+        "#sec-leaks"
+      ],
+      "tags": [
+        "leaks",
+        "spending",
+        "merchants"
+      ],
+      "see_also": [
+        "categories",
+        "budget",
+        "sim"
+      ],
+      "body": "Ranks recurring or high-frequency spend drains (subscriptions, habits) with monthly averages. Start here for quick wins before fine-tuning budgets. Pair with Rules if a \"leak\" is miscategorised."
+    },
+    {
+      "id": "goals-deep",
+      "order": 50,
+      "phase": "plan",
+      "feature": "goals",
+      "title": "Goals — feasibility and pots",
+      "location": "Space: Overview → Goals · Classic: goal hero at top",
+      "selectors": [
+        "#goalHero"
+      ],
+      "tags": [
+        "goals",
+        "waterfall",
+        "feasibility",
+        "pot"
+      ],
+      "see_also": [
+        "onb-goal",
+        "goals-link",
+        "forecast",
+        "budget"
+      ],
+      "body": "Goals are ordered pockets. Each forecast month's cautious surplus fills them top-down. Cards show progress, required €/mo, and verdicts (on track / tight / at risk) with cautious date first (\"Mar 2027, or Dec 2026 if trends hold\").\n\nPot sources (highest wins): (1) linked account reconciled balance, (2) confirmed pot + as-of plus later Deposit savings, (3) inferred cumulative Deposit savings. Protect standing orders that feed goals — readiness loves an unbroken savings streak."
+    },
+    {
+      "id": "goals-link",
+      "order": 51,
+      "phase": "plan",
+      "feature": "goals",
+      "title": "Link a goal to a savings account",
+      "location": "Goals editor · accountId on a goal · People opening balance on that account",
+      "selectors": [
+        "#goalHero",
+        "#sec-people"
+      ],
+      "tags": [
+        "goals",
+        "link",
+        "savings",
+        "pot"
+      ],
+      "see_also": [
+        "people-balances",
+        "goals-deep"
+      ],
+      "body": "Best practice for a credit-union or savings pot: add the savings account, set opening balance, upload its statements (or transfers into it), then link the goal to that account. The pot becomes the account's reconciled balance (with transfer top-ups when needed). Stronger than a typed pot number."
+    },
+    {
+      "id": "budget",
+      "order": 52,
+      "phase": "plan",
+      "feature": "budget",
+      "title": "Budget — spending pace",
+      "location": "Space: Planning → Budget · Classic: Budget",
+      "selectors": [
+        "#sec-budget"
+      ],
+      "tags": [
+        "budget",
+        "pace",
+        "safe-to-spend"
+      ],
+      "see_also": [
+        "categories",
+        "goals-deep",
+        "forecast"
+      ],
+      "body": "Per-category monthly budgets plus \"Everything else\". Seed with 📊 match my history (median of last complete months) or 🎯 align to my goal (trim variable spend so income − goal savings − buffer fits). Pace is recurring-aware: rent on day 1 does not false-alarm; variable spend tracks the calendar. See spent, pace bar, projected month-end, safe-to-spend €/day, and hit/miss dots. Breaches feed the visit digest."
+    },
+    {
+      "id": "forecast",
+      "order": 53,
+      "phase": "plan",
+      "feature": "forecast",
+      "title": "Forecast and recurring costs",
+      "location": "Space: Planning → Forecast · Classic: Forecast",
+      "selectors": [
+        "#sec-forecast"
+      ],
+      "tags": [
+        "forecast",
+        "recurring",
+        "buffer",
+        "cautious"
+      ],
+      "see_also": [
+        "goals-deep",
+        "debts",
+        "sim"
+      ],
+      "body": "Detects monthly and periodic bills from history (with confidence and yearly-alignment guards). You can end items, add manual future costs, and set buffer %. Two paths: expected vs cautious (buffer from robust σ of irregular spend; spike months named). Goal verdicts use the cautious path. Debts can clamp a recurring item's end to payoff so surplus releases automatically."
+    },
+    {
+      "id": "sim",
+      "order": 54,
+      "phase": "plan",
+      "feature": "simulator",
+      "title": "Scenario simulator",
+      "location": "Space: Planning → Simulate · Classic: Simulator",
+      "selectors": [
+        "#sec-sim"
+      ],
+      "tags": [
+        "simulator",
+        "levers",
+        "cuts",
+        "what-if"
+      ],
+      "see_also": [
+        "forecast",
+        "budget",
+        "leaks"
+      ],
+      "body": "Sliders on top discretionary categories (elasticity-based max cuts). Labels show −€cut → €left/mo. Cuts feed the forecast so goal dates update live. Add fixed categories as levers or exclude noisy ones via chips. Use after leaks/budget to test \"what if we cut dining €100?\"."
+    },
+    {
+      "id": "plan-cards",
+      "order": 55,
+      "phase": "plan",
+      "feature": "plan",
+      "title": "Wealth plan cards (live narrative)",
+      "location": "Space: Planning → Plan · Classic: Plan",
+      "selectors": [
+        "#sec-plan",
+        "#planCards"
+      ],
+      "tags": [
+        "plan",
+        "actions",
+        "insights"
+      ],
+      "see_also": [
+        "forecast",
+        "readiness",
+        "irish-schemes"
+      ],
+      "body": "Ordered action cards computed from your data (savings pattern, Help to Buy estimate, grocery shifts, hottest leaks, bill switches, readiness flags). Worth figures are per year against actual spend. They rewrite when you recategorise or upload. Not static advice copy."
+    },
+    {
+      "id": "pulse",
+      "order": 60,
+      "phase": "wealth",
+      "feature": "pulse",
+      "title": "Financial pulse",
+      "location": "Space: Wealth → Pulse (also HUD) · Classic: Wealth → Financial pulse",
+      "selectors": [
+        "#pulseCard",
+        "#pulseGauge"
+      ],
+      "tags": [
+        "pulse",
+        "health",
+        "score"
+      ],
+      "see_also": [
+        "budget",
+        "debts",
+        "net-worth"
+      ],
+      "body": "0–100 dial over up to 7 absolute measures (spend vs income, bill reliability, liquidity months, long-term share, debt service, budget pace, streak+goal). Zones from Critical to Thriving. Window toggle Month/Quarter/Year/Overall scopes flow measures; balances are as-of today. Unscored measures explain why (e.g. no opening balance → liquidity dark). Best next move is ranked for you."
+    },
+    {
+      "id": "net-worth",
+      "order": 61,
+      "phase": "wealth",
+      "feature": "net-worth",
+      "title": "Net worth",
+      "location": "Space: Wealth → Net worth · Classic: Wealth section",
+      "selectors": [
+        "#nwCard"
+      ],
+      "tags": [
+        "networth",
+        "assets",
+        "honesty"
+      ],
+      "see_also": [
+        "holdings",
+        "debts",
+        "people-balances"
+      ],
+      "body": "Composes reconciled cash + goal pots not already inside that cash + holdings + manual assets − debts − credit balances. Stale valuations amber; possible double-counts flagged. Add property/vehicle/pension etc. with as-of dates. Daily trend sparkline logs one point per open day."
+    },
+    {
+      "id": "debts",
+      "order": 62,
+      "phase": "wealth",
+      "feature": "debts",
+      "title": "Loans and debt",
+      "location": "Space: Wealth → Debts · Classic: Wealth → Loans & debt",
+      "selectors": [
+        "#debtCard"
+      ],
+      "tags": [
+        "debt",
+        "loan",
+        "mortgage",
+        "amortisation"
+      ],
+      "see_also": [
+        "forecast",
+        "readiness",
+        "pulse"
+      ],
+      "body": "Track balances with APR and payment or end date — amortisation derives the rest. Link a statement merchant so the forecast ends that bill at payoff instead of double-counting. Overpay what-ifs and avalanche vs snowball when multiple debts. Feeds readiness commitments and net worth. Nudges appear for loan-shaped recurring items not yet tracked."
+    },
+    {
+      "id": "holdings",
+      "order": 63,
+      "phase": "wealth",
+      "feature": "investments",
+      "title": "Investments and crypto",
+      "location": "Space: Wealth → Invest · Classic: Wealth → Investments & crypto",
+      "selectors": [
+        "#holdCard"
+      ],
+      "tags": [
+        "investments",
+        "crypto",
+        "cgt",
+        "etf",
+        "quotes"
+      ],
+      "see_also": [
+        "net-worth",
+        "feeder",
+        "irish-schemes"
+      ],
+      "body": "Positions with units, cost, kind (share/ETF/fund/crypto/pension). Quotes: manual, ↻ crypto via CoinGecko when opened as a local file, or 📥 import quotes JSON from the feeder. Irish tax layer: CGT vs fund exit tax, exemption, 8-year deemed disposal on funds. Stale quotes flagged. Values feed net worth."
+    },
+    {
+      "id": "irish-schemes",
+      "order": 64,
+      "phase": "wealth",
+      "feature": "wealth-engine",
+      "title": "Irish schemes, pension AVC, post-goal reallocation",
+      "location": "Wealth section cards: schemes, pension, reallocation",
+      "selectors": [
+        "#schemeCard",
+        "#pensionCard",
+        "#reallocCard"
+      ],
+      "tags": [
+        "ireland",
+        "htb",
+        "pension",
+        "tax",
+        "fiscal"
+      ],
+      "see_also": [
+        "plan-cards",
+        "readiness",
+        "holdings"
+      ],
+      "body": "Estimates Help to Buy headroom, idle-pot cost, pension AVC leverage (age bands, relief) with honest goal-delay trade-off, and where surplus might go after goals (pension vs overpay vs funds after exit tax vs cash). Fiscal constants live in a dated block — verify on revenue.ie before acting. Figures are planning estimates, not advice."
+    },
+    {
+      "id": "readiness",
+      "order": 65,
+      "phase": "wealth",
+      "feature": "readiness",
+      "title": "Mortgage readiness checklist",
+      "location": "Space: Wealth → Readiness · Classic: Readiness",
+      "selectors": [
+        "#sec-ready"
+      ],
+      "tags": [
+        "mortgage",
+        "readiness",
+        "underwriting",
+        "gambling"
+      ],
+      "see_also": [
+        "goals-deep",
+        "debts",
+        "audit"
+      ],
+      "body": "Live checks lenders care about over recent months: savings streak, gambling-strong vs ambiguous merchants (you must rule on ambiguous CAS/BET-style names — the app will not whitewash), uncategorised %, missed payments, credit commitments/DSR, overdraft low-point (needs balances). Fail-first ordering. Aim for clean months before applying."
+    },
+    {
+      "id": "backup",
+      "order": 70,
+      "phase": "ops",
+      "feature": "backup",
+      "title": "Backup, restore, encryption, lock",
+      "location": "Space: Settings → Backup · Classic: Backup section (Keep this dashboard alive)",
+      "selectors": [
+        "#sec-alive",
+        "#settingsCard"
+      ],
+      "tags": [
+        "backup",
+        "export",
+        "import",
+        "encryption",
+        "lock"
+      ],
+      "see_also": [
+        "privacy",
+        "welcome"
+      ],
+      "body": "Export finance-backup-*.json with rules, goals, uploads, budgets, debts, holdings, etc. Optional passphrase → AES-GCM encrypted file (PBKDF2 ~310k). Import restores on a new browser/device. Opt-in at-rest lock seals all dd-* stores until passphrase on open — no recovery if forgotten. Erase-all (danger zone) double-confirms and wipes browser state for this app."
+    },
+    {
+      "id": "integrity-selftest",
+      "order": 71,
+      "phase": "ops",
+      "feature": "trust",
+      "title": "Integrity and self-test",
+      "location": "Backup section · footer status",
+      "selectors": [
+        "#integrityCard",
+        "#stStatus"
+      ],
+      "tags": [
+        "selftest",
+        "integrity",
+        "trust"
+      ],
+      "see_also": [
+        "backup"
+      ],
+      "body": "Integrity checks embedded transaction checksums. Self-test runs ~100 behavioural checks on load — must be green before trusting numbers after an update. Render errors name the broken section. If self-test is red, something changed; do not rely on figures until fixed."
+    },
+    {
+      "id": "feeder",
+      "order": 72,
+      "phase": "ops",
+      "feature": "feeder",
+      "title": "Feeder CLI (optional bank sync and quotes)",
+      "location": "Repo folder feeder/ — runs on your machine, not in the browser",
+      "selectors": [],
+      "tags": [
+        "feeder",
+        "gocardless",
+        "psd2",
+        "quotes",
+        "cli"
+      ],
+      "see_also": [
+        "csv-format",
+        "holdings",
+        "onb-statement"
+      ],
+      "body": "Node CLI: banks / connect / fetch write CSVs for upload; prices SYM writes EUR quotes JSON for import. Secrets stay in feeder/config.json (gitignored). Bank credentials never enter the HTML file. GoCardless signup availability can block live bank tests; CSV upload always works. See feeder/README.md."
+    },
+    {
+      "id": "classic-view",
+      "order": 73,
+      "phase": "ops",
+      "feature": "classic",
+      "title": "Classic view vs Space view",
+      "location": "Settings → Switch to classic view · 🪐 to return",
+      "selectors": [
+        "#setClassicBtn",
+        "#viewToggle"
+      ],
+      "tags": [
+        "classic",
+        "space",
+        "accessibility"
+      ],
+      "see_also": [
+        "space-view",
+        "dock-nav"
+      ],
+      "body": "Classic: all sections on one page, sticky nav — better for screen readers, keyboard, printing, or if glass panels feel heavy. Space: immersive map-first. Same data, same engines. Choose what you prefer; stored in settings."
+    },
+    {
+      "id": "tutorial-how",
+      "order": 80,
+      "phase": "meta",
+      "feature": "tutorial",
+      "title": "How this tutorial and guided tour work",
+      "location": "Hosted at /tutorial.html · optional in-app entry later",
+      "selectors": [],
+      "tags": [
+        "tutorial",
+        "guide",
+        "tour"
+      ],
+      "see_also": [
+        "ask-feature",
+        "dock-nav"
+      ],
+      "body": "The webhosted tutorial walks features in order of use: start → onboarding → clean data → understand → plan → wealth → keep alive. Each section of the guide maps to a real UI location (dock path + CSS selectors for future in-app highlighting).\n\nOpt-in: you choose when to open the tutorial; it does not block first-run onboarding. Replay any chapter anytime. The same content powers Ask (RAG)."
+    },
+    {
+      "id": "ask-feature",
+      "order": 81,
+      "phase": "meta",
+      "feature": "ask",
+      "title": "Ask — questions about the app (RAG + local LM)",
+      "location": "Tutorial page Ask panel · future in-app Ask",
+      "selectors": [],
+      "tags": [
+        "ask",
+        "rag",
+        "lm",
+        "help"
+      ],
+      "see_also": [
+        "tutorial-how",
+        "lm-categoriser"
+      ],
+      "body": "Ask answers questions about how Lithifyte works using a local RAG corpus (the tutorial/feature chunks), not your bank transactions. Retrieval is client-side over docs/rag/chunks.json. When a local OpenAI-compatible model is configured, the top chunks become context for a short explanatory answer — still assist-only, still on-device unless you point it at your own gateway.\n\nAsk will refuse to invent euro figures from your household; for those, open the relevant panel (Goals, Forecast, etc.). Example questions: \"Where do I upload statements?\", \"What is cautious forecast?\", \"How do I link a goal to savings?\", \"What does Internal transfer mean?\"."
+    },
+    {
+      "id": "order-of-use",
+      "order": 82,
+      "phase": "meta",
+      "feature": "journey",
+      "title": "Recommended order of use (checklist)",
+      "location": "Whole app",
+      "selectors": [],
+      "tags": [
+        "journey",
+        "checklist",
+        "start",
+        "order"
+      ],
+      "see_also": [
+        "onb-name",
+        "backup"
+      ],
+      "body": "Recommended path for a new household:\n\n1) Optional demo → 2) Name → 3) First account (correct kind) → 4) First CSV → 5) First goal → 6) Explore map/HUD → 7) Add other people/accounts/statements → 8) Opening balances → 9) Resolve transfer rulings → 10) Audit + rules (and optional AI categoriser) → 11) Cashflow / categories / leaks → 12) Budget seed → 13) Forecast buffer check → 14) Simulator what-ifs → 15) Readiness cleanup → 16) Track debts/holdings/assets → 17) Pulse / net worth → 18) Export backup (encrypt if shared machine) → 19) Optional feeder for next month's pull.\n\nDo not skip backup once real data exists. Do not whitewash readiness flags."
+    }
+  ]
+}

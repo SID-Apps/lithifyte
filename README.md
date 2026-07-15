@@ -8,6 +8,8 @@ Lithifyte turns your bank statements into a living picture of your household's m
 
 **Try it first:** [the live demo](https://lithifyte.sid-labs.com/demo.html) is a fully loaded sample household — two earners, four accounts, two years of invented transactions — so you can explore everything without uploading a thing. The demo keeps its own separate storage and can never touch data you later add to the real app.
 
+**New here?** The [Tutorial & Ask guide](https://lithifyte.sid-labs.com/tutorial.html) walks every feature in order of use (name → CSV → goals → budgets → wealth → backup) and includes an **Ask** box backed by a local RAG corpus (`docs/rag/chunks.json`). Optional: point Ask at your own local model for prose answers.
+
 **Hosted at** [lithifyte.sid-labs.com](https://lithifyte.sid-labs.com) on **Cloudflare Pages** (auto-deploys from `main`). That is the only public host for now — not GitHub Pages.
 
 ## Quick start
