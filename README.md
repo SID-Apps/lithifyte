@@ -1,8 +1,8 @@
-# Money Map
+# Lithifyte
 
 **Household finance mission control in a single HTML file. Your bank data never leaves your browser.**
 
-Money Map turns your bank statements into a living picture of your household's money: a neural map of people, accounts and merchants; goal planning with honest feasibility dates; a pace-based budget; cautious forecasting; debt, investment and net-worth tracking with an Irish tax layer; and a financial-health dial over it all. It is one self-contained file — no server, no account, no tracking, no analytics, nothing phones home. That is not a feature toggle; there is no backend to send anything to.
+Lithifyte turns your bank statements into a living picture of your household's money: a neural map of people, accounts and merchants; goal planning with honest feasibility dates; a pace-based budget; cautious forecasting; debt, investment and net-worth tracking with an Irish tax layer; and a financial-health dial over it all. It is one self-contained file — no server, no account, no tracking, no analytics, nothing phones home. That is not a feature toggle; there is no backend to send anything to.
 
 > **The privacy promise, bluntly:** everything is computed in your browser from statements you upload. Your data lives in your browser's local storage (optionally encrypted at rest with a passphrase) and in backup files you export yourself. The page makes zero network requests with your data. You can read this file's source and verify every word of that.
 
@@ -55,6 +55,6 @@ Releases use [`tools/swap-data.mjs`](tools/swap-data.mjs): one shared shell of c
 
 ## License
 
-**AGPL-3.0-or-later** — see [LICENSE](LICENSE). Plain-language summary: use it, study it, modify it, share it, self-host it for your household freely. But if you publish or host a derivative, it must remain open source under this same license with attribution intact. Stripping this notice and selling Money Map as your own closed product is a license violation, and the kind we would pursue.
+**AGPL-3.0-or-later** — see [LICENSE](LICENSE). Plain-language summary: use it, study it, modify it, share it, self-host it for your household freely. But if you publish or host a derivative, it must remain open source under this same license with attribution intact. Stripping this notice and selling Lithifyte as your own closed product is a license violation, and the kind we would pursue.
 
-Copyright © 2026 the Money Map project.
+Copyright © 2026 the Lithifyte project (SID Labs).

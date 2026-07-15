@@ -3,7 +3,7 @@ feeder/config.json
 feeder/state.json
 feeder/out/
 
-# personal builds (a Money Map file with YOUR transactions embedded)
+# personal builds (a Lithifyte file with YOUR transactions embedded)
 *personal*.html
 *my-*.html
 

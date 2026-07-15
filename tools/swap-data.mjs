@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// swap-data.mjs — the Money Map release tool.
+// swap-data.mjs — the Lithifyte release tool.
 //
-// A Money Map build = one shared SHELL (all the code) + one embedded
+// A Lithifyte build = one shared SHELL (all the code) + one embedded
 // finance-data block (the transactions/rules/goals JSON). This script swaps
 // the data block of one build into the shell of another, which covers both
 // release directions:
