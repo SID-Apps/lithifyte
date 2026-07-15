@@ -378,39 +378,45 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
     background:color-mix(in srgb, var(--surface) 72%, transparent)}
 
   /* ── In-app Space tour (guided playthrough) ── */
-  #tourRoot{display:none; position:fixed; inset:0; z-index:200; pointer-events:none}
+  #tourRoot{display:none; position:fixed; inset:0; z-index:400; pointer-events:none}
   body.touring #tourRoot{display:block !important}
-  body.touring{/* keep space interactions limited while coach is up */}
-  .tour-shade{position:fixed; z-index:205; background:rgba(2,8,20,.72); pointer-events:auto; transition:all .2s ease}
-  @media (prefers-reduced-motion: reduce){ .tour-shade{transition:none} }
-  .tour-hole-ring{position:fixed; pointer-events:none; border:2px solid rgba(56,189,248,.95);
-    border-radius:12px; box-shadow:0 0 0 1px rgba(56,189,248,.35), 0 0 28px rgba(56,189,248,.35);
-    z-index:210; transition:all .2s ease}
-  .tour-arrow{position:fixed; z-index:215; pointer-events:none; width:0; height:0;
-    filter:drop-shadow(0 2px 4px rgba(0,0,0,.45)); transition:all .2s ease}
+  body.touring{/* tour modal layer active */}
+  /* Full-screen click trap — blocks ALL app interaction under the tour */
+  #tourBlocker{position:fixed; inset:0; z-index:410; background:transparent; pointer-events:auto; cursor:default}
+  /* Visual fade (4 rects leave a hole so the feature stays readable) */
+  .tour-shade{position:fixed; z-index:420; background:rgba(2,8,20,.78); pointer-events:none; transition:all .18s ease}
+  /* Invisible plate over the hole — see the feature, cannot click it */
+  #tourHoleCatch{position:fixed; z-index:430; background:transparent; pointer-events:auto; cursor:default; border-radius:12px}
+  .tour-hole-ring{position:fixed; pointer-events:none; border:2.5px solid rgba(125,211,252,.98);
+    border-radius:12px; box-shadow:0 0 0 1px rgba(56,189,248,.4), 0 0 32px rgba(56,189,248,.45);
+    z-index:440; transition:all .18s ease}
+  .tour-arrow{position:fixed; z-index:450; pointer-events:none; width:0; height:0;
+    filter:drop-shadow(0 2px 4px rgba(0,0,0,.45)); transition:all .18s ease}
   .tour-arrow[data-dir="left"]{border-top:10px solid transparent; border-bottom:10px solid transparent; border-right:14px solid #38bdf8}
   .tour-arrow[data-dir="right"]{border-top:10px solid transparent; border-bottom:10px solid transparent; border-left:14px solid #38bdf8}
   .tour-arrow[data-dir="up"]{border-left:10px solid transparent; border-right:10px solid transparent; border-bottom:14px solid #38bdf8}
   .tour-arrow[data-dir="down"]{border-left:10px solid transparent; border-right:10px solid transparent; border-top:14px solid #38bdf8}
-  #tourCard{position:fixed; z-index:220; pointer-events:auto; width:min(380px, calc(100vw - 28px));
-    background:color-mix(in srgb, #07101f 88%, transparent); border:1px solid rgba(56,189,248,.45);
-    border-radius:14px; backdrop-filter:blur(16px) saturate(1.1); box-shadow:0 18px 50px rgba(0,0,0,.55);
-    padding:14px 14px 12px; color:#e8f1ff; font:13.5px/1.45 system-ui,sans-serif}
+  /* Coach + part picker MUST sit above every shade (solid, not glass-faded) */
+  #tourCard{position:fixed; z-index:500; pointer-events:auto; width:min(380px, calc(100vw - 28px));
+    background:#0a1628; border:1px solid rgba(56,189,248,.65);
+    border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,.75), 0 0 0 1px rgba(125,211,252,.15);
+    padding:14px 14px 12px; color:#e8f1ff; font:13.5px/1.45 system-ui,sans-serif;
+    opacity:1; filter:none; isolation:isolate}
   #tourCard .tour-kicker{font:700 10px system-ui,sans-serif; letter-spacing:.12em; text-transform:uppercase; color:#7dd3fc; margin:0 0 4px}
   #tourCard h3{margin:0 0 6px; font:700 16px/1.25 system-ui,sans-serif; color:#fff}
-  #tourCard .tour-body{margin:0 0 12px; color:#c9daf0; max-height:28vh; overflow:auto; white-space:pre-wrap}
+  #tourCard .tour-body{margin:0 0 12px; color:#d5e4f7; max-height:28vh; overflow:auto; white-space:pre-wrap}
   #tourCard .tour-loc{margin:0 0 10px; font-size:12px; color:#6ee7b7}
   #tourCard .tour-nav{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
-  #tourCard .tour-nav .btn{font-size:12.5px}
+  #tourCard .tour-nav .btn{font-size:12.5px; pointer-events:auto; position:relative; z-index:1}
   #tourCard .tour-progress{margin-left:auto; font:600 11.5px system-ui,sans-serif; color:#8aa0bd}
-  #tourParts{position:fixed; z-index:220; pointer-events:auto; left:14px; bottom:14px;
+  #tourParts{position:fixed; z-index:500; pointer-events:auto; left:14px; bottom:14px;
     width:min(520px, calc(100vw - 28px)); display:flex; flex-wrap:wrap; gap:6px;
-    padding:10px; border-radius:14px; background:rgba(2,11,26,.82); border:1px solid rgba(56,189,248,.3);
-    backdrop-filter:blur(12px)}
-  #tourParts .tp{appearance:none; border:1px solid rgba(56,189,248,.28); background:rgba(56,189,248,.08);
-    color:#dbeafe; border-radius:999px; padding:5px 10px; font:600 11.5px system-ui,sans-serif; cursor:pointer}
-  #tourParts .tp:hover{border-color:rgba(56,189,248,.6)}
-  #tourParts .tp.on{background:rgba(56,189,248,.28); border-color:rgba(56,189,248,.75); color:#fff}
+    padding:10px; border-radius:14px; background:#0a1628; border:1px solid rgba(56,189,248,.55);
+    box-shadow:0 12px 40px rgba(0,0,0,.65); opacity:1; filter:none; isolation:isolate}
+  #tourParts .tp{appearance:none; border:1px solid rgba(56,189,248,.35); background:rgba(56,189,248,.12);
+    color:#dbeafe; border-radius:999px; padding:5px 10px; font:600 11.5px system-ui,sans-serif; cursor:pointer; pointer-events:auto}
+  #tourParts .tp:hover{border-color:rgba(56,189,248,.75); background:rgba(56,189,248,.22)}
+  #tourParts .tp.on{background:rgba(56,189,248,.35); border-color:rgba(125,211,252,.9); color:#fff}
   #tourParts .tp-label{width:100%; font:700 10px system-ui,sans-serif; letter-spacing:.1em; text-transform:uppercase; color:#7dd3fc; margin:0 0 2px}
   #tourFab{display:none}
   body.space:not(.fresh) #tourFab{display:flex; position:fixed; left:14px; bottom:14px; z-index:31;
@@ -1462,10 +1468,12 @@ rewrite the static advice cards if the picture has changed.</div>
 <!-- In-app Space tour -->
 <button type="button" id="tourFab" title="Guided tour of features in Space view">📘 Tour</button>
 <div id="tourRoot" aria-live="polite" hidden>
+  <div id="tourBlocker" aria-hidden="true" title="Use the tour buttons to navigate"></div>
   <div class="tour-shade" id="tourS1"></div>
   <div class="tour-shade" id="tourS2"></div>
   <div class="tour-shade" id="tourS3"></div>
   <div class="tour-shade" id="tourS4"></div>
+  <div id="tourHoleCatch" aria-hidden="true"></div>
   <div class="tour-hole-ring" id="tourRing" hidden></div>
   <div class="tour-arrow" id="tourArrow" hidden></div>
   <div id="tourCard" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
@@ -7978,6 +7986,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     const shades = [1,2,3,4].map(i => document.getElementById('tourS' + i));
     const ring = document.getElementById('tourRing');
     const arrow = document.getElementById('tourArrow');
+    const holeCatch = document.getElementById('tourHoleCatch');
+    const blocker = document.getElementById('tourBlocker');
     let active = false, partFilter = null, idx = 0, spotEl = null, raf = 0;
 
     PARTS.forEach(p => {
@@ -8052,7 +8062,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       shades[3].style.cssText = `top:${b}px;left:0;width:100%;height:${Math.max(0,vh-b)}px`;
       ring.hidden = false;
       ring.style.cssText = `top:${t}px;left:${l}px;width:${w}px;height:${h}px`;
-      // coach card — always fully on-screen, prefer right of dock / left of right panels
+      // Plate over the visual hole — feature stays visible, not clickable
+      if (holeCatch){
+        holeCatch.style.cssText = `top:${t}px;left:${l}px;width:${w}px;height:${h}px;display:block`;
+      }
+      // coach card — always fully on-screen, solid, above the fade
       const cw = Math.min(380, vw - 28);
       // force layout so offsetHeight is real
       card.style.display = 'block';
@@ -8070,7 +8084,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       partsEl.style.left = '14px';
       partsEl.style.right = 'auto';
       partsEl.style.bottom = '14px';
-      partsEl.style.zIndex = '90';
+      partsEl.style.zIndex = '500';
+      partsEl.style.pointerEvents = 'auto';
       // arrow from card toward hole center
       const hx = l + w / 2, hy = t + h / 2;
       const ccx = cx + cw / 2, ccy = cy + Math.min(ch, 160) / 2;
@@ -8134,9 +8149,16 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (Space && !Space.isSpace()) Space.enter();
       root.hidden = false;
       root.removeAttribute('hidden');
-      root.style.cssText = 'display:block;position:fixed;inset:0;z-index:80;pointer-events:none';
-      card.style.zIndex = '90';
-      partsEl.style.zIndex = '90';
+      // Root is a stacking context ABOVE the whole app; only coach controls receive clicks
+      root.style.cssText = 'display:block;position:fixed;inset:0;z-index:400;pointer-events:none';
+      card.style.cssText = (card.style.cssText || '').replace(/z-index:\s*\d+;?/g, '') ;
+      card.style.zIndex = '500';
+      card.style.pointerEvents = 'auto';
+      card.style.opacity = '1';
+      partsEl.style.zIndex = '500';
+      partsEl.style.pointerEvents = 'auto';
+      partsEl.style.opacity = '1';
+      if (blocker) blocker.style.cssText = 'display:block;position:fixed;inset:0;z-index:410;pointer-events:auto';
       applyStep(L[idx]);
     }
     function stop(){
@@ -8144,9 +8166,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       document.body.classList.remove('touring');
       clearSpot();
       root.hidden = true;
+      root.setAttribute('hidden', '');
       root.style.display = 'none';
-      clearSpot();
       ring.hidden = true; arrow.hidden = true;
+      if (holeCatch) holeCatch.style.cssText = 'display:none';
+      if (blocker) blocker.style.display = 'none';
       cancelAnimationFrame(raf);
       partFilter = null; idx = 0;
       paintParts();
@@ -8182,14 +8206,43 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     window.addEventListener('resize', () => { if (active) show(); });
     document.getElementById('panelBody').addEventListener('scroll', () => { if (active && spotEl) layout(spotEl); }, {passive:true});
     document.getElementById('miniBody').addEventListener('scroll', () => { if (active && spotEl) layout(spotEl); }, {passive:true});
+
+    // While touring: ONLY tour chrome may receive pointer/keyboard navigation.
+    // Capture-phase trap stops dock buttons, map nodes, panels, etc.
+    function isTourChrome(el){
+      return !!(el && el.closest && el.closest('#tourCard, #tourParts'));
+    }
+    function trapPointer(e){
+      if (!active) return;
+      if (isTourChrome(e.target)) return; // Back / Next / End / part chips
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+    }
+    ['pointerdown','pointerup','click','mousedown','mouseup','touchstart','touchend','contextmenu','wheel','dblclick'].forEach(type => {
+      document.addEventListener(type, trapPointer, true);
+    });
     document.addEventListener('keydown', e => {
       if (!active) return;
-      if (e.key === 'Escape'){ e.preventDefault(); stop(); }
-      else if (e.key === 'ArrowRight' || e.key === 'Enter'){ e.preventDefault(); next(); }
-      else if (e.key === 'ArrowLeft'){ e.preventDefault(); prev(); }
+      // Allow tour keys only
+      if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); stop(); return; }
+      if (e.key === 'ArrowRight' || e.key === 'Enter'){ e.preventDefault(); e.stopPropagation(); next(); return; }
+      if (e.key === 'ArrowLeft'){ e.preventDefault(); e.stopPropagation(); prev(); return; }
+      // Tab stays inside coach card if possible
+      if (e.key === 'Tab'){
+        const focusables = card.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        if (!focusables.length){ e.preventDefault(); return; }
+        const list = [...focusables];
+        const first = list[0], last = list[list.length - 1];
+        if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+        else if (!card.contains(document.activeElement)){ e.preventDefault(); first.focus(); }
+        return;
+      }
+      // Block other keys from reaching the app (shortcuts, etc.)
+      e.preventDefault();
+      e.stopPropagation();
     }, true);
-    // shade click does not close — user must End or Finish
-    shades.forEach(s => s.addEventListener('click', e => e.stopPropagation()));
 
     return {start, startPart, stop, next, prev, isActive: () => active};
   })();
