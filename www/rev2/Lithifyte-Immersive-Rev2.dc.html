@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lithifyte — household finance mission control</title>
+<meta name="description" content="Your household money as a living map. Budgets that pace with the calendar. Cashflow that balances to the cent. Your bank data never leaves your browser.">
 <script src="./support.js"></script>
 </head>
 <body>
@@ -19,7 +21,6 @@
     a:hover{color:#bae6fd}
     button,input{font:inherit}
     @keyframes scrollpulse{0%,100%{opacity:.3;transform:translateX(-50%) translateY(0)}50%{opacity:1;transform:translateX(-50%) translateY(9px)}}
-    @keyframes blink{50%{opacity:.2}}
     @media (prefers-reduced-motion:reduce){[data-copy]{opacity:1!important;transform:none!important}}
   </style>
 </helmet>
@@ -130,8 +131,9 @@
       </div>
     </section>
 
-    <section data-chapter data-scene="dock" data-label="Enter" id="access" style="position:relative;height:170vh">
-      <div style="position:sticky;top:0;height:100vh;display:flex;align-items:center;justify-content:center;padding:0 24px">
+    <!-- Chapter 07 is the last page: CTAs + footer together, no extra scroll past it -->
+    <section data-chapter data-scene="dock" data-label="Enter" id="access" style="position:relative;height:100vh">
+      <div style="position:sticky;top:0;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:72px 24px 88px">
         <div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 50% 55% at 50% 50%, rgba(2,11,26,.8), rgba(2,11,26,0) 66%)"></div>
         <div data-copy style="position:relative;width:min(560px,100%);text-align:center;opacity:0;transform:translateY(26px);transition:opacity .9s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1)">
           <p style="font:600 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:#38bdf8;margin:0 0 14px">07 — Docking complete</p>
@@ -143,17 +145,16 @@
           </div>
           <p style="margin:22px auto 0;max-width:34em;font:500 12.5px 'IBM Plex Mono',monospace;color:#8fb0d0;line-height:1.55">Accounts sign in via Cloudflare with a magic link — no password, no bank credentials.<br>Identity can live on Cloudflare; finance stays in your browser.</p>
         </div>
+        <footer style="position:absolute;left:0;right:0;bottom:0;z-index:11;padding:20px 24px 28px;text-align:center;font:500 12px 'IBM Plex Mono',monospace;color:#6f8bab;letter-spacing:.04em">
+          © 2026 Lithifyte · <a href="https://www.sid-labs.com" style="color:#6f8bab">SID Labs</a> · AGPL-3.0 · <a href="https://github.com/SID-Apps/lithifyte" style="color:#6f8bab">Source</a>
+        </footer>
       </div>
     </section>
 
   </main>
-
-  <footer style="position:relative;z-index:10;padding:36px 24px 56px;text-align:center;font:500 12px 'IBM Plex Mono',monospace;color:#6f8bab;letter-spacing:.04em">
-    <div>© 2026 Lithifyte · SID Labs · AGPL-3.0 · <a href="https://github.com/SID-Apps/lithifyte" style="color:#6f8bab">Source</a></div>
-  </footer>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Cyan&quot;,&quot;Mint&quot;,&quot;Magenta&quot;],&quot;default&quot;:&quot;Cyan&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Look&quot;},&quot;starDensity&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:220,&quot;min&quot;:60,&quot;max&quot;:360,&quot;step&quot;:20,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Look&quot;},&quot;scanlines&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Look&quot;},&quot;mouseParallax&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Motion&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Cyan&quot;,&quot;Mint&quot;,&quot;Magenta&quot;],&quot;default&quot;:&quot;Cyan&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Look&quot;},&quot;starDensity&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:180,&quot;min&quot;:60,&quot;max&quot;:360,&quot;step&quot;:20,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Look&quot;},&quot;scanlines&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Look&quot;},&quot;mouseParallax&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Motion&quot;}}">
 class Component extends DCLogic {
   componentDidMount(){
     const root = this.el || document;
@@ -166,203 +167,674 @@ class Component extends DCLogic {
     const lerp = (a,b,t) => a+(b-a)*t;
     const ease = (t) => (t<=0)?0:(t>=1)?1:t*t*(3-2*t);
     const hex = (h,a) => { h=(''+h).replace('#',''); const n=parseInt(h.length===3?h.split('').map(c=>c+c).join(''):h,16); return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`; };
+    const toHex = (c) => {
+      if (!c || c[0]==='#') return c || '#38bdf8';
+      const m = /rgb\((\d+),\s*(\d+),\s*(\d+)/.exec(c);
+      if (!m) return '#38bdf8';
+      return '#'+[m[1],m[2],m[3]].map(x=>('0'+Number(x).toString(16)).slice(-2)).join('');
+    };
+    const shade = (c, f) => {
+      const n = parseInt(toHex(c).slice(1), 16);
+      const r = Math.max(0, Math.min(255, ((n>>16)&255) * (1+f)));
+      const g = Math.max(0, Math.min(255, ((n>>8)&255) * (1+f)));
+      const b = Math.max(0, Math.min(255, (n&255) * (1+f)));
+      return 'rgb('+[r,g,b].map(Math.round).join(',')+')';
+    };
 
     const ACC = { Cyan:{hue:198,hex:'#38bdf8'}, Mint:{hue:158,hex:'#34d399'}, Magenta:{hue:300,hex:'#e879f9'} };
     const acc = ACC[this.props.accent] || ACC.Cyan;
-    const density = Math.round(this.props.starDensity ?? 220);
+    const density = Math.round(this.props.starDensity ?? 180);
     const parallaxOn = (this.props.mouseParallax ?? true) && !reduce;
     const scanEl = $('[data-layer="scan"]'); if (scanEl) scanEl.style.display = (this.props.scanlines ?? true) ? 'block' : 'none';
 
     const canvas = $('[data-canvas="stage"]');
     const ctx = canvas.getContext('2d',{alpha:true});
-    let W=0,H=0,dpr=1;
-    const resize = () => { dpr=Math.min(devicePixelRatio||1,2); W=innerWidth; H=innerHeight; canvas.width=W*dpr; canvas.height=H*dpr; canvas.style.width=W+'px'; canvas.style.height=H+'px'; ctx.setTransform(dpr,0,0,dpr,0,0); };
-    resize(); on(window,'resize',resize);
+    let W=0, H=0, dpr=1;
+    // byId / kick wired after graph setup; resize only sizes the canvas early
+    let graphReady = false;
+    const resize = () => {
+      dpr=Math.min(devicePixelRatio||1,2);
+      W=innerWidth; H=innerHeight;
+      canvas.width=W*dpr; canvas.height=H*dpr;
+      canvas.style.width=W+'px'; canvas.style.height=H+'px';
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+      if (!graphReady) return;
+      const hh = byId.get('hh');
+      if (hh){
+        const dx = W/2 - hh.x, dy = H*0.46 - hh.y;
+        for (const n of nodes){ n.x += dx; n.y += dy; n.seedX += dx; n.seedY += dy; }
+      }
+      kick(0.35);
+    };
 
-    // ── stars (calm drift + twinkle) ──
-    const spawn = (rz) => { const a=Math.random()*Math.PI*2, r=Math.random()*1.25+0.12; return { x:Math.cos(a)*r, y:Math.sin(a)*r*0.55, z: rz?Math.random()*1.6+0.05:1.6+Math.random()*0.4, s:Math.random()*1.5+0.35, hue: Math.random()<0.14?acc.hue-30:(Math.random()<0.06?300:acc.hue), tw:Math.random()*6.28 }; };
-    const stars = Array.from({length: reduce?70:density}, () => spawn(true));
+    // ── product palette (matches index.html money map) ──
+    const INK = '#cfe9ff', INK2 = '#7fa5cc', MERCH = '#6d93bd';
+    const CAT_COLS = {
+      Groceries:'#38bdf8', Home:'#a78bfa', Transport:'#2dd4bf',
+      Leisure:'#e879f9', Everyday:'#fbbf24', Housing:'#60a5fa', Other:'#94a3b8'
+    };
+    const nodeColor = (n) =>
+      n.type === 'hh' || n.type === 'user' ? '#e2f3ff' :
+      n.type === 'acct' ? '#a78bfa' :
+      n.type === 'income' ? '#34d399' :
+      n.type === 'goal' ? '#f7c95c' :
+      n.type === 'debt' ? '#f87171' :
+      n.type === 'cat' ? (CAT_COLS[n.label] || acc.hex) :
+      n.type === 'merch' ? MERCH : acc.hex;
+
+    // ── stars (calm drift only — not the map) ──
+    const spawn = (rz) => {
+      const a=Math.random()*Math.PI*2, r=Math.random()*1.25+0.12;
+      return { x:Math.cos(a)*r, y:Math.sin(a)*r*0.55, z: rz?Math.random()*1.6+0.05:1.6+Math.random()*0.4,
+        s:Math.random()*1.5+0.35, hue: Math.random()<0.14?acc.hue-30:(Math.random()<0.06?300:acc.hue), tw:Math.random()*6.28 };
+    };
+    const stars = Array.from({length: reduce?50:density}, () => spawn(true));
     const projStar = (x,y,z,ox,oy) => { const f=0.9/(z+0.001); return {x:W/2+ox+x*f*(H*0.62), y:H*0.46+oy+y*f*(H*0.62), s:f}; };
 
-    // ── money map: force-directed nodes (Obsidian style) ──
-    const MN = [];
-    const mk = (o) => { o.x=o.hx; o.y=o.hy; o.vx=0; o.vy=0; o.drag=false; MN.push(o); return o; };
-    mk({id:'hh', g:'core',     hx:0,     hy:-0.02, r:16, color:acc.hex, label:'Household',  amt:'€96,400 net', appearAt:0.00});
-    mk({id:'p1', g:'people',   hx:-0.36, hy:-0.14, r:11, color:'#7dd3fc', label:'You',       amt:'€3,200 / mo', appearAt:0.18});
-    mk({id:'p2', g:'people',   hx:0.34,  hy:-0.18, r:11, color:'#a5b4fc', label:'Partner',   amt:'€2,800 / mo', appearAt:0.22});
-    mk({id:'ac1',g:'accounts', hx:-0.64, hy:0.02,  r:8,  color:'#34d399', label:'Current',   amt:'€2,140',      appearAt:0.40});
-    mk({id:'ac2',g:'accounts', hx:-0.48, hy:0.30,  r:8,  color:'#fbbf24', label:'Savings',   amt:'€12,400',     appearAt:0.44});
-    mk({id:'ac3',g:'accounts', hx:0.58,  hy:-0.04, r:8,  color:'#f472b6', label:'Credit',    amt:'−€850',       appearAt:0.46});
-    mk({id:'ac4',g:'accounts', hx:0.52,  hy:0.26,  r:8,  color:'#2dd4bf', label:'Cash',      amt:'€4,000',      appearAt:0.48});
-    const hubDefs = [
-      {id:'h1', hx:-0.36, hy:0.52, label:'Groceries', amt:'€640 / mo'},
-      {id:'h2', hx:-0.02, hy:0.64, label:'Home',      amt:'€1,450 / mo'},
-      {id:'h3', hx:0.30,  hy:0.54, label:'Transport', amt:'€360 / mo'},
-      {id:'h4', hx:0.58,  hy:0.44, label:'Leisure',   amt:'€300 / mo'},
-    ];
-    hubDefs.forEach((h,i)=> mk({id:h.id, g:'hubs', hx:h.hx, hy:h.hy, r:7, color:'#94a3b8', label:h.label, amt:h.amt, appearAt:0.60+i*0.01}));
-    mk({id:'goal', g:'goal', hx:-0.72, hy:0.32, r:10, color:'#fbbf24', label:'Holiday fund', amt:'64% · €3.2k/5k', appearAt:0.90, ring:0.64});
-    mk({id:'debt', g:'debt', hx:0.76,  hy:0.10, r:10, color:'#f87171', label:'Car loan',     amt:'−€8,600',        appearAt:0.92, hollow:true});
-    // merchants orbit hubs
-    const merchDefs = { h1:[['Aldi','€210'],['Tesco','€180'],['Lidl','€150'],['SuperValu','€100']], h2:[['Energia','€120'],['Bord Gáis','€90'],['IKEA','€240']], h3:[['Circle K','€140'],['Irish Rail','€120'],['Free Now','€100']], h4:[['Netflix','€18'],['Spotify','€11'],['Cinema','€60']] };
-    const merch=[];
-    hubDefs.forEach((h,hi)=>{ const arr=merchDefs[h.id]; arr.forEach((m,i)=>{ const ang=(i/arr.length)*Math.PI*2 + hi*0.7; const orad=0.14+(i%2)*0.03; const n=mk({id:'m_'+h.id+'_'+i, g:'merchants', hx:h.hx+Math.cos(ang)*orad, hy:h.hy+Math.sin(ang)*orad*0.85, r:3.6, color:'#7f93ad', label:m[0], amt:m[1], appearAt:0.74+i*0.01, hub:h.id}); merch.push(n); }); });
-    const byId = {}; MN.forEach(n=>byId[n.id]=n);
-    const linkIds = [['hh','p1'],['hh','p2'],['p1','ac1'],['p1','ac2'],['p2','ac3'],['p2','ac4'],['ac1','h1'],['ac2','h2'],['ac3','h3'],['ac4','h4'],['ac1','h2'],['ac3','h4'],['p1','goal'],['ac2','goal'],['p2','debt']];
-    const links = linkIds.map(([a,b])=>{ const A=byId[a],B=byId[b]; return {a:A,b:B, rest:Math.hypot(A.hx-B.hx,A.hy-B.hy)}; });
-    const mLinks = merch.map(m=>({a:m,b:byId[m.hub], rest:Math.hypot(m.hx-byId[m.hub].hx,m.hy-byId[m.hub].hy)}));
+    // soft bokeh orbs like the product map
+    let bokeh = [], particles = [];
+    (function seedAmbient(){
+      let sd = 12345;
+      const rnd = () => (sd = (sd*1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+      for (let i = 0; i < 10; i++)
+        bokeh.push({fx:rnd(), fy:rnd(), r:40 + rnd()*110, c:['#38bdf8','#a78bfa','#34d399','#f472b6'][i%4], a:0.05 + rnd()*0.05, ph:rnd()*6.28});
+      for (let i = 0; i < 28; i++)
+        particles.push({fx:rnd(), fy:rnd(), r:0.6 + rnd()*1.5, sp:6 + rnd()*14, ph:rnd()*6.28});
+    })();
+
+    // ── money map — product-style force layout ──
+    // Structure mirrors the real app: household → people → accounts → category hubs → merchants;
+    // goals wear progress rings; debts are hollow. No fighting "home springs" — that was the jitter.
+    const nodes = [];
+    const links = [];
+    const byId = new Map();
+    let simAlpha = 1; // cools toward 0 (product pattern)
+    let dragNode = null;
+    let hover = null;
+    let revealTier = 0; // 0 core · 1 people/accts · 2 hubs · 3 merchants · 4 wealth
+    let prevTier = -1;
+    let mapAlpha = 0.12;
+    let mapZoom = 0.92; // camera scale on graph
+    let flowA = 0, vaultA = 0;
+
+    function addNode(n){
+      n.vx = 0; n.vy = 0;
+      n.x = n.seedX; n.y = n.seedY;
+      nodes.push(n); byId.set(n.id, n);
+      return n;
+    }
+    function addLink(a, b, w, rest, revealAt){
+      links.push({a, b, w: w||2, rest: rest||null, revealAt: revealAt||0});
+    }
+
+    function buildGraph(){
+      nodes.length = 0; links.length = 0; byId.clear();
+      const cx = W/2 || 400, cy = (H*0.46) || 300;
+
+      // Household root — fixed, like the product
+      addNode({id:'hh', type:'hh', label:'Household', amt:'€96,400 net', r:20, fixed:true, seedX:cx, seedY:cy, revealAt:0});
+
+      // People
+      addNode({id:'p1', type:'user', label:'You', amt:'€3,200 / mo', r:15, seedX:cx-120, seedY:cy-70, revealAt:1});
+      addNode({id:'p2', type:'user', label:'Partner', amt:'€2,800 / mo', r:15, seedX:cx+120, seedY:cy-80, revealAt:1});
+      addLink('hh','p1', 2.5, 130, 1);
+      addLink('hh','p2', 2.5, 130, 1);
+
+      // Accounts (purple) under people
+      addNode({id:'ac1', type:'acct', label:'Current',  amt:'€2,140',  r:14, seedX:cx-230, seedY:cy+10,  revealAt:1});
+      addNode({id:'ac2', type:'acct', label:'Savings',  amt:'€12,400', r:14, seedX:cx-180, seedY:cy+140, revealAt:1});
+      addNode({id:'ac3', type:'acct', label:'Credit',   amt:'−€850',   r:14, seedX:cx+230, seedY:cy+5,   revealAt:1});
+      addNode({id:'ac4', type:'acct', label:'Cash',     amt:'€4,000',  r:14, seedX:cx+190, seedY:cy+140, revealAt:1});
+      addLink('p1','ac1', 2.5, 150, 1);
+      addLink('p1','ac2', 2.5, 150, 1);
+      addLink('p2','ac3', 2.5, 150, 1);
+      addLink('p2','ac4', 2.5, 150, 1);
+
+      // Income under Current (product shows income as mint node)
+      addNode({id:'inc', type:'income', label:'Income', amt:'€6,000 / mo', r:16, seedX:cx-320, seedY:cy-40, revealAt:2});
+      addLink('ac1','inc', 3, 120, 2);
+
+      // Category hubs (expandable in product; always open here for the story)
+      const hubs = [
+        {id:'h1', label:'Groceries', amt:'€640 / mo',  sx:cx-160, sy:cy+250, from:'ac1'},
+        {id:'h2', label:'Home',      amt:'€1,450 / mo', sx:cx-20,  sy:cy+280, from:'ac2'},
+        {id:'h3', label:'Transport', amt:'€360 / mo',  sx:cx+140, sy:cy+250, from:'ac3'},
+        {id:'h4', label:'Leisure',   amt:'€300 / mo',  sx:cx+260, sy:cy+180, from:'ac4'},
+      ];
+      hubs.forEach(h => {
+        addNode({id:h.id, type:'cat', label:h.label, amt:h.amt, r:12, seedX:h.sx, seedY:h.sy, revealAt:2, expandable:true});
+        addLink(h.from, h.id, 2.2, 160, 2);
+      });
+      // cross-link a little like multi-account spend
+      addLink('ac1','h2', 1.4, 170, 2);
+
+      // Merchants under hubs (product: appear when hub expanded / zoomed)
+      const merch = {
+        h1:[['Aldi',210],['Tesco',180],['Lidl',150]],
+        h2:[['Energia',120],['Bord Gáis',90],['IKEA',240]],
+        h3:[['Circle K',140],['Irish Rail',120]],
+        h4:[['Netflix',18],['Spotify',11],['Cinema',60]],
+      };
+      Object.keys(merch).forEach((hid, hi) => {
+        const hub = byId.get(hid);
+        const arr = merch[hid];
+        arr.forEach((m, i) => {
+          const ang = -Math.PI/2 + (i - (arr.length-1)/2) * 0.7 + hi*0.05;
+          const rr = 95 + (i%2)*18;
+          const id = 'm_'+hid+'_'+i;
+          addNode({
+            id, type:'merch', label:m[0], amt:'€'+m[1], r: Math.max(5, 5+Math.sqrt(m[1])/8),
+            seedX: hub.seedX + Math.cos(ang)*rr,
+            seedY: hub.seedY + Math.sin(ang)*rr,
+            revealAt:3, val:m[1]
+          });
+          addLink(hid, id, 1.2, rr, 3);
+        });
+      });
+
+      // Wealth constellation — goal progress ring, hollow debt
+      addNode({id:'goal', type:'goal', label:'Holiday fund', amt:'€3.2k · 64%', r:14, progress:0.64, seedX:cx-280, seedY:cy+120, revealAt:4});
+      addNode({id:'debt', type:'debt', label:'Car loan', amt:'−€8,600', r:14, seedX:cx+300, seedY:cy+80, revealAt:4});
+      addLink('ac2','goal', 2.2, 150, 4);
+      addLink('p2','debt', 1.5, 195, 4);
+
+      kick(1);
+    }
+
+    function kick(v){ simAlpha = Math.max(simAlpha, v); }
+
+    function restLen(a, b, L){
+      if (L.rest) return L.rest;
+      if (a.type === 'hh' || b.type === 'hh') return 130;
+      if (a.type === 'user' || b.type === 'user') return 150;
+      if (a.type === 'acct' || b.type === 'acct') return 160;
+      if (a.type === 'goal' || b.type === 'goal' || a.type === 'debt' || b.type === 'debt') return 195;
+      return 95;
+    }
+
+    function visNode(n){ return n.revealAt <= revealTier; }
+    function visLink(L){ return L.revealAt <= revealTier; }
+
+    // product tick: repulsion + link springs + collision + mild center gravity + alpha cooling
+    function tick(){
+      if (simAlpha < 0.004) return;
+      const live = nodes.filter(visNode);
+      // repulsion
+      for (let i = 0; i < live.length; i++){
+        const a = live[i];
+        for (let j = i+1; j < live.length; j++){
+          const b = live[j];
+          let dx = b.x - a.x, dy = b.y - a.y;
+          let d2 = dx*dx + dy*dy;
+          if (d2 < 1){ dx = Math.random()-0.5; dy = Math.random()-0.5; d2 = 1; }
+          const d = Math.sqrt(d2);
+          const rep = 90 * (a.r + b.r) / d2;
+          a.vx -= dx/d*rep; a.vy -= dy/d*rep;
+          b.vx += dx/d*rep; b.vy += dy/d*rep;
+        }
+      }
+      // link springs
+      for (const L of links){
+        if (!visLink(L)) continue;
+        const a = byId.get(L.a), b = byId.get(L.b);
+        if (!a || !b || !visNode(a) || !visNode(b)) continue;
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const d = Math.max(1, Math.hypot(dx, dy));
+        const f = (d - restLen(a,b,L)) * 0.03;
+        a.vx += dx/d*f; a.vy += dy/d*f;
+        b.vx -= dx/d*f; b.vy -= dy/d*f;
+      }
+      // collision relaxation (capped — product pattern that stops explosions)
+      for (let i = 0; i < live.length; i++){
+        const a = live[i];
+        for (let j = i+1; j < live.length; j++){
+          const b = live[j];
+          const min = a.r + b.r + 22;
+          let dx = b.x - a.x, dy = b.y - a.y;
+          let d = Math.hypot(dx, dy);
+          if (d >= min) continue;
+          if (d < 1){ dx = Math.random()-0.5; dy = Math.random()-0.5; d = Math.hypot(dx, dy); }
+          const disp = Math.min((min - d) * 0.3, 16);
+          const ux = dx/d, uy = dy/d;
+          const am = (a.fixed || a === dragNode) ? 0 : 1;
+          const bm = (b.fixed || b === dragNode) ? 0 : 1;
+          a.x -= ux*disp*am; a.y -= uy*disp*am;
+          b.x += ux*disp*bm; b.y += uy*disp*bm;
+        }
+      }
+      const cx = W/2, cy = H*0.46;
+      for (const n of live){
+        if (n.fixed || n === dragNode){ n.vx = 0; n.vy = 0; continue; }
+        // gentle radial gravity (product) — map grows as a circle, camera frames it
+        n.vx += (cx - n.x) * 0.002;
+        n.vy += (cy - n.y) * 0.002;
+        n.vx *= 0.8; n.vy *= 0.8;
+        n.vx = Math.max(-36, Math.min(36, n.vx));
+        n.vy = Math.max(-36, Math.min(36, n.vy));
+        n.x += n.vx * simAlpha * 2;
+        n.y += n.vy * simAlpha * 2;
+        if (!isFinite(n.x) || !isFinite(n.y)){
+          n.x = cx + (Math.random()-0.5)*40; n.y = cy + (Math.random()-0.5)*40; n.vx = 0; n.vy = 0;
+        }
+      }
+      simAlpha *= 0.988;
+    }
+
+    // sprite cache (product-style glow, cheap per frame)
+    const spriteCache = new Map();
+    function nodeSprite(color, r){
+      const key = color + '|' + Math.round(r);
+      let sp = spriteCache.get(key);
+      if (sp) return sp;
+      const pad = Math.ceil(r*2.4), size = Math.ceil((r + pad)*2);
+      const cv = document.createElement('canvas'); cv.width = size; cv.height = size;
+      const c2 = cv.getContext('2d');
+      const cx = size/2, cy = size/2;
+      const glow = c2.createRadialGradient(cx, cy, r*0.4, cx, cy, r + pad);
+      glow.addColorStop(0, color + 'aa'); glow.addColorStop(0.45, color + '33'); glow.addColorStop(1, color + '00');
+      c2.fillStyle = glow; c2.beginPath(); c2.arc(cx, cy, r + pad, 0, 6.284); c2.fill();
+      const body = c2.createRadialGradient(cx - r*0.35, cy - r*0.35, r*0.1, cx, cy, r);
+      body.addColorStop(0, '#ffffff'); body.addColorStop(0.25, color); body.addColorStop(1, shade(color, -0.45));
+      c2.fillStyle = body; c2.beginPath(); c2.arc(cx, cy, r, 0, 6.284); c2.fill();
+      c2.strokeStyle = 'rgba(255,255,255,.35)'; c2.lineWidth = 1; c2.stroke();
+      sp = {cv, half:size/2};
+      spriteCache.set(key, sp);
+      return sp;
+    }
+
+    // camera: translate so graph center is screen center, scale with mapZoom
+    const cam = {x:0, y:0, k:1};
+    function worldToScreen(n){
+      return {
+        x: cam.x + n.x * cam.k,
+        y: cam.y + n.y * cam.k,
+        r: n.r * cam.k
+      };
+    }
+    // graph is built in screen-ish coords already (seeded around W/2,H*0.46).
+    // cam only applies gentle zoom about the household.
+    function updateCam(){
+      const hh = byId.get('hh');
+      if (!hh) return;
+      const k = mapZoom;
+      cam.k = k;
+      // zoom around household: screen = hh*k + t  =>  hh stays put
+      cam.x = hh.x - hh.x * k;
+      cam.y = hh.y - hh.y * k;
+    }
+
     this._nodeScreen = {};
 
     // ── chrome ──
     const prog=$('[data-progress]'), rail=$('[data-rail]');
     const sections=$$('[data-chapter]'); const copies=sections.map(s=>s.querySelector('[data-copy]'));
-    const railBtns = sections.map((ch,i)=>{ const b=document.createElement('button'); b.type='button';
+    const lastIdx = sections.length - 1;
+    const railBtns = sections.map((ch,i)=>{
+      const b=document.createElement('button'); b.type='button';
       Object.assign(b.style,{width:'9px',height:'9px',borderRadius:'50%',padding:'0',cursor:'pointer',border:'1px solid rgba(56,189,248,.4)',background:'transparent',transition:'transform .25s, background .25s, box-shadow .25s'});
       b.title=ch.getAttribute('data-label')||('Chapter '+i); b.setAttribute('aria-label',b.title);
-      on(b,'click',()=>{ const y=ch.getBoundingClientRect().top+scrollY+(ch.offsetHeight-innerHeight)*0.4; scrollTo({top:Math.max(0,y),behavior:'smooth'}); });
-      rail.appendChild(b); return b; });
+      on(b,'click',()=>{ const y=ch.getBoundingClientRect().top+scrollY+(ch.offsetHeight-innerHeight)*0.35; scrollTo({top:Math.max(0,y),behavior:'smooth'}); });
+      rail.appendChild(b); return b;
+    });
 
-    // ── view transform + interaction ──
-    const view = {cx:0, cy:0, scale:1, R:0};
-    const toScreen = (n) => { const co=Math.cos(view.R), si=Math.sin(view.R); return {x:view.cx+(n.x*co-n.y*si)*view.scale, y:view.cy+(n.x*si+n.y*co)*view.scale}; };
-    const fromScreen = (mx,my) => { const co=Math.cos(view.R), si=Math.sin(view.R); const dx=(mx-view.cx)/view.scale, dy=(my-view.cy)/view.scale; return {x:dx*co+dy*si, y:-dx*si+dy*co}; };
-
-    let mx=0,my=0,smx=0,smy=0,hover=null,dragNode=null;
+    // ── interaction ──
+    let mx=0, my=0, smx=0, smy=0;
     const tip=$('[data-tip]'), tipT=$('[data-tip-title]'), tipS=$('[data-tip-sub]');
     const setCursor = (c) => { document.body.style.cursor = c; };
-    const hitTest = (px,py) => { let best=null,bd=1e9; for(const id in this._nodeScreen){ const s=this._nodeScreen[id]; if(s.alpha<0.5) continue; const d=Math.hypot(px-s.x,py-s.y); const rr=Math.max(15,s.r*2.4); if(d<rr && d<bd){bd=d;best=id;} } return best; };
+    const hitTest = (px,py) => {
+      let best=null, bd=1e9;
+      for (const id in this._nodeScreen){
+        const s = this._nodeScreen[id];
+        if (s.alpha < 0.4) continue;
+        const d = Math.hypot(px-s.x, py-s.y);
+        const rr = Math.max(14, s.r*2.2);
+        if (d < rr && d < bd){ bd = d; best = id; }
+      }
+      return best;
+    };
     on(window,'mousemove',(e)=>{
       mx=(e.clientX/innerWidth-0.5)*2; my=(e.clientY/innerHeight-0.5)*2;
-      if(dragNode){ const g=fromScreen(e.clientX,e.clientY); dragNode.dgx=g.x; dragNode.dgy=g.y; if(tip){ const s=this._nodeScreen[dragNode.id]; if(s){ tip.style.left=s.x+'px'; tip.style.top=s.y+'px'; } } return; }
-      const h=hitTest(e.clientX,e.clientY);
-      if(h!==hover){ hover=h; const nd=byId[h]; if(nd&&tip){ tipT.textContent=nd.label; tipS.textContent=nd.amt||''; tip.style.opacity='1'; } else if(tip) tip.style.opacity='0'; }
-      if(hover&&tip){ const s=this._nodeScreen[hover]; if(s){ tip.style.left=s.x+'px'; tip.style.top=s.y+'px'; } }
-      setCursor(hover?'grab':'');
+      if (dragNode){
+        // inverse camera
+        dragNode.x = (e.clientX - cam.x) / cam.k;
+        dragNode.y = (e.clientY - cam.y) / cam.k;
+        dragNode.vx = 0; dragNode.vy = 0;
+        if (tip){ tip.style.left=e.clientX+'px'; tip.style.top=e.clientY+'px'; }
+        return;
+      }
+      if (mapAlpha < 0.25){ if (hover){ hover=null; if(tip) tip.style.opacity='0'; } return; }
+      const h = hitTest(e.clientX, e.clientY);
+      if (h !== hover){
+        hover = h;
+        const nd = byId.get(h);
+        if (nd && tip){ tipT.textContent = nd.label; tipS.textContent = nd.amt || ''; tip.style.opacity = '1'; }
+        else if (tip) tip.style.opacity = '0';
+      }
+      if (hover && tip){
+        const s = this._nodeScreen[hover];
+        if (s){ tip.style.left = s.x+'px'; tip.style.top = s.y+'px'; }
+      }
+      setCursor(hover ? 'grab' : '');
     });
-    on(window,'mousedown',(e)=>{ if(mapAlphaNow<0.4) return; const h=hitTest(e.clientX,e.clientY); if(h){ dragNode=byId[h]; const g=fromScreen(e.clientX,e.clientY); dragNode.dgx=g.x; dragNode.dgy=g.y; dragNode.drag=true; setCursor('grabbing'); e.preventDefault(); } });
-    const endDrag = () => { if(dragNode){ dragNode.drag=false; dragNode=null; setCursor(hover?'grab':''); } };
-    on(window,'mouseup',endDrag); on(window,'mouseleave',endDrag);
+    on(window,'mousedown',(e)=>{
+      if (mapAlpha < 0.25) return;
+      const h = hitTest(e.clientX, e.clientY);
+      if (!h) return;
+      dragNode = byId.get(h);
+      if (dragNode.fixed){ dragNode = null; return; }
+      dragNode.vx = 0; dragNode.vy = 0;
+      setCursor('grabbing');
+      e.preventDefault();
+    });
+    const endDrag = () => {
+      if (dragNode){
+        dragNode = null;
+        kick(0.4); // settle after drag — product style
+        setCursor(hover ? 'grab' : '');
+      }
+    };
+    on(window,'mouseup', endDrag);
+    on(window,'mouseleave', endDrag);
 
-    // ── scene state ──
-    const S = { mapA:0.14, zoom:0.85, flow:0, vault:0, dock:0 };
-    let mapAlphaNow = 0.14;
-    const HOTG = [ null, 'core', 'people', 'hubs', 'goal', null, null, null ];
-    const targetFor = (act) => { const T={mapA:1,zoom:1,flow:0,vault:0,dock:0};
-      if(act===0){T.mapA=0.16;T.zoom=0.82;} else if(act===1){T.mapA=0.9;T.zoom=0.9;} else if(act===2){T.mapA=1;T.zoom=1.0;}
-      else if(act===3){T.mapA=1;T.zoom=1.15;} else if(act===4){T.mapA=1;T.zoom=1.05;}
-      else if(act===5){T.mapA=0.22;T.zoom=1.0;T.flow=1;} else if(act===6){T.mapA=0.12;T.zoom=0.98;T.vault=1;} else {T.mapA=0.1;T.zoom=0.95;T.dock=1;}
-      return T; };
-
-    const stepPhysics = () => {
-      const kHome=0.010, kLink=0.020, damp=0.86, kRep=0.00045;
-      for(const n of MN){ n.fx=(n.hx-n.x)*kHome; n.fy=(n.hy-n.y)*kHome; }
-      for(const L of links){ const dx=L.b.x-L.a.x, dy=L.b.y-L.a.y; const d=Math.hypot(dx,dy)||0.001; const f=(d-L.rest)*kLink; const ux=dx/d, uy=dy/d; L.a.fx+=ux*f; L.a.fy+=uy*f; L.b.fx-=ux*f; L.b.fy-=uy*f; }
-      for(const L of mLinks){ const dx=L.b.x-L.a.x, dy=L.b.y-L.a.y; const d=Math.hypot(dx,dy)||0.001; const f=(d-L.rest)*kLink*1.4; const ux=dx/d, uy=dy/d; L.a.fx+=ux*f; L.a.fy+=uy*f; }
-      // light repulsion among non-merchant nodes
-      const big = MN.filter(n=>n.g!=='merchants');
-      for(let i=0;i<big.length;i++){ for(let j=i+1;j<big.length;j++){ const a=big[i],b=big[j]; let dx=a.x-b.x, dy=a.y-b.y; let d2=dx*dx+dy*dy; if(d2>0.09) continue; const d=Math.sqrt(d2)||0.001; const f=kRep/(d2+0.002); const ux=dx/d, uy=dy/d; a.fx+=ux*f; a.fy+=uy*f; b.fx-=ux*f; b.fy-=uy*f; } }
-      for(const n of MN){ if(n.drag){ n.x=n.dgx; n.y=n.dgy; n.vx=0; n.vy=0; continue; } n.vx=(n.vx+n.fx)*damp; n.vy=(n.vy+n.fy)*damp; n.x+=n.vx; n.y+=n.vy; }
+    // scene targets by active chapter
+    // 0 enter · 1 approach · 2 people · 3 merchants · 4 goals · 5 flow · 6 vault · 7 dock
+    const targetFor = (act) => {
+      const T = { mapA:1, zoom:1, flow:0, vault:0, tier:0 };
+      if (act === 0){ T.mapA = 0.14; T.zoom = 0.88; T.tier = 0; }
+      else if (act === 1){ T.mapA = 0.88; T.zoom = 0.92; T.tier = 1; }
+      else if (act === 2){ T.mapA = 1; T.zoom = 0.98; T.tier = 1; }
+      else if (act === 3){ T.mapA = 1; T.zoom = 1.05; T.tier = 3; }
+      else if (act === 4){ T.mapA = 1; T.zoom = 1.0; T.tier = 4; }
+      else if (act === 5){ T.mapA = 0.18; T.zoom = 0.95; T.flow = 1; T.tier = 4; }
+      else if (act === 6){ T.mapA = 0.1; T.zoom = 0.95; T.vault = 1; T.tier = 4; }
+      else { T.mapA = 0.12; T.zoom = 0.92; T.tier = 1; } // dock: calm residual map, NO reticle
+      return T;
     };
 
     const drawSankey = (g, alpha) => {
-      const cats=[ {n:'Housing',v:1800,c:'#38bdf8'},{n:'Savings',v:1500,c:'#34d399'},{n:'Groceries',v:640,c:'#a5b4fc'},{n:'Everyday',v:1100,c:'#fbbf24'},{n:'Transport',v:360,c:'#2dd4bf'},{n:'Leisure',v:300,c:'#e879f9'},{n:'Other',v:300,c:'#f472b6'} ];
+      const cats=[
+        {n:'Housing',v:1800,c:'#38bdf8'},{n:'Savings',v:1500,c:'#34d399'},
+        {n:'Groceries',v:640,c:'#a5b4fc'},{n:'Everyday',v:1100,c:'#fbbf24'},
+        {n:'Transport',v:360,c:'#2dd4bf'},{n:'Leisure',v:300,c:'#e879f9'},{n:'Other',v:300,c:'#f472b6'}
+      ];
       const total=cats.reduce((s,c)=>s+c.v,0);
       const leftX=Math.max(60,W*0.10), colW=16, topY=H*0.24, fullH=H*0.52;
       const rightX=Math.min(W*0.46, W*0.10+520);
       const gap=15, avail=fullH-gap*(cats.length-1);
       ctx.save(); ctx.globalAlpha=alpha;
-      // source bar
       ctx.fillStyle=hex(acc.hex,0.9); ctx.fillRect(leftX,topY,colW,fullH);
       ctx.font="600 12px 'IBM Plex Mono', monospace"; ctx.textAlign='left'; ctx.fillStyle='#e8f1ff';
       ctx.fillText('Income', leftX-4, topY-16); ctx.fillStyle=hex(acc.hex,1); ctx.font="700 15px 'Syne', sans-serif"; ctx.fillText('€6,000', leftX-4, topY-1);
       let sY=topY, rY=topY;
-      cats.forEach((c,i)=>{ const h=c.v/total*fullH, rh=c.v/total*avail;
+      cats.forEach((c,i)=>{
+        const h=c.v/total*fullH, rh=c.v/total*avail;
         const gi=ease(clamp((g - i*0.085)/0.5, 0, 1));
         const x0=leftX+colW, x1=x0+(rightX-x0)*gi;
         const y0t=sY, y0b=sY+h, y1t=rY, y1b=rY+rh, mxc=(x0+x1)/2;
-        const grad=ctx.createLinearGradient(x0,0,x1,0); grad.addColorStop(0,hex(c.c,0.16)); grad.addColorStop(1,hex(c.c,0.5*gi+0.12));
-        ctx.beginPath(); ctx.moveTo(x0,y0t); ctx.bezierCurveTo(mxc,y0t,mxc,y1t,x1,y1t); ctx.lineTo(x1,y1b); ctx.bezierCurveTo(mxc,y1b,mxc,y0b,x0,y0b); ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
-        if(gi>0.85){ const la=ease((gi-0.85)/0.15); ctx.globalAlpha=alpha*la; ctx.fillStyle=hex(c.c,0.95); ctx.fillRect(x1,y1t,5,rh);
-          ctx.textAlign='left'; ctx.fillStyle='#e8f1ff'; ctx.font="600 12px 'IBM Plex Mono', monospace"; ctx.fillText(c.n, x1+12, y1t+rh/2-2); ctx.fillStyle=hex(c.c,1); ctx.fillText('€'+c.v.toLocaleString(), x1+12, y1t+rh/2+13); ctx.globalAlpha=alpha; }
-        sY+=h; rY+=rh+gap; });
+        const grad=ctx.createLinearGradient(x0,0,x1,0);
+        grad.addColorStop(0,hex(c.c,0.16)); grad.addColorStop(1,hex(c.c,0.5*gi+0.12));
+        ctx.beginPath(); ctx.moveTo(x0,y0t); ctx.bezierCurveTo(mxc,y0t,mxc,y1t,x1,y1t);
+        ctx.lineTo(x1,y1b); ctx.bezierCurveTo(mxc,y1b,mxc,y0b,x0,y0b); ctx.closePath();
+        ctx.fillStyle=grad; ctx.fill();
+        if(gi>0.85){
+          const la=ease((gi-0.85)/0.15); ctx.globalAlpha=alpha*la;
+          ctx.fillStyle=hex(c.c,0.95); ctx.fillRect(x1,y1t,5,rh);
+          ctx.textAlign='left'; ctx.fillStyle='#e8f1ff';
+          ctx.font="600 12px 'IBM Plex Mono', monospace"; ctx.fillText(c.n, x1+12, y1t+rh/2-2);
+          ctx.fillStyle=hex(c.c,1); ctx.fillText('€'+c.v.toLocaleString(), x1+12, y1t+rh/2+13);
+          ctx.globalAlpha=alpha;
+        }
+        sY+=h; rY+=rh+gap;
+      });
       ctx.restore();
     };
 
-    let rAct=0;
-    const draw = (t, act, reveal) => {
-      smx+=(mx-smx)*0.05; smy+=(my-smy)*0.05;
-      const ox=parallaxOn?smx*30:0, oy=parallaxOn?smy*20:0;
-      const T=targetFor(act);
-      S.mapA=lerp(S.mapA,T.mapA,0.05); S.zoom=lerp(S.zoom,T.zoom,0.045); S.flow=lerp(S.flow,T.flow,0.06); S.vault=lerp(S.vault,T.vault,0.06); S.dock=lerp(S.dock,T.dock,0.06);
-      mapAlphaNow=S.mapA;
-      const Rtarget = (reveal-0.35)*0.5; view.R=lerp(view.R,Rtarget,0.05);
-      view.cx=W/2+ox; view.cy=H*0.46+oy; view.scale=H*0.6*S.zoom;
+    const draw = (t, act, reveal, flowLp) => {
+      smx += (mx-smx)*0.05; smy += (my-smy)*0.05;
+      const ox = parallaxOn ? smx*22 : 0;
+      const oy = parallaxOn ? smy*14 : 0;
+      const T = targetFor(act);
+      mapAlpha = lerp(mapAlpha, T.mapA, 0.06);
+      mapZoom = lerp(mapZoom, T.zoom, 0.05);
+      flowA = lerp(flowA, T.flow, 0.06);
+      vaultA = lerp(vaultA, T.vault, 0.06);
+      if (T.tier !== prevTier){
+        revealTier = T.tier;
+        prevTier = T.tier;
+        // place newly visible nodes near their seeds with a soft kick
+        for (const n of nodes){
+          if (n.revealAt === revealTier && !n.fixed){
+            n.x = n.seedX + (Math.random()-0.5)*16;
+            n.y = n.seedY + (Math.random()-0.5)*16;
+            n.vx = 0; n.vy = 0;
+          }
+        }
+        kick(0.55);
+      }
+      revealTier = T.tier;
 
       ctx.clearRect(0,0,W,H);
-      const gg=ctx.createRadialGradient(W/2+ox*0.4,H*0.42+oy*0.4,0,W/2,H*0.42,H*0.78);
-      gg.addColorStop(0,`rgba(14,40,80,${0.22+S.dock*0.12})`); gg.addColorStop(1,'rgba(2,11,26,0)'); ctx.fillStyle=gg; ctx.fillRect(0,0,W,H);
+      // deep navy gradient (product)
+      const bg = ctx.createLinearGradient(0, 0, W*0.6, H);
+      bg.addColorStop(0, '#020b1a'); bg.addColorStop(0.7, '#07182f'); bg.addColorStop(1, '#0a2338');
+      ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
 
-      // stars
-      const sp=reduce?0.0006:0.0016;
-      for(const s of stars){ s.z-=sp; if(s.z<=0.04) Object.assign(s,spawn(false)); const pr=projStar(s.x,s.y,s.z,ox*0.5,oy*0.5); if(pr.x<-30||pr.x>W+30||pr.y<-30||pr.y>H+30) continue; const size=Math.min(2.6,s.s*pr.s*0.85); const tw=0.55+0.45*Math.sin(t*0.0016+s.tw); const a=clamp(1.1-s.z*0.62,0.08,1)*tw; ctx.fillStyle=`hsla(${s.hue},92%,76%,${a})`; ctx.beginPath(); ctx.arc(pr.x,pr.y,size,0,Math.PI*2); ctx.fill(); }
+      // bokeh
+      for (const b of bokeh){
+        const px = b.fx*W + ox*0.3 + (reduce ? 0 : Math.sin(t/9000 + b.ph)*10);
+        const py = b.fy*H + oy*0.3 + (reduce ? 0 : Math.cos(t/11000 + b.ph)*8);
+        const g = ctx.createRadialGradient(px, py, 0, px, py, b.r);
+        g.addColorStop(0, b.c + '18'); g.addColorStop(1, b.c + '00');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, b.r, 0, 6.284); ctx.fill();
+      }
+      // drifting particles
+      if (!reduce){
+        ctx.fillStyle = '#9fd8ff';
+        for (const p of particles){
+          const py = ((p.fy*H - t/1000*p.sp) % H + H) % H;
+          const tw = 0.2 + 0.3*Math.abs(Math.sin(t/900 + p.ph));
+          ctx.globalAlpha = tw * 0.7;
+          ctx.beginPath(); ctx.arc(p.fx*W, py, p.r, 0, 6.284); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
 
-      // faint floor
-      if(!reduce){ ctx.save(); ctx.strokeStyle=`rgba(56,189,248,${0.05+S.flow*0.1})`; ctx.lineWidth=1; const vy=H*0.5; for(let i=0;i<16;i++){ const y=H*0.56+i*i*1.9; if(y>H)break; ctx.globalAlpha=0.1+(i/16)*0.28; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); } ctx.restore(); }
+      // distant stars
+      const sp = reduce ? 0.0004 : 0.001;
+      for (const s of stars){
+        s.z -= sp; if (s.z <= 0.04) Object.assign(s, spawn(false));
+        const pr = projStar(s.x, s.y, s.z, ox*0.4, oy*0.4);
+        if (pr.x<-20||pr.x>W+20||pr.y<-20||pr.y>H+20) continue;
+        const size = Math.min(2.2, s.s*pr.s*0.75);
+        const tw = 0.5 + 0.5*Math.sin(t*0.0014 + s.tw);
+        const a = clamp(1.0 - s.z*0.62, 0.06, 0.85) * tw;
+        ctx.fillStyle = `hsla(${s.hue},90%,74%,${a})`;
+        ctx.beginPath(); ctx.arc(pr.x, pr.y, size, 0, Math.PI*2); ctx.fill();
+      }
 
       // physics + map
-      this._nodeScreen={};
-      if(S.mapA>0.02){
-        stepPhysics();
-        const appearOf = (n) => ease(clamp((reveal-n.appearAt)/0.13,0,1));
-        const scr={};
-        for(const n of MN){ const ap=appearOf(n); const s=toScreen(n); s.ap=ap; s.alpha=S.mapA*ap; s.r=n.r*(0.8+0.2)* (0.65+0.35*S.zoom)*ap; scr[n.id]=s; if(ap>0.06) this._nodeScreen[n.id]={x:s.x,y:s.y,r:s.r,alpha:s.alpha,id:n.id}; }
-        // links
+      this._nodeScreen = {};
+      if (mapAlpha > 0.02){
+        // a few physics steps per frame while hot, one when cool
+        const steps = simAlpha > 0.15 ? 2 : 1;
+        for (let i = 0; i < steps; i++) tick();
+        updateCam();
+
+        // slight parallax offset of whole graph
+        const px = ox * 0.35, py = oy * 0.25;
+
+        // edges — curved, tinted like product
         ctx.save();
-        for(const L of links){ const a=scr[L.a.id], b=scr[L.b.id]; const la=Math.min(a.alpha,b.alpha); if(la<=0.02) continue; ctx.strokeStyle=hex(acc.hex,0.09+la*0.34); ctx.lineWidth=0.8+la*1.1; ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); }
-        for(const L of mLinks){ const a=scr[L.a.id], b=scr[L.b.id]; const la=Math.min(a.alpha,b.alpha); if(la<=0.02) continue; ctx.strokeStyle=hex('#94a3b8',0.07+la*0.2); ctx.lineWidth=0.7; ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); }
-        // transaction pulses (stronger once reveal>0.7)
-        const txStrength=clamp((reveal-0.55)/0.2,0,1);
-        if(txStrength>0.02){ for(const L of links.concat(mLinks)){ const a=scr[L.a.id], b=scr[L.b.id]; const la=Math.min(a.alpha,b.alpha); if(la<=0.05) continue; const m=(Math.sin(t*0.0013+(a.x+a.y)*0.01)*0.5+0.5); const ex=a.x+(b.x-a.x)*m, ey=a.y+(b.y-a.y)*m; ctx.fillStyle=hex('#bae6fd',la*txStrength*0.9); ctx.beginPath(); ctx.arc(ex,ey,2,0,Math.PI*2); ctx.fill(); } }
-        ctx.restore();
-        // nodes
-        const pulse=0.5+0.5*Math.sin(t*0.002);
-        for(const n of MN){ const s=scr[n.id]; if(!s||s.alpha<=0.02) continue; const hv=hover===n.id||n.drag; const a=Math.min(1,s.alpha*(hv?1.15:1)); const r=Math.max(1.5,s.r*(0.95+pulse*0.05)*(hv?1.22:1));
-          const coreHi = (n.g==='core')?(1+ (reveal<0.28?0.5*(1-reveal/0.28):0)):1;
-          ctx.beginPath(); ctx.arc(s.x,s.y,r*2.6,0,Math.PI*2); ctx.fillStyle=hex(n.color,0.07*a*coreHi); ctx.fill();
-          if(n.hollow){ ctx.beginPath(); ctx.arc(s.x,s.y,r,0,Math.PI*2); ctx.strokeStyle=hex(n.color,0.9*a); ctx.lineWidth=2.2; ctx.shadowColor=n.color; ctx.shadowBlur=12*a; ctx.stroke(); ctx.shadowBlur=0; }
-          else { ctx.beginPath(); ctx.arc(s.x,s.y,r,0,Math.PI*2); ctx.fillStyle=hex(n.color,(hv?1:0.88)*a); ctx.shadowColor=n.color; ctx.shadowBlur=(hv?24:14)*a*coreHi; ctx.fill(); ctx.shadowBlur=0; ctx.strokeStyle=`rgba(255,255,255,${(hv?0.7:0.28)*a})`; ctx.lineWidth=1; ctx.stroke(); }
-          if(n.ring!=null){ ctx.beginPath(); ctx.arc(s.x,s.y,r+5,-Math.PI/2,-Math.PI/2+Math.PI*2*n.ring); ctx.strokeStyle=hex('#fbbf24',0.95*a); ctx.lineWidth=2.4; ctx.shadowColor='#fbbf24'; ctx.shadowBlur=12*a; ctx.stroke(); ctx.shadowBlur=0; ctx.beginPath(); ctx.arc(s.x,s.y,r+5,0,Math.PI*2); ctx.strokeStyle=hex('#fbbf24',0.14*a); ctx.lineWidth=2.4; ctx.stroke(); }
-          if(a>0.55 && (n.r>=7||hv)){ ctx.textAlign='center'; ctx.font="600 11px 'IBM Plex Mono', monospace"; ctx.fillStyle=`rgba(232,241,255,${a*0.92})`; ctx.fillText(n.label, s.x, s.y+r+13); if(n.amt){ ctx.font="500 10px 'IBM Plex Mono', monospace"; ctx.fillStyle=hex('#fbbf24',a*0.8); ctx.fillText(n.amt, s.x, s.y+r+25); } }
+        for (const L of links){
+          if (!visLink(L)) continue;
+          const a = byId.get(L.a), b = byId.get(L.b);
+          if (!a || !b || !visNode(a) || !visNode(b)) continue;
+          if (!isFinite(a.x+a.y+b.x+b.y)) continue;
+          const sa = worldToScreen(a), sb = worldToScreen(b);
+          const ax = sa.x + px, ay = sa.y + py, bx = sb.x + px, by = sb.y + py;
+          const active = hover && (L.a === hover || L.b === hover);
+          const colA = nodeColor(a), colB = nodeColor(b);
+          ctx.globalAlpha = mapAlpha * (active ? 0.85 : 0.34);
+          const grad = ctx.createLinearGradient(ax, ay, bx, by);
+          grad.addColorStop(0, colA); grad.addColorStop(1, colB);
+          ctx.strokeStyle = grad;
+          ctx.lineWidth = (L.w || 2) * (active ? 1.45 : 1);
+          if (active && !reduce){ ctx.setLineDash([6, 7]); ctx.lineDashOffset = -t/40; }
+          const mx2 = (ax+bx)/2 + (ay-by)*0.12, my2 = (ay+by)/2 + (bx-ax)*0.12;
+          ctx.beginPath(); ctx.moveTo(ax, ay); ctx.quadraticCurveTo(mx2, my2, bx, by); ctx.stroke();
+          ctx.setLineDash([]);
+          // soft transaction pulse on merchant links
+          if (L.revealAt >= 3 && revealTier >= 3 && !reduce){
+            const m = (Math.sin(t*0.0012 + ax*0.01)*0.5 + 0.5);
+            const ex = ax + (bx-ax)*m, ey = ay + (by-ay)*m;
+            ctx.globalAlpha = mapAlpha * 0.7;
+            ctx.fillStyle = '#bae6fd';
+            ctx.beginPath(); ctx.arc(ex, ey, 2, 0, Math.PI*2); ctx.fill();
+          }
         }
-      } else if(tip){ tip.style.opacity='0'; }
+        ctx.restore();
 
-      // sankey (section 05)
-      if(S.flow>0.02){ drawSankey(this._flowLocal||0, S.flow); }
-      // vault
-      if(S.vault>0.02){ const cx=W/2+ox,cy=H*0.44+oy,R=48+S.vault*56+Math.sin(t*0.0025)*4; ctx.save(); ctx.strokeStyle=`rgba(52,211,153,${0.22+S.vault*0.5})`; ctx.lineWidth=2; ctx.shadowColor='#34d399'; ctx.shadowBlur=20; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke(); ctx.beginPath(); ctx.arc(cx,cy,R*0.62,0,Math.PI*2); ctx.stroke(); ctx.restore(); }
-      // dock reticle
-      if(S.dock>0.02){ const cx=W/2+ox,cy=H*0.5+oy; ctx.save(); ctx.strokeStyle=hex(acc.hex,0.2+S.dock*0.5); ctx.lineWidth=1; const r=36+S.dock*22; ctx.strokeRect(cx-r,cy-r*0.6,r*2,r*1.2); ctx.beginPath(); ctx.moveTo(cx-r-10,cy);ctx.lineTo(cx-r+10,cy); ctx.moveTo(cx+r-10,cy);ctx.lineTo(cx+r+10,cy); ctx.moveTo(cx,cy-r*0.6-10);ctx.lineTo(cx,cy-r*0.6+10); ctx.moveTo(cx,cy+r*0.6-10);ctx.lineTo(cx,cy+r*0.6+10); ctx.stroke(); ctx.restore(); }
+        // nodes
+        const pulse = reduce ? 1 : 1 + 0.05*Math.sin(t/700);
+        for (const n of nodes){
+          if (!visNode(n)) continue;
+          const s = worldToScreen(n);
+          const sx = s.x + px, sy = s.y + py;
+          const r = Math.max(2, s.r * pulse);
+          const hv = hover === n.id || n === dragNode;
+          const a = mapAlpha * (hv ? 1.1 : 1);
+          this._nodeScreen[n.id] = {x:sx, y:sy, r, alpha:a, id:n.id};
 
-      const gridEl=$('[data-layer="grid"]'); if(gridEl && parallaxOn) gridEl.style.transform=`perspective(620px) rotateX(63deg) translate(${-smx*18}px,${20-smy*5}%) scale(2.1)`;
+          ctx.globalAlpha = a;
+          if (n.type === 'debt'){
+            // hollow debt — product: hole in net worth
+            const sp = nodeSprite(nodeColor(n), n.r);
+            ctx.drawImage(sp.cv, sx - sp.half*(r/n.r), sy - sp.half*(r/n.r), sp.cv.width*(r/n.r), sp.cv.height*(r/n.r));
+            ctx.fillStyle = 'rgba(3,13,27,.88)';
+            ctx.beginPath(); ctx.arc(sx, sy, r*0.52, 0, Math.PI*2); ctx.fill();
+          } else {
+            const sp = nodeSprite(nodeColor(n), n.r);
+            const sc = r / n.r;
+            ctx.drawImage(sp.cv, sx - sp.half*sc, sy - sp.half*sc, sp.cv.width*sc, sp.cv.height*sc);
+          }
+          if (n.type === 'goal'){
+            const rr = r + 4;
+            ctx.lineWidth = 2.6;
+            ctx.strokeStyle = 'rgba(247,201,92,.25)';
+            ctx.beginPath(); ctx.arc(sx, sy, rr, 0, Math.PI*2); ctx.stroke();
+            if (n.progress > 0.002){
+              ctx.strokeStyle = '#f7c95c'; ctx.lineCap = 'round';
+              ctx.beginPath(); ctx.arc(sx, sy, rr, -Math.PI/2, -Math.PI/2 + Math.PI*2*Math.min(1, n.progress));
+              ctx.stroke(); ctx.lineCap = 'butt';
+            }
+          }
+          // labels — constant-ish screen size
+          if (a > 0.45 && (n.type !== 'merch' || hv || cam.k > 0.95)){
+            ctx.textAlign = 'center';
+            ctx.font = (n.type==='hh'||n.type==='user'||n.type==='acct' ? '600 ' : '') + "11.5px system-ui,sans-serif";
+            ctx.fillStyle = INK;
+            ctx.fillText(n.label, sx, sy + r + 14);
+            if (n.amt && n.type !== 'merch'){
+              ctx.font = "10.5px system-ui,sans-serif";
+              ctx.fillStyle = n.type === 'goal' ? '#f7c95c' : INK2;
+              ctx.fillText(n.amt, sx, sy + r + 26);
+            } else if (n.amt && hv){
+              ctx.font = "10px system-ui,sans-serif";
+              ctx.fillStyle = INK2;
+              ctx.fillText(n.amt, sx, sy + r + 26);
+            }
+          }
+        }
+        ctx.globalAlpha = 1;
+      } else if (tip){
+        tip.style.opacity = '0';
+      }
+
+      // Sankey (flow chapter) — map fades back
+      if (flowA > 0.02) drawSankey(this._flowLocal || 0, flowA);
+
+      // privacy vault ring only (no dock crosshair)
+      if (vaultA > 0.02){
+        const cx = W/2 + ox, cy = H*0.44 + oy;
+        const R = 48 + vaultA*56 + Math.sin(t*0.0025)*4;
+        ctx.save();
+        ctx.strokeStyle = `rgba(52,211,153,${0.22+vaultA*0.5})`;
+        ctx.lineWidth = 2; ctx.shadowColor = '#34d399'; ctx.shadowBlur = 20;
+        ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy, R*0.62, 0, Math.PI*2); ctx.stroke();
+        ctx.restore();
+      }
+
+      const gridEl = $('[data-layer="grid"]');
+      if (gridEl && parallaxOn)
+        gridEl.style.transform = `perspective(620px) rotateX(63deg) translate(${-smx*14}px,${20-smy*4}%) scale(2.1)`;
     };
 
     const frame = (t) => {
-      const max=Math.max(1,document.documentElement.scrollHeight-innerHeight); const p=clamp(scrollY/max,0,1); if(prog) prog.style.width=(p*100).toFixed(2)+'%';
-      let act=0, activeLp=0, flowLp=0; const vc=scrollY+innerHeight*0.5;
-      sections.forEach((sec,i)=>{ const top=sec.getBoundingClientRect().top+scrollY; const h=sec.offsetHeight; if(vc>=top && vc<top+h) act=i;
-        const span=Math.max(1,h-innerHeight); const lp=clamp((scrollY-top)/span,0,1); if(i===act) activeLp=lp; if(i===5) flowLp=lp;
-        let o=0,ty=26; if(reduce){o=1;ty=0;} else if(i===0){ if(lp<0.72){o=1;ty=0;} else {const k=ease((lp-0.72)/0.28); o=1-k; ty=-22*k;} } else { if(lp<0.14){const k=ease(lp/0.14); o=k; ty=26-26*k;} else if(lp<0.82){o=1;ty=0;} else {const k=ease((lp-0.82)/0.18); o=1-k; ty=-22*k;} }
-        const c=copies[i]; if(c){ c.style.opacity=o.toFixed(3); c.style.transform=`translateY(${ty.toFixed(1)}px)`; }
+      const max = Math.max(1, document.documentElement.scrollHeight - innerHeight);
+      const p = clamp(scrollY / max, 0, 1);
+      if (prog) prog.style.width = (p*100).toFixed(2) + '%';
+
+      let act = 0, activeLp = 0, flowLp = 0;
+      const vc = scrollY + innerHeight * 0.5;
+      sections.forEach((sec, i) => {
+        const top = sec.getBoundingClientRect().top + scrollY;
+        const h = sec.offsetHeight;
+        if (vc >= top && vc < top + h) act = i;
+        // last chapter is exactly one viewport — keep copy solid, never fade out
+        if (i === lastIdx){
+          const c = copies[i];
+          if (c){ c.style.opacity = '1'; c.style.transform = 'translateY(0px)'; }
+          return;
+        }
+        const span = Math.max(1, h - innerHeight);
+        const lp = clamp((scrollY - top) / span, 0, 1);
+        if (i === act) activeLp = lp;
+        if (i === 5) flowLp = lp;
+        let o = 0, ty = 26;
+        if (reduce){ o = 1; ty = 0; }
+        else if (i === 0){
+          if (lp < 0.72){ o = 1; ty = 0; }
+          else { const k = ease((lp-0.72)/0.28); o = 1-k; ty = -22*k; }
+        } else {
+          if (lp < 0.14){ const k = ease(lp/0.14); o = k; ty = 26-26*k; }
+          else if (lp < 0.82){ o = 1; ty = 0; }
+          else { const k = ease((lp-0.82)/0.18); o = 1-k; ty = -22*k; }
+        }
+        const c = copies[i];
+        if (c){ c.style.opacity = o.toFixed(3); c.style.transform = `translateY(${ty.toFixed(1)}px)`; }
       });
-      this._flowLocal = act<5?0 : act>5?1 : flowLp;
-      let reveal; if(act<=0) reveal=0.05; else if(act===1) reveal=0.10+activeLp*0.26; else if(act===2) reveal=0.36+activeLp*0.26; else if(act===3) reveal=0.62+activeLp*0.28; else if(act===4) reveal=0.90+activeLp*0.10; else reveal=1;
-      railBtns.forEach((b,i)=>{ const onn=i===act; b.style.background=onn?acc.hex:'transparent'; b.style.boxShadow=onn?`0 0 12px ${acc.hex}`:'none'; b.style.transform=onn?'scale(1.35)':'scale(1)'; });
-      draw(t||0, act, reveal);
-      this._raf=requestAnimationFrame(frame);
+
+      this._flowLocal = act < 5 ? 0 : act > 5 ? 1 : flowLp;
+
+      railBtns.forEach((b, i) => {
+        const onn = i === act;
+        b.style.background = onn ? acc.hex : 'transparent';
+        b.style.boxShadow = onn ? `0 0 12px ${acc.hex}` : 'none';
+        b.style.transform = onn ? 'scale(1.35)' : 'scale(1)';
+      });
+
+      draw(t || 0, act, activeLp, flowLp);
+      this._raf = requestAnimationFrame(frame);
     };
-    this._raf=requestAnimationFrame(frame);
+
+    // init
+    resize();
+    on(window, 'resize', resize);
+    buildGraph();
+    graphReady = true;
+    // pre-settle so first paint is not chaotic
+    if (!reduce){
+      simAlpha = 1;
+      for (let i = 0; i < 120; i++) tick();
+    }
+    this._raf = requestAnimationFrame(frame);
   }
-  componentWillUnmount(){ if(this._raf) cancelAnimationFrame(this._raf); document.body.style.cursor=''; (this._cleanup||[]).forEach(f=>f()); }
+  componentWillUnmount(){
+    if (this._raf) cancelAnimationFrame(this._raf);
+    document.body.style.cursor = '';
+    (this._cleanup || []).forEach(f => f());
+  }
   renderVals(){ return {}; }
 }
 </script>

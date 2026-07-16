@@ -18,13 +18,14 @@ chapters and force-directed nodes.
 | 04 | Goals & debts | Progress rings on goals; hollow debt nodes |
 | 05 | Flow | Animated Sankey — €6,000 income splits by category |
 | 06 | Privacy | Vault ring — bank data never leaves the browser |
-| 07 | Dock | Demo + start account CTAs (sid-labs.com links) |
+| 07 | Enter | Demo + start account CTAs + footer (no extra scroll past this page) |
 
 ### Interaction (beyond Rev 1)
 
-- Force-directed **Obsidian-style** node graph (home springs + link springs + light repulsion)
-- **Hover tooltips** (label + amount) and **drag any node** (settles back on release)
-- Scroll-linked **reveal** of map layers (core → people → accounts → hubs → merchants → goals/debts)
+- **Product-style money map**: household → people → accounts → category hubs → merchants; goals with progress rings; hollow debts
+- Force layout matches the app (repulsion + link rest lengths + capped collision + center gravity + **alpha cooling**) — settles instead of jittering
+- **Hover tooltips** and **drag** free nodes (soft kick to re-settle on release)
+- Scroll-linked **reveal** tiers (core → people/accounts → hubs → merchants → wealth)
 - Canvas **Sankey** that grows as you scroll the Flow chapter
 - Chapter rail, top progress bar, mouse parallax, scanlines, reduced-motion fallback
 - Design-canvas props (when opened in Claude): accent (Cyan/Mint/Magenta), star density, scanlines, mouse parallax
