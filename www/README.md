@@ -2,7 +2,16 @@
 
 Immersive first-person landing for **lithifyte.com** — Tron-grid / galaxy scroll into the money-map product story. The finance app itself remains `../index.html` + `../demo.html` (unchanged).
 
-## What’s in the experience
+## Revisions
+
+| Rev | Path | Origin | Notes |
+|-----|------|--------|--------|
+| **1** | [`index.html`](index.html) | Grok | Single-file landing + waitlist form + Worker stub docs |
+| **2** | [`rev2/`](rev2/) | Claude Design Canvas | Sticky scroll chapters, draggable force-directed map, canvas Sankey |
+
+See [`rev2/README.md`](rev2/README.md) for the Rev 2 chapter map and preview commands.
+
+## What’s in the experience (Rev 1)
 
 | Chapter | Story |
 |--------|--------|
@@ -16,14 +25,15 @@ Immersive first-person landing for **lithifyte.com** — Tron-grid / galaxy scro
 | Privacy | Bank data never leaves the browser |
 | Dock | Email free access + demo / blank app CTAs |
 
-Tech: single `index.html`, canvas starfield + node graph driven by scroll, smooth-scroll lerp, reduced-motion fallback, no analytics, no bank data.
+Tech (Rev 1): single `index.html`, canvas starfield + node graph driven by scroll, smooth-scroll lerp, reduced-motion fallback, no analytics, no bank data.
 
 ## Local preview
 
 ```bash
 # from repo root
 python3 -m http.server 8787 --directory www
-# open http://127.0.0.1:8787/
+# Rev 1:  http://127.0.0.1:8787/
+# Rev 2:  http://127.0.0.1:8787/rev2/
 ```
 
 Relative links to `../demo.html` and `../index.html` work when the **whole repo** is served (Cloudflare Pages root = repo root) and the landing is visited as `/www/` **or** you set Pages to publish `www` as a separate project and host the app on a subdomain.

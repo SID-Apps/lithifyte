@@ -12,7 +12,7 @@ Lithifyte turns your bank statements into a living picture of your household's m
 
 **Hosted at** [lithifyte.sid-labs.com](https://lithifyte.sid-labs.com) on **Cloudflare Pages** (auto-deploys from `main`). That is the only public host for now — not GitHub Pages.
 
-**Marketing site** for the product domain lives in [`www/`](www/) — immersive first-person / Tron-grid landing, email-only free access (Cloudflare Worker stub), CTAs into demo and app. See [`www/README.md`](www/README.md) for deploy layout (`lithifyte.com` → landing, app/demo on subpaths or subdomains).
+**Marketing site** for the product domain lives in [`www/`](www/) — immersive first-person / Tron-grid landing, email-only free access (Cloudflare Worker stub), CTAs into demo and app. **Rev 1** is `www/index.html`; **Rev 2** (Claude Design Canvas — interactive money map + Sankey) is [`www/rev2/`](www/rev2/). See [`www/README.md`](www/README.md) for deploy layout (`lithifyte.com` → landing, app/demo on subpaths or subdomains).
 
 ## Quick start
 
