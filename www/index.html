@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lithifyte — household finance mission control</title>
+<meta name="description" content="Your household money as a living map. Budgets that pace with the calendar. Cashflow that balances to the cent. Your bank data never leaves your browser.">
+<meta name="theme-color" content="#020b1a">
+<meta property="og:title" content="Lithifyte — household finance mission control">
+<meta property="og:description" content="Mission control for household money. Local-first. One HTML file. Zero data phones home.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#020b1a;
+    --deep:#041224;
+    --panel:rgba(4,18,36,.72);
+    --cyan:#38bdf8;
+    --cyan-hot:#7dd3fc;
+    --mint:#34d399;
+    --amber:#fbbf24;
+    --mag:#e879f9;
+    --ink:#e8f1ff;
+    --muted:#8fb0d0;
+    --line:rgba(56,189,248,.28);
+    --glow:0 0 40px rgba(56,189,248,.35);
+    --font-display:"Syne",system-ui,sans-serif;
+    --font-mono:"IBM Plex Mono",ui-monospace,monospace;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html{scroll-behavior:auto}
+  html.lenis,html.lenis body{height:auto}
+  body{
+    margin:0; background:var(--void); color:var(--ink);
+    font-family:var(--font-display); font-weight:500;
+    overflow-x:hidden; -webkit-font-smoothing:antialiased;
+  }
+  body.loading{overflow:hidden}
+  a{color:var(--cyan-hot); text-decoration:none}
+  a:hover{text-decoration:underline}
+  button,input{font:inherit}
+
+  /* ── Canvas stage (fixed first-person space) ── */
+  #stage{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:radial-gradient(ellipse 80% 60% at 50% 40%, #0a1f3d 0%, var(--void) 70%);
+  }
+  #stage canvas{display:block; width:100%; height:100%}
+  .vignette{
+    position:fixed; inset:0; z-index:1; pointer-events:none;
+    background:
+      radial-gradient(ellipse 70% 55% at 50% 45%, transparent 30%, rgba(2,11,26,.55) 100%),
+      linear-gradient(180deg, rgba(2,11,26,.35) 0%, transparent 18%, transparent 78%, rgba(2,11,26,.85) 100%);
+  }
+  .scanlines{
+    position:fixed; inset:0; z-index:2; pointer-events:none; opacity:.06;
+    background:repeating-linear-gradient(
+      0deg, transparent, transparent 2px, rgba(0,0,0,.35) 2px, rgba(0,0,0,.35) 4px);
+  }
+  .hud-grid{
+    position:fixed; inset:0; z-index:1; pointer-events:none; opacity:.12;
+    background-image:
+      linear-gradient(rgba(56,189,248,.35) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(56,189,248,.35) 1px, transparent 1px);
+    background-size:80px 80px;
+    transform:perspective(600px) rotateX(62deg) translateY(20%) scale(2);
+    transform-origin:center bottom;
+    mask-image:linear-gradient(180deg, transparent 0%, #000 35%, #000 70%, transparent 100%);
+  }
+
+  /* ── Top chrome ── */
+  .topbar{
+    position:fixed; top:0; left:0; right:0; z-index:40;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 22px; gap:12px;
+    background:linear-gradient(180deg, rgba(2,11,26,.9), transparent);
+  }
+  .brand{
+    display:flex; align-items:center; gap:10px;
+    font-weight:800; letter-spacing:.04em; font-size:15px;
+  }
+  .brand-mark{
+    width:28px; height:28px; border-radius:8px;
+    border:1px solid var(--cyan); box-shadow:var(--glow);
+    background:
+      radial-gradient(circle at 35% 35%, var(--cyan-hot), transparent 55%),
+      linear-gradient(135deg, #0ea5e9, #1d4ed8);
+    position:relative;
+  }
+  .brand-mark::after{
+    content:""; position:absolute; inset:7px; border-radius:50%;
+    border:1.5px solid rgba(255,255,255,.85);
+  }
+  .top-links{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .top-links a.nav{
+    color:var(--muted); font:500 12px var(--font-mono); letter-spacing:.06em;
+    text-transform:uppercase; padding:8px 10px; border-radius:999px;
+  }
+  .top-links a.nav:hover{color:var(--ink); text-decoration:none; background:rgba(56,189,248,.1)}
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    border-radius:999px; border:1px solid var(--line); padding:10px 16px;
+    font:600 13px var(--font-mono); letter-spacing:.04em; cursor:pointer;
+    color:var(--ink); background:rgba(4,18,36,.55); transition:transform .15s, border-color .15s, background .15s, box-shadow .15s;
+  }
+  .btn:hover{border-color:var(--cyan); box-shadow:var(--glow); text-decoration:none; transform:translateY(-1px)}
+  .btn.primary{
+    background:linear-gradient(135deg, rgba(14,165,233,.95), rgba(29,78,216,.95));
+    border-color:rgba(125,211,252,.6); color:#fff;
+  }
+  .btn.ghost{background:transparent}
+  .btn.block{width:100%}
+
+  /* ── Scroll progress ── */
+  .progress{
+    position:fixed; top:0; left:0; height:2px; z-index:50; width:0%;
+    background:linear-gradient(90deg, var(--cyan), var(--mint), var(--mag));
+    box-shadow:0 0 12px var(--cyan);
+  }
+  .chapter-rail{
+    position:fixed; right:18px; top:50%; transform:translateY(-50%); z-index:35;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .chapter-rail button{
+    width:10px; height:10px; border-radius:50%; padding:0; cursor:pointer;
+    border:1px solid rgba(56,189,248,.45); background:transparent;
+  }
+  .chapter-rail button.on{
+    background:var(--cyan); box-shadow:0 0 12px var(--cyan); transform:scale(1.25);
+  }
+  .chapter-rail button:hover{border-color:var(--cyan-hot)}
+  @media (max-width:720px){ .chapter-rail{display:none} .top-links .nav{display:none} }
+
+  /* ── Scroll world ── */
+  .world{position:relative; z-index:10}
+  .chapter{
+    min-height:100vh; min-height:100dvh;
+    display:flex; align-items:center; justify-content:center;
+    padding:100px 24px 80px; position:relative;
+  }
+  .chapter.tall{min-height:140vh}
+  .panel{
+    width:min(720px, 100%);
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:clamp(22px, 4vw, 36px);
+    backdrop-filter:blur(16px) saturate(1.2);
+    box-shadow:0 30px 80px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06);
+    opacity:0; transform:translateY(36px) scale(.98);
+    transition:opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1);
+  }
+  .chapter.in .panel{opacity:1; transform:translateY(0) scale(1)}
+  .kicker{
+    font:600 11px var(--font-mono); letter-spacing:.18em; text-transform:uppercase;
+    color:var(--cyan); margin:0 0 12px;
+  }
+  h1,h2{margin:0 0 14px; line-height:1.05; letter-spacing:-.02em}
+  h1{font-size:clamp(34px, 6.5vw, 64px); font-weight:800}
+  h2{font-size:clamp(26px, 4.5vw, 42px); font-weight:700}
+  .lede{
+    font-size:clamp(16px, 2.1vw, 19px); line-height:1.55; color:var(--muted);
+    margin:0 0 22px; max-width:38em; font-weight:500;
+  }
+  .mono{font-family:var(--font-mono); font-size:13px; color:var(--muted)}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 0}
+  .chip{
+    font:500 11px var(--font-mono); letter-spacing:.06em; text-transform:uppercase;
+    padding:6px 10px; border-radius:999px; border:1px solid var(--line); color:var(--cyan-hot);
+    background:rgba(56,189,248,.08);
+  }
+  .feature-grid{
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr));
+    gap:12px; margin-top:22px;
+  }
+  .feat{
+    border:1px solid rgba(56,189,248,.18); border-radius:14px; padding:14px;
+    background:rgba(2,11,26,.35);
+  }
+  .feat b{display:block; font-size:14px; margin-bottom:6px}
+  .feat span{display:block; font-size:13px; color:var(--muted); line-height:1.4; font-weight:500}
+  .stat-row{display:flex; flex-wrap:wrap; gap:18px 28px; margin-top:20px}
+  .stat strong{display:block; font-size:28px; font-weight:800; color:var(--cyan-hot); letter-spacing:-.02em}
+  .stat span{font:500 11px var(--font-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}
+
+  /* Hero special */
+  .chapter-hero{align-items:flex-end; padding-bottom:12vh}
+  .chapter-hero .panel{
+    background:transparent; border:none; box-shadow:none; backdrop-filter:none;
+    padding:0; width:min(900px, 100%);
+  }
+  .hero-sub{
+    font:500 13px var(--font-mono); letter-spacing:.14em; text-transform:uppercase;
+    color:var(--cyan); margin-bottom:16px;
+  }
+  .scroll-cue{
+    margin-top:32px; display:flex; align-items:center; gap:12px;
+    font:500 12px var(--font-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--muted);
+  }
+  .scroll-cue i{
+    width:22px; height:36px; border:1px solid var(--line); border-radius:12px; position:relative; display:inline-block;
+  }
+  .scroll-cue i::after{
+    content:""; position:absolute; left:50%; top:8px; width:3px; height:8px; border-radius:2px;
+    background:var(--cyan); transform:translateX(-50%);
+    animation:pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:.3; transform:translateX(-50%) translateY(0)} 50%{opacity:1; transform:translateX(-50%) translateY(8px)}}
+
+  /* Mock UI cards */
+  .mock{
+    margin-top:20px; border-radius:14px; border:1px solid var(--line);
+    background:linear-gradient(180deg, rgba(8,24,48,.9), rgba(2,11,26,.95));
+    overflow:hidden; box-shadow:0 0 0 1px rgba(56,189,248,.08), 0 20px 50px rgba(0,0,0,.35);
+  }
+  .mock-bar{
+    display:flex; gap:6px; align-items:center; padding:10px 12px;
+    border-bottom:1px solid rgba(56,189,248,.15); font:500 11px var(--font-mono); color:var(--muted);
+  }
+  .mock-bar .d{width:8px; height:8px; border-radius:50%}
+  .mock-body{padding:14px 16px}
+  .bars{display:flex; align-items:flex-end; gap:6px; height:88px}
+  .bars span{
+    flex:1; border-radius:4px 4px 0 0;
+    background:linear-gradient(180deg, var(--cyan), rgba(56,189,248,.15));
+    box-shadow:0 0 12px rgba(56,189,248,.25);
+  }
+  .sankey-mock{
+    height:120px; position:relative; overflow:hidden;
+    background:radial-gradient(circle at 20% 50%, rgba(56,189,248,.15), transparent 40%),
+               radial-gradient(circle at 80% 50%, rgba(52,211,153,.12), transparent 40%);
+  }
+  .sankey-mock svg{width:100%; height:100%}
+  .pace-row{display:grid; gap:10px}
+  .pace-line{display:grid; grid-template-columns:90px 1fr 56px; gap:10px; align-items:center; font:500 12px var(--font-mono)}
+  .track{height:8px; border-radius:99px; background:rgba(255,255,255,.08); overflow:hidden}
+  .track i{display:block; height:100%; border-radius:99px; background:linear-gradient(90deg, var(--mint), var(--cyan))}
+  .track.hot i{background:linear-gradient(90deg, var(--amber), #ef4444)}
+
+  /* Terminal CTA */
+  .terminal{
+    font-family:var(--font-mono); border-radius:16px; overflow:hidden;
+    border:1px solid var(--line); background:#020814;
+    box-shadow:var(--glow), 0 30px 80px rgba(0,0,0,.5);
+  }
+  .terminal-head{
+    display:flex; gap:8px; align-items:center; padding:10px 14px;
+    border-bottom:1px solid rgba(56,189,248,.2); color:var(--muted); font-size:12px;
+  }
+  .terminal-body{padding:18px 16px 20px}
+  .prompt{color:var(--mint); margin-bottom:8px; font-size:12.5px}
+  .prompt span{color:var(--muted)}
+  .form-row{display:flex; flex-wrap:wrap; gap:8px; margin:14px 0}
+  .form-row input[type=email]{
+    flex:1 1 220px; min-width:0; border-radius:10px; border:1px solid var(--line);
+    background:rgba(4,18,36,.8); color:var(--ink); padding:12px 14px; outline:none;
+  }
+  .form-row input[type=email]:focus{border-color:var(--cyan); box-shadow:0 0 0 3px rgba(56,189,248,.15)}
+  .form-note{font-size:12px; color:var(--muted); line-height:1.45; margin:0}
+  .form-status{min-height:1.3em; font-size:12.5px; margin:10px 0 0; color:var(--cyan-hot)}
+  .form-status.err{color:#f87171}
+  .form-status.ok{color:var(--mint)}
+  .cta-actions{display:flex; flex-wrap:wrap; gap:10px; margin-top:18px}
+  .privacy-line{
+    margin-top:18px; padding-top:14px; border-top:1px solid rgba(56,189,248,.15);
+    font-size:12.5px; color:var(--muted); line-height:1.5;
+  }
+
+  footer{
+    position:relative; z-index:10;
+    padding:40px 24px 60px; text-align:center;
+    font:500 12px var(--font-mono); color:var(--muted); letter-spacing:.04em;
+  }
+  footer a{color:var(--muted)}
+  footer a:hover{color:var(--cyan-hot)}
+
+  /* Boot loader */
+  #boot{
+    position:fixed; inset:0; z-index:100; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:18px; background:var(--void);
+    transition:opacity .6s ease, visibility .6s;
+  }
+  #boot.done{opacity:0; visibility:hidden; pointer-events:none}
+  #boot .logo{
+    width:56px; height:56px; border-radius:14px; border:1px solid var(--cyan);
+    box-shadow:var(--glow);
+    background:linear-gradient(135deg, #0ea5e9, #1d4ed8);
+    animation:spin 2.2s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #boot p{font:500 12px var(--font-mono); letter-spacing:.16em; text-transform:uppercase; color:var(--cyan)}
+
+  @media (prefers-reduced-motion: reduce){
+    .panel{opacity:1 !important; transform:none !important; transition:none !important}
+    .scroll-cue i::after{animation:none}
+    #boot .logo{animation:none}
+    .hud-grid{display:none}
+  }
+</style>
+</head>
+<body class="loading">
+  <div id="boot" aria-hidden="true">
+    <div class="logo"></div>
+    <p>Initialising grid…</p>
+  </div>
+
+  <div class="progress" id="progress" aria-hidden="true"></div>
+  <canvas id="stage" aria-hidden="true"></canvas>
+  <div class="hud-grid" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+  <div class="scanlines" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span> LITHIFYTE</div>
+    <nav class="top-links" aria-label="Primary">
+      <a class="nav" href="#map">Map</a>
+      <a class="nav" href="#cashflow">Cashflow</a>
+      <a class="nav" href="#budget">Budget</a>
+      <a class="nav" href="#privacy">Privacy</a>
+      <a class="btn ghost" href="../demo.html">Try demo</a>
+      <a class="btn primary" href="#access">Get free access</a>
+    </nav>
+  </header>
+
+  <nav class="chapter-rail" id="rail" aria-label="Chapters"></nav>
+
+  <main class="world" id="world">
+    <!-- 0 · Enter -->
+    <section class="chapter chapter-hero tall" data-chapter="0" data-scene="void" id="enter">
+      <div class="panel">
+        <div class="hero-sub">// first person · household mission control</div>
+        <h1>Fly into your<br>money map.</h1>
+        <p class="lede">
+          Lithifyte is a living picture of your household finances — people, accounts, merchants,
+          cashflow and goals — computed entirely in your browser. Scroll to enter the grid.
+        </p>
+        <div class="chips">
+          <span class="chip">Local-first</span>
+          <span class="chip">No bank data on servers</span>
+          <span class="chip">Free access</span>
+          <span class="chip">Ireland-ready</span>
+        </div>
+        <div class="scroll-cue"><i></i> Scroll to engage thrusters</div>
+      </div>
+    </section>
+
+    <!-- 1 · Approach -->
+    <section class="chapter" data-chapter="1" data-scene="stars" id="approach">
+      <div class="panel">
+        <p class="kicker">01 · Approach vector</p>
+        <h2>You are not looking at a spreadsheet.</h2>
+        <p class="lede">
+          You are dropping into a neural map of how money actually moves — the same Space view
+          that powers the app. Hubs light up. Merchants materialise as you zoom. Nothing is
+          a static report; everything recomputes live from your statements.
+        </p>
+        <div class="stat-row">
+          <div class="stat"><strong>1</strong><span>HTML file</span></div>
+          <div class="stat"><strong>0</strong><span>Bank data uploads to us</span></div>
+          <div class="stat"><strong>∞</strong><span>What-if scenarios</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 · Household map -->
+    <section class="chapter" data-chapter="2" data-scene="nodes" id="map">
+      <div class="panel">
+        <p class="kicker">02 · Household topology</p>
+        <h2>Household → people → accounts → merchants.</h2>
+        <p class="lede">
+          Name the household. Add the people in it. Attach current, credit, savings or cash accounts.
+          Upload bank CSVs under the right owner. The map roots itself the way real life is structured —
+          not as a flat list of transactions.
+        </p>
+        <div class="feature-grid">
+          <div class="feat"><b>People &amp; statements</b><span>Import users, accounts, and CSVs. Duplicates are skipped so overlapping exports are safe.</span></div>
+          <div class="feat"><b>Opening balances</b><span>Reconcile cash on hand and linked goals against bank reality.</span></div>
+          <div class="feat"><b>Internal transfers</b><span>Card payments and savings moves are excluded so income is never double-counted.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 · Cashflow -->
+    <section class="chapter" data-chapter="3" data-scene="cashflow" id="cashflow">
+      <div class="panel">
+        <p class="kicker">03 · Cashflow telemetry</p>
+        <h2>Month by month — then open any bar.</h2>
+        <p class="lede">
+          Income vs spending for the whole household or a single account. Click a month for the
+          full breakdown. Scope follows the map: isolate a person, an account, or a category and
+          the charts rewire instantly.
+        </p>
+        <div class="mock" aria-hidden="true">
+          <div class="mock-bar"><span class="d" style="background:#f87171"></span><span class="d" style="background:#fbbf24"></span><span class="d" style="background:#34d399"></span> cashflow · last 12 months</div>
+          <div class="mock-body">
+            <div class="bars">
+              <span style="height:42%"></span><span style="height:58%"></span><span style="height:51%"></span>
+              <span style="height:67%"></span><span style="height:48%"></span><span style="height:72%"></span>
+              <span style="height:61%"></span><span style="height:55%"></span><span style="height:69%"></span>
+              <span style="height:44%"></span><span style="height:63%"></span><span style="height:78%"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 · Sankey -->
+    <section class="chapter" data-chapter="4" data-scene="sankey" id="sankey">
+      <div class="panel">
+        <p class="kicker">04 · Flow integrity</p>
+        <h2>A Sankey that balances to the cent.</h2>
+        <p class="lede">
+          Watch income fork into categories and savings. Overspend does not vanish — it draws from
+          balance, labelled honestly. No flattering lies, no magic balancing residual.
+        </p>
+        <div class="mock sankey-mock" aria-hidden="true">
+          <svg viewBox="0 0 600 120" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="g1" x1="0" x2="1"><stop stop-color="#38bdf8" stop-opacity=".9"/><stop offset="1" stop-color="#34d399" stop-opacity=".5"/></linearGradient>
+              <linearGradient id="g2" x1="0" x2="1"><stop stop-color="#38bdf8" stop-opacity=".7"/><stop offset="1" stop-color="#e879f9" stop-opacity=".45"/></linearGradient>
+              <linearGradient id="g3" x1="0" x2="1"><stop stop-color="#38bdf8" stop-opacity=".55"/><stop offset="1" stop-color="#fbbf24" stop-opacity=".4"/></linearGradient>
+            </defs>
+            <path d="M40,30 C180,30 220,20 360,20 L360,48 C220,48 180,55 40,55 Z" fill="url(#g1)"/>
+            <path d="M40,58 C170,58 230,55 360,70 L360,92 C230,78 170,88 40,88 Z" fill="url(#g2)"/>
+            <path d="M40,90 C160,90 240,95 360,100 L360,112 C240,108 160,112 40,112 Z" fill="url(#g3)"/>
+            <rect x="20" y="28" width="24" height="86" rx="4" fill="#0ea5e9"/>
+            <rect x="360" y="18" width="18" height="32" rx="3" fill="#34d399"/>
+            <rect x="360" y="68" width="18" height="26" rx="3" fill="#e879f9"/>
+            <rect x="360" y="98" width="18" height="16" rx="3" fill="#fbbf24"/>
+            <text x="400" y="38" fill="#8fb0d0" font-size="11" font-family="IBM Plex Mono,monospace">Savings</text>
+            <text x="400" y="84" fill="#8fb0d0" font-size="11" font-family="IBM Plex Mono,monospace">Living</text>
+            <text x="400" y="110" fill="#8fb0d0" font-size="11" font-family="IBM Plex Mono,monospace">Leaks</text>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5 · Budget / spend monitor -->
+    <section class="chapter" data-chapter="5" data-scene="budget" id="budget">
+      <div class="panel">
+        <p class="kicker">05 · Spending pace</p>
+        <h2>Budgets that know what day it is.</h2>
+        <p class="lede">
+          Set limits by category — or by rule groups (Lidl + Tesco + Aldi vs SuperValu + Mace).
+          Recurring bills count from day one so early rent never false-alarms. Watch safe-to-spend
+          per day and projected month-end, then open Last 6 mo for the transactions behind the dots.
+        </p>
+        <div class="mock" aria-hidden="true">
+          <div class="mock-bar"><span class="d" style="background:#f87171"></span><span class="d" style="background:#fbbf24"></span><span class="d" style="background:#34d399"></span> budget · day 14 of 30</div>
+          <div class="mock-body pace-row">
+            <div class="pace-line"><span>Groceries</span><div class="track"><i style="width:62%"></i></div><span>on pace</span></div>
+            <div class="pace-line"><span>Dining</span><div class="track hot"><i style="width:88%"></i></div><span>watch</span></div>
+            <div class="pace-line"><span>Transport</span><div class="track"><i style="width:41%"></i></div><span>under</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6 · Wealth / plan -->
+    <section class="chapter" data-chapter="6" data-scene="wealth" id="plan">
+      <div class="panel">
+        <p class="kicker">06 · Plan &amp; wealth layer</p>
+        <h2>Goals, forecast, pulse — one dock.</h2>
+        <p class="lede">
+          Goals fund from a cautious forecast surplus. Debts amortise exactly and free cashflow on
+          payoff. Investments carry an Irish tax layer (CGT, fund exit tax, 8-year deemed disposal).
+          A seven-measure Pulse dial scores the household against absolute benchmarks — never a
+          flattering average of bad habits.
+        </p>
+        <div class="chips">
+          <span class="chip">Goals</span>
+          <span class="chip">Forecast</span>
+          <span class="chip">Debts</span>
+          <span class="chip">Invest</span>
+          <span class="chip">Pulse 0–100</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7 · Privacy -->
+    <section class="chapter" data-chapter="7" data-scene="vault" id="privacy">
+      <div class="panel">
+        <p class="kicker">07 · Threat model</p>
+        <h2>Your bank data never leaves the browser.</h2>
+        <p class="lede">
+          Statements stay in local storage on your device. Optional passphrase encryption locks them
+          at rest. Backups are files <em>you</em> export. The page does not phone home with transactions —
+          that is not a toggle; there is no finance backend to send them to.
+        </p>
+        <div class="feature-grid">
+          <div class="feat"><b>Free account = email only</b><span>We may keep your email so you can sign in and we can reach you. Never your statements, balances, or merchants.</span></div>
+          <div class="feat"><b>Finance stays local</b><span>The product still computes on-device. Cloud identity is a door key — not a vault for your money map.</span></div>
+          <div class="feat"><b>Open source AGPL</b><span>Read the file. Verify the promise. Self-host forever if you want.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8 · Access CTA -->
+    <section class="chapter tall" data-chapter="8" data-scene="dock" id="access">
+      <div class="panel" style="width:min(560px,100%); background:transparent; border:none; box-shadow:none; backdrop-filter:none; padding:0">
+        <p class="kicker" style="text-align:center">08 · Docking complete</p>
+        <h2 style="text-align:center; margin-bottom:8px">Enter the platform.</h2>
+        <p class="lede" style="text-align:center; margin-inline:auto">
+          Free. Leave your email to create access — we store only the address for sign-in and product updates.
+          Explore the demo first if you want zero commitment.
+        </p>
+
+        <div class="terminal" id="accessTerminal">
+          <div class="terminal-head">
+            <span class="d" style="width:8px;height:8px;border-radius:50%;background:#f87171;display:inline-block"></span>
+            <span class="d" style="width:8px;height:8px;border-radius:50%;background:#fbbf24;display:inline-block"></span>
+            <span class="d" style="width:8px;height:8px;border-radius:50%;background:#34d399;display:inline-block"></span>
+            <span style="margin-left:8px">lithifyte · access · free</span>
+          </div>
+          <div class="terminal-body">
+            <div class="prompt">root@lithifyte<span>:~$</span> request_access --plan free</div>
+            <form id="accessForm" novalidate>
+              <div class="form-row">
+                <input type="email" id="email" name="email" required autocomplete="email"
+                  placeholder="you@example.com" aria-label="Email address">
+                <button class="btn primary" type="submit" id="accessSubmit">Get free access</button>
+              </div>
+              <p class="form-note">
+                Magic-link sign-in (recommended). No password required. We will never ask for bank
+                credentials or statement files on this form.
+              </p>
+              <p class="form-status" id="accessStatus" role="status" aria-live="polite"></p>
+            </form>
+            <div class="cta-actions">
+              <a class="btn primary" href="../demo.html">▶ Launch demo household</a>
+              <a class="btn" href="../index.html">Open blank app</a>
+              <a class="btn ghost" href="../tutorial.html">Tutorial &amp; Ask</a>
+            </div>
+            <p class="privacy-line">
+              Privacy split: <b style="color:var(--ink)">identity</b> (email) can live on Cloudflare;
+              <b style="color:var(--ink)">finance</b> stays in your browser. See SECURITY.md in the repo.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div>© 2026 Lithifyte · SID Labs · AGPL-3.0 · <a href="https://github.com/SID-Apps/lithifyte">Source</a></div>
+    <div style="margin-top:8px">Hosted demo &amp; app currently at lithifyte.sid-labs.com · Domain: lithifyte.com</div>
+  </footer>
+
+<script>
+(function(){
+  'use strict';
+
+  // ── Config (edit for lithifyte.com production) ──
+  const CONFIG = {
+    // Magic-link / waitlist Worker (email only — never finance data)
+    WAITLIST_URL: '', // e.g. 'https://access.lithifyte.com/waitlist'
+    // Product destinations (relative paths work when whole repo is served)
+    DEMO_URL: '../demo.html',
+    APP_URL: '../index.html',
+    TUTORIAL_URL: '../tutorial.html',
+  };
+  const WAITLIST_URL = CONFIG.WAITLIST_URL;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Apply destination URLs to CTAs
+  document.querySelectorAll('a[href="../demo.html"]').forEach(a => { a.href = CONFIG.DEMO_URL; });
+  document.querySelectorAll('a[href="../index.html"]').forEach(a => { a.href = CONFIG.APP_URL; });
+  document.querySelectorAll('a[href="../tutorial.html"]').forEach(a => { a.href = CONFIG.TUTORIAL_URL; });
+
+  // ── Smooth scroll (lightweight Lenis-style) ──
+  const smooth = {
+    target: 0, current: 0, ease: 0.085, active: !reduceMotion,
+    max(){ return Math.max(0, document.documentElement.scrollHeight - innerHeight); },
+    set(y){ this.target = Math.max(0, Math.min(this.max(), y)); if (!this.active){ scrollTo(0, this.target); this.current = this.target; } },
+    onWheel(e){
+      if (!this.active) return;
+      e.preventDefault();
+      this.target = Math.max(0, Math.min(this.max(), this.target + e.deltaY));
+    },
+    tick(){
+      if (!this.active){ this.current = scrollY; return this.current; }
+      this.current += (this.target - this.current) * this.ease;
+      if (Math.abs(this.target - this.current) < 0.15) this.current = this.target;
+      if (Math.abs(scrollY - this.current) > 0.5) scrollTo(0, this.current);
+      return this.current;
+    }
+  };
+  if (smooth.active){
+    document.addEventListener('wheel', e => smooth.onWheel(e), {passive:false});
+    document.addEventListener('scroll', () => {
+      // if user used scrollbar/keys, resync
+      if (Math.abs(scrollY - smooth.current) > 40) {
+        smooth.current = scrollY; smooth.target = scrollY;
+      }
+    }, {passive:true});
+  }
+
+  // ── Chapters ──
+  const chapters = [...document.querySelectorAll('.chapter')];
+  const rail = document.getElementById('rail');
+  chapters.forEach((ch, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.title = ch.querySelector('h1,h2')?.textContent?.slice(0,48) || ('Chapter ' + i);
+    b.setAttribute('aria-label', b.title);
+    b.addEventListener('click', () => {
+      const y = ch.getBoundingClientRect().top + scrollY - 20;
+      if (smooth.active){ smooth.set(y); } else scrollTo({top:y, behavior:'smooth'});
+    });
+    rail.appendChild(b);
+  });
+  const railBtns = [...rail.querySelectorAll('button')];
+
+  // ── Canvas galaxy ──
+  const canvas = document.getElementById('stage');
+  const ctx = canvas.getContext('2d', {alpha:true});
+  let W = 0, H = 0, dpr = 1;
+  function resize(){
+    dpr = Math.min(devicePixelRatio || 1, 2);
+    W = innerWidth; H = innerHeight;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  resize();
+  addEventListener('resize', resize);
+
+  // Stars in camera space: z from near to far, fly toward camera
+  const STAR_N = reduceMotion ? 80 : 220;
+  const stars = Array.from({length: STAR_N}, () => spawnStar(true));
+  function spawnStar(randomZ){
+    const angle = Math.random() * Math.PI * 2;
+    const radius = Math.random() * 1.2 + 0.15;
+    return {
+      x: Math.cos(angle) * radius,
+      y: Math.sin(angle) * radius * 0.55,
+      z: randomZ ? Math.random() * 1.5 + 0.05 : 1.5 + Math.random() * 0.4,
+      s: Math.random() * 1.6 + 0.3,
+      hue: Math.random() < 0.12 ? 160 : (Math.random() < 0.08 ? 300 : 195)
+    };
+  }
+
+  // Graph nodes for household scene
+  const nodes = [
+    {id:'hh', label:'Household', x:0, y:0, r:16, color:'#38bdf8', phase:0.15},
+    {id:'p1', label:'You', x:-0.35, y:0.12, r:11, color:'#7dd3fc', phase:0.28},
+    {id:'p2', label:'Partner', x:0.35, y:0.1, r:11, color:'#a5b4fc', phase:0.32},
+    {id:'a1', label:'Current', x:-0.55, y:0.38, r:8, color:'#34d399', phase:0.42},
+    {id:'a2', label:'Savings', x:-0.15, y:0.42, r:8, color:'#fbbf24', phase:0.46},
+    {id:'a3', label:'Credit', x:0.2, y:0.4, r:8, color:'#f472b6', phase:0.5},
+    {id:'a4', label:'Cash', x:0.55, y:0.36, r:8, color:'#2dd4bf', phase:0.52},
+    {id:'m1', label:'Merchants', x:-0.4, y:0.62, r:6, color:'#94a3b8', phase:0.6},
+    {id:'m2', label:'Hubs', x:0.05, y:0.68, r:6, color:'#94a3b8', phase:0.63},
+    {id:'m3', label:'Goals', x:0.45, y:0.6, r:7, color:'#fbbf24', phase:0.66}
+  ];
+  const links = [
+    ['hh','p1'],['hh','p2'],['p1','a1'],['p1','a2'],['p2','a3'],['p2','a4'],
+    ['a1','m1'],['a2','m2'],['a3','m2'],['a4','m3']
+  ];
+
+  // Scene progress 0..1 across whole page
+  let progress = 0;
+  let activeChapter = 0;
+
+  function project(x, y, z, fov){
+    const f = fov / (z + 0.001);
+    return {x: W/2 + x * f * (H*0.55), y: H*0.42 + y * f * (H*0.55), s: f};
+  }
+
+  function sceneMix(){
+    // map scroll progress to cinematic phases
+    // 0-0.12 void, 0.12-0.28 stars rush, 0.28-0.55 nodes, 0.55-0.75 flows, 0.75-1 dock
+    const p = progress;
+    return {
+      starSpeed: 0.002 + p * 0.018 + (p > 0.1 && p < 0.35 ? 0.02 : 0),
+      nodeAlpha: clamp((p - 0.22) / 0.18, 0, 1),
+      flowAlpha: clamp((p - 0.48) / 0.15, 0, 1),
+      vaultPulse: clamp((p - 0.72) / 0.12, 0, 1),
+      dockGlow: clamp((p - 0.85) / 0.12, 0, 1),
+      camZ: p * 0.9,
+      gridY: 0.15 + p * 0.1
+    };
+  }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+
+  function draw(t){
+    const sc = sceneMix();
+    ctx.clearRect(0,0,W,H);
+
+    // deep space wash
+    const g = ctx.createRadialGradient(W/2, H*0.4, 0, W/2, H*0.4, H*0.7);
+    g.addColorStop(0, 'rgba(14,40,80,' + (0.25 + sc.dockGlow*0.15) + ')');
+    g.addColorStop(1, 'rgba(2,11,26,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,W,H);
+
+    // stars
+    const speed = reduceMotion ? 0.001 : sc.starSpeed;
+    for (const s of stars){
+      s.z -= speed;
+      if (s.z <= 0.04) Object.assign(s, spawnStar(false));
+      const pr = project(s.x, s.y, s.z, 0.85);
+      if (pr.x < -20 || pr.x > W+20 || pr.y < -20 || pr.y > H+20) continue;
+      const size = Math.min(3.2, s.s * pr.s * 0.9);
+      const alpha = clamp(1.1 - s.z * 0.7, 0.1, 1);
+      // motion streak when fast
+      if (speed > 0.012){
+        const pr2 = project(s.x, s.y, s.z + speed * 18, 0.85);
+        ctx.strokeStyle = 'hsla(' + s.hue + ',90%,70%,' + (alpha*0.55) + ')';
+        ctx.lineWidth = size * 0.7;
+        ctx.beginPath(); ctx.moveTo(pr2.x, pr2.y); ctx.lineTo(pr.x, pr.y); ctx.stroke();
+      }
+      ctx.fillStyle = 'hsla(' + s.hue + ',95%,75%,' + alpha + ')';
+      ctx.beginPath(); ctx.arc(pr.x, pr.y, size, 0, Math.PI*2); ctx.fill();
+    }
+
+    // Tron floor grid (perspective)
+    if (!reduceMotion){
+      ctx.save();
+      ctx.strokeStyle = 'rgba(56,189,248,' + (0.08 + sc.flowAlpha * 0.12) + ')';
+      ctx.lineWidth = 1;
+      const vanishingY = H * (0.48 + sc.gridY * 0.05);
+      for (let i = 0; i < 18; i++){
+        const y = H * 0.55 + i * i * 1.8;
+        if (y > H) break;
+        ctx.globalAlpha = 0.15 + (i/18)*0.35;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(W, y);
+        ctx.stroke();
+      }
+      for (let i = -12; i <= 12; i++){
+        ctx.globalAlpha = 0.12;
+        ctx.beginPath();
+        ctx.moveTo(W/2 + i * 40, H);
+        ctx.lineTo(W/2 + i * 8, vanishingY);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // nodes + links
+    if (sc.nodeAlpha > 0.01){
+      const pulse = 0.5 + 0.5 * Math.sin(t * 0.0025);
+      const zBase = 0.55 - sc.camZ * 0.15;
+      // links
+      ctx.save();
+      for (const [a,b] of links){
+        const na = nodes.find(n => n.id === a), nb = nodes.find(n => n.id === b);
+        const appear = clamp((progress - Math.min(na.phase, nb.phase)) / 0.08, 0, 1) * sc.nodeAlpha;
+        if (appear <= 0) continue;
+        const pa = project(na.x, na.y, zBase, 1.1);
+        const pb = project(nb.x, nb.y, zBase, 1.1);
+        ctx.strokeStyle = 'rgba(56,189,248,' + (0.15 + appear * 0.45) + ')';
+        ctx.lineWidth = 1.2 + appear;
+        ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
+        // energy dash
+        const mid = 0.5 + 0.5 * Math.sin(t * 0.003 + na.phase * 10);
+        const mx = pa.x + (pb.x - pa.x) * mid, my = pa.y + (pb.y - pa.y) * mid;
+        ctx.fillStyle = 'rgba(125,211,252,' + (appear * 0.9) + ')';
+        ctx.beginPath(); ctx.arc(mx, my, 2.2, 0, Math.PI*2); ctx.fill();
+      }
+      // nodes
+      for (const n of nodes){
+        const appear = clamp((progress - n.phase) / 0.07, 0, 1) * sc.nodeAlpha;
+        if (appear <= 0) continue;
+        const p = project(n.x, n.y, zBase, 1.1);
+        const r = n.r * (0.7 + p.s * 0.35) * (0.9 + pulse * 0.08);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r * 2.4, 0, Math.PI*2);
+        ctx.fillStyle = hexAlpha(n.color, 0.08 * appear);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r, 0, Math.PI*2);
+        ctx.fillStyle = hexAlpha(n.color, 0.85 * appear);
+        ctx.shadowColor = n.color; ctx.shadowBlur = 18 * appear;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(255,255,255,' + (0.35 * appear) + ')';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        if (appear > 0.55 && n.r >= 8){
+          ctx.font = '600 11px IBM Plex Mono, monospace';
+          ctx.fillStyle = 'rgba(232,241,255,' + (appear * 0.9) + ')';
+          ctx.textAlign = 'center';
+          ctx.fillText(n.label, p.x, p.y + r + 14);
+        }
+      }
+      ctx.restore();
+    }
+
+    // flow ribbons (cashflow / sankey phase)
+    if (sc.flowAlpha > 0.01){
+      ctx.save();
+      ctx.globalAlpha = sc.flowAlpha * 0.55;
+      for (let i = 0; i < 5; i++){
+        const y0 = H * (0.35 + i * 0.07);
+        ctx.strokeStyle = i % 2 ? 'rgba(52,211,153,.7)' : 'rgba(56,189,248,.7)';
+        ctx.lineWidth = 3 + i;
+        ctx.beginPath();
+        for (let x = 0; x <= W; x += 12){
+          const y = y0 + Math.sin(x * 0.012 + t * 0.002 + i) * (10 + i * 3)
+            + Math.sin(x * 0.004 - t * 0.001) * 8;
+          if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // vault ring (privacy)
+    if (sc.vaultPulse > 0.01){
+      const cx = W/2, cy = H*0.42;
+      const R = 40 + sc.vaultPulse * 50 + Math.sin(t*0.003)*4;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(52,211,153,' + (0.25 + sc.vaultPulse * 0.5) + ')';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = '#34d399'; ctx.shadowBlur = 20;
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, cy, R*0.65, 0, Math.PI*2); ctx.stroke();
+      ctx.restore();
+    }
+
+    // docking reticle near end
+    if (sc.dockGlow > 0.01){
+      const cx = W/2, cy = H*0.5;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(56,189,248,' + (0.2 + sc.dockGlow * 0.5) + ')';
+      ctx.lineWidth = 1;
+      const r = 30 + sc.dockGlow * 20;
+      ctx.strokeRect(cx - r, cy - r*0.6, r*2, r*1.2);
+      ctx.beginPath();
+      ctx.moveTo(cx - r - 10, cy); ctx.lineTo(cx - r + 10, cy);
+      ctx.moveTo(cx + r - 10, cy); ctx.lineTo(cx + r + 10, cy);
+      ctx.moveTo(cx, cy - r*0.6 - 10); ctx.lineTo(cx, cy - r*0.6 + 10);
+      ctx.moveTo(cx, cy + r*0.6 - 10); ctx.lineTo(cx, cy + r*0.6 + 10);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  function hexAlpha(hex, a){
+    const h = hex.replace('#','');
+    const n = parseInt(h.length === 3 ? h.split('').map(c=>c+c).join('') : h, 16);
+    const r = (n>>16)&255, g = (n>>8)&255, b = n&255;
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+  }
+
+  // ── RAF loop ──
+  const progressEl = document.getElementById('progress');
+  function frame(t){
+    smooth.tick();
+    const max = Math.max(1, document.documentElement.scrollHeight - innerHeight);
+    progress = clamp(scrollY / max, 0, 1);
+    progressEl.style.width = (progress * 100).toFixed(2) + '%';
+
+    // chapter visibility
+    let best = 0, bestScore = -1;
+    chapters.forEach((ch, i) => {
+      const r = ch.getBoundingClientRect();
+      const mid = r.top + r.height * 0.35;
+      const score = 1 - Math.abs(mid - H * 0.45) / H;
+      if (score > bestScore){ bestScore = score; best = i; }
+      const visible = r.top < H * 0.75 && r.bottom > H * 0.2;
+      ch.classList.toggle('in', visible || reduceMotion);
+    });
+    activeChapter = best;
+    railBtns.forEach((b,i) => b.classList.toggle('on', i === best));
+
+    draw(t || 0);
+    requestAnimationFrame(frame);
+  }
+
+  // ── Email capture ──
+  const form = document.getElementById('accessForm');
+  const status = document.getElementById('accessStatus');
+  const emailInput = document.getElementById('email');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = (emailInput.value || '').trim().toLowerCase();
+    status.className = 'form-status';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+      status.textContent = 'Enter a valid email address.';
+      status.classList.add('err');
+      return;
+    }
+    status.textContent = 'Requesting access…';
+    const payload = {
+      email,
+      source: 'lithifyte.com-landing',
+      ts: new Date().toISOString(),
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone || ''
+    };
+
+    try{
+      if (WAITLIST_URL){
+        const res = await fetch(WAITLIST_URL, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Server ' + res.status);
+        const data = await res.json().catch(() => ({}));
+        status.textContent = data.message || 'Check your inbox for a magic link.';
+        status.classList.add('ok');
+      } else {
+        // Local fallback until Worker is wired: store on device + show success path
+        const key = 'lithifyte-waitlist-local';
+        const list = JSON.parse(localStorage.getItem(key) || '[]');
+        if (!list.includes(email)) list.push(email);
+        localStorage.setItem(key, JSON.stringify(list));
+        status.innerHTML = 'Saved locally for now. Wire WAITLIST_URL to your Cloudflare Worker for production magic links. <a href="../demo.html">Launch demo →</a>';
+        status.classList.add('ok');
+      }
+      form.reset();
+    }catch(err){
+      status.textContent = 'Could not reach access service. Try the demo while we sort it — ' + (err.message || err);
+      status.classList.add('err');
+    }
+  });
+
+  // ── Boot ──
+  window.addEventListener('load', () => {
+    document.body.classList.remove('loading');
+    document.getElementById('boot').classList.add('done');
+    smooth.current = scrollY; smooth.target = scrollY;
+    requestAnimationFrame(frame);
+  });
+})();
+</script>
+</body>
+</html>
