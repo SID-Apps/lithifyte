@@ -12,6 +12,8 @@ Lithifyte turns your bank statements into a living picture of your household's m
 
 **Hosted at** [lithifyte.sid-labs.com](https://lithifyte.sid-labs.com) on **Cloudflare Pages** (auto-deploys from `main`). That is the only public host for now — not GitHub Pages.
 
+**Marketing site** for the product domain lives in [`www/`](www/) — immersive first-person / Tron-grid landing, email-only free access (Cloudflare Worker stub), CTAs into demo and app. See [`www/README.md`](www/README.md) for deploy layout (`lithifyte.com` → landing, app/demo on subpaths or subdomains).
+
 ## Quick start
 
 1. **Open the app** — either the hosted page, or download `index.html` and open it locally (the local file unlocks a couple of extras, see below).

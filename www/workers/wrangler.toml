@@ -1,0 +1,23 @@
+# Cloudflare Worker — free access / email identity for Lithifyte
+# Deploy from repo root of www/workers:
+#   npx wrangler login
+#   npx wrangler kv:namespace create WAITLIST
+#   # paste id below, then:
+#   npx wrangler deploy
+#
+# Point landing WAITLIST_URL at:
+#   https://lithifyte-access.<your-subdomain>.workers.dev/waitlist
+
+name = "lithifyte-access"
+main = "access.js"
+compatibility_date = "2026-07-01"
+
+# Uncomment after creating the KV namespace:
+# [[kv_namespaces]]
+# binding = "WAITLIST"
+# id = "YOUR_KV_NAMESPACE_ID"
+
+[vars]
+APP_ORIGIN = "https://lithifyte.sid-labs.com"
+LANDING = "https://lithifyte.com"
+# DEV_RETURN_LINK = "1"   # only for local testing — returns magic link in JSON
