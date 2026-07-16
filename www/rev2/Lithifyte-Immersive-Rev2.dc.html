@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;background:#020b1a;color:#e8f1ff;font-family:"Syne",system-ui,sans-serif;font-weight:500;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+    a{color:#7dd3fc;text-decoration:none}
+    a:hover{color:#bae6fd}
+    button,input{font:inherit}
+    @keyframes scrollpulse{0%,100%{opacity:.3;transform:translateX(-50%) translateY(0)}50%{opacity:1;transform:translateX(-50%) translateY(9px)}}
+    @keyframes blink{50%{opacity:.2}}
+    @media (prefers-reduced-motion:reduce){[data-copy]{opacity:1!important;transform:none!important}}
+  </style>
+</helmet>
+
+<div style="position:relative;z-index:0">
+  <canvas data-canvas="stage" aria-hidden="true" style="position:fixed;inset:0;z-index:0;display:block;width:100%;height:100%;background:radial-gradient(ellipse 85% 65% at 50% 42%, #0a1f3d 0%, #020b1a 72%)"></canvas>
+  <div data-layer="grid" aria-hidden="true" style="position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.1;background-image:linear-gradient(rgba(56,189,248,.32) 1px, transparent 1px),linear-gradient(90deg, rgba(56,189,248,.32) 1px, transparent 1px);background-size:82px 82px;transform:perspective(620px) rotateX(63deg) translateY(20%) scale(2.1);transform-origin:center bottom;mask-image:linear-gradient(180deg, transparent 0%, #000 40%, #000 72%, transparent 100%);-webkit-mask-image:linear-gradient(180deg, transparent 0%, #000 40%, #000 72%, transparent 100%)"></div>
+  <div aria-hidden="true" style="position:fixed;inset:0;z-index:2;pointer-events:none;background:radial-gradient(ellipse 72% 58% at 50% 46%, transparent 32%, rgba(2,11,26,.5) 100%),linear-gradient(180deg, rgba(2,11,26,.4) 0%, transparent 20%, transparent 78%, rgba(2,11,26,.92) 100%)"></div>
+  <div data-layer="scan" aria-hidden="true" style="position:fixed;inset:0;z-index:3;pointer-events:none;opacity:.05;background:repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.35) 2px, rgba(0,0,0,.35) 4px)"></div>
+
+  <div data-tip aria-hidden="true" style="position:fixed;z-index:30;pointer-events:none;opacity:0;transform:translate(-50%,-145%);transition:opacity .2s ease;font-family:'IBM Plex Mono',monospace"><b data-tip-title style="display:block;font:600 12px 'IBM Plex Mono',monospace;letter-spacing:.04em;color:#e8f1ff;text-shadow:0 1px 8px #020b1a"></b><span data-tip-sub style="display:block;margin-top:2px;font:600 12px 'IBM Plex Mono',monospace;color:#fbbf24;text-shadow:0 1px 8px #020b1a"></span></div>
+
+  <div data-progress aria-hidden="true" style="position:fixed;top:0;left:0;height:2px;z-index:50;width:0%;background:linear-gradient(90deg,#38bdf8,#34d399,#e879f9);box-shadow:0 0 12px #38bdf8"></div>
+
+  <header style="position:fixed;top:0;left:0;right:0;z-index:40;display:flex;align-items:center;justify-content:space-between;padding:16px 22px;gap:12px;background:linear-gradient(180deg, rgba(2,11,26,.85), transparent)">
+    <div style="display:flex;align-items:center;gap:10px;font:800 15px 'Syne',sans-serif;letter-spacing:.04em">
+      <span aria-hidden="true" style="position:relative;width:28px;height:28px;border-radius:8px;border:1px solid #38bdf8;box-shadow:0 0 30px rgba(56,189,248,.35);background:radial-gradient(circle at 35% 35%, #7dd3fc, transparent 55%),linear-gradient(135deg,#0ea5e9,#1d4ed8)"><span style="position:absolute;inset:7px;border-radius:50%;border:1.5px solid rgba(255,255,255,.85)"></span></span>
+      LITHIFYTE
+    </div>
+    <nav aria-label="Primary" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <a href="#map" style="color:#8fb0d0;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;border-radius:999px">Map</a>
+      <a href="#flow" style="color:#8fb0d0;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;border-radius:999px">Flow</a>
+      <a href="#privacy" style="color:#8fb0d0;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;border-radius:999px">Privacy</a>
+      <a href="https://lithifyte.sid-labs.com/demo.html" style="display:inline-flex;align-items:center;border-radius:999px;border:1px solid rgba(56,189,248,.28);padding:9px 15px;font:600 13px 'IBM Plex Mono',monospace;letter-spacing:.03em;color:#e8f1ff;background:transparent">Demo</a>
+      <a href="#access" style="display:inline-flex;align-items:center;border-radius:999px;border:1px solid rgba(125,211,252,.6);padding:9px 15px;font:600 13px 'IBM Plex Mono',monospace;letter-spacing:.03em;color:#fff;background:linear-gradient(135deg, rgba(14,165,233,.95), rgba(29,78,216,.95))">Start account</a>
+    </nav>
+  </header>
+
+  <nav data-rail aria-label="Chapters" style="position:fixed;right:18px;top:50%;transform:translateY(-50%);z-index:35;display:flex;flex-direction:column;gap:11px"></nav>
+
+  <main style="position:relative;z-index:10">
+
+    <section data-chapter data-scene="enter" data-label="Enter" id="enter" style="position:relative;height:120vh">
+      <div style="position:sticky;top:0;height:100vh;display:flex;align-items:flex-end;justify-content:center;padding:0 24px 13vh">
+        <div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 60% 55% at 50% 72%, rgba(2,11,26,.72), rgba(2,11,26,0) 68%)"></div>
+        <div data-copy style="position:relative;width:min(900px,100%);text-align:center;opacity:0;transform:translateY(26px);transition:opacity 1s cubic-bezier(.2,.7,.2,1), transform 1s cubic-bezier(.2,.7,.2,1)">
+          <div style="font:500 13px 'IBM Plex Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:#38bdf8;margin-bottom:18px;text-shadow:0 1px 12px #020b1a">// household finance · mission control</div>
+          <h1 style="margin:0 0 18px;line-height:1;letter-spacing:-.025em;font:800 clamp(42px,8vw,88px) 'Syne',sans-serif;text-shadow:0 2px 40px rgba(2,11,26,.9)">Fly into your<br>money map.</h1>
+          <p style="font-size:clamp(16px,2.2vw,20px);line-height:1.6;color:#a9c4de;margin:0 auto;max-width:30em;font-weight:500;text-shadow:0 1px 20px #020b1a">A living picture of your household finances — people, accounts, merchants, cashflow and goals — computed entirely in your browser.</p>
+          <div style="margin-top:40px;display:inline-flex;align-items:center;gap:12px;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:#8fb0d0"><i style="width:22px;height:36px;border:1px solid rgba(56,189,248,.32);border-radius:12px;position:relative;display:inline-block"><b style="position:absolute;left:50%;top:8px;width:3px;height:8px;border-radius:2px;background:#38bdf8;transform:translateX(-50%);animation:scrollpulse 1.8s ease-in-out infinite"></b></i> Scroll slowly</div>
+        </div>
+      </div>
+    </section>
+
+    <section data-chapter data-scene="approach" data-label="Living map" id="approach" style="position:relative;height:220vh">
+      <div style="position:sticky;top:0;height:100vh;display:flex;align-items:center;justify-content:flex-start;padding:0 clamp(24px,7vw,110px)">
+        <div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 52% 72% at 18% 50%, rgba(2,11,26,.82), rgba(2,11,26,0) 62%)"></div>
+        <div data-copy style="position:relative;width:min(500px,100%);opacity:0;transform:translateY(26px);transition:opacity .9s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1)">
+          <p style="font:600 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:#38bdf8;margin:0 0 16px">01 — Approach</p>
+          <h2 style="margin:0 0 18px;line-height:1.06;letter-spacing:-.02em;font:700 clamp(28px,4.6vw,46px) 'Syne',sans-serif;text-shadow:0 2px 30px #020b1a">This isn't a spreadsheet. It's a living map.</h2>
+          <p style="font-size:clamp(16px,2.1vw,19px);line-height:1.6;color:#a9c4de;margin:0;max-width:30em;font-weight:500;text-shadow:0 1px 16px #020b1a">It starts with one node — your household. Everything else grows out of it as you scroll. Grab any node and pull it; let go and it settles back.</p>
+        </div>
+      </div>
+    </section>
+
+    <section data-chapter data-scene="people" data-label="Household" id="map" style="position:relative;height:220vh">
+      <div style="position:sticky;top:0;height:100vh;display:flex;align-items:center;justify-content:flex-start;padding:0 clamp(24px,7vw,110px)">
+        <div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 50% 70% at 18% 50%, rgba(2,11,26,.82), rgba(2,11,26,0) 60%)"></div>
+        <div data-copy style="position:relative;width:min(480px,100%);opacity:0;transform:translateY(26px);transition:opacity .9s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1)">
+          <p style="font:600 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:#7dd3fc;margin:0 0 16px">02 — Household</p>
+          <h2 style="margin:0 0 18px;line-height:1.06;letter-spacing:-.02em;font:700 clamp(28px,4.6vw,46px) 'Syne',sans-serif;text-shadow:0 2px 30px #020b1a">People — then their accounts.</h2>
+          <p style="font-size:clamp(16px,2.1vw,19px);line-height:1.6;color:#a9c4de;margin:0;max-width:30em;font-weight:500;text-shadow:0 1px 16px #020b1a">Each person forms as a node, and their current, savings, credit and cash accounts branch off — carrying real balances. Hover any node to read it.</p>
+        </div>
+      </div>
+    </section>
+
+    <section data-chapter data-scene="merchants" data-label="Merchants" id="merchants" style="position:relative;height:220vh">
+      <div style="position:sticky;top:0;height:100vh;display:flex;align-items:center;justify-content:flex-end;padding:0 clamp(24px,7vw,110px)">
+        <div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 50% 70% at 82% 50%, rgba(2,11,26,.82), rgba(2,11,26,0) 60%)"></div>
+        <div data-copy style="position:relative;width:min(480px,100%);text-align:right;opacity:0;transform:translateY(26px);transition:opacity .9s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1)">
+          <p style="font:600 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:#94a3b8;margin:0 0 16px">03 — Categories &amp; transactions</p>
+          <h2 style="margin:0 0 18px;line-height:1.06;letter-spacing:-.02em;font:700 clamp(28px,4.6vw,46px) 'Syne',sans-serif;text-shadow:0 2px 30px #020b1a">Category hubs bloom into shops.</h2>
+          <p style="font-size:clamp(16px,2.1vw,19px);line-height:1.6;color:#a9c4de;margin:0 0 0 auto;max-width:30em;font-weight:500;text-shadow:0 1px 16px #020b1a">Spending flows out to category hubs — Groceries, Home, Transport — then to the merchants behind them. Watch the transactions pulse down the links.</p>
+        </div>
+      </div>
+    </section>
+
+    <section data-chapter data-scene="goals" data-label="Goals" id="goals" style="position:relative;height:220vh">
+      <div style="position:sticky;top:0;height:100vh;display:flex;align-items:center;justify-content:flex-start;padding:0 clamp(24px,7vw,110px)">
+        <div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 50% 70% at 18% 50%, rgba(2,11,26,.82), rgba(2,11,26,0) 60%)"></div>
+        <div data-copy style="position:relative;width:min(480px,100%);opacity:0;transform:translateY(26px);transition:opacity .9s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1)">
+          <p style="font:600 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:#fbbf24;margin:0 0 16px">04 — Goals &amp; debts</p>
+          <h2 style="margin:0 0 18px;line-height:1.06;letter-spacing:-.02em;font:700 clamp(28px,4.6vw,46px) 'Syne',sans-serif;text-shadow:0 2px 30px #020b1a">Goals wear their progress. Debts are holes.</h2>
+          <p style="font-size:clamp(16px,2.1vw,19px);line-height:1.6;color:#a9c4de;margin:0;max-width:30em;font-weight:500;text-shadow:0 1px 16px #020b1a">A goal carries its funding as a gold ring that fills as you save. Debts are drawn hollow — an honest hole in your net worth until they're paid off.</p>
+        </div>
+      </div>
+    </section>
+
+    <section data-chapter data-scene="flow" data-label="Flow" id="flow" style="position:relative;height:260vh">
+      <div style="position:sticky;top:0;height:100vh;display:flex;align-items:center;justify-content:flex-end;padding:0 clamp(24px,6vw,90px)">
+        <div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 46% 70% at 84% 50%, rgba(2,11,26,.85), rgba(2,11,26,0) 58%)"></div>
+        <div data-copy style="position:relative;width:min(440px,100%);text-align:right;opacity:0;transform:translateY(26px);transition:opacity .9s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1)">
+          <p style="font:600 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:#34d399;margin:0 0 16px">05 — Flow</p>
+          <h2 style="margin:0 0 18px;line-height:1.06;letter-spacing:-.02em;font:700 clamp(28px,4.4vw,44px) 'Syne',sans-serif;text-shadow:0 2px 30px #020b1a">Income splits, to the cent.</h2>
+          <p style="font-size:clamp(16px,2.1vw,19px);line-height:1.6;color:#a9c4de;margin:0 0 0 auto;max-width:28em;font-weight:500;text-shadow:0 1px 16px #020b1a">Keep scrolling to watch €6,000 of income branch out into every category and into savings. Overspend doesn't vanish — it's drawn from balance, labelled honestly.</p>
+        </div>
+      </div>
+    </section>
+
+    <section data-chapter data-scene="vault" data-label="Privacy" id="privacy" style="position:relative;height:220vh">
+      <div style="position:sticky;top:0;height:100vh;display:flex;align-items:center;justify-content:center;padding:0 24px">
+        <div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 54% 58% at 50% 50%, rgba(2,11,26,.78), rgba(2,11,26,0) 66%)"></div>
+        <div data-copy style="position:relative;width:min(680px,100%);text-align:center;opacity:0;transform:translateY(26px);transition:opacity .9s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1)">
+          <p style="font:600 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:#34d399;margin:0 0 16px">06 — The promise</p>
+          <h2 style="margin:0 0 18px;line-height:1.06;letter-spacing:-.02em;font:700 clamp(28px,5vw,52px) 'Syne',sans-serif;text-shadow:0 2px 30px #020b1a">Your bank data never<br>leaves the browser.</h2>
+          <p style="font-size:clamp(16px,2.1vw,20px);line-height:1.6;color:#a9c4de;margin:0 auto;max-width:30em;font-weight:500;text-shadow:0 1px 16px #020b1a">Statements stay on your device, optionally encrypted at rest. There is no finance backend to send them to — that's not a toggle. Read the source and verify every word.</p>
+        </div>
+      </div>
+    </section>
+
+    <section data-chapter data-scene="dock" data-label="Enter" id="access" style="position:relative;height:170vh">
+      <div style="position:sticky;top:0;height:100vh;display:flex;align-items:center;justify-content:center;padding:0 24px">
+        <div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 50% 55% at 50% 50%, rgba(2,11,26,.8), rgba(2,11,26,0) 66%)"></div>
+        <div data-copy style="position:relative;width:min(560px,100%);text-align:center;opacity:0;transform:translateY(26px);transition:opacity .9s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1)">
+          <p style="font:600 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:#38bdf8;margin:0 0 14px">07 — Docking complete</p>
+          <h2 style="margin:0 0 14px;line-height:1.04;letter-spacing:-.02em;font:800 clamp(34px,6vw,60px) 'Syne',sans-serif;text-shadow:0 2px 40px #020b1a">Enter the platform.</h2>
+          <p style="font-size:clamp(16px,2.1vw,20px);line-height:1.6;color:#a9c4de;margin:0 auto 30px;max-width:30em;font-weight:500;text-shadow:0 1px 16px #020b1a">Start with the demo household, or create free access. We store only your email for sign-in — nothing else.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center">
+            <a href="https://lithifyte.sid-labs.com/demo.html" style="flex:0 1 220px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;padding:16px 22px;font:600 15px 'IBM Plex Mono',monospace;letter-spacing:.02em;color:#fff;background:linear-gradient(135deg, rgba(14,165,233,.95), rgba(29,78,216,.95));border:1px solid rgba(125,211,252,.6);box-shadow:0 0 30px rgba(56,189,248,.3)">▶ Start the demo</a>
+            <a href="https://lithifyte.sid-labs.com/" style="flex:0 1 220px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;padding:16px 22px;font:600 15px 'IBM Plex Mono',monospace;letter-spacing:.02em;color:#e8f1ff;background:rgba(4,18,36,.5);border:1px solid rgba(56,189,248,.35)">◈ Start your account</a>
+          </div>
+          <p style="margin:22px auto 0;max-width:34em;font:500 12.5px 'IBM Plex Mono',monospace;color:#8fb0d0;line-height:1.55">Accounts sign in via Cloudflare with a magic link — no password, no bank credentials.<br>Identity can live on Cloudflare; finance stays in your browser.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer style="position:relative;z-index:10;padding:36px 24px 56px;text-align:center;font:500 12px 'IBM Plex Mono',monospace;color:#6f8bab;letter-spacing:.04em">
+    <div>© 2026 Lithifyte · SID Labs · AGPL-3.0 · <a href="https://github.com/SID-Apps/lithifyte" style="color:#6f8bab">Source</a></div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Cyan&quot;,&quot;Mint&quot;,&quot;Magenta&quot;],&quot;default&quot;:&quot;Cyan&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Look&quot;},&quot;starDensity&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:220,&quot;min&quot;:60,&quot;max&quot;:360,&quot;step&quot;:20,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Look&quot;},&quot;scanlines&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Look&quot;},&quot;mouseParallax&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Motion&quot;}}">
+class Component extends DCLogic {
+  componentDidMount(){
+    const root = this.el || document;
+    const $ = (s) => root.querySelector(s);
+    const $$ = (s) => [...root.querySelectorAll(s)];
+    this._cleanup = [];
+    const on = (t,ev,fn,o) => { t.addEventListener(ev,fn,o); this._cleanup.push(()=>t.removeEventListener(ev,fn,o)); };
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+    const lerp = (a,b,t) => a+(b-a)*t;
+    const ease = (t) => (t<=0)?0:(t>=1)?1:t*t*(3-2*t);
+    const hex = (h,a) => { h=(''+h).replace('#',''); const n=parseInt(h.length===3?h.split('').map(c=>c+c).join(''):h,16); return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`; };
+
+    const ACC = { Cyan:{hue:198,hex:'#38bdf8'}, Mint:{hue:158,hex:'#34d399'}, Magenta:{hue:300,hex:'#e879f9'} };
+    const acc = ACC[this.props.accent] || ACC.Cyan;
+    const density = Math.round(this.props.starDensity ?? 220);
+    const parallaxOn = (this.props.mouseParallax ?? true) && !reduce;
+    const scanEl = $('[data-layer="scan"]'); if (scanEl) scanEl.style.display = (this.props.scanlines ?? true) ? 'block' : 'none';
+
+    const canvas = $('[data-canvas="stage"]');
+    const ctx = canvas.getContext('2d',{alpha:true});
+    let W=0,H=0,dpr=1;
+    const resize = () => { dpr=Math.min(devicePixelRatio||1,2); W=innerWidth; H=innerHeight; canvas.width=W*dpr; canvas.height=H*dpr; canvas.style.width=W+'px'; canvas.style.height=H+'px'; ctx.setTransform(dpr,0,0,dpr,0,0); };
+    resize(); on(window,'resize',resize);
+
+    // ── stars (calm drift + twinkle) ──
+    const spawn = (rz) => { const a=Math.random()*Math.PI*2, r=Math.random()*1.25+0.12; return { x:Math.cos(a)*r, y:Math.sin(a)*r*0.55, z: rz?Math.random()*1.6+0.05:1.6+Math.random()*0.4, s:Math.random()*1.5+0.35, hue: Math.random()<0.14?acc.hue-30:(Math.random()<0.06?300:acc.hue), tw:Math.random()*6.28 }; };
+    const stars = Array.from({length: reduce?70:density}, () => spawn(true));
+    const projStar = (x,y,z,ox,oy) => { const f=0.9/(z+0.001); return {x:W/2+ox+x*f*(H*0.62), y:H*0.46+oy+y*f*(H*0.62), s:f}; };
+
+    // ── money map: force-directed nodes (Obsidian style) ──
+    const MN = [];
+    const mk = (o) => { o.x=o.hx; o.y=o.hy; o.vx=0; o.vy=0; o.drag=false; MN.push(o); return o; };
+    mk({id:'hh', g:'core',     hx:0,     hy:-0.02, r:16, color:acc.hex, label:'Household',  amt:'€96,400 net', appearAt:0.00});
+    mk({id:'p1', g:'people',   hx:-0.36, hy:-0.14, r:11, color:'#7dd3fc', label:'You',       amt:'€3,200 / mo', appearAt:0.18});
+    mk({id:'p2', g:'people',   hx:0.34,  hy:-0.18, r:11, color:'#a5b4fc', label:'Partner',   amt:'€2,800 / mo', appearAt:0.22});
+    mk({id:'ac1',g:'accounts', hx:-0.64, hy:0.02,  r:8,  color:'#34d399', label:'Current',   amt:'€2,140',      appearAt:0.40});
+    mk({id:'ac2',g:'accounts', hx:-0.48, hy:0.30,  r:8,  color:'#fbbf24', label:'Savings',   amt:'€12,400',     appearAt:0.44});
+    mk({id:'ac3',g:'accounts', hx:0.58,  hy:-0.04, r:8,  color:'#f472b6', label:'Credit',    amt:'−€850',       appearAt:0.46});
+    mk({id:'ac4',g:'accounts', hx:0.52,  hy:0.26,  r:8,  color:'#2dd4bf', label:'Cash',      amt:'€4,000',      appearAt:0.48});
+    const hubDefs = [
+      {id:'h1', hx:-0.36, hy:0.52, label:'Groceries', amt:'€640 / mo'},
+      {id:'h2', hx:-0.02, hy:0.64, label:'Home',      amt:'€1,450 / mo'},
+      {id:'h3', hx:0.30,  hy:0.54, label:'Transport', amt:'€360 / mo'},
+      {id:'h4', hx:0.58,  hy:0.44, label:'Leisure',   amt:'€300 / mo'},
+    ];
+    hubDefs.forEach((h,i)=> mk({id:h.id, g:'hubs', hx:h.hx, hy:h.hy, r:7, color:'#94a3b8', label:h.label, amt:h.amt, appearAt:0.60+i*0.01}));
+    mk({id:'goal', g:'goal', hx:-0.72, hy:0.32, r:10, color:'#fbbf24', label:'Holiday fund', amt:'64% · €3.2k/5k', appearAt:0.90, ring:0.64});
+    mk({id:'debt', g:'debt', hx:0.76,  hy:0.10, r:10, color:'#f87171', label:'Car loan',     amt:'−€8,600',        appearAt:0.92, hollow:true});
+    // merchants orbit hubs
+    const merchDefs = { h1:[['Aldi','€210'],['Tesco','€180'],['Lidl','€150'],['SuperValu','€100']], h2:[['Energia','€120'],['Bord Gáis','€90'],['IKEA','€240']], h3:[['Circle K','€140'],['Irish Rail','€120'],['Free Now','€100']], h4:[['Netflix','€18'],['Spotify','€11'],['Cinema','€60']] };
+    const merch=[];
+    hubDefs.forEach((h,hi)=>{ const arr=merchDefs[h.id]; arr.forEach((m,i)=>{ const ang=(i/arr.length)*Math.PI*2 + hi*0.7; const orad=0.14+(i%2)*0.03; const n=mk({id:'m_'+h.id+'_'+i, g:'merchants', hx:h.hx+Math.cos(ang)*orad, hy:h.hy+Math.sin(ang)*orad*0.85, r:3.6, color:'#7f93ad', label:m[0], amt:m[1], appearAt:0.74+i*0.01, hub:h.id}); merch.push(n); }); });
+    const byId = {}; MN.forEach(n=>byId[n.id]=n);
+    const linkIds = [['hh','p1'],['hh','p2'],['p1','ac1'],['p1','ac2'],['p2','ac3'],['p2','ac4'],['ac1','h1'],['ac2','h2'],['ac3','h3'],['ac4','h4'],['ac1','h2'],['ac3','h4'],['p1','goal'],['ac2','goal'],['p2','debt']];
+    const links = linkIds.map(([a,b])=>{ const A=byId[a],B=byId[b]; return {a:A,b:B, rest:Math.hypot(A.hx-B.hx,A.hy-B.hy)}; });
+    const mLinks = merch.map(m=>({a:m,b:byId[m.hub], rest:Math.hypot(m.hx-byId[m.hub].hx,m.hy-byId[m.hub].hy)}));
+    this._nodeScreen = {};
+
+    // ── chrome ──
+    const prog=$('[data-progress]'), rail=$('[data-rail]');
+    const sections=$$('[data-chapter]'); const copies=sections.map(s=>s.querySelector('[data-copy]'));
+    const railBtns = sections.map((ch,i)=>{ const b=document.createElement('button'); b.type='button';
+      Object.assign(b.style,{width:'9px',height:'9px',borderRadius:'50%',padding:'0',cursor:'pointer',border:'1px solid rgba(56,189,248,.4)',background:'transparent',transition:'transform .25s, background .25s, box-shadow .25s'});
+      b.title=ch.getAttribute('data-label')||('Chapter '+i); b.setAttribute('aria-label',b.title);
+      on(b,'click',()=>{ const y=ch.getBoundingClientRect().top+scrollY+(ch.offsetHeight-innerHeight)*0.4; scrollTo({top:Math.max(0,y),behavior:'smooth'}); });
+      rail.appendChild(b); return b; });
+
+    // ── view transform + interaction ──
+    const view = {cx:0, cy:0, scale:1, R:0};
+    const toScreen = (n) => { const co=Math.cos(view.R), si=Math.sin(view.R); return {x:view.cx+(n.x*co-n.y*si)*view.scale, y:view.cy+(n.x*si+n.y*co)*view.scale}; };
+    const fromScreen = (mx,my) => { const co=Math.cos(view.R), si=Math.sin(view.R); const dx=(mx-view.cx)/view.scale, dy=(my-view.cy)/view.scale; return {x:dx*co+dy*si, y:-dx*si+dy*co}; };
+
+    let mx=0,my=0,smx=0,smy=0,hover=null,dragNode=null;
+    const tip=$('[data-tip]'), tipT=$('[data-tip-title]'), tipS=$('[data-tip-sub]');
+    const setCursor = (c) => { document.body.style.cursor = c; };
+    const hitTest = (px,py) => { let best=null,bd=1e9; for(const id in this._nodeScreen){ const s=this._nodeScreen[id]; if(s.alpha<0.5) continue; const d=Math.hypot(px-s.x,py-s.y); const rr=Math.max(15,s.r*2.4); if(d<rr && d<bd){bd=d;best=id;} } return best; };
+    on(window,'mousemove',(e)=>{
+      mx=(e.clientX/innerWidth-0.5)*2; my=(e.clientY/innerHeight-0.5)*2;
+      if(dragNode){ const g=fromScreen(e.clientX,e.clientY); dragNode.dgx=g.x; dragNode.dgy=g.y; if(tip){ const s=this._nodeScreen[dragNode.id]; if(s){ tip.style.left=s.x+'px'; tip.style.top=s.y+'px'; } } return; }
+      const h=hitTest(e.clientX,e.clientY);
+      if(h!==hover){ hover=h; const nd=byId[h]; if(nd&&tip){ tipT.textContent=nd.label; tipS.textContent=nd.amt||''; tip.style.opacity='1'; } else if(tip) tip.style.opacity='0'; }
+      if(hover&&tip){ const s=this._nodeScreen[hover]; if(s){ tip.style.left=s.x+'px'; tip.style.top=s.y+'px'; } }
+      setCursor(hover?'grab':'');
+    });
+    on(window,'mousedown',(e)=>{ if(mapAlphaNow<0.4) return; const h=hitTest(e.clientX,e.clientY); if(h){ dragNode=byId[h]; const g=fromScreen(e.clientX,e.clientY); dragNode.dgx=g.x; dragNode.dgy=g.y; dragNode.drag=true; setCursor('grabbing'); e.preventDefault(); } });
+    const endDrag = () => { if(dragNode){ dragNode.drag=false; dragNode=null; setCursor(hover?'grab':''); } };
+    on(window,'mouseup',endDrag); on(window,'mouseleave',endDrag);
+
+    // ── scene state ──
+    const S = { mapA:0.14, zoom:0.85, flow:0, vault:0, dock:0 };
+    let mapAlphaNow = 0.14;
+    const HOTG = [ null, 'core', 'people', 'hubs', 'goal', null, null, null ];
+    const targetFor = (act) => { const T={mapA:1,zoom:1,flow:0,vault:0,dock:0};
+      if(act===0){T.mapA=0.16;T.zoom=0.82;} else if(act===1){T.mapA=0.9;T.zoom=0.9;} else if(act===2){T.mapA=1;T.zoom=1.0;}
+      else if(act===3){T.mapA=1;T.zoom=1.15;} else if(act===4){T.mapA=1;T.zoom=1.05;}
+      else if(act===5){T.mapA=0.22;T.zoom=1.0;T.flow=1;} else if(act===6){T.mapA=0.12;T.zoom=0.98;T.vault=1;} else {T.mapA=0.1;T.zoom=0.95;T.dock=1;}
+      return T; };
+
+    const stepPhysics = () => {
+      const kHome=0.010, kLink=0.020, damp=0.86, kRep=0.00045;
+      for(const n of MN){ n.fx=(n.hx-n.x)*kHome; n.fy=(n.hy-n.y)*kHome; }
+      for(const L of links){ const dx=L.b.x-L.a.x, dy=L.b.y-L.a.y; const d=Math.hypot(dx,dy)||0.001; const f=(d-L.rest)*kLink; const ux=dx/d, uy=dy/d; L.a.fx+=ux*f; L.a.fy+=uy*f; L.b.fx-=ux*f; L.b.fy-=uy*f; }
+      for(const L of mLinks){ const dx=L.b.x-L.a.x, dy=L.b.y-L.a.y; const d=Math.hypot(dx,dy)||0.001; const f=(d-L.rest)*kLink*1.4; const ux=dx/d, uy=dy/d; L.a.fx+=ux*f; L.a.fy+=uy*f; }
+      // light repulsion among non-merchant nodes
+      const big = MN.filter(n=>n.g!=='merchants');
+      for(let i=0;i<big.length;i++){ for(let j=i+1;j<big.length;j++){ const a=big[i],b=big[j]; let dx=a.x-b.x, dy=a.y-b.y; let d2=dx*dx+dy*dy; if(d2>0.09) continue; const d=Math.sqrt(d2)||0.001; const f=kRep/(d2+0.002); const ux=dx/d, uy=dy/d; a.fx+=ux*f; a.fy+=uy*f; b.fx-=ux*f; b.fy-=uy*f; } }
+      for(const n of MN){ if(n.drag){ n.x=n.dgx; n.y=n.dgy; n.vx=0; n.vy=0; continue; } n.vx=(n.vx+n.fx)*damp; n.vy=(n.vy+n.fy)*damp; n.x+=n.vx; n.y+=n.vy; }
+    };
+
+    const drawSankey = (g, alpha) => {
+      const cats=[ {n:'Housing',v:1800,c:'#38bdf8'},{n:'Savings',v:1500,c:'#34d399'},{n:'Groceries',v:640,c:'#a5b4fc'},{n:'Everyday',v:1100,c:'#fbbf24'},{n:'Transport',v:360,c:'#2dd4bf'},{n:'Leisure',v:300,c:'#e879f9'},{n:'Other',v:300,c:'#f472b6'} ];
+      const total=cats.reduce((s,c)=>s+c.v,0);
+      const leftX=Math.max(60,W*0.10), colW=16, topY=H*0.24, fullH=H*0.52;
+      const rightX=Math.min(W*0.46, W*0.10+520);
+      const gap=15, avail=fullH-gap*(cats.length-1);
+      ctx.save(); ctx.globalAlpha=alpha;
+      // source bar
+      ctx.fillStyle=hex(acc.hex,0.9); ctx.fillRect(leftX,topY,colW,fullH);
+      ctx.font="600 12px 'IBM Plex Mono', monospace"; ctx.textAlign='left'; ctx.fillStyle='#e8f1ff';
+      ctx.fillText('Income', leftX-4, topY-16); ctx.fillStyle=hex(acc.hex,1); ctx.font="700 15px 'Syne', sans-serif"; ctx.fillText('€6,000', leftX-4, topY-1);
+      let sY=topY, rY=topY;
+      cats.forEach((c,i)=>{ const h=c.v/total*fullH, rh=c.v/total*avail;
+        const gi=ease(clamp((g - i*0.085)/0.5, 0, 1));
+        const x0=leftX+colW, x1=x0+(rightX-x0)*gi;
+        const y0t=sY, y0b=sY+h, y1t=rY, y1b=rY+rh, mxc=(x0+x1)/2;
+        const grad=ctx.createLinearGradient(x0,0,x1,0); grad.addColorStop(0,hex(c.c,0.16)); grad.addColorStop(1,hex(c.c,0.5*gi+0.12));
+        ctx.beginPath(); ctx.moveTo(x0,y0t); ctx.bezierCurveTo(mxc,y0t,mxc,y1t,x1,y1t); ctx.lineTo(x1,y1b); ctx.bezierCurveTo(mxc,y1b,mxc,y0b,x0,y0b); ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
+        if(gi>0.85){ const la=ease((gi-0.85)/0.15); ctx.globalAlpha=alpha*la; ctx.fillStyle=hex(c.c,0.95); ctx.fillRect(x1,y1t,5,rh);
+          ctx.textAlign='left'; ctx.fillStyle='#e8f1ff'; ctx.font="600 12px 'IBM Plex Mono', monospace"; ctx.fillText(c.n, x1+12, y1t+rh/2-2); ctx.fillStyle=hex(c.c,1); ctx.fillText('€'+c.v.toLocaleString(), x1+12, y1t+rh/2+13); ctx.globalAlpha=alpha; }
+        sY+=h; rY+=rh+gap; });
+      ctx.restore();
+    };
+
+    let rAct=0;
+    const draw = (t, act, reveal) => {
+      smx+=(mx-smx)*0.05; smy+=(my-smy)*0.05;
+      const ox=parallaxOn?smx*30:0, oy=parallaxOn?smy*20:0;
+      const T=targetFor(act);
+      S.mapA=lerp(S.mapA,T.mapA,0.05); S.zoom=lerp(S.zoom,T.zoom,0.045); S.flow=lerp(S.flow,T.flow,0.06); S.vault=lerp(S.vault,T.vault,0.06); S.dock=lerp(S.dock,T.dock,0.06);
+      mapAlphaNow=S.mapA;
+      const Rtarget = (reveal-0.35)*0.5; view.R=lerp(view.R,Rtarget,0.05);
+      view.cx=W/2+ox; view.cy=H*0.46+oy; view.scale=H*0.6*S.zoom;
+
+      ctx.clearRect(0,0,W,H);
+      const gg=ctx.createRadialGradient(W/2+ox*0.4,H*0.42+oy*0.4,0,W/2,H*0.42,H*0.78);
+      gg.addColorStop(0,`rgba(14,40,80,${0.22+S.dock*0.12})`); gg.addColorStop(1,'rgba(2,11,26,0)'); ctx.fillStyle=gg; ctx.fillRect(0,0,W,H);
+
+      // stars
+      const sp=reduce?0.0006:0.0016;
+      for(const s of stars){ s.z-=sp; if(s.z<=0.04) Object.assign(s,spawn(false)); const pr=projStar(s.x,s.y,s.z,ox*0.5,oy*0.5); if(pr.x<-30||pr.x>W+30||pr.y<-30||pr.y>H+30) continue; const size=Math.min(2.6,s.s*pr.s*0.85); const tw=0.55+0.45*Math.sin(t*0.0016+s.tw); const a=clamp(1.1-s.z*0.62,0.08,1)*tw; ctx.fillStyle=`hsla(${s.hue},92%,76%,${a})`; ctx.beginPath(); ctx.arc(pr.x,pr.y,size,0,Math.PI*2); ctx.fill(); }
+
+      // faint floor
+      if(!reduce){ ctx.save(); ctx.strokeStyle=`rgba(56,189,248,${0.05+S.flow*0.1})`; ctx.lineWidth=1; const vy=H*0.5; for(let i=0;i<16;i++){ const y=H*0.56+i*i*1.9; if(y>H)break; ctx.globalAlpha=0.1+(i/16)*0.28; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); } ctx.restore(); }
+
+      // physics + map
+      this._nodeScreen={};
+      if(S.mapA>0.02){
+        stepPhysics();
+        const appearOf = (n) => ease(clamp((reveal-n.appearAt)/0.13,0,1));
+        const scr={};
+        for(const n of MN){ const ap=appearOf(n); const s=toScreen(n); s.ap=ap; s.alpha=S.mapA*ap; s.r=n.r*(0.8+0.2)* (0.65+0.35*S.zoom)*ap; scr[n.id]=s; if(ap>0.06) this._nodeScreen[n.id]={x:s.x,y:s.y,r:s.r,alpha:s.alpha,id:n.id}; }
+        // links
+        ctx.save();
+        for(const L of links){ const a=scr[L.a.id], b=scr[L.b.id]; const la=Math.min(a.alpha,b.alpha); if(la<=0.02) continue; ctx.strokeStyle=hex(acc.hex,0.09+la*0.34); ctx.lineWidth=0.8+la*1.1; ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); }
+        for(const L of mLinks){ const a=scr[L.a.id], b=scr[L.b.id]; const la=Math.min(a.alpha,b.alpha); if(la<=0.02) continue; ctx.strokeStyle=hex('#94a3b8',0.07+la*0.2); ctx.lineWidth=0.7; ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); }
+        // transaction pulses (stronger once reveal>0.7)
+        const txStrength=clamp((reveal-0.55)/0.2,0,1);
+        if(txStrength>0.02){ for(const L of links.concat(mLinks)){ const a=scr[L.a.id], b=scr[L.b.id]; const la=Math.min(a.alpha,b.alpha); if(la<=0.05) continue; const m=(Math.sin(t*0.0013+(a.x+a.y)*0.01)*0.5+0.5); const ex=a.x+(b.x-a.x)*m, ey=a.y+(b.y-a.y)*m; ctx.fillStyle=hex('#bae6fd',la*txStrength*0.9); ctx.beginPath(); ctx.arc(ex,ey,2,0,Math.PI*2); ctx.fill(); } }
+        ctx.restore();
+        // nodes
+        const pulse=0.5+0.5*Math.sin(t*0.002);
+        for(const n of MN){ const s=scr[n.id]; if(!s||s.alpha<=0.02) continue; const hv=hover===n.id||n.drag; const a=Math.min(1,s.alpha*(hv?1.15:1)); const r=Math.max(1.5,s.r*(0.95+pulse*0.05)*(hv?1.22:1));
+          const coreHi = (n.g==='core')?(1+ (reveal<0.28?0.5*(1-reveal/0.28):0)):1;
+          ctx.beginPath(); ctx.arc(s.x,s.y,r*2.6,0,Math.PI*2); ctx.fillStyle=hex(n.color,0.07*a*coreHi); ctx.fill();
+          if(n.hollow){ ctx.beginPath(); ctx.arc(s.x,s.y,r,0,Math.PI*2); ctx.strokeStyle=hex(n.color,0.9*a); ctx.lineWidth=2.2; ctx.shadowColor=n.color; ctx.shadowBlur=12*a; ctx.stroke(); ctx.shadowBlur=0; }
+          else { ctx.beginPath(); ctx.arc(s.x,s.y,r,0,Math.PI*2); ctx.fillStyle=hex(n.color,(hv?1:0.88)*a); ctx.shadowColor=n.color; ctx.shadowBlur=(hv?24:14)*a*coreHi; ctx.fill(); ctx.shadowBlur=0; ctx.strokeStyle=`rgba(255,255,255,${(hv?0.7:0.28)*a})`; ctx.lineWidth=1; ctx.stroke(); }
+          if(n.ring!=null){ ctx.beginPath(); ctx.arc(s.x,s.y,r+5,-Math.PI/2,-Math.PI/2+Math.PI*2*n.ring); ctx.strokeStyle=hex('#fbbf24',0.95*a); ctx.lineWidth=2.4; ctx.shadowColor='#fbbf24'; ctx.shadowBlur=12*a; ctx.stroke(); ctx.shadowBlur=0; ctx.beginPath(); ctx.arc(s.x,s.y,r+5,0,Math.PI*2); ctx.strokeStyle=hex('#fbbf24',0.14*a); ctx.lineWidth=2.4; ctx.stroke(); }
+          if(a>0.55 && (n.r>=7||hv)){ ctx.textAlign='center'; ctx.font="600 11px 'IBM Plex Mono', monospace"; ctx.fillStyle=`rgba(232,241,255,${a*0.92})`; ctx.fillText(n.label, s.x, s.y+r+13); if(n.amt){ ctx.font="500 10px 'IBM Plex Mono', monospace"; ctx.fillStyle=hex('#fbbf24',a*0.8); ctx.fillText(n.amt, s.x, s.y+r+25); } }
+        }
+      } else if(tip){ tip.style.opacity='0'; }
+
+      // sankey (section 05)
+      if(S.flow>0.02){ drawSankey(this._flowLocal||0, S.flow); }
+      // vault
+      if(S.vault>0.02){ const cx=W/2+ox,cy=H*0.44+oy,R=48+S.vault*56+Math.sin(t*0.0025)*4; ctx.save(); ctx.strokeStyle=`rgba(52,211,153,${0.22+S.vault*0.5})`; ctx.lineWidth=2; ctx.shadowColor='#34d399'; ctx.shadowBlur=20; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke(); ctx.beginPath(); ctx.arc(cx,cy,R*0.62,0,Math.PI*2); ctx.stroke(); ctx.restore(); }
+      // dock reticle
+      if(S.dock>0.02){ const cx=W/2+ox,cy=H*0.5+oy; ctx.save(); ctx.strokeStyle=hex(acc.hex,0.2+S.dock*0.5); ctx.lineWidth=1; const r=36+S.dock*22; ctx.strokeRect(cx-r,cy-r*0.6,r*2,r*1.2); ctx.beginPath(); ctx.moveTo(cx-r-10,cy);ctx.lineTo(cx-r+10,cy); ctx.moveTo(cx+r-10,cy);ctx.lineTo(cx+r+10,cy); ctx.moveTo(cx,cy-r*0.6-10);ctx.lineTo(cx,cy-r*0.6+10); ctx.moveTo(cx,cy+r*0.6-10);ctx.lineTo(cx,cy+r*0.6+10); ctx.stroke(); ctx.restore(); }
+
+      const gridEl=$('[data-layer="grid"]'); if(gridEl && parallaxOn) gridEl.style.transform=`perspective(620px) rotateX(63deg) translate(${-smx*18}px,${20-smy*5}%) scale(2.1)`;
+    };
+
+    const frame = (t) => {
+      const max=Math.max(1,document.documentElement.scrollHeight-innerHeight); const p=clamp(scrollY/max,0,1); if(prog) prog.style.width=(p*100).toFixed(2)+'%';
+      let act=0, activeLp=0, flowLp=0; const vc=scrollY+innerHeight*0.5;
+      sections.forEach((sec,i)=>{ const top=sec.getBoundingClientRect().top+scrollY; const h=sec.offsetHeight; if(vc>=top && vc<top+h) act=i;
+        const span=Math.max(1,h-innerHeight); const lp=clamp((scrollY-top)/span,0,1); if(i===act) activeLp=lp; if(i===5) flowLp=lp;
+        let o=0,ty=26; if(reduce){o=1;ty=0;} else if(i===0){ if(lp<0.72){o=1;ty=0;} else {const k=ease((lp-0.72)/0.28); o=1-k; ty=-22*k;} } else { if(lp<0.14){const k=ease(lp/0.14); o=k; ty=26-26*k;} else if(lp<0.82){o=1;ty=0;} else {const k=ease((lp-0.82)/0.18); o=1-k; ty=-22*k;} }
+        const c=copies[i]; if(c){ c.style.opacity=o.toFixed(3); c.style.transform=`translateY(${ty.toFixed(1)}px)`; }
+      });
+      this._flowLocal = act<5?0 : act>5?1 : flowLp;
+      let reveal; if(act<=0) reveal=0.05; else if(act===1) reveal=0.10+activeLp*0.26; else if(act===2) reveal=0.36+activeLp*0.26; else if(act===3) reveal=0.62+activeLp*0.28; else if(act===4) reveal=0.90+activeLp*0.10; else reveal=1;
+      railBtns.forEach((b,i)=>{ const onn=i===act; b.style.background=onn?acc.hex:'transparent'; b.style.boxShadow=onn?`0 0 12px ${acc.hex}`:'none'; b.style.transform=onn?'scale(1.35)':'scale(1)'; });
+      draw(t||0, act, reveal);
+      this._raf=requestAnimationFrame(frame);
+    };
+    this._raf=requestAnimationFrame(frame);
+  }
+  componentWillUnmount(){ if(this._raf) cancelAnimationFrame(this._raf); document.body.style.cursor=''; (this._cleanup||[]).forEach(f=>f()); }
+  renderVals(){ return {}; }
+}
+</script>
+</body>
+</html>
