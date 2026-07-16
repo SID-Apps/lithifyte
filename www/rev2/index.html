@@ -538,62 +538,233 @@ class Component extends DCLogic {
 
     // scene targets by active chapter
     // 0 enter · 1 approach · 2 people · 3 merchants · 4 goals · 5 flow · 6 vault · 7 dock
-    const targetFor = (act) => {
-      const T = { mapA:1, zoom:1, flow:0, vault:0, tier:0 };
+    // isolate: Set of node ids lit like app search-highlight; null = full map; hh may be dimmed separately
+    const PEOPLE_IDS = ['p1','p2','ac1','ac2','ac3','ac4'];
+    const MERCH_IDS = () => nodes.filter(n => n.type === 'cat' || n.type === 'merch' || n.type === 'income' || n.type === 'acct').map(n => n.id);
+    const WEALTH_IDS = ['goal','debt','ac2','p2','p1','ac1'];
+
+    const targetFor = (act, lp) => {
+      const T = { mapA:1, zoom:1, flow:0, vault:0, tier:0, isolate:null, dimHh:false, pulseFlow:false };
       if (act === 0){ T.mapA = 0.14; T.zoom = 0.88; T.tier = 0; }
-      else if (act === 1){ T.mapA = 0.88; T.zoom = 0.92; T.tier = 1; }
-      else if (act === 2){ T.mapA = 1; T.zoom = 0.98; T.tier = 1; }
-      else if (act === 3){ T.mapA = 1; T.zoom = 1.05; T.tier = 3; }
-      else if (act === 4){ T.mapA = 1; T.zoom = 1.0; T.tier = 4; }
-      else if (act === 5){ T.mapA = 0.18; T.zoom = 0.95; T.flow = 1; T.tier = 4; }
+      else if (act === 1){ T.mapA = 0.88; T.zoom = 0.92; T.tier = 1; } // living map forms — no isolate
+      else if (act === 2){
+        // 02 — people + accounts lit; household faded; flows person→account pulse
+        T.mapA = 1; T.zoom = 1.0; T.tier = 1;
+        T.isolate = new Set(PEOPLE_IDS);
+        T.dimHh = true;
+        T.pulseFlow = true;
+      }
+      else if (act === 3){
+        // 03 — category hubs boom + merchant transactions; people/hh dimmed
+        T.mapA = 1; T.zoom = 1.08; T.tier = 3;
+        T.isolate = new Set(MERCH_IDS().concat(['ac1','ac2','ac3','ac4','inc']));
+        T.pulseFlow = true;
+      }
+      else if (act === 4){
+        // 04 — goals/debts isolated early; late in section → full map before Flow
+        T.mapA = 1; T.zoom = 1.0; T.tier = 4;
+        if (lp < 0.62){
+          T.isolate = new Set(WEALTH_IDS);
+          T.pulseFlow = true;
+        } else {
+          // scroll out: everything visible just before 05
+          T.isolate = null;
+          T.zoom = 0.96;
+        }
+      }
+      else if (act === 5){ T.mapA = 0.12; T.zoom = 0.92; T.flow = 1; T.tier = 4; }
       else if (act === 6){ T.mapA = 0.1; T.zoom = 0.95; T.vault = 1; T.tier = 4; }
-      else { T.mapA = 0.12; T.zoom = 0.92; T.tier = 1; } // dock: calm residual map, NO reticle
+      else { T.mapA = 0.12; T.zoom = 0.92; T.tier = 1; }
       return T;
     };
 
+    // Scroll-driven Sankey: income bar fills ↓ → thick blue trunk flows down → outflows branch
     const drawSankey = (g, alpha) => {
-      const cats=[
+      const cats = [
         {n:'Housing',v:1800,c:'#38bdf8'},{n:'Savings',v:1500,c:'#34d399'},
         {n:'Groceries',v:640,c:'#a5b4fc'},{n:'Everyday',v:1100,c:'#fbbf24'},
         {n:'Transport',v:360,c:'#2dd4bf'},{n:'Leisure',v:300,c:'#e879f9'},{n:'Other',v:300,c:'#f472b6'}
       ];
-      const total=cats.reduce((s,c)=>s+c.v,0);
-      const leftX=Math.max(60,W*0.10), colW=16, topY=H*0.24, fullH=H*0.52;
-      const rightX=Math.min(W*0.46, W*0.10+520);
-      const gap=15, avail=fullH-gap*(cats.length-1);
-      ctx.save(); ctx.globalAlpha=alpha;
-      ctx.fillStyle=hex(acc.hex,0.9); ctx.fillRect(leftX,topY,colW,fullH);
-      ctx.font="600 12px 'IBM Plex Mono', monospace"; ctx.textAlign='left'; ctx.fillStyle='#e8f1ff';
-      ctx.fillText('Income', leftX-4, topY-16); ctx.fillStyle=hex(acc.hex,1); ctx.font="700 15px 'Syne', sans-serif"; ctx.fillText('€6,000', leftX-4, topY-1);
-      let sY=topY, rY=topY;
-      cats.forEach((c,i)=>{
-        const h=c.v/total*fullH, rh=c.v/total*avail;
-        const gi=ease(clamp((g - i*0.085)/0.5, 0, 1));
-        const x0=leftX+colW, x1=x0+(rightX-x0)*gi;
-        const y0t=sY, y0b=sY+h, y1t=rY, y1b=rY+rh, mxc=(x0+x1)/2;
-        const grad=ctx.createLinearGradient(x0,0,x1,0);
-        grad.addColorStop(0,hex(c.c,0.16)); grad.addColorStop(1,hex(c.c,0.5*gi+0.12));
-        ctx.beginPath(); ctx.moveTo(x0,y0t); ctx.bezierCurveTo(mxc,y0t,mxc,y1t,x1,y1t);
-        ctx.lineTo(x1,y1b); ctx.bezierCurveTo(mxc,y1b,mxc,y0b,x0,y0b); ctx.closePath();
-        ctx.fillStyle=grad; ctx.fill();
-        if(gi>0.85){
-          const la=ease((gi-0.85)/0.15); ctx.globalAlpha=alpha*la;
-          ctx.fillStyle=hex(c.c,0.95); ctx.fillRect(x1,y1t,5,rh);
-          ctx.textAlign='left'; ctx.fillStyle='#e8f1ff';
-          ctx.font="600 12px 'IBM Plex Mono', monospace"; ctx.fillText(c.n, x1+12, y1t+rh/2-2);
-          ctx.fillStyle=hex(c.c,1); ctx.fillText('€'+c.v.toLocaleString(), x1+12, y1t+rh/2+13);
-          ctx.globalAlpha=alpha;
+      const total = cats.reduce((s,c)=>s+c.v,0);
+      const leftX = Math.max(56, W * 0.10);
+      const colW = 22;
+      const topY = H * 0.20;
+      const fullH = H * 0.56;
+      const rightX = Math.min(W * 0.50, leftX + 520);
+      const gap = 14;
+      const avail = fullH - gap * (cats.length - 1);
+
+      // Scroll phases — staged story
+      const incomeGrow = ease(clamp(g / 0.22, 0, 1));            // 0→22%  income bar fills down
+      const trunkProg  = ease(clamp((g - 0.14) / 0.30, 0, 1));   // 14→44% blue trunk flows down
+      const outBase    = clamp((g - 0.40) / 0.52, 0, 1);         // 40→92% outflows open
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+
+      // ── 1) Income source bar (grows downward as you scroll) ──
+      const incomeH = fullH * incomeGrow;
+      if (incomeH > 1){
+        const ig = ctx.createLinearGradient(leftX, topY, leftX, topY + incomeH);
+        ig.addColorStop(0, hex('#7dd3fc', 0.98));
+        ig.addColorStop(0.45, hex(acc.hex, 0.95));
+        ig.addColorStop(1, hex('#0284c7', 0.85));
+        ctx.fillStyle = ig;
+        ctx.shadowColor = acc.hex; ctx.shadowBlur = 18 * incomeGrow;
+        ctx.fillRect(leftX, topY, colW, incomeH);
+        ctx.shadowBlur = 0;
+        // inner highlight edge
+        ctx.fillStyle = hex('#e0f2fe', 0.25);
+        ctx.fillRect(leftX + 2, topY + 2, 3, Math.max(0, incomeH - 4));
+      }
+      ctx.font = "600 12px 'IBM Plex Mono', monospace";
+      ctx.textAlign = 'left';
+      ctx.fillStyle = `rgba(232,241,255,${0.5 + 0.5 * incomeGrow})`;
+      ctx.fillText('Income', leftX - 2, topY - 20);
+      ctx.font = "700 17px 'Syne', sans-serif";
+      ctx.fillStyle = hex(acc.hex, 0.35 + 0.65 * incomeGrow);
+      ctx.fillText('€6,000', leftX - 2, topY - 3);
+
+      // ── 2) Thick blue trunk — flows DOWN the right edge of income with scroll ──
+      const trunkX = leftX + colW + 3;
+      const trunkW = 12 + 4 * trunkProg;
+      const trunkH = fullH * trunkProg;
+      if (trunkH > 2 && incomeGrow > 0.25){
+        const tg = ctx.createLinearGradient(trunkX, topY, trunkX, topY + trunkH);
+        tg.addColorStop(0, hex('#7dd3fc', 0.9));
+        tg.addColorStop(0.5, hex('#38bdf8', 0.85));
+        tg.addColorStop(1, hex('#0369a1', 0.7));
+        ctx.fillStyle = tg;
+        ctx.shadowColor = '#38bdf8'; ctx.shadowBlur = 14 * trunkProg;
+        ctx.beginPath();
+        const r = trunkW / 2;
+        // rounded vertical capsule growing down
+        ctx.moveTo(trunkX, topY);
+        ctx.lineTo(trunkX + trunkW, topY);
+        ctx.lineTo(trunkX + trunkW, topY + trunkH - r);
+        ctx.arc(trunkX + trunkW / 2, topY + trunkH - r, r, 0, Math.PI, false);
+        ctx.closePath();
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // flowing dashes + droplets DOWN the trunk
+        if (!reduce && trunkProg > 0.06){
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(trunkX - 1, topY, trunkW + 2, trunkH);
+          ctx.clip();
+          ctx.strokeStyle = hex('#e0f2fe', 0.65);
+          ctx.lineWidth = 2;
+          ctx.setLineDash([7, 12]);
+          ctx.lineDashOffset = -((tNow / 28) % 19);
+          ctx.beginPath();
+          ctx.moveTo(trunkX + trunkW / 2, topY);
+          ctx.lineTo(trunkX + trunkW / 2, topY + trunkH);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          for (let k = 0; k < 6; k++){
+            const u = ((tNow * 0.0004 + k * 0.16) % 1);
+            if (u > trunkProg) continue;
+            const y = topY + fullH * u;
+            if (y > topY + trunkH) continue;
+            ctx.fillStyle = hex('#f0f9ff', 0.9);
+            ctx.beginPath(); ctx.arc(trunkX + trunkW / 2, y, 2.6, 0, Math.PI * 2); ctx.fill();
+          }
+          ctx.restore();
         }
-        sY+=h; rY+=rh+gap;
-      });
+        if (trunkProg > 0.2){
+          ctx.globalAlpha = alpha * ease(clamp((trunkProg - 0.2) / 0.35, 0, 1));
+          ctx.font = "600 11px 'IBM Plex Mono', monospace";
+          ctx.fillStyle = hex(acc.hex, 0.95);
+          ctx.fillText('cash income ↓', trunkX + trunkW + 10, topY + Math.min(trunkH * 0.4, 48));
+          ctx.globalAlpha = alpha;
+        }
+      }
+
+      // ── 3) Cash outflows — branch right from the trunk into categories ──
+      if (outBase > 0.01 && trunkProg > 0.55){
+        const joinX = trunkX + trunkW; // leave the blue trunk
+        let sY = topY;
+        let rY = topY;
+        cats.forEach((c, i) => {
+          const h = c.v / total * fullH;
+          const rh = c.v / total * avail;
+          const gi = ease(clamp((outBase - i * 0.065) / 0.40, 0, 1));
+          if (gi <= 0.01){ sY += h; rY += rh + gap; return; }
+
+          // only draw slices that the trunk has already reached
+          const sliceMid = (sY + sY + h) / 2;
+          if (sliceMid > topY + trunkH + 8){ sY += h; rY += rh + gap; return; }
+
+          const x0 = joinX;
+          const x1 = x0 + (rightX - x0) * gi;
+          const y0t = sY, y0b = sY + h;
+          const y1t = rY, y1b = rY + rh;
+          const mxc = (x0 + x1) / 2;
+
+          const grad = ctx.createLinearGradient(x0, 0, x1, 0);
+          grad.addColorStop(0, hex(c.c, 0.22 + 0.15 * gi));
+          grad.addColorStop(0.55, hex(c.c, 0.28 + 0.25 * gi));
+          grad.addColorStop(1, hex(c.c, 0.2 + 0.4 * gi));
+          ctx.beginPath();
+          ctx.moveTo(x0, y0t);
+          ctx.bezierCurveTo(mxc, y0t, mxc, y1t, x1, y1t);
+          ctx.lineTo(x1, y1b);
+          ctx.bezierCurveTo(mxc, y1b, mxc, y0b, x0, y0b);
+          ctx.closePath();
+          ctx.fillStyle = grad;
+          ctx.globalAlpha = alpha * (0.6 + 0.4 * gi);
+          ctx.fill();
+
+          // directional particles income → category
+          if (!reduce && gi > 0.3){
+            for (let p = 0; p < 2; p++){
+              const u = ((tNow * 0.00045 + i * 0.11 + p * 0.45) % 1);
+              const u2 = u * u * (3 - 2 * u);
+              const bx = x0 + (x1 - x0) * u2;
+              const by = (y0t + y0b) / 2 + ((y1t + y1b) / 2 - (y0t + y0b) / 2) * u2;
+              ctx.fillStyle = hex(c.c, 0.75 * gi);
+              ctx.beginPath(); ctx.arc(bx, by, 1.9, 0, Math.PI * 2); ctx.fill();
+            }
+          }
+
+          if (gi > 0.75){
+            const la = ease((gi - 0.75) / 0.25);
+            ctx.globalAlpha = alpha * la;
+            ctx.fillStyle = hex(c.c, 0.95);
+            ctx.fillRect(x1, y1t, 5, rh);
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#e8f1ff';
+            ctx.font = "600 12px 'IBM Plex Mono', monospace";
+            ctx.fillText(c.n, x1 + 12, y1t + rh / 2 - 2);
+            ctx.fillStyle = hex(c.c, 1);
+            ctx.fillText('€' + c.v.toLocaleString(), x1 + 12, y1t + rh / 2 + 13);
+          }
+          ctx.globalAlpha = alpha;
+          sY += h; rY += rh + gap;
+        });
+
+        if (outBase > 0.15){
+          ctx.globalAlpha = alpha * ease(clamp((outBase - 0.15) / 0.3, 0, 1));
+          ctx.font = "600 11px 'IBM Plex Mono', monospace";
+          ctx.fillStyle = '#8fb0d0';
+          ctx.textAlign = 'left';
+          ctx.fillText('→ cash outflow by category', rightX - 10, topY - 18);
+          ctx.globalAlpha = alpha;
+        }
+      }
+
       ctx.restore();
     };
 
-    const draw = (t, act, reveal, flowLp) => {
+    let tNow = 0;
+
+    const draw = (t, act, sectionLp, flowLp) => {
+      tNow = t || 0;
       smx += (mx-smx)*0.05; smy += (my-smy)*0.05;
       const ox = parallaxOn ? smx*22 : 0;
       const oy = parallaxOn ? smy*14 : 0;
-      const T = targetFor(act);
+      const T = targetFor(act, sectionLp || 0);
       mapAlpha = lerp(mapAlpha, T.mapA, 0.06);
       mapZoom = lerp(mapZoom, T.zoom, 0.05);
       flowA = lerp(flowA, T.flow, 0.06);
@@ -601,7 +772,7 @@ class Component extends DCLogic {
       if (T.tier !== prevTier){
         revealTier = T.tier;
         prevTier = T.tier;
-        // place newly visible nodes near their seeds with a soft kick
+        // place newly visible nodes near their seeds with a soft kick (boom)
         for (const n of nodes){
           if (n.revealAt === revealTier && !n.fixed){
             n.x = n.seedX + (Math.random()-0.5)*16;
@@ -609,9 +780,11 @@ class Component extends DCLogic {
             n.vx = 0; n.vy = 0;
           }
         }
-        kick(0.55);
+        // stronger kick when hubs/merchants bloom
+        kick(T.tier >= 3 ? 0.85 : 0.55);
       }
       revealTier = T.tier;
+      const isolate = T.isolate; // Set | null — app search-style highlight
 
       ctx.clearRect(0,0,W,H);
       // deep navy gradient (product)
@@ -663,7 +836,7 @@ class Component extends DCLogic {
         // slight parallax offset of whole graph
         const px = ox * 0.35, py = oy * 0.25;
 
-        // edges — curved, tinted like product
+        // edges — curved, tinted; isolation dims non-focus links (app search style)
         ctx.save();
         for (const L of links){
           if (!visLink(L)) continue;
@@ -672,29 +845,39 @@ class Component extends DCLogic {
           if (!isFinite(a.x+a.y+b.x+b.y)) continue;
           const sa = worldToScreen(a), sb = worldToScreen(b);
           const ax = sa.x + px, ay = sa.y + py, bx = sb.x + px, by = sb.y + py;
-          const active = hover && (L.a === hover || L.b === hover);
+          const hoverOn = hover && (L.a === hover || L.b === hover);
+          // focused link when both ends are in the isolate set (app search style)
+          const focusLink = !!(isolate && isolate.has(L.a) && isolate.has(L.b));
+          const active = hoverOn || focusLink;
+          const dimLink = isolate && !active;
           const colA = nodeColor(a), colB = nodeColor(b);
-          ctx.globalAlpha = mapAlpha * (active ? 0.85 : 0.34);
+          ctx.globalAlpha = mapAlpha * (active ? 0.9 : dimLink ? 0.07 : 0.32);
           const grad = ctx.createLinearGradient(ax, ay, bx, by);
           grad.addColorStop(0, colA); grad.addColorStop(1, colB);
           ctx.strokeStyle = grad;
-          ctx.lineWidth = (L.w || 2) * (active ? 1.45 : 1);
+          ctx.lineWidth = (L.w || 2) * (active ? 1.7 : 1);
           if (active && !reduce){ ctx.setLineDash([6, 7]); ctx.lineDashOffset = -t/40; }
           const mx2 = (ax+bx)/2 + (ay-by)*0.12, my2 = (ay+by)/2 + (bx-ax)*0.12;
           ctx.beginPath(); ctx.moveTo(ax, ay); ctx.quadraticCurveTo(mx2, my2, bx, by); ctx.stroke();
           ctx.setLineDash([]);
-          // soft transaction pulse on merchant links
-          if (L.revealAt >= 3 && revealTier >= 3 && !reduce){
-            const m = (Math.sin(t*0.0012 + ax*0.01)*0.5 + 0.5);
-            const ex = ax + (bx-ax)*m, ey = ay + (by-ay)*m;
-            ctx.globalAlpha = mapAlpha * 0.7;
+          // directional flow dots on focused links (and merchant txns)
+          const wantPulse = (T.pulseFlow && active) || (L.revealAt >= 3 && revealTier >= 3 && active);
+          if (wantPulse && !reduce){
+            const m = ((t * 0.0011 + (ax + ay) * 0.008) % 1);
+            // ease along curve approx
+            const ex = ax + (bx - ax) * m, ey = ay + (by - ay) * m;
+            ctx.globalAlpha = mapAlpha * 0.85;
             ctx.fillStyle = '#bae6fd';
-            ctx.beginPath(); ctx.arc(ex, ey, 2, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(ex, ey, active ? 2.6 : 2, 0, Math.PI * 2); ctx.fill();
+            // second trailing particle for direction
+            const m2 = (m + 0.35) % 1;
+            ctx.globalAlpha = mapAlpha * 0.45;
+            ctx.beginPath(); ctx.arc(ax+(bx-ax)*m2, ay+(by-ay)*m2, 1.6, 0, Math.PI*2); ctx.fill();
           }
         }
         ctx.restore();
 
-        // nodes
+        // nodes — isolate dims non-matches (household specially faded in ch 02)
         const pulse = reduce ? 1 : 1 + 0.05*Math.sin(t/700);
         for (const n of nodes){
           if (!visNode(n)) continue;
@@ -702,19 +885,23 @@ class Component extends DCLogic {
           const sx = s.x + px, sy = s.y + py;
           const r = Math.max(2, s.r * pulse);
           const hv = hover === n.id || n === dragNode;
-          const a = mapAlpha * (hv ? 1.1 : 1);
+          let lit = !isolate || isolate.has(n.id) || hv;
+          // household: intentionally faded when dimHh, never fully gone
+          if (n.id === 'hh' && T.dimHh && !hv) lit = false;
+          const dim = isolate && !lit;
+          const dimMul = dim ? (n.id === 'hh' && T.dimHh ? 0.12 : 0.14) : 1;
+          const a = mapAlpha * dimMul * (hv ? 1.15 : lit ? 1 : 1);
           this._nodeScreen[n.id] = {x:sx, y:sy, r, alpha:a, id:n.id};
 
           ctx.globalAlpha = a;
           if (n.type === 'debt'){
-            // hollow debt — product: hole in net worth
             const sp = nodeSprite(nodeColor(n), n.r);
             ctx.drawImage(sp.cv, sx - sp.half*(r/n.r), sy - sp.half*(r/n.r), sp.cv.width*(r/n.r), sp.cv.height*(r/n.r));
             ctx.fillStyle = 'rgba(3,13,27,.88)';
             ctx.beginPath(); ctx.arc(sx, sy, r*0.52, 0, Math.PI*2); ctx.fill();
           } else {
             const sp = nodeSprite(nodeColor(n), n.r);
-            const sc = r / n.r;
+            const sc = r / n.r * (lit && isolate ? 1.06 : 1);
             ctx.drawImage(sp.cv, sx - sp.half*sc, sy - sp.half*sc, sp.cv.width*sc, sp.cv.height*sc);
           }
           if (n.type === 'goal'){
@@ -728,13 +915,13 @@ class Component extends DCLogic {
               ctx.stroke(); ctx.lineCap = 'butt';
             }
           }
-          // labels — constant-ish screen size
-          if (a > 0.45 && (n.type !== 'merch' || hv || cam.k > 0.95)){
+          // labels — hide on heavily dimmed nodes (app declutter)
+          if (a > 0.35 && (n.type !== 'merch' || hv || lit || cam.k > 0.95)){
             ctx.textAlign = 'center';
             ctx.font = (n.type==='hh'||n.type==='user'||n.type==='acct' ? '600 ' : '') + "11.5px system-ui,sans-serif";
-            ctx.fillStyle = INK;
+            ctx.fillStyle = dim ? INK2 : INK;
             ctx.fillText(n.label, sx, sy + r + 14);
-            if (n.amt && n.type !== 'merch'){
+            if (n.amt && n.type !== 'merch' && !dim){
               ctx.font = "10.5px system-ui,sans-serif";
               ctx.fillStyle = n.type === 'goal' ? '#f7c95c' : INK2;
               ctx.fillText(n.amt, sx, sy + r + 26);
@@ -750,7 +937,7 @@ class Component extends DCLogic {
         tip.style.opacity = '0';
       }
 
-      // Sankey (flow chapter) — map fades back
+      // Sankey (flow chapter) — map fades back; progress from chapter scroll
       if (flowA > 0.02) drawSankey(this._flowLocal || 0, flowA);
 
       // privacy vault ring only (no dock crosshair)
@@ -805,6 +992,7 @@ class Component extends DCLogic {
         if (c){ c.style.opacity = o.toFixed(3); c.style.transform = `translateY(${ty.toFixed(1)}px)`; }
       });
 
+      // Flow chapter progress drives income→trunk→outflow; stay fully drawn after
       this._flowLocal = act < 5 ? 0 : act > 5 ? 1 : flowLp;
 
       railBtns.forEach((b, i) => {
