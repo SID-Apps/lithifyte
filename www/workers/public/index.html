@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sign in — Lithifyte</title>
+<meta name="description" content="Free access to Lithifyte. Email only — bank data never leaves your browser.">
+<meta name="theme-color" content="#020b1a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#020b1a; --deep:#041224; --cyan:#38bdf8; --cyan-hot:#7dd3fc;
+    --mint:#34d399; --ink:#e8f1ff; --muted:#8fb0d0; --line:rgba(56,189,248,.28);
+    --font-display:"Syne",system-ui,sans-serif;
+    --font-mono:"IBM Plex Mono",ui-monospace,monospace;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  body{
+    margin:0; min-height:100vh; background:var(--void); color:var(--ink);
+    font-family:var(--font-display); font-weight:500;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:24px; -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(ellipse 70% 50% at 50% 30%, #0a1f3d 0%, transparent 65%),
+      radial-gradient(ellipse 40% 30% at 80% 80%, rgba(56,189,248,.08), transparent);
+  }
+  a{color:var(--cyan-hot); text-decoration:none}
+  a:hover{text-decoration:underline}
+  .card{
+    width:min(420px,100%); background:rgba(4,18,36,.78);
+    border:1px solid var(--line); border-radius:16px;
+    padding:28px 26px 24px; box-shadow:0 0 60px rgba(56,189,248,.12);
+    backdrop-filter:blur(10px);
+  }
+  .brand{
+    display:flex; align-items:center; gap:10px;
+    font:800 14px var(--font-display); letter-spacing:.06em; margin-bottom:22px;
+  }
+  .mark{
+    width:28px; height:28px; border-radius:8px; border:1px solid var(--cyan);
+    box-shadow:0 0 24px rgba(56,189,248,.35);
+    background:radial-gradient(circle at 35% 35%, #7dd3fc, transparent 55%),
+               linear-gradient(135deg,#0ea5e9,#1d4ed8);
+    position:relative;
+  }
+  .mark::after{
+    content:""; position:absolute; inset:7px; border-radius:50%;
+    border:1.5px solid rgba(255,255,255,.85);
+  }
+  h1{margin:0 0 8px; font:800 28px/1.1 var(--font-display); letter-spacing:-.02em}
+  .lead{margin:0 0 22px; color:var(--muted); font:500 14px/1.55 var(--font-display)}
+  label{
+    display:block; font:600 11px var(--font-mono); letter-spacing:.1em;
+    text-transform:uppercase; color:var(--cyan); margin-bottom:8px;
+  }
+  input[type=email]{
+    width:100%; padding:14px 14px; border-radius:10px;
+    border:1px solid var(--line); background:rgba(2,11,26,.65);
+    color:var(--ink); font:500 15px var(--font-mono); outline:none;
+  }
+  input[type=email]:focus{border-color:var(--cyan-hot); box-shadow:0 0 0 3px rgba(56,189,248,.15)}
+  button{
+    width:100%; margin-top:14px; padding:14px 16px; border-radius:10px; border:1px solid rgba(125,211,252,.55);
+    background:linear-gradient(135deg, rgba(14,165,233,.95), rgba(29,78,216,.95));
+    color:#fff; font:600 14px var(--font-mono); letter-spacing:.03em; cursor:pointer;
+  }
+  button:hover{filter:brightness(1.06)}
+  button:disabled{opacity:.55; cursor:wait}
+  .status{
+    margin-top:14px; min-height:1.4em; font:500 13px/1.5 var(--font-mono); color:var(--muted);
+  }
+  .status.ok{color:var(--mint)}
+  .status.err{color:#f87171}
+  .dev-link{
+    margin-top:10px; padding:12px; border-radius:10px; border:1px dashed var(--line);
+    font:500 12px/1.45 var(--font-mono); word-break:break-all; color:var(--cyan-hot);
+    background:rgba(2,11,26,.5);
+  }
+  .promise{
+    margin-top:18px; padding-top:16px; border-top:1px solid rgba(56,189,248,.14);
+    font:500 12px/1.5 var(--font-mono); color:var(--muted);
+  }
+  .links{margin-top:16px; display:flex; flex-wrap:wrap; gap:12px 18px; font:500 12px var(--font-mono)}
+  .links a{color:var(--muted)}
+  .links a:hover{color:var(--cyan-hot)}
+  footer{
+    margin-top:28px; font:500 11px var(--font-mono); color:#5a7694; letter-spacing:.03em; text-align:center;
+  }
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="brand"><span class="mark" aria-hidden="true"></span> LITHIFYTE</div>
+    <h1>Sign in free</h1>
+    <p class="lead">Magic link to your email. We store only the address for identity — never bank data, statements, or balances.</p>
+    <form id="form" novalidate>
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" autocomplete="email" required placeholder="you@example.com" inputmode="email">
+      <button type="submit" id="submit">Email me a sign-in link</button>
+    </form>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+    <div class="dev-link" id="devLink" hidden></div>
+    <p class="promise">Identity can live on Cloudflare. Finance stays in your browser on <a href="https://app.lithifyte.com">app.lithifyte.com</a>.</p>
+    <div class="links">
+      <a href="https://lithifyte.com">← Marketing</a>
+      <a href="https://app.lithifyte.com/demo.html">Demo (no sign-in)</a>
+      <a href="https://app.lithifyte.com">Open app</a>
+    </div>
+  </main>
+  <footer>© 2026 Lithifyte · SID Labs · AGPL-3.0</footer>
+<script>
+(function(){
+  const form = document.getElementById('form');
+  const emailEl = document.getElementById('email');
+  const status = document.getElementById('status');
+  const submit = document.getElementById('submit');
+  const devLink = document.getElementById('devLink');
+  // same origin when served by access worker
+  const API = '';
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = (emailEl.value || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      status.className = 'status err';
+      status.textContent = 'Enter a valid email address.';
+      return;
+    }
+    submit.disabled = true;
+    status.className = 'status';
+    status.textContent = 'Sending link…';
+    devLink.hidden = true;
+    try {
+      const res = await fetch(API + '/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, source: 'signin' }),
+        credentials: 'include',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+      status.className = 'status ok';
+      status.textContent = data.message || 'Check your email for the sign-in link.';
+      if (data.devLink) {
+        devLink.hidden = false;
+        devLink.innerHTML = '<b>Dev link</b> (mailer not wired yet):<br><a href="' + data.devLink + '">' + data.devLink + '</a>';
+      }
+    } catch (err) {
+      status.className = 'status err';
+      status.textContent = err.message || String(err);
+    } finally {
+      submit.disabled = false;
+    }
+  });
+
+  // Show signed-in state if cookie already present
+  fetch(API + '/me', { credentials: 'include' })
+    .then(r => r.json())
+    .then(d => {
+      if (d && d.email) {
+        status.className = 'status ok';
+        status.innerHTML = 'Signed in as <b>' + d.email + '</b> · <a href="https://app.lithifyte.com">Open app →</a>';
+      }
+    })
+    .catch(() => {});
+})();
+</script>
+</body>
+</html>

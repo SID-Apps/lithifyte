@@ -1,23 +1,27 @@
-# Cloudflare Worker — free access / email identity for Lithifyte
-# Deploy from repo root of www/workers:
-#   npx wrangler login
-#   npx wrangler kv:namespace create WAITLIST
-#   # paste id below, then:
-#   npx wrangler deploy
-#
-# Point landing WAITLIST_URL at:
-#   https://lithifyte-access.<your-subdomain>.workers.dev/waitlist
+# Lithifyte access — magic-link identity (email only)
+# Deploy:  cd www/workers && wrangler deploy
+# Host:    access.lithifyte.com  (Worker custom domain or route)
 
 name = "lithifyte-access"
 main = "access.js"
-compatibility_date = "2026-07-01"
+compatibility_date = "2026-07-16"
+workers_dev = true
 
-# Uncomment after creating the KV namespace:
-# [[kv_namespaces]]
-# binding = "WAITLIST"
-# id = "YOUR_KV_NAMESPACE_ID"
+[[kv_namespaces]]
+binding = "WAITLIST"
+id = "e9a5e75ebb2a4867b090fce4c52735a1"
+preview_id = "c5a7f69e525d4135b18f750bca1fba07"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+# Worker handles API + decides when to serve assets
+run_worker_first = true
 
 [vars]
-APP_ORIGIN = "https://lithifyte.sid-labs.com"
+APP_ORIGIN = "https://app.lithifyte.com"
 LANDING = "https://lithifyte.com"
-# DEV_RETURN_LINK = "1"   # only for local testing — returns magic link in JSON
+ACCESS_ORIGIN = "https://access.lithifyte.com"
+COOKIE_DOMAIN = ".lithifyte.com"
+# Show magic link in UI until email provider is wired:
+DEV_RETURN_LINK = "1"
