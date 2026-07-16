@@ -9,6 +9,29 @@ Immersive first-person landing for **lithifyte.com** — Tron-grid / galaxy scro
 | **1** | [`index.html`](index.html) | Grok | Single-file landing + waitlist form + Worker stub docs |
 | **2** | [`rev2/`](rev2/) | Claude Design Canvas | Sticky scroll chapters, draggable force-directed map, canvas Sankey |
 
+**Production (live):** **https://lithifyte.com** (and `www`) serves **Rev 2** via Cloudflare Worker `lithifyte-landing` (routes `lithifyte.com/*` + `www.lithifyte.com/*`).  
+**App / demo:** still **https://lithifyte.sid-labs.com** (Worker `lithifyte`).  
+**Pages mirror:** project `lithifyte-com` → https://lithifyte-com.pages.dev
+
+### Redeploy the landing (Rev 2)
+
+```bash
+# from a machine with wrangler logged in
+rm -rf /tmp/lithifyte-landing && mkdir -p /tmp/lithifyte-landing
+cp www/rev2/index.html www/rev2/support.js /tmp/lithifyte-landing/
+cat > /tmp/lithifyte-landing/wrangler.toml <<'EOF'
+name = "lithifyte-landing"
+compatibility_date = "2026-07-16"
+workers_dev = true
+[assets]
+directory = "."
+not_found_handling = "single-page-application"
+EOF
+cd /tmp/lithifyte-landing && wrangler deploy
+# optional Pages mirror:
+# wrangler pages deploy . --project-name=lithifyte-com --branch=main
+```
+
 See [`rev2/README.md`](rev2/README.md) for the Rev 2 chapter map and preview commands.
 
 ## What’s in the experience (Rev 1)
