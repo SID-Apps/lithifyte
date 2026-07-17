@@ -1,5 +1,52 @@
 <!doctype html><meta charset="utf-8">
 <title>Lithifyte — household finance mission control</title>
+<script>
+/* Hosted sign-in gate — app.lithifyte.com only. This is identity, not
+   security: the app is open source and all data is client-side, so the gate
+   just asks visitors to sign in (free, email magic link) before using the
+   hosted blank shell. The demo stays open, and file:// / self-hosted copies
+   are never gated. Fails open if the identity service is unreachable. */
+(function(){
+  if (location.hostname !== 'app.lithifyte.com') return;
+  if (/^\/demo/.test(location.pathname)) return;
+  var state = 'waiting', ov = null;
+  function show(){
+    if (ov || state === 'open') return;
+    ov = document.createElement('div');
+    ov.id = 'lfGate';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:#020b1a;display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,sans-serif;color:#e8f1ff;text-align:center';
+    ov.innerHTML = '<div style="opacity:.7;font-size:14px;letter-spacing:.08em">Checking sign-in…</div>';
+    (document.body || document.documentElement).appendChild(ov);
+  }
+  function open(){
+    state = 'open';
+    if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
+    ov = null;
+  }
+  function prompt(){
+    if (state === 'open') return;
+    state = 'prompt';
+    show();
+    ov.innerHTML =
+      '<div style="width:min(420px,100%);background:rgba(4,18,36,.85);border:1px solid rgba(56,189,248,.28);border-radius:16px;padding:30px 26px;box-shadow:0 0 60px rgba(56,189,248,.12)">' +
+        '<div style="display:flex;align-items:center;justify-content:center;gap:10px;font-weight:800;font-size:14px;letter-spacing:.06em;margin-bottom:18px">' +
+          '<span style="position:relative;width:26px;height:26px;border-radius:7px;border:1px solid #38bdf8;background:linear-gradient(135deg,#0ea5e9,#1d4ed8);display:inline-block"><span style="position:absolute;inset:6px;border-radius:50%;border:1.5px solid rgba(255,255,255,.85)"></span></span>LITHIFYTE</div>' +
+        '<h1 style="margin:0 0 8px;font-size:24px;line-height:1.15;letter-spacing:-.01em">Sign in to open the app</h1>' +
+        '<p style="margin:0 0 20px;color:#8fb0d0;font-size:13.5px;line-height:1.55">Free — a magic link to your email, no password. Whether signed in or not, your financial data stays in this browser and is never sent anywhere.</p>' +
+        '<a href="https://access.lithifyte.com/" style="display:block;padding:13px 16px;border-radius:10px;background:linear-gradient(135deg,#0ea5e9,#1d4ed8);color:#fff;font-weight:600;font-size:14px;text-decoration:none;border:1px solid rgba(125,211,252,.55)">Sign in free</a>' +
+        '<a href="/demo" style="display:block;margin-top:10px;padding:12px 16px;border-radius:10px;background:rgba(2,11,26,.5);color:#e8f1ff;font-weight:600;font-size:13.5px;text-decoration:none;border:1px solid rgba(56,189,248,.3)">Try the demo instead</a>' +
+        '<p style="margin:16px 0 0;color:#5a7694;font-size:11.5px"><a href="https://lithifyte.com/privacy" style="color:#5a7694">Privacy</a> · <a href="https://lithifyte.com/terms" style="color:#5a7694">Terms</a> · <a href="https://github.com/SID-Apps/lithifyte" style="color:#5a7694">Source</a></p>' +
+      '</div>';
+  }
+  if (document.body) show();
+  else document.addEventListener('DOMContentLoaded', show);
+  fetch('https://access.lithifyte.com/me', { credentials: 'include' })
+    .then(function(r){ return r.json(); })
+    .then(function(d){ if (d && d.email) open(); else prompt(); })
+    .catch(open);
+  setTimeout(function(){ if (state === 'waiting') open(); }, 6000);
+})();
+</script>
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMGVhNWU5Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzFkNGVkOCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iaGwiIGN4PSIwLjM1IiBjeT0iMC4zNSIgcj0iMC41NSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzdkZDNmYyIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3ZGQzZmMiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICA8L2RlZnM+CiAgPHJlY3QgeD0iMTAiIHk9IjEwIiB3aWR0aD0iNDkyIiBoZWlnaHQ9IjQ5MiIgcng9IjE0MCIgZmlsbD0idXJsKCNiZykiLz4KICA8cmVjdCB4PSIxMCIgeT0iMTAiIHdpZHRoPSI0OTIiIGhlaWdodD0iNDkyIiByeD0iMTQwIiBmaWxsPSJ1cmwoI2hsKSIvPgogIDxyZWN0IHg9IjEwIiB5PSIxMCIgd2lkdGg9IjQ5MiIgaGVpZ2h0PSI0OTIiIHJ4PSIxNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzM4YmRmOCIgc3Ryb2tlLXdpZHRoPSIyMCIvPgogIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjI1NiIgcj0iMTIyIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS1vcGFjaXR5PSIwLjkiIHN0cm9rZS13aWR0aD0iMjciLz4KPC9zdmc+Cg==">
 <!--
 Lithifyte — the self-hosted household finance dashboard.
