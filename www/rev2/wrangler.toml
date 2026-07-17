@@ -1,0 +1,10 @@
+# lithifyte.com landing (Rev 2.1) — deploy: cd www/rev2 && wrangler deploy
+name = "lithifyte-landing"
+compatibility_date = "2026-07-16"
+workers_dev = true
+
+[assets]
+directory = "."
+# Real 404s (branded 404.html) instead of serving index.html for every path —
+# keeps robots/sitemap honest and avoids infinite duplicate content for SEO.
+not_found_handling = "404-page"

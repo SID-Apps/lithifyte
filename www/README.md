@@ -13,23 +13,33 @@ Immersive first-person landing for **lithifyte.com** — Tron-grid / galaxy scro
 **App / demo:** still **https://lithifyte.sid-labs.com** (Worker `lithifyte`).  
 **Pages mirror:** project `lithifyte-com` → https://lithifyte-com.pages.dev
 
-### Redeploy the landing (Rev 2)
+### Redeploy the landing (Rev 2.1+)
+
+The deploy config now lives in the repo (`rev2/wrangler.toml`, with
+`.assetsignore` for the non-site files):
 
 ```bash
 # from a machine with wrangler logged in
-rm -rf /tmp/lithifyte-landing && mkdir -p /tmp/lithifyte-landing
-cp www/rev2/index.html www/rev2/support.js /tmp/lithifyte-landing/
-cat > /tmp/lithifyte-landing/wrangler.toml <<'EOF'
-name = "lithifyte-landing"
-compatibility_date = "2026-07-16"
-workers_dev = true
-[assets]
-directory = "."
-not_found_handling = "single-page-application"
-EOF
-cd /tmp/lithifyte-landing && wrangler deploy
+cd www/rev2 && wrangler deploy
 # optional Pages mirror:
 # wrangler pages deploy . --project-name=lithifyte-com --branch=main
+```
+
+Rev 2.1 (2026-07-17) added: favicon set (`favicon.*`, `icon-*.png`,
+`apple-touch-icon.png`, `site.webmanifest`), `privacy.html` / `terms.html`
+(served as `/privacy` and `/terms`), branded `404.html` with
+`not_found_handling = "404-page"` (no more SPA catch-all), `robots.txt`,
+`sitemap.xml`, `og.png` social card, SEO/OG/JSON-LD head, a "What's inside"
+features chapter, hero CTAs, and a no-JS / CDN-failure copy fallback.
+
+### Waitlist admin (who asked for access)
+
+Emails live in the `WAITLIST` KV namespace under `user:` keys:
+
+```bash
+cd www/workers
+wrangler kv key list --binding=WAITLIST --remote --prefix=user: | jq -r '.[].name'
+wrangler kv key get --binding=WAITLIST --remote "user:someone@example.com"
 ```
 
 See [`rev2/README.md`](rev2/README.md) for the Rev 2 chapter map and preview commands.
