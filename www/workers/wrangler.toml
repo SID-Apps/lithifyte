@@ -23,5 +23,9 @@ APP_ORIGIN = "https://app.lithifyte.com"
 LANDING = "https://lithifyte.com"
 ACCESS_ORIGIN = "https://access.lithifyte.com"
 COOKIE_DOMAIN = ".lithifyte.com"
-# Show magic link in UI until email provider is wired:
-DEV_RETURN_LINK = "1"
+# Magic-link mail via Resend from the verified sid-labs.com domain.
+# Secret (not in this file): wrangler secret put RESEND_API_KEY
+MAIL_FROM = "Lithifyte <signin@sid-labs.com>"
+# Dev fallback — set to "1" ONLY for local testing without a mail key
+# (shows the magic link in the UI = anyone can sign in as any address):
+# DEV_RETURN_LINK = "1"

@@ -16,8 +16,9 @@
  * Cookie: Domain=.lithifyte.com so app.lithifyte.com can call /me with credentials
  * once CORS allows the app origin.
  *
- * Mail: until Resend/Mailchannels is wired, set DEV_RETURN_LINK=1 so the
- * sign-in UI shows the magic link (dev only).
+ * Mail: Resend (secret RESEND_API_KEY + var MAIL_FROM). If no key is
+ * configured, set DEV_RETURN_LINK=1 so the sign-in UI shows the magic link
+ * (dev only — anyone can sign in as any address while that is on).
  */
 
 const SESSION_TTL = 60 * 60 * 24 * 30; // 30 days
@@ -108,6 +109,42 @@ async function overLimit(env, key, limit, windowSecs) {
   return false;
 }
 
+/** Send the magic link via Resend. Returns true on success. */
+async function sendMagicLinkEmail(env, email, link) {
+  if (!env.RESEND_API_KEY) return false;
+  const from = env.MAIL_FROM || 'Lithifyte <signin@sid-labs.com>';
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from,
+      to: [email],
+      subject: 'Your Lithifyte sign-in link',
+      text:
+        `Sign in to Lithifyte:\n\n${link}\n\n` +
+        `The link works once and expires in 30 minutes. ` +
+        `If you didn't request it, ignore this email — nothing happens without the link.\n\n` +
+        `Lithifyte stores only this email address for identity. ` +
+        `Your financial data never leaves your browser.\n`,
+      html:
+        `<div style="font-family:system-ui,sans-serif;max-width:32em;margin:0 auto;padding:8px 4px;color:#0b1626">` +
+        `<p style="font-size:15px">Sign in to <strong>Lithifyte</strong>:</p>` +
+        `<p style="margin:22px 0"><a href="${link}" style="display:inline-block;padding:13px 22px;border-radius:10px;` +
+        `background:linear-gradient(135deg,#0ea5e9,#1d4ed8);color:#fff;text-decoration:none;font-weight:600">Sign in to Lithifyte</a></p>` +
+        `<p style="font-size:13px;color:#4b6076">The link works once and expires in 30 minutes. ` +
+        `If you didn't request it, ignore this email — nothing happens without the link.</p>` +
+        `<p style="font-size:12px;color:#7a90a6">Lithifyte stores only this email address for identity. ` +
+        `Your financial data never leaves your browser. ` +
+        `<a href="https://lithifyte.com/privacy" style="color:#0ea5e9">Privacy</a></p>` +
+        `</div>`,
+    }),
+  });
+  return res.ok;
+}
+
 export default {
   async fetch(req, env) {
     const pre = corsPreflight(req);
@@ -164,24 +201,31 @@ export default {
       const accessOrigin = env.ACCESS_ORIGIN || url.origin;
       const link = `${accessOrigin}/auth?token=${raw}`;
 
-      // TODO: sendMagicLinkEmail(env, email, link) via Resend / Mailchannels
+      let sent = false;
       try {
-        if (typeof env.sendMagicLinkEmail === 'function') {
-          await env.sendMagicLinkEmail(email, link);
-        }
+        sent = await sendMagicLinkEmail(env, email, link);
       } catch (_) {
-        /* non-fatal */
+        sent = false;
+      }
+
+      const devMode = env.DEV_RETURN_LINK === '1' || env.DEV_RETURN_LINK === true;
+      if (!sent && !devMode) {
+        // Don't pretend the mail went out — the token stays valid 30 min,
+        // so a retry can still succeed.
+        return json(
+          { error: 'Could not send the sign-in email. Wait a minute and try again.' },
+          502,
+          req
+        );
       }
 
       const payload = {
         ok: true,
-        message: 'If that address can receive mail, a sign-in link is on its way.',
+        message: sent
+          ? 'Check your inbox — your sign-in link is on its way. (Look in spam the first time.)'
+          : 'Dev mode: use the link below (email delivery not configured yet).',
       };
-      if (env.DEV_RETURN_LINK === '1' || env.DEV_RETURN_LINK === true) {
-        payload.devLink = link;
-        payload.message =
-          'Dev mode: use the link below (email delivery not configured yet).';
-      }
+      if (!sent && devMode) payload.devLink = link;
       return json(payload, 200, req);
     }
 
