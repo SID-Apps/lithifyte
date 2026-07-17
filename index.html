@@ -491,8 +491,18 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
   body.touring #tourCard, body.touring #tourParts{visibility:visible; opacity:1}
 
   @media (prefers-reduced-motion: no-preference){
-    body.space #spacePanel.open{animation:panelIn .22s ease}
+    /* Side-rail panels: slide in from the right (transform ends at none). */
+    body.space #spacePanel.open:not(.center){animation:panelIn .22s ease}
     @keyframes panelIn{from{opacity:0; transform:translateX(26px)} to{opacity:1; transform:none}}
+    /* Centered popup (People): keep translate(-50%,-50%) for the whole animation.
+       The side-rail keyframes end at transform:none and were clobbering centering
+       for ~220ms, so the panel jumped into place and the tour coach locked to
+       the mid-animation rect. */
+    body.space #spacePanel.open.center{animation:panelInCenter .22s ease}
+    @keyframes panelInCenter{
+      from{opacity:0; transform:translate(-50%,-50%) scale(.97)}
+      to{opacity:1; transform:translate(-50%,-50%) scale(1)}
+    }
   }
   #viewToggle{position:fixed; top:12px; right:14px; z-index:24; display:inline-flex; align-items:center; gap:6px;
     padding:8px 16px; border-radius:999px; font-size:13.5px; font-weight:650; text-decoration:none; color:#dff0ff;
@@ -10017,13 +10027,29 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         if (mini) void mini.offsetWidth;
         layout(step, el);
       };
+      // Remeasure after open: rAF for first paint, then settle windows that
+      // cover panelIn / panelInCenter (220ms) so the coach card tracks the
+      // final centered geometry (not a mid-animation rect).
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           paint();
           setTimeout(paint, 80);
           setTimeout(paint, 180);
+          setTimeout(paint, 260);
+          setTimeout(paint, 360);
         });
       });
+      const panEl = document.getElementById('spacePanel');
+      if (panEl){
+        const onAnimEnd = (e) => {
+          if (e.target !== panEl) return;
+          if (!active || currentStep !== step) return;
+          panEl.removeEventListener('animationend', onAnimEnd);
+          paint();
+        };
+        panEl.addEventListener('animationend', onAnimEnd);
+        setTimeout(() => panEl.removeEventListener('animationend', onAnimEnd), 600);
+      }
     }
     function show(){
       const L = list();
