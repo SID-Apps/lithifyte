@@ -10,3 +10,6 @@ feeder/out/
 # local scratch
 node_modules/
 .DS_Store
+
+# wrangler local cache (account metadata)
+.wrangler/
