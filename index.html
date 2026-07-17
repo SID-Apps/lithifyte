@@ -646,9 +646,10 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
   .dock-btn .al-badge{margin-left:auto; background:var(--serious); color:#fff; font-size:10.5px; font-weight:700;
     border-radius:999px; min-width:17px; height:17px; line-height:17px; text-align:center; padding:0 4px}
   #spaceDock.col .dock-btn .al-badge{position:absolute; top:2px; right:2px; margin:0}
-  /* panel enlarge (P9): side rail stretches across; centered popup goes near-fullscreen */
-  body.space #spacePanel.open.max:not(.center){left:16px; width:auto; max-width:none}
-  body.space #spacePanel.open.center.max{width:calc(100vw - 36px); max-height:94vh}
+  /* panel enlarge (P9): stretches across the stage but never past the dock —
+     the left edge is set inline (JS) to clear #spaceDock's current width */
+  body.space #spacePanel.open.max:not(.center){width:auto; max-width:none}
+  body.space #spacePanel.open.center.max{left:auto; right:16px; transform:translateY(-50%); width:auto; max-height:94vh}
   body.space #spacePanel.open.center.max .panel-body{max-height:calc(94vh - 54px)}
   .panel-head .panel-max{margin-left:auto}
   .panel-head .panel-max + .panel-close{margin-left:0}
@@ -2028,8 +2029,8 @@ rewrite the static advice cards if the picture has changed.</div>
     db.id = 'demoBadge';
     db.href = './';
     db.textContent = 'Demo Account';
-    db.setAttribute('aria-label', 'Demo Account — sample data only; open the real app');
-    db.title = 'Sample data only — click to open the real app';
+    db.setAttribute('aria-label', 'Demo Account — sample data only, changes are not saved; open the real app');
+    db.title = 'Sample data only — changes are not saved (refresh resets). Click to open the real app';
     db.style.cssText = 'position:fixed;top:12px;left:14px;z-index:62;' +
       'background:rgba(16,20,34,.92);border:1px solid rgba(240,180,60,.55);color:#f0c464;' +
       'padding:6px 12px;border-radius:999px;font:700 12px system-ui,sans-serif;text-decoration:none;white-space:nowrap;' +
@@ -2126,6 +2127,10 @@ rewrite the static advice cards if the picture has changed.</div>
     return fallback;
   }
   function save(key, v){
+    // Demo is read-only: visitors can play with everything in-session, but
+    // nothing persists — a refresh always restores the pristine sample
+    // household (and nobody can mistake the demo for their own account).
+    if (raw.demo) return;
     try{
       const s = JSON.stringify(v);
       if (lockedMode){ memStore.set(key, s); scheduleVaultFlush(); }
@@ -9766,6 +9771,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       mounted.forEach(restore);
       mounted = []; active = null;
       panel.classList.remove('open', 'center', 'max');
+      panel.style.left = '';
       const mx = document.getElementById('panelMax');
       if (mx){ mx.textContent = '⤢'; mx.title = 'Enlarge'; mx.setAttribute('aria-label', 'Enlarge panel'); }
       const stageEl = document.getElementById('spaceStage');
@@ -9857,6 +9863,13 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       mx.textContent = on ? '⤡' : '⤢';
       mx.title = on ? 'Shrink' : 'Enlarge';
       mx.setAttribute('aria-label', on ? 'Shrink panel' : 'Enlarge panel');
+      if (on){
+        // stop at the dock's right edge — never cover the navigation menu
+        const d = dock.getBoundingClientRect();
+        panel.style.left = Math.round((d.width ? d.right : 0) + 16) + 'px';
+      } else {
+        panel.style.left = '';
+      }
     });
     document.addEventListener('keydown', e => {
       if (e.key !== 'Escape' || !document.body.classList.contains('space')) return;
