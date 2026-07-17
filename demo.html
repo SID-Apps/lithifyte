@@ -171,12 +171,20 @@ The JSON block contains:
 BACKUP FILES — the user can export a finance-backup-*.json holding their
 browser state: {schema, base:{checksum,...}, stores:{rules, cats, goals, org,
 recur, uploads, xfers, manrec, fcast, budget, debts, holdings, assets,
-nwlog, merch, notes, lm}, ui}. stores.lm = {endpoint, model, dismissed} —
+nwlog, merch, notes, lm, cash, alerts}, ui}. stores.lm = {endpoint, model, dismissed} —
 the local-LM categoriser config (browser store dd-lm-v1; assist-only: its
 suggestions become ordinary rules only when the user accepts them).
 stores.notes = {mapNodeId: "free text"} — user
 notes pinned to money-map nodes ('m:ALDI', 'goal:house', 'debt:d1', …;
 browser store dd-notes-v1, shown in the node's context card).
+stores.alerts = {items:[{id, name, amount|null, period "once"|"monthly"|
+"yearly", when|day|md, lead, done:{dueISO:true}}], auto:{upcoming, goalPace},
+ack:{alertKey: dueISO}} — the Alerts & reminders section (browser store
+dd-alerts-v1): user bill/renewal reminders with a lead-in window, plus
+toggles for automatic alerts (upcoming bills predicted from the recurring
+engine via Engine.upcomingBills, and goals whose verdict is behind pace).
+Engine.alertsView merges them into one due-date-sorted list; in-app only —
+no server, so nothing is pushed or emailed.
 stores.merch = {rules:[{contains, name}], keep:[raw]}
 — merchant-normalisation overrides (browser store dd-merch-v1). Statement
 merchant names are auto-grouped for DISPLAY (map nodes, audit rows, search)
@@ -623,6 +631,27 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
   #visitDigest .vd-head .btn{margin-left:auto}
   #visitDigest .vd-item{display:block; width:100%; text-align:left; background:none; border:0; border-radius:6px; padding:5px 8px; margin:0; font:inherit; font-size:13.5px; color:var(--ink); cursor:pointer}
   #visitDigest .vd-item:hover{background:var(--chip)}
+  /* ── P9 alerts & reminders ── */
+  .al-row{display:flex; align-items:center; gap:10px; padding:9px 10px; border:1px solid var(--border); border-radius:10px; margin-bottom:8px; background:var(--surface)}
+  .al-row .al-ic{font-size:16px; flex:0 0 auto}
+  .al-row .al-main{flex:1 1 auto; min-width:0}
+  .al-row .al-name{font-weight:650; font-size:13.5px}
+  .al-row .al-sub{font-size:12px; color:var(--muted)}
+  .al-row .al-amt{font-weight:700; font-size:13px; white-space:nowrap}
+  .al-row .al-btns{display:flex; gap:6px; flex:0 0 auto}
+  .al-row.overdue{border-color:color-mix(in srgb, var(--serious) 55%, var(--border))}
+  .al-row.overdue .al-sub{color:var(--serious)}
+  .al-empty{color:var(--muted); font-size:13px; padding:6px 2px}
+  .al-chip{display:inline-block; font-size:10.5px; padding:1px 7px; border-radius:999px; border:1px solid var(--border); color:var(--muted); margin-left:6px; vertical-align:1px}
+  .dock-btn .al-badge{margin-left:auto; background:var(--serious); color:#fff; font-size:10.5px; font-weight:700;
+    border-radius:999px; min-width:17px; height:17px; line-height:17px; text-align:center; padding:0 4px}
+  #spaceDock.col .dock-btn .al-badge{position:absolute; top:2px; right:2px; margin:0}
+  /* panel enlarge (P9): side rail stretches across; centered popup goes near-fullscreen */
+  body.space #spacePanel.open.max:not(.center){left:16px; width:auto; max-width:none}
+  body.space #spacePanel.open.center.max{width:calc(100vw - 36px); max-height:94vh}
+  body.space #spacePanel.open.center.max .panel-body{max-height:calc(94vh - 54px)}
+  .panel-head .panel-max{margin-left:auto}
+  .panel-head .panel-max + .panel-close{margin-left:0}
   #alertStack{position:fixed; top:112px; right:16px; z-index:26; display:flex; flex-direction:column; gap:8px; pointer-events:none}
   .alert-card{pointer-events:auto; cursor:pointer; display:flex; gap:8px; align-items:center; padding:9px 12px;
     border-radius:10px; background:rgba(4,18,38,.92); border:1px solid rgba(236,131,90,.55); color:#ffd9c4;
@@ -1318,6 +1347,37 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
   </div>
 
   <!-- ═══ BUDGET ═══ -->
+  <div class="section" id="sec-alerts">
+    <div class="section-head">
+      <h2>Alerts &amp; reminders</h2>
+      <p>What's coming, before it lands: your own reminders (bills, renewals, one-offs) plus automatic warnings — likely upcoming bills predicted from your recurring history, and goals that have fallen behind pace. Everything here is computed in this browser; alerts appear when you open the app (there is no server to send pushes).</p>
+    </div>
+    <div class="card">
+      <div id="alertList"></div>
+      <div id="alertAddWrap" style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border)">
+        <h3 style="margin:0 0 8px; font-size:14px">Add a reminder</h3>
+        <div class="rule-form" style="grid-template-columns:2fr 1fr 1fr; gap:8px">
+          <div><label for="alName">What</label><input id="alName" class="inp" placeholder="e.g. Car insurance renewal"></div>
+          <div><label for="alAmt">Amount € <span class="hint">(optional)</span></label><input id="alAmt" class="inp" type="number" min="0" step="0.01" placeholder="—"></div>
+          <div><label for="alRepeat">Repeats</label>
+            <select id="alRepeat" class="inp"><option value="once">Once</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select></div>
+        </div>
+        <div class="rule-form" style="grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:8px">
+          <div id="alDateWrap"><label for="alDate">Date</label><input id="alDate" class="inp" type="date"></div>
+          <div id="alDayWrap" style="display:none"><label for="alDay">Day of month</label><input id="alDay" class="inp" type="number" min="1" max="31" value="1"></div>
+          <div><label for="alLead">Remind me <span class="hint">days before</span></label><input id="alLead" class="inp" type="number" min="0" max="60" value="3"></div>
+          <div style="display:flex; align-items:flex-end"><button type="button" class="btn" id="alAdd" style="width:100%">＋ Add reminder</button></div>
+        </div>
+        <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:14px; align-items:center">
+          <label class="hint" style="display:inline-flex; align-items:center; gap:6px; cursor:pointer">
+            <input type="checkbox" id="alAutoUp"> Predict upcoming bills from recurring history</label>
+          <label class="hint" style="display:inline-flex; align-items:center; gap:6px; cursor:pointer">
+            <input type="checkbox" id="alAutoGoal"> Warn when a goal falls behind pace</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="section" id="sec-budget">
     <div class="section-head">
       <h2>Budget — spending pace</h2>
@@ -1696,6 +1756,7 @@ rewrite the static advice cards if the picture has changed.</div>
 <nav id="spaceDock" aria-label="Lithifyte menu"></nav>
 <div id="spacePanel" role="dialog" aria-modal="false" aria-labelledby="panelTitle">
   <div class="panel-head"><span class="ic" id="panelIc"></span><span id="panelTitle"></span>
+    <button class="btn small panel-max" id="panelMax" type="button" aria-label="Enlarge panel" title="Enlarge">⤢</button>
     <button class="btn small panel-close" id="panelClose" type="button" aria-label="Close panel">✕</button></div>
   <div class="panel-body" id="panelBody"></div>
 </div>
@@ -1879,7 +1940,7 @@ rewrite the static advice cards if the picture has changed.</div>
   const MAP_LEGEND = false;
 
   // ══ persistent stores (all in this browser — self-hosted) ══
-  const LS = {rules:'dd-rules-v2', cats:'dd-cats-v2', goals:'dd-goals-v1', org:'dd-org-v1', recur:'dd-recur-v1', uploads:'dd-uploads-v1', xfers:'dd-xfers-v1', manrec:'dd-manrec-v1', fcast:'dd-fcast-v1', cuts:'dd-cuts-v1', visit:'dd-visit-v1', budget:'dd-budget-v1', priv:'dd-privacy-v1', debts:'dd-debts-v1', holds:'dd-holdings-v1', assets:'dd-assets-v1', nwlog:'dd-nwlog-v1', merch:'dd-merch-v1', notes:'dd-notes-v1', lm:'dd-lm-v1', cash:'dd-cash-v1'};
+  const LS = {rules:'dd-rules-v2', cats:'dd-cats-v2', goals:'dd-goals-v1', org:'dd-org-v1', recur:'dd-recur-v1', uploads:'dd-uploads-v1', xfers:'dd-xfers-v1', manrec:'dd-manrec-v1', fcast:'dd-fcast-v1', cuts:'dd-cuts-v1', visit:'dd-visit-v1', budget:'dd-budget-v1', priv:'dd-privacy-v1', debts:'dd-debts-v1', holds:'dd-holdings-v1', assets:'dd-assets-v1', nwlog:'dd-nwlog-v1', merch:'dd-merch-v1', notes:'dd-notes-v1', lm:'dd-lm-v1', cash:'dd-cash-v1', alerts:'dd-alerts-v1'};
   // demo build (raw.demo:true in the data block): every store gets its own
   // namespace — the hosted demo shares an origin with the real app, and
   // playing with sample data must never be able to touch someone's real data
@@ -2113,6 +2174,11 @@ rewrite the static advice cards if the picture has changed.</div>
   let lmStore = load(LS.lm, {endpoint:'http://localhost:11434/v1/chat/completions', model:'', dismissed:{}});   // build-5: local-LM categoriser config + dismissed merchants
   // Manual cash ledger: items on kind=cash accounts (ATM→spend links, notes, edit/delete)
   let cashStore = load(LS.cash, {items:[]}); // {id, acctId, d, m, c, s, de, cr, note, link:{acctId,d,m,de,cr}|null}
+  // Alerts & reminders: user-set reminders (once / monthly / yearly, with a
+  // lead-in window) + toggles for the automatic ones (predicted bills from
+  // the recurring engine, goal-pace warnings). ack = {alertKey: dueISO} —
+  // dismissed occurrences; done = per-reminder completed due dates.
+  let alertStore = load(LS.alerts, {items:[], auto:{upcoming:true, goalPace:true}, ack:{}});
   const merchCanon = new Map();                   // raw → canonical cache; cleared on merchStore change
   function canonOf(m){
     let v = merchCanon.get(m);
@@ -2430,7 +2496,7 @@ rewrite the static advice cards if the picture has changed.</div>
         const amtOf = mo => { const b = e.byMo.get(mo); return kind === 'expense' ? b.de : b.cr; };
         const winTotal = mos.filter(mo=>winSet.has(mo)).reduce((s,mo)=>s+amtOf(mo),0);
         const endMonth = Object.prototype.hasOwnProperty.call(overrides, e.merchant) ? overrides[e.merchant] : undefined;
-        const base = {merchant:e.merchant, cat:e.cat, kind, isSave:e.cat === saveCat, endMonth, winTotal, source:'auto'};
+        const base = {merchant:e.merchant, cat:e.cat, kind, isSave:e.cat === saveCat, endMonth, winTotal, source:'auto', lastMo: mos[mos.length-1] || null};
         const inWin = mos.filter(mo=>winSet.has(mo));
         if (inWin.length >= 3){
           const nets = inWin.map(amtOf);
@@ -2472,7 +2538,7 @@ rewrite the static advice cards if the picture has changed.</div>
       for (const m of manual)
         items.push({merchant:m.name, cat:'Added by you', kind:m.kind, isSave:false,
           endMonth:(m.endMonth === undefined ? null : m.endMonth), winTotal:0, source:'manual', id:m.id,
-          period:1, avg:m.avgMo, avgMo:m.avgMo, months:0, conf:1});
+          period:1, avg:m.avgMo, avgMo:m.avgMo, months:0, conf:1, lastMo:null});
       items.sort((a,b)=>b.avgMo-a.avgMo);
       return items;
     },
@@ -2603,6 +2669,87 @@ rewrite the static advice cards if the picture has changed.</div>
     //   fixedSpent     what those recurring merchants actually cost so far
     //   varSpent       everything else spent so far this month
     //   day/daysInMonth  how far through the month the DATA reaches
+    // ── Alerts & reminders (P9) ──
+    // upcomingBills: predict the next due date of detected recurring EXPENSES
+    // from their cadence (period months) + the merchant's typical posting day.
+    // Only confident, still-active items inside the horizon come back.
+    upcomingBills({rec, dayBy, today, horizonDays, excludeCats}){
+      const H = horizonDays || 14;
+      const skipCat = new Set(excludeCats || []);
+      const curMo = today.slice(0, 7);
+      const dim = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate();
+      const addMo = (mo, n) => {
+        const y = +mo.slice(0, 4), m = +mo.slice(5, 7) - 1 + n;
+        return `${Math.floor(y + m / 12)}-${String((m % 12 + 12) % 12 + 1).padStart(2, '0')}`;
+      };
+      const dayDiff = (a, b) => Math.round((Date.parse(a) - Date.parse(b)) / 86400000);
+      const out = [];
+      for (const r of rec || []){
+        if (r.source !== 'auto' || r.kind !== 'expense' || r.isSave) continue;
+        // frequent ≠ billable: discretionary categories (dining, groceries…)
+        // recur because people shop weekly, not because a bill is due
+        if (skipCat.has(r.cat)) continue;
+        if ((r.conf || 0) < 0.6 || (r.avg || 0) < 10 || !r.lastMo) continue;
+        if (r.endMonth != null && r.endMonth < curMo) continue;     // user says it ended
+        const P = r.period || 1;
+        let next = addMo(r.lastMo, P);
+        for (let i = 0; i < 4 && next < curMo; i++) next = addMo(next, P);
+        if (r.endMonth != null && next > r.endMonth) continue;
+        const day = Math.max(1, Math.min((dayBy && dayBy[r.merchant]) || 1, dim(+next.slice(0, 4), +next.slice(5, 7))));
+        const due = next + '-' + String(day).padStart(2, '0');
+        const days = dayDiff(due, today);
+        if (days > H || days < -5) continue;   // too far out, or it already posted
+        out.push({merchant: r.merchant, cat: r.cat, amount: Math.round(r.avg), due, days, period: P});
+      }
+      out.sort((a, b) => a.days - b.days);
+      return out;
+    },
+    // alertsView: merge user reminders (once / monthly / yearly) with the
+    // predicted bills into one due-date-sorted list. A reminder activates
+    // inside its lead window and stays overdue until marked done (monthly
+    // resets when the month rolls; yearly gives 30 days grace, then rolls).
+    // ack = {key: dueISO} silences one occurrence of anything.
+    alertsView({today, items, predicted, ack}){
+      const A2 = ack || {};
+      const dim = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate();
+      const dayDiff = (a, b) => Math.round((Date.parse(a) - Date.parse(b)) / 86400000);
+      const y0 = +today.slice(0, 4), m0 = +today.slice(5, 7);
+      const out = [];
+      for (const it of items || []){
+        const done = it.done || {};
+        const lead = it.lead == null ? 3 : it.lead;
+        let due = null;
+        if (it.period === 'once'){
+          if (done[it.when]) continue;
+          due = it.when;
+        } else if (it.period === 'monthly'){
+          const mk = (y, m) => `${y}-${String(m).padStart(2, '0')}-${String(Math.min(it.day || 1, dim(y, m))).padStart(2, '0')}`;
+          due = mk(y0, m0);
+          if (done[due]) due = m0 === 12 ? mk(y0 + 1, 1) : mk(y0, m0 + 1);
+        } else if (it.period === 'yearly'){
+          const mk = (y) => {
+            const mm = +it.md.slice(0, 2), dd = +it.md.slice(3, 5);
+            return `${y}-${String(mm).padStart(2, '0')}-${String(Math.min(dd, dim(y, mm))).padStart(2, '0')}`;
+          };
+          due = mk(y0);
+          if (done[due] || dayDiff(due, today) < -30) due = mk(y0 + 1);
+        }
+        if (!due) continue;
+        const days = dayDiff(due, today);
+        if (days > lead) continue;
+        if (A2['r:' + it.id] === due) continue;
+        out.push({key: 'r:' + it.id, kind: 'reminder', id: it.id, name: it.name,
+          amount: it.amount == null ? null : it.amount, due, days, overdue: days < 0});
+      }
+      for (const p of predicted || []){
+        const key = 'p:' + p.merchant;
+        if (A2[key] === p.due) continue;
+        out.push({key, kind: 'predicted', name: p.merchant, cat: p.cat,
+          amount: p.amount, due: p.due, days: p.days, overdue: p.days < 0, period: p.period});
+      }
+      out.sort((a, b) => a.days - b.days);
+      return out;
+    },
     budgetPace({budget, fixedExpected, fixedSpent, varSpent, day, daysInMonth}){
       const D = Math.max(1, daysInMonth), d = Math.min(Math.max(1, day), D);
       const fx = Math.min(Math.max(0, fixedExpected || 0), budget);
@@ -7604,6 +7751,35 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     const fTxe = fMonths.flatMap(mo => [{mo, m:'W', de:0, cr:2000, ec:'Y'}, {mo, m:'S', de: mo === '2025-12' ? 1400 : 800, cr:0, ec:'X'}]);
     const fArgs = extra => Object.assign({n:12, months:fMonths, txe:fTxe, allMonthly:fAllMonthly, rec:[],
       saveCat:'SAVE', intCat:'INT', bufferPct:100, cuts:0}, extra);
+    // ── alerts & reminders (P9) ──
+    T('alerts: reminder activates inside its lead window', () => {
+      const v = E.alertsView({today:'2026-07-17', items:[{id:'a', name:'Rent', period:'monthly', day:20, lead:3}], predicted:[], ack:{}});
+      return (v.length === 1 && v[0].due === '2026-07-20' && v[0].days === 3 && !v[0].overdue) || JSON.stringify(v);
+    });
+    T('alerts: outside the lead window stays quiet', () =>
+      E.alertsView({today:'2026-07-01', items:[{id:'a', name:'Rent', period:'monthly', day:20, lead:3}], predicted:[], ack:{}}).length === 0 || 'early alert');
+    T('alerts: overdue until done; done rolls to next month', () => {
+      const it = {id:'a', name:'Rent', period:'monthly', day:10, lead:3, done:{}};
+      const o = E.alertsView({today:'2026-07-17', items:[it], predicted:[], ack:{}});
+      if (!(o.length === 1 && o[0].overdue && o[0].due === '2026-07-10')) return 'no overdue: ' + JSON.stringify(o);
+      it.done['2026-07-10'] = true;
+      return E.alertsView({today:'2026-07-17', items:[it], predicted:[], ack:{}}).length === 0 || 'did not roll forward';
+    });
+    T('alerts: once done disappears; yearly gets 30-day grace', () => {
+      const once = E.alertsView({today:'2026-07-17', items:[{id:'b', name:'NCT', period:'once', when:'2026-07-18', lead:3, done:{'2026-07-18':true}}], predicted:[], ack:{}});
+      if (once.length) return 'done once still alerts';
+      const y = E.alertsView({today:'2026-07-17', items:[{id:'c', name:'Insurance', period:'yearly', md:'07-01', lead:5}], predicted:[], ack:{}});
+      return (y.length === 1 && y[0].due === '2026-07-01' && y[0].overdue) || 'yearly grace missing';
+    });
+    T('alerts: predicted bill rides cadence + typical day; ack silences the cycle', () => {
+      const rec = [{merchant:'VHI', cat:'Insurance', kind:'expense', source:'auto', isSave:false, conf:0.9, avg:120, period:1, lastMo:'2026-06'},
+                   {merchant:'SAVINGS SO', kind:'expense', source:'auto', isSave:true, conf:0.9, avg:500, period:1, lastMo:'2026-06'},
+                   {merchant:'BURGER SPOT', cat:'Dining', kind:'expense', source:'auto', isSave:false, conf:0.9, avg:80, period:1, lastMo:'2026-06'}];
+      const p = E.upcomingBills({rec, dayBy:{VHI:20, 'BURGER SPOT':20}, today:'2026-07-17', horizonDays:14, excludeCats:['Dining']});
+      if (!(p.length === 1 && p[0].due === '2026-07-20' && p[0].amount === 120)) return JSON.stringify(p);
+      const v = E.alertsView({today:'2026-07-17', items:[], predicted:p, ack:{'p:VHI':'2026-07-20'}});
+      return v.length === 0 || 'ack ignored';
+    });
     T('forecast: cautious = expected − buffer', () => {
       const fc = E.forecast(fArgs());
       return fc.every(f => Math.abs((f.surplus - f.surplusC) - fc.meta.buffer) < 0.01) || 'band broken';
@@ -7905,6 +8081,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     guard('insights', ()=>renderInsights(FC, as));
     guard('plan cards', ()=>renderPlan(FC, as));
     guard('budget', ()=>renderBudget());
+    guard('alerts', ()=>renderAlerts());
     // P7-34: wealth edits arrive via renderDerived (not renderAll), and the
     // constellation reads goals/debts/holdings/assets — re-check the map here
     if (!inRenderAll) guard('money map', syncGraph);
@@ -8961,10 +9138,135 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   }
 
   let alertsShown = false;
+  // ── P9: Alerts & reminders — user reminders + predicted bills + goal pace ──
+  let ALERTS = [];
+  function computeAlerts(){
+    const today = new Date().toISOString().slice(0, 10);
+    let predicted = [];
+    if (alertStore.auto.upcoming !== false && REC && REC.length){
+      const dayLists = {};
+      for (const t of TX){ if (t.de > 0) (dayLists[t.m] = dayLists[t.m] || []).push(+t.d.slice(8, 10)); }
+      const dayBy = {};
+      for (const m in dayLists){ const a = dayLists[m].sort((x, y) => x - y); dayBy[m] = a[Math.floor(a.length / 2)]; }
+      predicted = Engine.upcomingBills({rec: REC, dayBy, today, horizonDays: 14,
+        excludeCats: ['Dining', 'Groceries', 'Shopping', 'Entertainment', 'Leisure', 'Travel', 'Transfer', 'Uncategorized']});
+    }
+    ALERTS = Engine.alertsView({today, items: alertStore.items, predicted, ack: alertStore.ack});
+    if (alertStore.auto.goalPace !== false && A && FC && FC.length){
+      const lastMo = MONTHS[MONTHS.length - 1] || '';
+      for (const r of assessGoals(FC)){
+        if (r.verdict !== 'hot' || !(r.g.target > 0)) continue;
+        const key = 'g:' + (r.g.id || r.g.name);
+        if (alertStore.ack[key] === lastMo) continue;
+        ALERTS.push({key, kind: 'goalPace', name: r.g.name, msg: String(r.msg || '').replace(/<[^>]*>/g, ''), due: null, days: 0, ackVal: lastMo});
+      }
+    }
+  }
+  function updateAlertsBadge(){
+    const b = document.getElementById('dockAlBadge');
+    if (!b) return;
+    b.style.display = ALERTS.length ? '' : 'none';
+    b.textContent = ALERTS.length > 9 ? '9+' : String(ALERTS.length);
+  }
+  function fmtAlertDue(a){
+    if (a.due == null) return 'this month';
+    const lbl = new Date(a.due + 'T00:00:00').toLocaleDateString(undefined, {day: 'numeric', month: 'short'});
+    if (a.days < 0) return lbl + ' · overdue ' + (-a.days) + 'd';
+    if (a.days === 0) return lbl + ' · today';
+    if (a.days === 1) return lbl + ' · tomorrow';
+    return lbl + ' · in ' + a.days + ' days';
+  }
+  function renderAlerts(){
+    computeAlerts();
+    const list = document.getElementById('alertList');
+    if (!list) return;
+    const IC = {reminder: '⏰', predicted: '📅', goalPace: '🎯'};
+    const CHIP = {reminder: 'yours', predicted: 'predicted', goalPace: 'goal pace'};
+    list.innerHTML = ALERTS.length ? '' : '<div class="al-empty">Nothing needs attention right now — add a reminder below, or let the automatic alerts watch your recurring bills and goals.</div>';
+    for (const a of ALERTS){
+      const row = document.createElement('div');
+      row.className = 'al-row' + (a.overdue ? ' overdue' : '');
+      const amt = a.amount != null ? `<span class="al-amt">~${eur(a.amount)}</span>` : '';
+      const sub = a.kind === 'goalPace' ? esc(a.msg || 'Behind pace — open Goals for the numbers') :
+        a.kind === 'predicted' && a.days < 0 ?
+          esc(new Date(a.due + 'T00:00:00').toLocaleDateString(undefined, {day: 'numeric', month: 'short'})) + ' · was expected — check it posted' :
+        esc(fmtAlertDue(a)) + (a.kind === 'predicted' ? ' · expected from your history' : '');
+      row.innerHTML = `<span class="al-ic">${IC[a.kind]}</span>
+        <span class="al-main"><span class="al-name">${esc(a.name)}<span class="al-chip">${CHIP[a.kind]}</span></span><br><span class="al-sub">${sub}</span></span>
+        ${amt}<span class="al-btns"></span>`;
+      const btns = row.querySelector('.al-btns');
+      const mk = (label, title, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn small'; b.textContent = label; b.title = title; b.addEventListener('click', fn); btns.appendChild(b); };
+      if (a.kind === 'reminder'){
+        mk('✓', 'Mark this occurrence done', ()=>{
+          const it = alertStore.items.find(x => x.id === a.id);
+          if (it){
+            it.done = it.done || {}; it.done[a.due] = true;
+            if (it.period === 'once') alertStore.items = alertStore.items.filter(x => x.id !== a.id);
+          }
+          save(LS.alerts, alertStore); renderAlerts();
+        });
+        mk('🗑', 'Delete this reminder', ()=>{
+          if (!window.confirm('Delete the reminder "' + a.name + '"?')) return;
+          alertStore.items = alertStore.items.filter(x => x.id !== a.id);
+          save(LS.alerts, alertStore); renderAlerts();
+        });
+      } else {
+        mk('✕', 'Dismiss until the next occurrence', ()=>{
+          alertStore.ack[a.key] = a.kind === 'goalPace' ? a.ackVal : a.due;
+          save(LS.alerts, alertStore); renderAlerts();
+        });
+      }
+      list.appendChild(row);
+    }
+    const up = document.getElementById('alAutoUp'), gp = document.getElementById('alAutoGoal');
+    if (up) up.checked = alertStore.auto.upcoming !== false;
+    if (gp) gp.checked = alertStore.auto.goalPace !== false;
+    updateAlertsBadge();
+  }
+  (function initAlertsForm(){
+    const rep = document.getElementById('alRepeat');
+    if (!rep) return;
+    const dateW = document.getElementById('alDateWrap'), dayW = document.getElementById('alDayWrap');
+    rep.addEventListener('change', ()=>{
+      const monthly = rep.value === 'monthly';
+      dayW.style.display = monthly ? '' : 'none';
+      dateW.style.display = monthly ? 'none' : '';
+    });
+    document.getElementById('alAdd').addEventListener('click', ()=>{
+      const name = document.getElementById('alName').value.trim();
+      if (!name){ window.alert('Give the reminder a name.'); return; }
+      const period = rep.value;
+      const amtRaw = document.getElementById('alAmt').value;
+      const amount = amtRaw === '' ? null : (Math.abs(parseFloat(amtRaw)) || null);
+      const lead = Math.max(0, Math.min(60, parseInt(document.getElementById('alLead').value, 10) || 0));
+      const it = {id: 'al' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name, amount, period, lead, done: {}};
+      if (period === 'monthly'){
+        it.day = Math.max(1, Math.min(31, parseInt(document.getElementById('alDay').value, 10) || 1));
+      } else {
+        const d = document.getElementById('alDate').value;
+        if (!d){ window.alert('Pick a date.'); return; }
+        if (period === 'once') it.when = d; else it.md = d.slice(5);
+      }
+      alertStore.items.push(it);
+      save(LS.alerts, alertStore);
+      document.getElementById('alName').value = '';
+      document.getElementById('alAmt').value = '';
+      renderAlerts();
+    });
+    document.getElementById('alAutoUp').addEventListener('change', function(){
+      alertStore.auto.upcoming = this.checked; save(LS.alerts, alertStore); renderAlerts();
+    });
+    document.getElementById('alAutoGoal').addEventListener('change', function(){
+      alertStore.auto.goalPace = this.checked; save(LS.alerts, alertStore); renderAlerts();
+    });
+  })();
   function showSpaceAlerts(){
     if (alertsShown || !TX.length || !A) return;
     alertsShown = true;
     const alerts = [];
+    // due-now reminders/predictions surface first (they open the Alerts panel)
+    for (const a of ALERTS.filter(x => x.days != null && x.days <= 1).slice(0, 2))
+      alerts.push({msg: '⏰ ' + a.name + ' — ' + (a.due ? fmtAlertDue(a) : 'goal behind pace'), k: 'alerts', sec: 'sec-alerts'});
     const checks = assessReadiness();
     const fails = checks.filter(c => c.verdict === 'fail');
     if (fails.length) alerts.push({msg:'🏦 Readiness: fix ' + fails.map(f => f.name.toLowerCase()).join(' · '), k:'ready', sec:'sec-ready'});
@@ -9099,7 +9401,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       base: {txCount: raw.transactions.length, checksum: BASE_SUM,
              from: raw.transactions.length ? raw.transactions[0][0] : null,
              to: raw.transactions.length ? raw.transactions[raw.transactions.length-1][0] : null},
-      stores: {rules, cats: catStore, goals, org, recur: recurStore, uploads, xfers: xferStore, manrec, fcast: FCONF, budget: budgetStore, debts: debtStore, holdings: holdStore, assets: assetStore, nwlog: nwLog, merch: merchStore, notes: noteStore, lm: lmStore, cash: cashStore},
+      stores: {rules, cats: catStore, goals, org, recur: recurStore, uploads, xfers: xferStore, manrec, fcast: FCONF, budget: budgetStore, debts: debtStore, holdings: holdStore, assets: assetStore, nwlog: nwLog, merch: merchStore, notes: noteStore, lm: lmStore, cash: cashStore, alerts: alertStore},
       ui: {cuts: {...cutStore}, rangeFrom, rangeTo, privacy: {...PRIV}}
     };
   }
@@ -9241,13 +9543,14 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     if (st.notes && typeof st.notes === 'object') noteStore = st.notes;
     if (st.lm && typeof st.lm === 'object') lmStore = {endpoint: st.lm.endpoint || lmStore.endpoint, model: st.lm.model || '', dismissed: st.lm.dismissed || {}};
     if (st.cash && Array.isArray(st.cash.items)) cashStore = {items: st.cash.items};
+    if (st.alerts && typeof st.alerts === 'object') alertStore = {items: st.alerts.items || [], auto: {upcoming: true, goalPace: true, ...(st.alerts.auto || {})}, ack: st.alerts.ack || {}};
     if (Array.isArray(st.manrec)) manrec = st.manrec;
     if (st.fcast && typeof st.fcast.bufferPct === 'number') FCONF = st.fcast;
     save(LS.rules, rules); save(LS.cats, catStore); save(LS.goals, goals);
     save(LS.org, org); save(LS.recur, recurStore); save(LS.uploads, uploads);
     save(LS.xfers, xferStore); save(LS.manrec, manrec); save(LS.fcast, FCONF);
     save(LS.debts, debtStore); save(LS.holds, holdStore);
-    save(LS.assets, assetStore); save(LS.nwlog, nwLog); save(LS.merch, merchStore); save(LS.notes, noteStore); save(LS.lm, lmStore);
+    save(LS.assets, assetStore); save(LS.nwlog, nwLog); save(LS.merch, merchStore); save(LS.notes, noteStore); save(LS.lm, lmStore); save(LS.alerts, alertStore);
     if (budgetStore) save(LS.budget, budgetStore);
     if (b.ui && b.ui.cuts){
       const legacy = {groc:'Groceries', dine:'Dining', shop:'Shopping', bills:'Bills & Utilities', ent:'Entertainment', misc:'Uncategorized'};
@@ -9347,6 +9650,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     // view/tutorial + backup/integrity.
     const items = [
       {k:'goals',  ic:'🎯', label:'Goals',      sel:['#goalHero', '.kpis']},
+      {k:'alerts', ic:'🔔', label:'Alerts',     sel:['#sec-alerts']},
       {k:'cash',   ic:'📈', label:'Cashflow',   sel:['#sec-cashflow']},
       {k:'cats',   ic:'🧩', label:'Categories', sel:['#sec-cats']},
       {k:'leaks',  ic:'💧', label:'Leaks',      sel:['#sec-leaks']},
@@ -9365,7 +9669,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       {k:'settings', ic:'🛠️', label:'Settings', sel:['#settingsCard', '#sec-alive']}
     ];
     const groups = [
-      ['Overview', ['goals', 'cash', 'cats', 'leaks']],
+      ['Overview', ['goals', 'alerts', 'cash', 'cats', 'leaks']],
       ['Planning', ['budget', 'sim', 'fcast', 'plan']],
       ['Wealth',   ['pulse', 'wealth', 'invest', 'debts', 'ready']],
       ['Data',     ['audit', 'rules', 'people', 'settings']]
@@ -9384,7 +9688,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     function closePanel(){
       mounted.forEach(restore);
       mounted = []; active = null;
-      panel.classList.remove('open', 'center');
+      panel.classList.remove('open', 'center', 'max');
+      const mx = document.getElementById('panelMax');
+      if (mx){ mx.textContent = '⤢'; mx.title = 'Enlarge'; mx.setAttribute('aria-label', 'Enlarge panel'); }
       const stageEl = document.getElementById('spaceStage');
       if (stageEl) stageEl.classList.remove('panel-dim');
       dock.querySelectorAll('.dock-btn').forEach(b => b.classList.remove('active'));
@@ -9424,8 +9730,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         groups.map(([g, keys]) => `<div class="dock-group">${g}</div>` +
           keys.map(k => {
             const i = items.find(x => x.k === k);
-            return `<button class="dock-btn${active === i.k ? ' active' : ''}" data-k="${i.k}" type="button" title="${i.label}"><span class="ic">${i.ic}</span><span class="lbl">${i.label}</span></button>`;
+            return `<button class="dock-btn${active === i.k ? ' active' : ''}" data-k="${i.k}" type="button" title="${i.label}" style="position:relative"><span class="ic">${i.ic}</span><span class="lbl">${i.label}</span>${i.k === 'alerts' ? '<span class="al-badge" id="dockAlBadge" style="display:none"></span>' : ''}</button>`;
           }).join('')).join('');
+      if (typeof updateAlertsBadge === 'function') updateAlertsBadge();
       dock.querySelector('#dockCol').addEventListener('click', ()=>{
         FCONF.dockCol = !FCONF.dockCol; save(LS.fcast, FCONF); renderDock();
       });
@@ -9467,6 +9774,13 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     document.getElementById('setClassicBtn').addEventListener('click', ()=>exit());
     document.getElementById('obClassic').addEventListener('click', ()=>exit());
     document.getElementById('panelClose').addEventListener('click', closePanel);
+    document.getElementById('panelMax').addEventListener('click', ()=>{
+      const on = panel.classList.toggle('max');
+      const mx = document.getElementById('panelMax');
+      mx.textContent = on ? '⤡' : '⤢';
+      mx.title = on ? 'Shrink' : 'Enlarge';
+      mx.setAttribute('aria-label', on ? 'Shrink panel' : 'Enlarge panel');
+    });
     document.addEventListener('keydown', e => {
       if (e.key !== 'Escape' || !document.body.classList.contains('space')) return;
       if (mini.classList.contains('open')) closeMini();

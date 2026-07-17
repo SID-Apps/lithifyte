@@ -59,16 +59,20 @@
     @keyframes scrollpulse{0%,100%{opacity:.3;transform:translateX(-50%) translateY(0)}50%{opacity:1;transform:translateX(-50%) translateY(9px)}}
     @media (prefers-reduced-motion:reduce){[data-copy]{opacity:1!important;transform:none!important}}
 
-    /* ── horizontal in-app feature slide (chapter 06) ── */
-    [data-htrack]{display:flex;align-items:stretch;gap:22px;will-change:transform;
-      padding-left:max(28px, calc(50vw - 270px));padding-right:max(28px, calc(50vw - 270px))}
-    .hpanel{flex:0 0 auto;width:min(540px,86vw);border:1px solid rgba(56,189,248,.24);border-radius:18px;
-      background:rgba(4,18,36,.78);padding:30px 32px;display:flex;flex-direction:column;justify-content:center;
-      box-shadow:0 0 50px rgba(56,189,248,.07)}
-    .hpanel .hk{font:600 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;text-transform:uppercase;margin:0 0 12px}
-    .hpanel h3{margin:0 0 12px;font:700 clamp(24px,3.4vw,34px)/1.1 'Syne',sans-serif;letter-spacing:-.015em}
-    .hpanel p{margin:0;font-size:15.5px;line-height:1.6;color:#a9c4de}
-    .hviz{margin-top:22px;height:74px;display:flex;align-items:flex-end;gap:8px}
+    /* ── horizontal in-app feature slide (chapter 06) ──
+       Full-screen frames (like the Sankey chapter), not cards: each panel is
+       one viewport; vertical scroll slides the track one frame at a time. */
+    [data-htrack]{display:flex;align-items:stretch;will-change:transform}
+    .hpanel{flex:0 0 100vw;width:100vw;min-height:100vh;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;text-align:center;
+      padding:96px clamp(24px,8vw,120px) 72px;position:relative}
+    .hpanel::before{content:"";position:absolute;inset:0;pointer-events:none;
+      background:radial-gradient(ellipse 56% 58% at 50% 52%, rgba(2,11,26,.78), rgba(2,11,26,0) 70%)}
+    .hpanel > *{position:relative}
+    .hpanel .hk{font:600 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;text-transform:uppercase;margin:0 0 16px}
+    .hpanel h3{margin:0 0 16px;font:700 clamp(30px,5vw,52px)/1.08 'Syne',sans-serif;letter-spacing:-.02em;text-shadow:0 2px 30px #020b1a}
+    .hpanel p{margin:0 auto;font-size:clamp(15px,2vw,19px);line-height:1.6;color:#a9c4de;max-width:32em;text-shadow:0 1px 16px #020b1a}
+    .hviz{margin-top:38px;height:110px;display:flex;align-items:flex-end;justify-content:center;gap:10px}
 
     /* ── persistent scroll hint (desktop only) ── */
     [data-scrollhint]{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:36;
@@ -87,8 +91,10 @@
       #access{height:100vh !important}
       section[data-hslide]{height:auto !important}
       section[data-hslide] > div{position:static !important;height:auto !important;overflow:visible !important}
-      [data-htrack]{flex-direction:column;transform:none !important;padding:72px 18px !important}
-      .hpanel{width:100%}
+      [data-htrack]{flex-direction:column;transform:none !important;padding:40px 0 !important}
+      .hpanel{width:100%;flex-basis:auto;min-height:0;padding:56px 22px}
+      .hpanel h3{font-size:clamp(26px,7vw,34px)}
+      .hviz{height:84px}
       #features{height:auto !important}
       #features > div{position:static !important}
       #features [data-copy], section[data-hslide] [data-copy]{opacity:1 !important;transform:none !important}
@@ -205,9 +211,9 @@
     <section data-chapter data-hslide data-scene="apptour" data-label="In the app" id="inside" style="position:relative;height:420vh">
       <div style="position:sticky;top:0;height:100vh;overflow:hidden;display:flex;align-items:center">
         <div data-htrack>
-          <div class="hpanel" style="border-color:transparent;background:transparent;box-shadow:none">
+          <div class="hpanel">
             <p class="hk" style="color:#38bdf8">06 — In the app</p>
-            <h3 style="font-size:clamp(30px,4.6vw,44px)">Where the money<br>actually goes to work.</h3>
+            <h3>Where the money<br>actually goes to work.</h3>
             <p>Five tools you'll live in — slide through them. Every one computes in your browser, from your data.</p>
             <p style="margin-top:18px;color:#8fb0d0;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.14em;text-transform:uppercase">Keep scrolling →</p>
           </div>
@@ -229,8 +235,8 @@
             <h3>Goals that wear their progress.</h3>
             <p>House deposit, holiday, emergency fund — each goal carries a funding ring, a projected done-date from your real surplus, and a waterfall that shows which goal gets fed next.</p>
             <div class="hviz" aria-hidden="true" style="align-items:center">
-              <svg width="66" height="66" viewBox="0 0 66 66"><circle cx="33" cy="33" r="27" fill="none" stroke="rgba(247,201,92,.22)" stroke-width="6"/><circle cx="33" cy="33" r="27" fill="none" stroke="#f7c95c" stroke-width="6" stroke-linecap="round" stroke-dasharray="109 170" transform="rotate(-90 33 33)"/></svg>
-              <span style="margin-left:12px;font:600 12px 'IBM Plex Mono',monospace;color:#f7c95c">64% · done Aug 2027</span>
+              <svg width="100" height="100" viewBox="0 0 66 66"><circle cx="33" cy="33" r="27" fill="none" stroke="rgba(247,201,92,.22)" stroke-width="6"/><circle cx="33" cy="33" r="27" fill="none" stroke="#f7c95c" stroke-width="6" stroke-linecap="round" stroke-dasharray="109 170" transform="rotate(-90 33 33)"/></svg>
+              <span style="margin-left:14px;font:600 14px 'IBM Plex Mono',monospace;color:#f7c95c">64% · done Aug 2027</span>
             </div>
           </div>
           <div class="hpanel">
@@ -251,8 +257,8 @@
             <h3>Holdings, gains, and the tax man.</h3>
             <p>Stocks and funds with live-importable quotes, gain and weight per holding, CGT estimates with losses netted, and 8-year deemed-disposal clocks so nothing sneaks up on you.</p>
             <div class="hviz" aria-hidden="true" style="align-items:center">
-              <svg width="150" height="60" viewBox="0 0 150 60"><polyline points="0,50 25,42 50,46 75,30 100,34 125,18 150,10" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round"/><circle cx="150" cy="10" r="4" fill="#34d399"/></svg>
-              <span style="margin-left:12px;font:600 12px 'IBM Plex Mono',monospace;color:#34d399">+18.4% · CGT est. ready</span>
+              <svg width="230" height="92" viewBox="0 0 150 60"><polyline points="0,50 25,42 50,46 75,30 100,34 125,18 150,10" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round"/><circle cx="150" cy="10" r="4" fill="#34d399"/></svg>
+              <span style="margin-left:14px;font:600 14px 'IBM Plex Mono',monospace;color:#34d399">+18.4% · CGT est. ready</span>
             </div>
           </div>
           <div class="hpanel">
@@ -260,8 +266,8 @@
             <h3>Crypto in the same net worth.</h3>
             <p>Coins priced keylessly, gains and concentration warnings alongside your other assets — one honest net-worth picture, with stale quotes flagged instead of guessed.</p>
             <div class="hviz" aria-hidden="true" style="align-items:center">
-              <svg width="54" height="54" viewBox="0 0 54 54"><circle cx="27" cy="27" r="22" fill="none" stroke="#e879f9" stroke-width="2.5"/><text x="27" y="34" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="19" font-weight="600" fill="#e879f9">₿</text></svg>
-              <span style="margin-left:12px;font:600 12px 'IBM Plex Mono',monospace;color:#e879f9">priced · in net worth</span>
+              <svg width="84" height="84" viewBox="0 0 54 54"><circle cx="27" cy="27" r="22" fill="none" stroke="#e879f9" stroke-width="2.5"/><text x="27" y="34" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="19" font-weight="600" fill="#e879f9">₿</text></svg>
+              <span style="margin-left:14px;font:600 14px 'IBM Plex Mono',monospace;color:#e879f9">priced · in net worth</span>
             </div>
           </div>
         </div>
