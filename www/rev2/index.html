@@ -1,10 +1,46 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lithifyte — household finance mission control</title>
-<meta name="description" content="Your household money as a living map. Budgets that pace with the calendar. Cashflow that balances to the cent. Your bank data never leaves your browser.">
+<title>Lithifyte — household finance mission control, private in your browser</title>
+<meta name="description" content="Free, open-source household finance dashboard: a living money map, budgets that pace with the calendar, cashflow forecasts, debt payoff plans and net worth — all computed in your browser. Your bank data never leaves your device.">
+<link rel="canonical" href="https://lithifyte.com/">
+<meta name="theme-color" content="#020b1a">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Lithifyte">
+<meta property="og:url" content="https://lithifyte.com/">
+<meta property="og:title" content="Lithifyte — household finance mission control">
+<meta property="og:description" content="Your household money as a living map. Budgets, forecasts, debts and goals — computed entirely in your browser. Bank data never leaves your device. Free and open source.">
+<meta property="og:image" content="https://lithifyte.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Lithifyte — household finance mission control">
+<meta name="twitter:description" content="A living money map of your household finances, private in your browser. Free and open source.">
+<meta name="twitter:image" content="https://lithifyte.com/og.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Lithifyte",
+  "url": "https://lithifyte.com/",
+  "applicationCategory": "FinanceApplication",
+  "operatingSystem": "Any (web browser)",
+  "description": "Household finance dashboard that runs entirely in the browser: money map, budgets, cashflow forecasts, debt planner and net worth. Financial data never leaves the device.",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+  "license": "https://www.gnu.org/licenses/agpl-3.0.html",
+  "screenshot": "https://lithifyte.com/og.png",
+  "publisher": { "@type": "Organization", "name": "SID Labs", "url": "https://www.sid-labs.com" }
+}
+</script>
+<noscript><style>[data-copy]{opacity:1!important;transform:none!important}</style></noscript>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -44,7 +80,8 @@
       <a href="#map" style="color:#8fb0d0;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;border-radius:999px">Map</a>
       <a href="#flow" style="color:#8fb0d0;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;border-radius:999px">Flow</a>
       <a href="#privacy" style="color:#8fb0d0;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;border-radius:999px">Privacy</a>
-      <a href="https://app.lithifyte.com/demo.html" style="display:inline-flex;align-items:center;border-radius:999px;border:1px solid rgba(56,189,248,.28);padding:9px 15px;font:600 13px 'IBM Plex Mono',monospace;letter-spacing:.03em;color:#e8f1ff;background:transparent">Demo</a>
+      <a href="#features" style="color:#8fb0d0;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;border-radius:999px">Inside</a>
+      <a href="https://app.lithifyte.com/demo" style="display:inline-flex;align-items:center;border-radius:999px;border:1px solid rgba(56,189,248,.28);padding:9px 15px;font:600 13px 'IBM Plex Mono',monospace;letter-spacing:.03em;color:#e8f1ff;background:transparent">Demo</a>
       <a href="https://access.lithifyte.com/" style="display:inline-flex;align-items:center;border-radius:999px;border:1px solid rgba(125,211,252,.6);padding:9px 15px;font:600 13px 'IBM Plex Mono',monospace;letter-spacing:.03em;color:#fff;background:linear-gradient(135deg, rgba(14,165,233,.95), rgba(29,78,216,.95))">Sign in</a>
     </nav>
   </header>
@@ -59,8 +96,12 @@
         <div data-copy style="position:relative;width:min(900px,100%);text-align:center;opacity:0;transform:translateY(26px);transition:opacity 1s cubic-bezier(.2,.7,.2,1), transform 1s cubic-bezier(.2,.7,.2,1)">
           <div style="font:500 13px 'IBM Plex Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:#38bdf8;margin-bottom:18px;text-shadow:0 1px 12px #020b1a">// household finance · mission control</div>
           <h1 style="margin:0 0 18px;line-height:1;letter-spacing:-.025em;font:800 clamp(42px,8vw,88px) 'Syne',sans-serif;text-shadow:0 2px 40px rgba(2,11,26,.9)">Fly into your<br>money map.</h1>
-          <p style="font-size:clamp(16px,2.2vw,20px);line-height:1.6;color:#a9c4de;margin:0 auto;max-width:30em;font-weight:500;text-shadow:0 1px 20px #020b1a">A living picture of your household finances — people, accounts, merchants, cashflow and goals — computed entirely in your browser.</p>
-          <div style="margin-top:40px;display:inline-flex;align-items:center;gap:12px;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:#8fb0d0"><i style="width:22px;height:36px;border:1px solid rgba(56,189,248,.32);border-radius:12px;position:relative;display:inline-block"><b style="position:absolute;left:50%;top:8px;width:3px;height:8px;border-radius:2px;background:#38bdf8;transform:translateX(-50%);animation:scrollpulse 1.8s ease-in-out infinite"></b></i> Scroll slowly</div>
+          <p style="font-size:clamp(16px,2.2vw,20px);line-height:1.6;color:#a9c4de;margin:0 auto;max-width:30em;font-weight:500;text-shadow:0 1px 20px #020b1a">A living picture of your household finances — people, accounts, merchants, cashflow and goals — computed entirely in your browser. Free, open source, and your bank data never leaves your device.</p>
+          <div style="margin-top:28px;display:flex;flex-wrap:wrap;gap:12px;justify-content:center">
+            <a href="https://app.lithifyte.com/demo" style="display:inline-flex;align-items:center;gap:8px;border-radius:12px;padding:14px 22px;font:600 14px 'IBM Plex Mono',monospace;letter-spacing:.02em;color:#fff;background:linear-gradient(135deg, rgba(14,165,233,.95), rgba(29,78,216,.95));border:1px solid rgba(125,211,252,.6);box-shadow:0 0 30px rgba(56,189,248,.3)">▶ Try the live demo</a>
+            <a href="https://access.lithifyte.com/" style="display:inline-flex;align-items:center;gap:8px;border-radius:12px;padding:14px 22px;font:600 14px 'IBM Plex Mono',monospace;letter-spacing:.02em;color:#e8f1ff;background:rgba(4,18,36,.5);border:1px solid rgba(56,189,248,.35)">Sign in free</a>
+          </div>
+          <div style="margin-top:34px;display:inline-flex;align-items:center;gap:12px;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:#8fb0d0"><i style="width:22px;height:36px;border:1px solid rgba(56,189,248,.32);border-radius:12px;position:relative;display:inline-block"><b style="position:absolute;left:50%;top:8px;width:3px;height:8px;border-radius:2px;background:#38bdf8;transform:translateX(-50%);animation:scrollpulse 1.8s ease-in-out infinite"></b></i> Or scroll for the tour</div>
         </div>
       </div>
     </section>
@@ -131,22 +172,42 @@
       </div>
     </section>
 
-    <!-- Chapter 07 is the last page: CTAs + footer together, no extra scroll past it -->
+    <section data-chapter data-scene="features" data-label="Inside" id="features" style="position:relative;height:170vh">
+      <div style="position:sticky;top:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:96px 24px 64px">
+        <div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 62% 70% at 50% 50%, rgba(2,11,26,.86), rgba(2,11,26,.3) 100%)"></div>
+        <div data-copy style="position:relative;width:min(920px,100%);opacity:0;transform:translateY(26px);transition:opacity .9s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1)">
+          <p style="font:600 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:#a78bfa;margin:0 0 14px;text-align:center">07 — What's inside</p>
+          <h2 style="margin:0 0 26px;line-height:1.06;letter-spacing:-.02em;font:700 clamp(28px,4.6vw,46px) 'Syne',sans-serif;text-align:center;text-shadow:0 2px 30px #020b1a">One page. A full finance engine.</h2>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px">
+            <div style="border:1px solid rgba(56,189,248,.22);border-radius:14px;background:rgba(4,18,36,.72);padding:18px 20px"><h3 style="margin:0 0 6px;font:700 16px 'Syne',sans-serif;color:#7dd3fc">Living money map</h3><p style="margin:0;font-size:14px;line-height:1.55;color:#a9c4de">Household → people → accounts → categories → merchants. Search it, drag it, watch transactions pulse along the links.</p></div>
+            <div style="border:1px solid rgba(56,189,248,.22);border-radius:14px;background:rgba(4,18,36,.72);padding:18px 20px"><h3 style="margin:0 0 6px;font:700 16px 'Syne',sans-serif;color:#fbbf24">Budgets that pace themselves</h3><p style="margin:0;font-size:14px;line-height:1.55;color:#a9c4de">Suggestions from your real medians, safe-to-spend per remaining day, and alerts that know a fixed bill from an overspend.</p></div>
+            <div style="border:1px solid rgba(56,189,248,.22);border-radius:14px;background:rgba(4,18,36,.72);padding:18px 20px"><h3 style="margin:0 0 6px;font:700 16px 'Syne',sans-serif;color:#34d399">Cautious forecasts</h3><p style="margin:0;font-size:14px;line-height:1.55;color:#a9c4de">Recurring bills detected automatically, seasonal uplift, and a buffer sized from your irregular spending — not wishful averages.</p></div>
+            <div style="border:1px solid rgba(56,189,248,.22);border-radius:14px;background:rgba(4,18,36,.72);padding:18px 20px"><h3 style="margin:0 0 6px;font:700 16px 'Syne',sans-serif;color:#f87171">Debt payoff planner</h3><p style="margin:0;font-size:14px;line-height:1.55;color:#a9c4de">Avalanche vs snowball with real amortisation, payoff dates, and an honest flag when a payment doesn't even cover interest.</p></div>
+            <div style="border:1px solid rgba(56,189,248,.22);border-radius:14px;background:rgba(4,18,36,.72);padding:18px 20px"><h3 style="margin:0 0 6px;font:700 16px 'Syne',sans-serif;color:#a78bfa">Net worth &amp; holdings</h3><p style="margin:0;font-size:14px;line-height:1.55;color:#a9c4de">Layered net worth, goals with progress, holdings with gain and tax estimates — stale data flagged, never guessed away.</p></div>
+            <div style="border:1px solid rgba(56,189,248,.22);border-radius:14px;background:rgba(4,18,36,.72);padding:18px 20px"><h3 style="margin:0 0 6px;font:700 16px 'Syne',sans-serif;color:#2dd4bf">Import &amp; export anything</h3><p style="margin:0;font-size:14px;line-height:1.55;color:#a9c4de">Bank CSV statements in — with dedupe on re-upload and transfer matching. Excel and CSV packs out, plus encrypted backups.</p></div>
+            <div style="border:1px solid rgba(56,189,248,.22);border-radius:14px;background:rgba(4,18,36,.72);padding:18px 20px"><h3 style="margin:0 0 6px;font:700 16px 'Syne',sans-serif;color:#e879f9">Optional local AI</h3><p style="margin:0;font-size:14px;line-height:1.55;color:#a9c4de">Categorise with a model you run yourself (Ollama, LM Studio). Assist-only, never required, and never remote by default.</p></div>
+            <div style="border:1px solid rgba(56,189,248,.22);border-radius:14px;background:rgba(4,18,36,.72);padding:18px 20px"><h3 style="margin:0 0 6px;font:700 16px 'Syne',sans-serif;color:#e8f1ff">Trust you can read</h3><p style="margin:0;font-size:14px;line-height:1.55;color:#a9c4de">102 self-tests run in your own browser. Open source under AGPL-3.0. No analytics, no tracking, no server for your data.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Final chapter is the last page: CTAs + footer together, no extra scroll past it -->
     <section data-chapter data-scene="dock" data-label="Enter" id="access" style="position:relative;height:100vh">
       <div style="position:sticky;top:0;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:72px 24px 88px">
         <div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 50% 55% at 50% 50%, rgba(2,11,26,.8), rgba(2,11,26,0) 66%)"></div>
         <div data-copy style="position:relative;width:min(560px,100%);text-align:center;opacity:0;transform:translateY(26px);transition:opacity .9s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1)">
-          <p style="font:600 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:#38bdf8;margin:0 0 14px">07 — Docking complete</p>
+          <p style="font:600 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:#38bdf8;margin:0 0 14px">08 — Docking complete</p>
           <h2 style="margin:0 0 14px;line-height:1.04;letter-spacing:-.02em;font:800 clamp(34px,6vw,60px) 'Syne',sans-serif;text-shadow:0 2px 40px #020b1a">Enter the platform.</h2>
           <p style="font-size:clamp(16px,2.1vw,20px);line-height:1.6;color:#a9c4de;margin:0 auto 30px;max-width:30em;font-weight:500;text-shadow:0 1px 16px #020b1a">Start with the demo household, or sign in free with email. We store only the address for identity — nothing else.</p>
           <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center">
-            <a href="https://app.lithifyte.com/demo.html" style="flex:0 1 220px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;padding:16px 22px;font:600 15px 'IBM Plex Mono',monospace;letter-spacing:.02em;color:#fff;background:linear-gradient(135deg, rgba(14,165,233,.95), rgba(29,78,216,.95));border:1px solid rgba(125,211,252,.6);box-shadow:0 0 30px rgba(56,189,248,.3)">▶ Start the demo</a>
+            <a href="https://app.lithifyte.com/demo" style="flex:0 1 220px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;padding:16px 22px;font:600 15px 'IBM Plex Mono',monospace;letter-spacing:.02em;color:#fff;background:linear-gradient(135deg, rgba(14,165,233,.95), rgba(29,78,216,.95));border:1px solid rgba(125,211,252,.6);box-shadow:0 0 30px rgba(56,189,248,.3)">▶ Start the demo</a>
             <a href="https://access.lithifyte.com/" style="flex:0 1 220px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;padding:16px 22px;font:600 15px 'IBM Plex Mono',monospace;letter-spacing:.02em;color:#e8f1ff;background:rgba(4,18,36,.5);border:1px solid rgba(56,189,248,.35)">◈ Sign in free</a>
           </div>
           <p style="margin:22px auto 0;max-width:34em;font:500 12.5px 'IBM Plex Mono',monospace;color:#8fb0d0;line-height:1.55">Magic-link sign-in on Cloudflare — no password, no bank credentials.<br>Identity at access.lithifyte.com; app at app.lithifyte.com; finance stays in your browser.</p>
         </div>
         <footer style="position:absolute;left:0;right:0;bottom:0;z-index:11;padding:20px 24px 28px;text-align:center;font:500 12px 'IBM Plex Mono',monospace;color:#6f8bab;letter-spacing:.04em">
-          © 2026 Lithifyte · <a href="https://www.sid-labs.com" style="color:#6f8bab">SID Labs</a> · AGPL-3.0 · <a href="https://github.com/SID-Apps/lithifyte" style="color:#6f8bab">Source</a>
+          © 2026 Lithifyte · <a href="https://www.sid-labs.com" style="color:#6f8bab">SID Labs</a> · <a href="/privacy" style="color:#6f8bab">Privacy</a> · <a href="/terms" style="color:#6f8bab">Terms</a> · AGPL-3.0 · <a href="https://github.com/SID-Apps/lithifyte" style="color:#6f8bab">Source</a>
         </footer>
       </div>
     </section>
@@ -156,6 +217,9 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Cyan&quot;,&quot;Mint&quot;,&quot;Magenta&quot;],&quot;default&quot;:&quot;Cyan&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Look&quot;},&quot;starDensity&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:180,&quot;min&quot;:60,&quot;max&quot;:360,&quot;step&quot;:20,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Look&quot;},&quot;scanlines&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Look&quot;},&quot;mouseParallax&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Motion&quot;}}">
 class Component extends DCLogic {
+  // NOTE: if the dc-runtime (React via unpkg) fails to load, the fallback
+  // script at the end of <body> force-reveals all [data-copy] blocks so the
+  // page still reads as a plain document.
   componentDidMount(){
     const root = this.el || document;
     const $ = (s) => root.querySelector(s);
@@ -1025,6 +1089,19 @@ class Component extends DCLogic {
   }
   renderVals(){ return {}; }
 }
+</script>
+<script>
+// Resilience: the immersive runtime needs React from a CDN. If it hasn't
+// booted within 4s (rail dots never rendered), reveal the copy so the page
+// degrades to a readable document instead of a black void.
+setTimeout(function(){
+  var rail = document.querySelector('[data-rail]');
+  if (rail && rail.children.length) return;
+  document.querySelectorAll('[data-copy]').forEach(function(el){
+    el.style.opacity = '1';
+    el.style.transform = 'none';
+  });
+}, 4000);
 </script>
 </body>
 </html>

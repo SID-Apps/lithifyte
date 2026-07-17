@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy policy — Lithifyte</title>
+<meta name="description" content="Lithifyte's privacy policy: your financial data never leaves your browser. We store an email address for sign-in — nothing else.">
+<link rel="canonical" href="https://lithifyte.com/privacy">
+<meta name="theme-color" content="#020b1a">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/page.css">
+</head>
+<body>
+<header class="site">
+  <a class="brand" href="/"><img src="/icon-192.png" alt="" width="28" height="28"> LITHIFYTE</a>
+  <nav class="site" aria-label="Site">
+    <a href="/">Home</a>
+    <a href="https://app.lithifyte.com/demo">Demo</a>
+    <a href="https://access.lithifyte.com/">Sign in</a>
+  </nav>
+</header>
+
+<main class="page">
+  <h1>Privacy policy</h1>
+  <p class="updated">Last updated: 17 July 2026</p>
+
+  <div class="callout">
+    <p><strong>The short version:</strong> your financial data — statements, transactions, balances, goals — never leaves your browser. There is no server that could receive it. The only personal data we ever store is the <strong>email address</strong> you give us to sign in.</p>
+  </div>
+
+  <h2>Who we are</h2>
+  <p>Lithifyte is a household finance dashboard built by SID Labs. The app runs at <a href="https://app.lithifyte.com">app.lithifyte.com</a>, sign-in at <a href="https://access.lithifyte.com">access.lithifyte.com</a>, and this marketing site at <a href="https://lithifyte.com">lithifyte.com</a>. The source code is public at <a href="https://github.com/SID-Apps/lithifyte">github.com/SID-Apps/lithifyte</a> under the AGPL-3.0 licence, so every claim on this page can be verified by reading the code.</p>
+
+  <h2>Your financial data: never collected</h2>
+  <p>Lithifyte is a client-only application. All computation — importing statements, categorising spending, budgets, forecasts, net worth — happens in your browser. Your data is kept in your browser's local storage (localStorage and IndexedDB) on your device, and in backup files you export yourself.</p>
+  <ul>
+    <li>There is <strong>no application backend</strong> and no API that accepts financial data.</li>
+    <li>Bank statements you import are parsed locally and never uploaded.</li>
+    <li>Optional encrypted backups use your browser's built-in Web Crypto; the passphrase never leaves your device.</li>
+    <li>The optional AI categoriser talks to a model <strong>you run</strong> (for example Ollama or LM Studio on your own machine). Pointing it elsewhere is your choice, not a default.</li>
+    <li>You can confirm all of this by watching your browser's network tab while using the app.</li>
+  </ul>
+
+  <h2>What we do collect: an email address</h2>
+  <p>If you sign in, we store:</p>
+  <ul>
+    <li><strong>Your email address</strong>, with timestamps of when you first and last requested a sign-in link.</li>
+    <li><strong>A session token</strong> (a random identifier in a cookie named <code>lf_session</code>) so you stay signed in for up to 30 days.</li>
+  </ul>
+  <p>That is the complete list. Sign-in uses magic links — we never ask for or store a password, and we never ask for bank credentials. The email address is used only to send you sign-in links and to identify your access. It is not shared with, or sold to, anyone.</p>
+
+  <h2>Cookies</h2>
+  <p>We set one cookie: <code>lf_session</code>, an HttpOnly session cookie scoped to lithifyte.com, used solely to keep you signed in. There are no advertising or tracking cookies.</p>
+
+  <h2>Analytics and tracking</h2>
+  <p>None. No analytics scripts, no tracking pixels, no fingerprinting, no third-party advertising.</p>
+
+  <h2>Infrastructure</h2>
+  <p>Our web pages and the sign-in service are served by <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare</a>. Like any host, Cloudflare processes standard connection logs (such as IP addresses) to deliver the site and defend it against abuse. The marketing pages load fonts from Google Fonts and a small script library from unpkg (a CDN); the finance app itself loads nothing external.</p>
+
+  <h2>Data retention and deletion</h2>
+  <p>Your email record is kept while you have access. To have it deleted, open an issue at <a href="https://github.com/SID-Apps/lithifyte/issues">github.com/SID-Apps/lithifyte/issues</a> (or use the contact route in the repository's SECURITY.md) and we will remove it. Your financial data needs no deletion request — it is on your device, and the app's own <em>erase all</em> / <em>delete account</em> controls remove it locally.</p>
+
+  <h2>Changes</h2>
+  <p>If this policy changes, the new version will be published here with an updated date. Because the sites and the sign-in worker are open source, the history of every change is public in the repository.</p>
+
+  <p style="margin-top:34px"><a href="/terms">Terms of use →</a></p>
+</main>
+
+<footer class="site">
+  <span>© 2026 Lithifyte · <a href="https://www.sid-labs.com">SID Labs</a></span>
+  <a href="/privacy">Privacy</a>
+  <a href="/terms">Terms</a>
+  <a href="https://github.com/SID-Apps/lithifyte">Source (AGPL-3.0)</a>
+</footer>
+</body>
+</html>

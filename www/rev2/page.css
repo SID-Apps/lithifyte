@@ -1,0 +1,51 @@
+/* Shared style for Lithifyte static pages (privacy / terms / 404) */
+:root{
+  --void:#020b1a; --deep:#041224; --cyan:#38bdf8; --cyan-hot:#7dd3fc;
+  --mint:#34d399; --ink:#e8f1ff; --muted:#8fb0d0; --line:rgba(56,189,248,.28);
+  --font-display:"Syne",system-ui,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{
+  margin:0; min-height:100vh; background:var(--void); color:var(--ink);
+  font-family:var(--font-display); font-weight:500; line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(ellipse 70% 50% at 50% 0%, #0a1f3d 0%, transparent 60%),
+    radial-gradient(ellipse 40% 30% at 85% 90%, rgba(56,189,248,.06), transparent);
+}
+a{color:var(--cyan-hot); text-decoration:none}
+a:hover{text-decoration:underline}
+header.site{
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
+  padding:18px 22px; max-width:860px; margin:0 auto;
+}
+.brand{display:flex; align-items:center; gap:10px; font:800 15px var(--font-display); letter-spacing:.05em; color:var(--ink)}
+.brand:hover{text-decoration:none}
+.brand img{width:28px; height:28px; border-radius:8px; box-shadow:0 0 24px rgba(56,189,248,.35)}
+nav.site{display:flex; gap:6px; flex-wrap:wrap}
+nav.site a{
+  color:var(--muted); font:500 12px var(--font-mono); letter-spacing:.06em;
+  text-transform:uppercase; padding:8px 10px; border-radius:999px;
+}
+nav.site a:hover{color:var(--cyan-hot); text-decoration:none}
+main.page{max-width:760px; margin:0 auto; padding:32px 22px 60px}
+main.page h1{font:800 clamp(30px,5vw,42px)/1.12 var(--font-display); letter-spacing:-.02em; margin:18px 0 6px}
+main.page .updated{font:500 12px var(--font-mono); color:var(--muted); letter-spacing:.05em; margin:0 0 28px}
+main.page h2{font:700 21px/1.25 var(--font-display); letter-spacing:-.01em; margin:36px 0 10px; color:var(--cyan-hot)}
+main.page p, main.page li{color:#c3d7ec; font-size:15.5px}
+main.page ul{padding-left:22px}
+main.page li{margin:6px 0}
+main.page strong{color:var(--ink)}
+.callout{
+  border:1px solid var(--line); border-radius:14px; background:rgba(4,18,36,.6);
+  padding:18px 20px; margin:22px 0;
+}
+.callout p{margin:0; color:var(--ink)}
+footer.site{
+  max-width:860px; margin:0 auto; padding:24px 22px 34px; border-top:1px solid rgba(56,189,248,.12);
+  font:500 12px var(--font-mono); color:#6f8bab; letter-spacing:.04em;
+  display:flex; flex-wrap:wrap; gap:8px 18px;
+}
+footer.site a{color:#6f8bab}
+footer.site a:hover{color:var(--cyan-hot)}

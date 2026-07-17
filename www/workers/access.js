@@ -94,6 +94,20 @@ function needKV(env) {
   return !env.WAITLIST;
 }
 
+/**
+ * KV-backed rate limit. Not atomic (KV is eventually consistent) but plenty
+ * to blunt form spam and email-bombing on a public endpoint.
+ * Returns true when the caller is over the limit.
+ */
+async function overLimit(env, key, limit, windowSecs) {
+  const bucket = Math.floor(Date.now() / (windowSecs * 1000));
+  const k = `rl:${key}:${bucket}`;
+  const n = parseInt((await env.WAITLIST.get(k)) || '0', 10);
+  if (n >= limit) return true;
+  await env.WAITLIST.put(k, String(n + 1), { expirationTtl: windowSecs + 60 });
+  return false;
+}
+
 export default {
   async fetch(req, env) {
     const pre = corsPreflight(req);
@@ -115,6 +129,19 @@ export default {
         .trim()
         .toLowerCase();
       if (!validEmail(email)) return json({ error: 'Invalid email' }, 400, req);
+
+      // Spam damping: 8 requests / 10 min per IP, 3 / 5 min per address.
+      const ip = req.headers.get('CF-Connecting-IP') || 'unknown';
+      if (
+        (await overLimit(env, `ip:${await sha256(ip)}`, 8, 600)) ||
+        (await overLimit(env, `em:${await sha256(email)}`, 3, 300))
+      ) {
+        return json(
+          { error: 'Too many requests — wait a few minutes and try again.' },
+          429,
+          req
+        );
+      }
 
       const existing = await env.WAITLIST.get(`user:${email}`, 'json');
       const record = {
@@ -189,9 +216,15 @@ export default {
 
       const app = env.APP_ORIGIN || 'https://app.lithifyte.com';
       const dest = app.replace(/\/$/, '') + '/?signedIn=1';
-      const res = Response.redirect(dest, 302);
-      res.headers.append('Set-Cookie', sessionCookie(session, SESSION_TTL, env, url));
-      return res;
+      // Response.redirect() has immutable headers in the Workers runtime —
+      // build the redirect by hand so Set-Cookie can be attached.
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: dest,
+          'Set-Cookie': sessionCookie(session, SESSION_TTL, env, url),
+        },
+      });
     }
 
     // ── session probe ──
@@ -235,7 +268,9 @@ export default {
         path.endsWith('.css') ||
         path.endsWith('.js') ||
         path.endsWith('.ico') ||
-        path.endsWith('.svg'))
+        path.endsWith('.svg') ||
+        path.endsWith('.png') ||
+        path.endsWith('.webmanifest'))
     ) {
       if (path === '/signin') {
         return env.ASSETS.fetch(new URL('/index.html', url).toString());
