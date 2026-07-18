@@ -15,16 +15,16 @@
       "rag_id": "welcome"
     },
     {
-      "id": "demo-first",
+      "id": "sample-first",
       "order": 2,
       "phase": "start",
-      "title": "Optional: explore the demo first",
-      "body": "If you want to learn features before touching real statements, open the hosted demo. It is a deterministic sample household (two earners, four accounts, ~24 months of invented transactions) that exercises cashflow, budgets, wealth, the money map, and more.\n\nThe demo cannot touch data you later add to the real app. When you are ready for real data, open the main app (not /demo) and complete onboard…",
+      "title": "Optional: explore the sample first",
+      "body": "If you want to learn features before touching real statements, open the sample household. It is a deterministic sample household (two earners, four accounts, ~24 months of invented transactions) that exercises cashflow, budgets, wealth, the money map, and more.\n\nThe sample cannot touch data you later add to the real app. When you are ready for real data, open the main app (not /demo) and complete onboard…",
       "location": "https://lithifyte.sid-labs.com/demo.html · also linked from first-run onboarding",
       "selectors": [
         "#obDemoLine"
       ],
-      "rag_id": "demo-first",
+      "rag_id": "sample-first",
       "dock_hint": "https://lithifyte.sid-labs.com/demo.html · also linked from first-run onboarding"
     },
     {
@@ -580,7 +580,7 @@
       "order": 82,
       "phase": "meta",
       "title": "Recommended order of use (checklist)",
-      "body": "Recommended path for a new household:\n\n1) Optional demo → 2) Name → 3) First account (correct kind) → 4) First CSV → 5) First goal → 6) Explore map/HUD → 7) Add other people/accounts/statements → 8) Opening balances → 9) Resolve transfer rulings → 10) Audit + rules (and optional AI categoriser) → 11) Cashflow / categories / leaks → 12) Budget seed → 13) Forecast buffer check → 14) Simulator what-i…",
+      "body": "Recommended path for a new household:\n\n1) Optional sample → 2) Name → 3) First account (correct kind) → 4) First CSV → 5) First goal → 6) Explore map/HUD → 7) Add other people/accounts/statements → 8) Opening balances → 9) Resolve transfer rulings → 10) Audit + rules (and optional AI categoriser) → 11) Cashflow / categories / leaks → 12) Budget seed → 13) Forecast buffer check → 14) Simulator what-i…",
       "location": "Whole app",
       "selectors": [],
       "rag_id": "order-of-use"

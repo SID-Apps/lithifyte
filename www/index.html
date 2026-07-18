@@ -319,7 +319,7 @@
       <a class="nav" href="#cashflow">Cashflow</a>
       <a class="nav" href="#budget">Budget</a>
       <a class="nav" href="#privacy">Privacy</a>
-      <a class="btn ghost" href="../demo.html">Try demo</a>
+      <a class="btn ghost" href="../demo.html">Sample</a>
       <a class="btn primary" href="#access">Get free access</a>
     </nav>
   </header>
@@ -504,7 +504,7 @@
         <h2 style="text-align:center; margin-bottom:8px">Enter the platform.</h2>
         <p class="lede" style="text-align:center; margin-inline:auto">
           Free. Leave your email to create access — we store only the address for sign-in and product updates.
-          Explore the demo first if you want zero commitment.
+          Explore the sample household first if you want zero commitment.
         </p>
 
         <div class="terminal" id="accessTerminal">
@@ -529,7 +529,7 @@
               <p class="form-status" id="accessStatus" role="status" aria-live="polite"></p>
             </form>
             <div class="cta-actions">
-              <a class="btn primary" href="../demo.html">▶ Launch demo household</a>
+              <a class="btn primary" href="../demo.html">▶ Explore sample household</a>
               <a class="btn" href="../index.html">Open blank app</a>
               <a class="btn ghost" href="../tutorial.html">Tutorial &amp; Ask</a>
             </div>
@@ -545,7 +545,7 @@
 
   <footer>
     <div>© 2026 Lithifyte · SID Labs · AGPL-3.0 · <a href="https://github.com/SID-Apps/lithifyte">Source</a></div>
-    <div style="margin-top:8px">Hosted demo &amp; app currently at lithifyte.sid-labs.com · Domain: lithifyte.com</div>
+    <div style="margin-top:8px">Hosted sample &amp; app currently at lithifyte.sid-labs.com · Domain: lithifyte.com</div>
   </footer>
 
 <script>
@@ -912,12 +912,12 @@
         const list = JSON.parse(localStorage.getItem(key) || '[]');
         if (!list.includes(email)) list.push(email);
         localStorage.setItem(key, JSON.stringify(list));
-        status.innerHTML = 'Saved locally for now. Wire WAITLIST_URL to your Cloudflare Worker for production magic links. <a href="../demo.html">Launch demo →</a>';
+        status.innerHTML = 'Saved locally for now. Wire WAITLIST_URL to your Cloudflare Worker for production magic links. <a href="../demo.html">Explore sample →</a>';
         status.classList.add('ok');
       }
       form.reset();
     }catch(err){
-      status.textContent = 'Could not reach access service. Try the demo while we sort it — ' + (err.message || err);
+      status.textContent = 'Could not reach access service. Explore the sample while we sort it — ' + (err.message || err);
       status.classList.add('err');
     }
   });

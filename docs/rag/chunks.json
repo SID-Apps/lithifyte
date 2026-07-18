@@ -23,17 +23,17 @@
       "see_also": []
     },
     {
-      "id": "demo-first",
+      "id": "sample-first",
       "order": 2,
       "phase": "start",
-      "feature": "demo",
-      "title": "Optional: explore the demo first",
+      "feature": "sample",
+      "title": "Optional: explore the sample first",
       "location": "https://lithifyte.sid-labs.com/demo.html · also linked from first-run onboarding",
       "selectors": [
         "#obDemoLine"
       ],
       "tags": [
-        "demo",
+        "sample",
         "onboarding",
         "start"
       ],
@@ -41,7 +41,7 @@
         "welcome",
         "space-view"
       ],
-      "body": "If you want to learn features before touching real statements, open the hosted demo. It is a deterministic sample household (two earners, four accounts, ~24 months of invented transactions) that exercises cashflow, budgets, wealth, the money map, and more.\n\nThe demo cannot touch data you later add to the real app. When you are ready for real data, open the main app (not /demo) and complete onboarding, or import a backup."
+      "body": "If you want to learn features before touching real statements, open the sample household. It is a deterministic sample household (two earners, four accounts, ~24 months of invented transactions) that exercises cashflow, budgets, wealth, the money map, and more.\n\nThe sample cannot touch data you later add to the real app. When you are ready for real data, open the main app (not /demo) and complete onboarding, or import a backup."
     },
     {
       "id": "space-view",
@@ -995,7 +995,7 @@
         "onb-name",
         "backup"
       ],
-      "body": "Recommended path for a new household:\n\n1) Optional demo → 2) Name → 3) First account (correct kind) → 4) First CSV → 5) First goal → 6) Explore map/HUD → 7) Add other people/accounts/statements → 8) Opening balances → 9) Resolve transfer rulings → 10) Audit + rules (and optional AI categoriser) → 11) Cashflow / categories / leaks → 12) Budget seed → 13) Forecast buffer check → 14) Simulator what-ifs → 15) Readiness cleanup → 16) Track debts/holdings/assets → 17) Pulse / net worth → 18) Export backup (encrypt if shared machine) → 19) Optional feeder for next month's pull.\n\nDo not skip backup once real data exists. Do not whitewash readiness flags."
+      "body": "Recommended path for a new household:\n\n1) Optional sample → 2) Name → 3) First account (correct kind) → 4) First CSV → 5) First goal → 6) Explore map/HUD → 7) Add other people/accounts/statements → 8) Opening balances → 9) Resolve transfer rulings → 10) Audit + rules (and optional AI categoriser) → 11) Cashflow / categories / leaks → 12) Budget seed → 13) Forecast buffer check → 14) Simulator what-ifs → 15) Readiness cleanup → 16) Track debts/holdings/assets → 17) Pulse / net worth → 18) Export backup (encrypt if shared machine) → 19) Optional feeder for next month's pull.\n\nDo not skip backup once real data exists. Do not whitewash readiness flags."
     }
   ]
 }

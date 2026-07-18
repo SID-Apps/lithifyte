@@ -18,7 +18,7 @@ chapters and force-directed nodes.
 | 04 | Goals & debts | Progress rings on goals; hollow debt nodes |
 | 05 | Flow | Animated Sankey — €6,000 income splits by category |
 | 06 | Privacy | Vault ring — bank data never leaves the browser |
-| 07 | Enter | Demo + start account CTAs + footer (no extra scroll past this page) |
+| 07 | Enter | Sample + start account CTAs + footer (no extra scroll past this page) |
 
 ### Interaction (beyond Rev 1)
 
@@ -59,7 +59,7 @@ python3 -m http.server 8788 --directory www/rev2
 
 | Control | Target |
 |---------|--------|
-| Demo | `https://lithifyte.sid-labs.com/demo.html` |
+| Sample | `https://app.lithifyte.com/demo` (`demo.html`) |
 | Start account | `https://lithifyte.sid-labs.com/` |
 | Source | `https://github.com/SID-Apps/lithifyte` |
 
