@@ -782,13 +782,40 @@ class Component extends DCLogic {
     const hslide = $('[data-hslide]'), htrack = $('[data-htrack]');
     const scrollHint = $('[data-scrollhint]');
     const stackedMQ = matchMedia('(max-width:820px)');
+    // Scroll so a chapter's sticky copy is mid-range (lp≈0.35) — never at lp≈0
+    // where older fade-in left the screen empty (hash nav to Privacy / Inside).
+    const scrollToChapter = (ch, behavior) => {
+      if (!ch) return;
+      const top = ch.getBoundingClientRect().top + scrollY;
+      const span = Math.max(0, ch.offsetHeight - innerHeight);
+      const y = top + span * (span > 0 ? 0.35 : 0);
+      scrollTo({ top: Math.max(0, y), behavior: behavior || 'smooth' });
+    };
     const railBtns = sections.map((ch,i)=>{
       const b=document.createElement('button'); b.type='button';
       Object.assign(b.style,{width:'9px',height:'9px',borderRadius:'50%',padding:'0',cursor:'pointer',border:'1px solid rgba(56,189,248,.4)',background:'transparent',transition:'transform .25s, background .25s, box-shadow .25s'});
       b.title=ch.getAttribute('data-label')||('Chapter '+i); b.setAttribute('aria-label',b.title);
-      on(b,'click',()=>{ const y=ch.getBoundingClientRect().top+scrollY+(ch.offsetHeight-innerHeight)*0.35; scrollTo({top:Math.max(0,y),behavior:'smooth'}); });
+      on(b,'click',()=>scrollToChapter(ch));
       rail.appendChild(b); return b;
     });
+
+    // Header quick links (#privacy, #features, #map, …) use the same mid-chapter
+    // target so native #id scroll (section top → empty faded copy) never happens.
+    const byChapterId = new Map(sections.map(ch => [ch.id, ch]));
+    $$('a[href^="#"]').forEach(a => {
+      const id = (a.getAttribute('href') || '').slice(1);
+      if (!id || !byChapterId.has(id)) return;
+      on(a, 'click', (e) => {
+        e.preventDefault();
+        scrollToChapter(byChapterId.get(id));
+        try { history.replaceState(null, '', '#' + id); } catch (_) {}
+      });
+    });
+    // Deep-link / refresh with hash
+    if (location.hash && location.hash.length > 1) {
+      const ch = byChapterId.get(location.hash.slice(1));
+      if (ch) requestAnimationFrame(() => scrollToChapter(ch, 'auto'));
+    }
 
     // ── interaction ──
     let mx=0, my=0, smx=0, smy=0;
@@ -1299,9 +1326,12 @@ class Component extends DCLogic {
           if (lp < 0.72){ o = 1; ty = 0; }
           else { const k = ease((lp-0.72)/0.28); o = 1-k; ty = -22*k; }
         } else {
-          if (lp < 0.14){ const k = ease(lp/0.14); o = k; ty = 26-26*k; }
-          else if (lp < 0.82){ o = 1; ty = 0; }
-          else { const k = ease((lp-0.82)/0.18); o = 1-k; ty = -22*k; }
+          // Sticky chapters pin a full viewport of copy as soon as the section
+          // starts (lp≈0). A long fade-in left hash-nav (Privacy, Inside, …)
+          // on a blank screen. Keep full opacity for almost the whole range;
+          // only fade out near the end as the next chapter approaches.
+          if (lp < 0.88){ o = 1; ty = 0; }
+          else { const k = ease((lp-0.88)/0.12); o = 1-k; ty = -22*k; }
         }
         const c = copies[i];
         if (c){ c.style.opacity = o.toFixed(3); c.style.transform = `translateY(${ty.toFixed(1)}px)`; }
