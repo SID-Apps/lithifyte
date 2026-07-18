@@ -381,10 +381,48 @@ async function sendDigestEmail(env, email, { subject, text, html }) {
   return { ok: true };
 }
 
+/** Branded HTML shell for auth intermediate / error pages. */
+function brandedPage({ title, heading, bodyHtml, ctaHref, ctaLabel }) {
+  const cta = ctaHref
+    ? `<p style="margin:28px 0 0"><a href="${ctaHref}" style="display:inline-block;padding:14px 22px;border-radius:10px;background:linear-gradient(135deg,#0ea5e9,#1d4ed8);color:#fff;text-decoration:none;font-weight:600;font-size:14px;border:1px solid rgba(125,211,252,.55)">${ctaLabel || 'Continue'}</a></p>`
+    : '';
+  return `<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>${title} — Lithifyte</title>
+<style>
+  :root{--void:#020b1a;--ink:#e8f1ff;--muted:#8fb0d0;--line:rgba(56,189,248,.28);--cyan:#38bdf8}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+    font-family:system-ui,sans-serif;color:var(--ink);background:var(--void);
+    background-image:radial-gradient(ellipse 70% 50% at 50% 30%,#0a1f3d 0%,transparent 65%)}
+  .card{width:min(420px,100%);background:rgba(4,18,36,.88);border:1px solid var(--line);border-radius:16px;padding:30px 26px;box-shadow:0 0 60px rgba(56,189,248,.12)}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:13px;letter-spacing:.06em;margin-bottom:20px}
+  .mark{width:26px;height:26px;border-radius:7px;border:1px solid var(--cyan);background:linear-gradient(135deg,#0ea5e9,#1d4ed8);position:relative}
+  .mark::after{content:"";position:absolute;inset:6px;border-radius:50%;border:1.5px solid rgba(255,255,255,.85)}
+  h1{margin:0 0 10px;font-size:22px;line-height:1.2;letter-spacing:-.01em}
+  p{margin:0;color:var(--muted);font-size:14px;line-height:1.55}
+  .fine{margin-top:18px;font-size:12px;color:#5a7694}
+  a.fine{color:#7dd3fc}
+</style>
+</head><body>
+<main class="card">
+  <div class="brand"><span class="mark" aria-hidden="true"></span> LITHIFYTE</div>
+  <h1>${heading}</h1>
+  ${bodyHtml}
+  ${cta}
+  <p class="fine"><a class="fine" href="https://lithifyte.com">Home</a> · <a class="fine" href="https://access.lithifyte.com/">Request a new link</a> · <a class="fine" href="https://lithifyte.com/privacy">Privacy</a></p>
+</main>
+</body></html>`;
+}
+
 /** Send the magic link via Resend. Returns true on success. */
 async function sendMagicLinkEmail(env, email, link) {
   if (!env.RESEND_API_KEY) return false;
   const from = env.MAIL_FROM || 'Lithifyte <signin@sid-labs.com>';
+  // Deliverability: plain subject, matching domains, List-Unsubscribe, no spammy urgency.
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -394,22 +432,32 @@ async function sendMagicLinkEmail(env, email, link) {
     body: JSON.stringify({
       from,
       to: [email],
-      subject: 'Your Lithifyte sign-in link',
+      reply_to: from.includes('<') ? from.replace(/^.*<([^>]+)>.*$/, '$1') : from,
+      subject: 'Sign in to Lithifyte',
+      headers: {
+        'List-Unsubscribe': '<https://lithifyte.com/privacy>',
+        'X-Entity-Ref-ID': 'lithifyte-signin-' + Date.now().toString(36),
+      },
       text:
-        `Sign in to Lithifyte:\n\n${link}\n\n` +
-        `The link works once and expires in 30 minutes. ` +
-        `If you didn't request it, ignore this email — nothing happens without the link.\n\n` +
-        `Lithifyte stores your email for identity and (on the hosted app) privacy-safe product usage events — never your bank data.\n`,
+        `Hi,\n\n` +
+        `Open this link to sign in to Lithifyte (household money map):\n\n` +
+        `${link}\n\n` +
+        `This link works for about 30 minutes. If your mail app opens it in a preview, ` +
+        `use the button on the page that appears, or request a fresh link.\n\n` +
+        `If you did not ask to sign in, you can ignore this message.\n\n` +
+        `— Lithifyte (SID Labs)\n` +
+        `https://lithifyte.com\n`,
       html:
-        `<div style="font-family:system-ui,sans-serif;max-width:32em;margin:0 auto;padding:8px 4px;color:#0b1626">` +
-        `<p style="font-size:15px">Sign in to <strong>Lithifyte</strong>:</p>` +
-        `<p style="margin:22px 0"><a href="${link}" style="display:inline-block;padding:13px 22px;border-radius:10px;` +
-        `background:linear-gradient(135deg,#0ea5e9,#1d4ed8);color:#fff;text-decoration:none;font-weight:600">Sign in to Lithifyte</a></p>` +
-        `<p style="font-size:13px;color:#4b6076">The link works once and expires in 30 minutes. ` +
-        `If you didn't request it, ignore this email — nothing happens without the link.</p>` +
-        `<p style="font-size:12px;color:#7a90a6">We store this email for identity. On the hosted app we may record privacy-safe usage events (pages opened, not your transactions). ` +
-        `Your financial data never leaves your browser. ` +
-        `<a href="https://lithifyte.com/privacy" style="color:#0ea5e9">Privacy</a></p>` +
+        `<div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;max-width:32em;margin:0 auto;padding:16px 8px;color:#0b1626;line-height:1.5">` +
+        `<p style="margin:0 0 6px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0ea5e9">Lithifyte</p>` +
+        `<h1 style="margin:0 0 14px;font-size:20px;color:#0b1626">Sign in to your account</h1>` +
+        `<p style="margin:0 0 18px;font-size:15px;color:#334155">Tap the button below to open the money map. We only use this email for sign-in — your bank data stays in your browser.</p>` +
+        `<p style="margin:0 0 22px"><a href="${link}" style="display:inline-block;padding:14px 22px;border-radius:10px;` +
+        `background:#0ea5e9;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px">Open Lithifyte</a></p>` +
+        `<p style="margin:0 0 10px;font-size:13px;color:#64748b">Or paste this link into your browser:</p>` +
+        `<p style="margin:0 0 22px;font-size:12px;word-break:break-all;color:#475569"><a href="${link}" style="color:#0369a1">${link}</a></p>` +
+        `<p style="margin:0;font-size:12px;color:#94a3b8">Link valid about 30 minutes. Didn’t request this? Ignore the email.</p>` +
+        `<p style="margin:16px 0 0;font-size:12px;color:#94a3b8"><a href="https://lithifyte.com/privacy" style="color:#0ea5e9">Privacy</a> · SID Labs</p>` +
         `</div>`,
     }),
   });
@@ -506,25 +554,74 @@ export default {
     }
 
     // ── redeem magic link ──
+    // GET only (HEAD/prefetch from mail scanners should not consume the token —
+    // they often probe with HEAD and would burn a one-shot link).
     if (path === '/auth' && req.method === 'GET') {
-      if (needKV(env)) return json({ error: 'WAITLIST KV not bound' }, 503, req);
+      if (needKV(env)) {
+        return new Response(
+          brandedPage({
+            title: 'Unavailable',
+            heading: 'Sign-in temporarily unavailable',
+            bodyHtml: '<p>Our identity service is missing storage. Try again in a few minutes.</p>',
+            ctaHref: 'https://access.lithifyte.com/',
+            ctaLabel: 'Back to sign-in',
+          }),
+          { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+        );
+      }
       const raw = url.searchParams.get('token') || '';
       if (!raw) {
-        return new Response('Missing token. Request a new link from the sign-in page.', {
-          status: 400,
-          headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-        });
+        return new Response(
+          brandedPage({
+            title: 'Missing link',
+            heading: 'That sign-in link is incomplete',
+            bodyHtml: '<p>Request a fresh magic link from the sign-in page. Links are unique and expire after about 30 minutes.</p>',
+            ctaHref: 'https://access.lithifyte.com/',
+            ctaLabel: 'Request a new link',
+          }),
+          { status: 400, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+        );
       }
       const hash = await sha256(raw);
       const row = await env.WAITLIST.get(`token:${hash}`, 'json');
       if (!row || row.exp < Date.now()) {
-        return new Response('Link expired or already used. Request a new one.', {
-          status: 401,
-          headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-        });
+        return new Response(
+          brandedPage({
+            title: 'Link expired',
+            heading: 'This sign-in link is no longer valid',
+            bodyHtml:
+              '<p>Links expire after about 30 minutes, or after several successful uses. Request a new one — it only takes a moment.</p>' +
+              '<p style="margin-top:12px">Tip: open the link in <b>Safari or Chrome</b>, not only the email app’s built-in browser, so the session cookie can stick.</p>',
+            ctaHref: 'https://access.lithifyte.com/',
+            ctaLabel: 'Request a new link',
+          }),
+          { status: 401, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+        );
       }
 
-      await env.WAITLIST.delete(`token:${hash}`);
+      // Allow a few redemptions within the token TTL so Gmail/Outlook link
+      // scanners don't burn the only use before the real person clicks.
+      const uses = (row.uses || 0) + 1;
+      const maxUses = 5;
+      if (uses > maxUses) {
+        await env.WAITLIST.delete(`token:${hash}`);
+        return new Response(
+          brandedPage({
+            title: 'Link used up',
+            heading: 'This link was opened too many times',
+            bodyHtml: '<p>Request a fresh sign-in link. (Mail scanners sometimes open links automatically.)</p>',
+            ctaHref: 'https://access.lithifyte.com/',
+            ctaLabel: 'Request a new link',
+          }),
+          { status: 401, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+        );
+      }
+      const ttlSec = Math.max(60, Math.ceil((row.exp - Date.now()) / 1000));
+      await env.WAITLIST.put(
+        `token:${hash}`,
+        JSON.stringify({ ...row, uses }),
+        { expirationTtl: ttlSec }
+      );
 
       const session = randomToken(32);
       const sessionHash = await sha256(session);
@@ -549,13 +646,34 @@ export default {
 
       const app = env.APP_ORIGIN || 'https://app.lithifyte.com';
       const dest = app.replace(/\/$/, '') + '/?signedIn=1';
-      return new Response(null, {
-        status: 302,
+      // Intermediate HTML page (not a bare 302): email in-app browsers often
+      // drop cookies on redirect. Serving 200 + Set-Cookie + JS/meta navigate
+      // is more reliable, and we control the UX if something still fails.
+      const html =
+        brandedPage({
+          title: 'Signed in',
+          heading: 'You’re signed in',
+          bodyHtml:
+            `<p>Opening the money map for <b style="color:#e8f1ff">${String(row.email).replace(/</g, '')}</b>…</p>` +
+            `<p style="margin-top:12px">If nothing happens, tap the button below. Prefer a desktop browser if you see a generic “access denied” page from your network or email app.</p>` +
+            `<meta http-equiv="refresh" content="1;url=${dest}">` +
+            `<script>setTimeout(function(){ location.replace(${JSON.stringify(dest)}); }, 400);</script>`,
+          ctaHref: dest,
+          ctaLabel: 'Open Lithifyte',
+        });
+      return new Response(html, {
+        status: 200,
         headers: {
-          Location: dest,
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-store',
           'Set-Cookie': sessionCookie(session, SESSION_TTL, env, url),
         },
       });
+    }
+
+    // Explicit HEAD for /auth — do not consume tokens (mail scanners)
+    if (path === '/auth' && req.method === 'HEAD') {
+      return new Response(null, { status: 200, headers: { 'Cache-Control': 'no-store' } });
     }
 
     // ── session probe ──
