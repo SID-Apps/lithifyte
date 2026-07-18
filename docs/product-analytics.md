@@ -17,6 +17,7 @@ Self-hosted / `file://` builds send **nothing**.
 | GET | `/auth?token=` | token | Sign-in; bumps `signInCount`, `lastSignInAt` |
 | GET | `/me` | session cookie | Email + plan + activation flags |
 | POST | `/events` | session *or* public funnel | Allowlisted events |
+| POST | `/digest` | session | Client-composed digest → Resend (body **not** stored) |
 | GET | `/admin/summary` | `X-Admin-Token` | Operator funnel dashboard JSON |
 | GET | `/health` | — | Lists allowed event names |
 
@@ -46,8 +47,16 @@ curl -sH "X-Admin-Token: $TOKEN" https://access.lithifyte.com/admin/summary | jq
 | `locale_set` | `locale` ∈ IE \| GLOBAL | signed-in |
 | `self_test` | `pass` bool | signed-in |
 | `error` | `code` short enum | signed-in |
+| `action` → `digest_sent` | — | signed-in (after digest email) |
 
 **Never stored:** amounts, merchants, descriptions, account names, goal titles, CSV content, balances.
+
+### Digest email (`POST /digest`)
+
+- Browser composes `subject` + `text` + optional `html` from in-app alerts.
+- Worker authenticates session, rate-limits (3/hour/email), forwards via Resend, **discards body**.
+- Records `action: digest_sent` + user flag only.
+- See `docs/email-digest.md`.
 
 ## Client API
 

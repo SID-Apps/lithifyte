@@ -27,7 +27,7 @@
 
 <main class="page">
   <h1>Privacy policy</h1>
-  <p class="updated">Last updated: 18 July 2026</p>
+  <p class="updated">Last updated: 18 July 2026 (digest)</p>
 
   <div class="callout">
     <p><strong>The short version:</strong> your financial data — statements, transactions, balances, merchants, goals — never leaves your browser. There is no finance backend that could receive it. On the hosted app we store your <strong>email</strong> for sign-in, and may record <strong>privacy-safe product usage events</strong> (for example “opened budgets”, not “spent €42 at a shop”). Self-hosted copies send nothing.</p>
@@ -61,6 +61,16 @@
 
   <h2>Analytics and tracking</h2>
   <p>We do <strong>not</strong> use Google Analytics, advertising pixels, or fingerprinting. On <code>app.lithifyte.com</code> only, the app may send the allowlisted product events above to our Cloudflare Worker at <code>access.lithifyte.com</code>. That is first-party product analytics for retention and product decisions — not a finance data pipeline. See the open-source worker and <code>docs/product-analytics.md</code> in the repository for the exact allowlist.</p>
+
+  <h2>Optional money digest email</h2>
+  <p>If you use <strong>Alerts → Email me a money digest</strong>, the app composes a newsletter-style summary <strong>in your browser</strong> (overview, reminders, upcoming bills, goal pace). When you click send:</p>
+  <ul>
+    <li>The rendered text/HTML is POSTed to our Worker solely so we can deliver it via our mail provider (Resend) to the email address on your signed-in session.</li>
+    <li>We do <strong>not</strong> store the message body on our servers after send.</li>
+    <li>We may record that a digest was sent (a boolean / event count only) for product analytics.</li>
+    <li>You can choose to hide euro amounts in the email. You control what leaves the browser for that one send.</li>
+  </ul>
+  <p>This is not a standing copy of your finances on our servers, and it is never computed server-side from your bank data.</p>
 
   <h2>Infrastructure</h2>
   <p>Our web pages and the sign-in service are served by <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare</a>. Like any host, Cloudflare processes standard connection logs (such as IP addresses) to deliver the site and defend it against abuse. The marketing pages load fonts from Google Fonts and a small script library from unpkg (a CDN); the finance app itself loads nothing external.</p>
