@@ -1442,7 +1442,7 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
   <div class="section" id="sec-alerts">
     <div class="section-head">
       <h2>Alerts &amp; reminders</h2>
-      <p>What's coming, before it lands: your own reminders (bills, renewals, one-offs) plus automatic warnings — likely upcoming bills predicted from your recurring history, and goals that have fallen behind pace. Everything here is computed in this browser; alerts appear when you open the app (there is no server to send pushes).</p>
+      <p>What's coming, before it lands: your own reminders (bills, renewals, one-offs) plus automatic warnings — likely upcoming bills predicted from your recurring history, and goals that have fallen behind pace. Everything is computed in this browser. Optional: email yourself a one-shot newsletter-style digest (client-composed — we never store the message body).</p>
     </div>
     <div class="card">
       <div id="alertList"></div>
@@ -1465,6 +1465,16 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
             <input type="checkbox" id="alAutoUp"> Predict upcoming bills from recurring history</label>
           <label class="hint" style="display:inline-flex; align-items:center; gap:6px; cursor:pointer">
             <input type="checkbox" id="alAutoGoal"> Warn when a goal falls behind pace</label>
+        </div>
+        <div id="digestCard" style="margin-top:16px; padding-top:14px; border-top:1px solid var(--border)">
+          <h3 style="margin:0 0 6px; font-size:14px">Email me a money digest</h3>
+          <p class="hint" style="margin:0 0 10px">Composed <b>in this browser</b> from the alerts above — overview, reminders, upcoming bills, goal pace. On send, only the rendered message goes to our mailer for delivery to <b>your</b> signed-in address; we do not store the body or your bank data. Hosted app + signed in required.</p>
+          <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center">
+            <label class="hint" style="display:inline-flex; align-items:center; gap:6px; cursor:pointer">
+              <input type="checkbox" id="digestMaskAmts" checked> Hide euro amounts in the email</label>
+            <button type="button" class="btn primary" id="digestSendBtn">✉ Email me this digest</button>
+            <span class="hint" id="digestStatus" role="status" aria-live="polite"></span>
+          </div>
         </div>
       </div>
     </div>
@@ -9400,6 +9410,173 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       alertStore.auto.goalPace = this.checked; save(LS.alerts, alertStore); renderAlerts();
     });
   })();
+
+  // ── Client-composed money digest (Option A) ──
+  // Browser builds newsletter text from ALERTS; POST /digest only for delivery.
+  function composeMoneyDigest(opts){
+    opts = opts || {};
+    const maskAmts = !!opts.maskAmts || !!(PRIV && PRIV.global);
+    const fmtAmt = (n) => {
+      if (n == null || !(+n > 0)) return '';
+      if (maskAmts) return '€ •••';
+      try { return eur(+n); } catch (e) { return '€' + Math.round(+n); }
+    };
+    computeAlerts();
+    const today = new Date();
+    const todayIso = today.toISOString().slice(0, 10);
+    const dateLbl = today.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const hh = (org.householdName && String(org.householdName).trim()) || 'Your household';
+    const reminders = ALERTS.filter(a => a.kind === 'reminder');
+    const predicted = ALERTS.filter(a => a.kind === 'predicted');
+    const goals = ALERTS.filter(a => a.kind === 'goalPace');
+    const nDue = ALERTS.filter(a => a.days != null && a.days <= 3).length;
+    let overview;
+    if (!ALERTS.length) overview = 'Quiet for now — nothing in your lead window.';
+    else if (goals.length && nDue) overview = goals.length + ' goal' + (goals.length === 1 ? '' : 's') + ' behind pace; ' + nDue + ' item' + (nDue === 1 ? '' : 's') + ' due soon.';
+    else if (goals.length) overview = goals.length + ' goal' + (goals.length === 1 ? '' : 's') + ' behind pace — open the app for the numbers.';
+    else if (nDue) overview = nDue + ' item' + (nDue === 1 ? '' : 's') + ' due in the next few days.';
+    else overview = ALERTS.length + ' item' + (ALERTS.length === 1 ? '' : 's') + ' on your radar.';
+
+    const lines = [];
+    lines.push('Lithifyte money digest');
+    lines.push(hh);
+    lines.push(dateLbl);
+    lines.push('');
+    lines.push('── Overview ──');
+    lines.push(overview);
+    lines.push('');
+    lines.push('── Reminders ──');
+    if (!reminders.length) lines.push('None in your lead window.');
+    else for (const a of reminders){
+      const due = a.due ? fmtAlertDue(a) : '';
+      const am = fmtAmt(a.amount);
+      lines.push('• ' + a.name + (due ? ' — ' + due : '') + (am ? ' · ' + am : ''));
+    }
+    lines.push('');
+    lines.push('── Up and coming ──');
+    if (!predicted.length) lines.push('No predicted bills in the next fortnight (or predictions are off).');
+    else for (const a of predicted){
+      const due = a.due ? fmtAlertDue(a) : '';
+      const am = fmtAmt(a.amount);
+      lines.push('• ' + a.name + (due ? ' — ' + due : '') + (am ? ' · ~' + am : '') + ' (from your history)');
+    }
+    lines.push('');
+    lines.push('── Goal pace ──');
+    if (!goals.length) lines.push('Goals on pace (or none tracked).');
+    else for (const a of goals){
+      const msg = String(a.msg || 'Behind pace').replace(/\s+/g, ' ').trim();
+      // When amounts masked, strip euro figures from goal messages
+      const clean = maskAmts ? msg.replace(/€\s*[\d,.]+/g, '€ •••').replace(/\d+([.,]\d+)?\s*%/g, '••%') : msg;
+      lines.push('• ' + a.name + (clean ? ' — ' + clean : ''));
+    }
+    lines.push('');
+    lines.push('──');
+    lines.push('Computed in your browser on ' + todayIso + '.');
+    lines.push('This email contains only what you chose to send. Lithifyte did not store a copy of this message.');
+    lines.push('Open the app: https://app.lithifyte.com');
+    lines.push('Privacy: https://lithifyte.com/privacy');
+
+    const text = lines.join('\n');
+    const escH = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const li = (arr, empty) => arr.length
+      ? '<ul style="margin:8px 0 16px;padding-left:1.2em">' + arr.map(x => '<li style="margin:4px 0">' + escH(x) + '</li>').join('') + '</ul>'
+      : '<p style="color:#5a7694;margin:8px 0 16px">' + escH(empty) + '</p>';
+    const remLis = reminders.map(a => {
+      const due = a.due ? fmtAlertDue(a) : '';
+      const am = fmtAmt(a.amount);
+      return a.name + (due ? ' — ' + due : '') + (am ? ' · ' + am : '');
+    });
+    const predLis = predicted.map(a => {
+      const due = a.due ? fmtAlertDue(a) : '';
+      const am = fmtAmt(a.amount);
+      return a.name + (due ? ' — ' + due : '') + (am ? ' · ~' + am : '') + ' (from your history)';
+    });
+    const goalLis = goals.map(a => {
+      const msg = String(a.msg || 'Behind pace').replace(/\s+/g, ' ').trim();
+      const clean = maskAmts ? msg.replace(/€\s*[\d,.]+/g, '€ •••').replace(/\d+([.,]\d+)?\s*%/g, '••%') : msg;
+      return a.name + (clean ? ' — ' + clean : '');
+    });
+    const html =
+      '<div style="font-family:system-ui,sans-serif;max-width:36em;margin:0 auto;padding:12px 8px;color:#0b1626;line-height:1.5">' +
+      '<p style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0ea5e9;margin:0 0 6px">Lithifyte money digest</p>' +
+      '<h1 style="margin:0 0 4px;font-size:22px">' + escH(hh) + '</h1>' +
+      '<p style="margin:0 0 18px;color:#4b6076;font-size:13px">' + escH(dateLbl) + '</p>' +
+      '<h2 style="font-size:15px;margin:0 0 6px">Overview</h2>' +
+      '<p style="margin:0 0 18px">' + escH(overview) + '</p>' +
+      '<h2 style="font-size:15px;margin:0 0 6px">Reminders</h2>' +
+      li(remLis, 'None in your lead window.') +
+      '<h2 style="font-size:15px;margin:0 0 6px">Up and coming</h2>' +
+      li(predLis, 'No predicted bills in the next fortnight.') +
+      '<h2 style="font-size:15px;margin:0 0 6px">Goal pace</h2>' +
+      li(goalLis, 'Goals on pace (or none tracked).') +
+      '<hr style="border:none;border-top:1px solid #d8e2ec;margin:22px 0">' +
+      '<p style="font-size:12px;color:#7a90a6">Computed in your browser. This email contains only what you chose to send — we did not store a copy. ' +
+      '<a href="https://app.lithifyte.com" style="color:#0ea5e9">Open Lithifyte</a> · ' +
+      '<a href="https://lithifyte.com/privacy" style="color:#0ea5e9">Privacy</a></p></div>';
+
+    const subject = 'Lithifyte digest · ' + today.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+    return { subject, text, html, overview, counts: { total: ALERTS.length, reminders: reminders.length, predicted: predicted.length, goals: goals.length }, privacyMode: maskAmts };
+  }
+  window.__ddComposeDigest = composeMoneyDigest;
+
+  async function sendMoneyDigest(){
+    const status = document.getElementById('digestStatus');
+    const btn = document.getElementById('digestSendBtn');
+    const maskEl = document.getElementById('digestMaskAmts');
+    const setSt = (msg, ok) => {
+      if (!status) return;
+      status.textContent = msg;
+      status.style.color = ok === true ? 'var(--ok, #16a34a)' : ok === false ? 'var(--critical, #dc2626)' : '';
+    };
+    if (raw.demo){
+      setSt('Demo is read-only — sign in on the real app to email a digest.', false);
+      return;
+    }
+    if (location.hostname !== 'app.lithifyte.com' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1'){
+      setSt('Email digest works on the hosted app when you are signed in.', false);
+      return;
+    }
+    if (!window.__lfSignedIn && location.hostname === 'app.lithifyte.com'){
+      setSt('Sign in first so we know which email to send to.', false);
+      return;
+    }
+    const maskAmts = maskEl ? maskEl.checked : true;
+    const dig = composeMoneyDigest({ maskAmts });
+    if (btn) btn.disabled = true;
+    setSt('Sending…', null);
+    try {
+      const res = await fetch('https://access.lithifyte.com/digest', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: dig.subject,
+          text: dig.text,
+          html: dig.html,
+          privacyMode: dig.privacyMode
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok){
+        if (res.status === 401) setSt('Sign in required — open Sign in free, then try again.', false);
+        else setSt(data.message || data.error || ('Could not send (' + res.status + ')'), false);
+        return;
+      }
+      try { if (window.__lfTrack) window.__lfTrack('action', { action: 'digest_sent' }); } catch (e) {}
+      setSt(data.message || 'Sent. Check your inbox.', true);
+    } catch (e) {
+      setSt('Network error — try again.', false);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+  (function bindDigest(){
+    const btn = document.getElementById('digestSendBtn');
+    if (btn) btn.addEventListener('click', () => { sendMoneyDigest(); });
+    const mask = document.getElementById('digestMaskAmts');
+    if (mask && PRIV && PRIV.global) mask.checked = true;
+  })();
+
   function showSpaceAlerts(){
     if (alertsShown || !TX.length || !A) return;
     alertsShown = true;

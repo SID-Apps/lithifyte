@@ -12,6 +12,8 @@
  *   GET  /auth?token=…         → validate token, set session, update lifecycle
  *   GET  /me                   → { email, plan, signInCount, … } if signed in
  *   POST /events   { event, props?, v?, t? }  → allowlisted product events
+ *   POST /digest   { subject, text, html?, privacyMode? }
+ *                  → email client-composed digest via Resend (not stored)
  *   GET  /admin/summary        → funnel stats (requires ADMIN_TOKEN header)
  *   POST /logout               → clear cookie
  *   GET  /health               → service info
@@ -21,6 +23,9 @@
  *
  * Mail: Resend (secret RESEND_API_KEY + var MAIL_FROM).
  * Admin: secret ADMIN_TOKEN (optional) — wrangler secret put ADMIN_TOKEN
+ *
+ * Digest privacy: the Worker never computes finance. The browser composes
+ * the message; we only forward it to the signed-in address and discard it.
  */
 
 const SESSION_TTL = 60 * 60 * 24 * 30; // 30 days
@@ -72,7 +77,12 @@ const ACTION_ALLOW = new Set([
   'goal_set',
   'person_added',
   'account_added',
+  'digest_sent',
 ]);
+
+const DIGEST_MAX_SUBJECT = 120;
+const DIGEST_MAX_TEXT = 24_000;
+const DIGEST_MAX_HTML = 48_000;
 
 const SECTION_ALLOW = new Set([
   'map',
@@ -338,6 +348,39 @@ async function recordEvent(env, { event, props, email, appVer }) {
   return { ok: true };
 }
 
+/** Send a client-composed digest. Body is NOT stored. Returns {ok} or {ok:false,error}. */
+async function sendDigestEmail(env, email, { subject, text, html }) {
+  if (!env.RESEND_API_KEY) return { ok: false, error: 'mailer_not_configured' };
+  const from = env.MAIL_FROM || 'Lithifyte <signin@sid-labs.com>';
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from,
+      to: [email],
+      subject,
+      text,
+      html:
+        html ||
+        `<pre style="font-family:system-ui,sans-serif;white-space:pre-wrap;line-height:1.5">${text
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')}</pre>`,
+    }),
+  });
+  if (!res.ok) {
+    let detail = '';
+    try {
+      detail = (await res.text()).slice(0, 200);
+    } catch (_) {}
+    return { ok: false, error: 'send_failed', detail };
+  }
+  return { ok: true };
+}
+
 /** Send the magic link via Resend. Returns true on success. */
 async function sendMagicLinkEmail(env, email, link) {
   if (!env.RESEND_API_KEY) return false;
@@ -588,6 +631,97 @@ export default {
       return json({ ok: true }, 200, req);
     }
 
+    // ── client-composed money digest (Option A) ──
+    // Browser builds the text; Worker only mails it to the session email.
+    // Body is never written to KV.
+    if (path === '/digest' && req.method === 'POST') {
+      if (needKV(env)) return json({ error: 'WAITLIST KV not bound' }, 503, req);
+      const sess = await getSession(env, req);
+      if (!sess || !sess.email) return json({ error: 'auth_required' }, 401, req);
+
+      const ip = req.headers.get('CF-Connecting-IP') || 'unknown';
+      // 3 digests / hour per email, 8 / hour per IP
+      if (
+        (await overLimit(env, `dg:em:${await sha256(sess.email)}`, 3, 3600)) ||
+        (await overLimit(env, `dg:ip:${await sha256(ip)}`, 8, 3600))
+      ) {
+        return json(
+          { error: 'rate_limited', message: 'Too many digests — try again in an hour.' },
+          429,
+          req
+        );
+      }
+
+      let body;
+      try {
+        body = await req.json();
+      } catch {
+        return json({ error: 'Invalid JSON' }, 400, req);
+      }
+
+      let subject = String(body.subject || 'Your Lithifyte money digest').trim();
+      if (!subject) subject = 'Your Lithifyte money digest';
+      subject = subject.slice(0, DIGEST_MAX_SUBJECT);
+      // Strip control chars / newlines from subject
+      subject = subject.replace(/[\r\n\0]/g, ' ').trim();
+
+      const text = String(body.text || '');
+      if (!text.trim()) return json({ error: 'empty_digest' }, 400, req);
+      if (text.length > DIGEST_MAX_TEXT) {
+        return json({ error: 'digest_too_large', max: DIGEST_MAX_TEXT }, 400, req);
+      }
+
+      let html = body.html != null ? String(body.html) : '';
+      if (html.length > DIGEST_MAX_HTML) {
+        return json({ error: 'digest_too_large', max: DIGEST_MAX_HTML }, 400, req);
+      }
+
+      const privacyMode = !!body.privacyMode;
+
+      let sent;
+      try {
+        sent = await sendDigestEmail(env, sess.email, { subject, text, html: html || null });
+      } catch (e) {
+        sent = { ok: false, error: 'send_failed' };
+      }
+      if (!sent.ok) {
+        return json(
+          {
+            error: sent.error || 'send_failed',
+            message:
+              sent.error === 'mailer_not_configured'
+                ? 'Email delivery is not configured on the server.'
+                : 'Could not send the digest. Try again in a minute.',
+          },
+          sent.error === 'mailer_not_configured' ? 503 : 502,
+          req
+        );
+      }
+
+      // Lifecycle flag only — never store subject/body
+      await recordEvent(env, {
+        event: 'action',
+        props: { action: 'digest_sent' },
+        email: sess.email,
+      });
+      const user = await loadUser(env, sess.email);
+      user.flags = user.flags || {};
+      user.flags.digest_sent = true;
+      user.flags.digest_privacy_default = privacyMode;
+      user.lastSeenAt = new Date().toISOString();
+      await saveUser(env, user);
+
+      return json(
+        {
+          ok: true,
+          message: 'Digest sent to ' + sess.email + '. We did not keep a copy of the message.',
+          to: sess.email,
+        },
+        200,
+        req
+      );
+    }
+
     // ── admin summary (operator only) ──
     if (path === '/admin/summary' && req.method === 'GET') {
       if (needKV(env)) return json({ error: 'no_kv' }, 503, req);
@@ -665,10 +799,12 @@ export default {
           service: 'lithifyte-access',
           stores: 'email + session tokens + privacy-safe product events',
           finance: 'never',
+          digest: 'client-composed forward only — body not stored',
           events: Object.keys(EVENT_ALLOW),
           app: env.APP_ORIGIN || null,
           kv: !!env.WAITLIST,
           admin: !!env.ADMIN_TOKEN,
+          mailer: !!env.RESEND_API_KEY,
         },
         200,
         req
