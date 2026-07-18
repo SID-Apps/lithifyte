@@ -1,6 +1,8 @@
-# Lithifyte access — magic-link identity (email only)
+# Lithifyte access — magic-link identity + privacy-safe product events
 # Deploy:  cd www/workers && wrangler deploy
 # Host:    access.lithifyte.com  (Worker custom domain or route)
+# Secrets: RESEND_API_KEY, optional ADMIN_TOKEN (for GET /admin/summary)
+# Docs:    ../../docs/product-analytics.md
 
 name = "lithifyte-access"
 main = "access.js"

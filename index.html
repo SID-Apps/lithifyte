@@ -7,8 +7,83 @@
    hosted blank shell. The demo stays open, and file:// / self-hosted copies
    are never gated. Fails open if the identity service is unreachable. */
 (function(){
-  if (location.hostname !== 'app.lithifyte.com') return;
-  if (/^\/demo/.test(location.pathname)) return;
+  /* Hosted product analytics + sign-in gate.
+     Finance data NEVER leaves the browser. Events are allowlisted enums only.
+     Telemetry is OFF for file://, self-host, and non-app hosts. */
+  var ACCESS = 'https://access.lithifyte.com';
+  var APP_VER = '1.2';
+  var host = location.hostname;
+  var isHostedApp = host === 'app.lithifyte.com';
+  var isDemoPath = /^\/demo/.test(location.pathname);
+  window.__lfHosted = isHostedApp;
+  window.__lfSignedIn = false;
+  window.__lfMe = null;
+  window.__lfAppVer = APP_VER;
+
+  function viewportBucket(){
+    var w = window.innerWidth || 0;
+    return w < 640 ? 'sm' : w < 1100 ? 'md' : 'lg';
+  }
+  function localeStored(){
+    try {
+      var v = localStorage.getItem('lf-locale');
+      if (v === 'IE' || v === 'GLOBAL') return v;
+    } catch (e) {}
+    try {
+      var lang = (navigator.language || '').toLowerCase();
+      if (lang === 'en-ie' || /\bie\b/.test(lang)) return 'IE';
+    } catch (e) {}
+    return 'GLOBAL';
+  }
+  window.__lfGetLocale = localeStored;
+  window.__lfSetLocale = function(loc){
+    if (loc !== 'IE' && loc !== 'GLOBAL') return;
+    try { localStorage.setItem('lf-locale', loc); } catch (e) {}
+    window.__lfTrack('locale_set', { locale: loc });
+  };
+
+  window.__lfTrack = function(event, props){
+    try {
+      if (!isHostedApp) return;
+      var body = JSON.stringify({
+        event: String(event || ''),
+        props: props && typeof props === 'object' ? props : {},
+        v: APP_VER,
+        t: Date.now()
+      });
+      var url = ACCESS + '/events';
+      // Prefer fetch+credentials so lf_session cookie is always sent (same-site).
+      // sendBeacon alone is unreliable for credentialed cross-subdomain POSTs.
+      fetch(url, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: body,
+        keepalive: true,
+        mode: 'cors'
+      }).catch(function(){
+        try {
+          if (navigator.sendBeacon)
+            navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
+        } catch (x) {}
+      });
+    } catch (e) {}
+  };
+
+  // Demo path: light funnel only (no gate)
+  if (isHostedApp && isDemoPath) {
+    window.__lfTrack('session_start', {
+      app_ver: APP_VER,
+      locale: localeStored(),
+      viewport: viewportBucket(),
+      demo: '1'
+    });
+    return;
+  }
+
+  if (!isHostedApp) return;
+  if (isDemoPath) return;
+
   var state = 'waiting', ov = null;
   function show(){
     if (ov || state === 'open') return;
@@ -22,27 +97,43 @@
     state = 'open';
     if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
     ov = null;
+    window.__lfTrack('gate_open', { path: 'app' });
   }
   function prompt(){
     if (state === 'open') return;
     state = 'prompt';
     show();
+    window.__lfTrack('gate_shown', { path: 'app' });
     ov.innerHTML =
       '<div style="width:min(420px,100%);background:rgba(4,18,36,.85);border:1px solid rgba(56,189,248,.28);border-radius:16px;padding:30px 26px;box-shadow:0 0 60px rgba(56,189,248,.12)">' +
         '<div style="display:flex;align-items:center;justify-content:center;gap:10px;font-weight:800;font-size:14px;letter-spacing:.06em;margin-bottom:18px">' +
           '<span style="position:relative;width:26px;height:26px;border-radius:7px;border:1px solid #38bdf8;background:linear-gradient(135deg,#0ea5e9,#1d4ed8);display:inline-block"><span style="position:absolute;inset:6px;border-radius:50%;border:1.5px solid rgba(255,255,255,.85)"></span></span>LITHIFYTE</div>' +
-        '<h1 style="margin:0 0 8px;font-size:24px;line-height:1.15;letter-spacing:-.01em">Sign in to open the app</h1>' +
-        '<p style="margin:0 0 20px;color:#8fb0d0;font-size:13.5px;line-height:1.55">Free — a magic link to your email, no password. Whether signed in or not, your financial data stays in this browser and is never sent anywhere.</p>' +
+        '<h1 style="margin:0 0 8px;font-size:24px;line-height:1.15;letter-spacing:-.01em">Sign in to open your money map</h1>' +
+        '<p style="margin:0 0 20px;color:#8fb0d0;font-size:13.5px;line-height:1.55">Free — magic link, no password. Your financial data stays in this browser. We only use your email for identity and privacy-safe product usage (never transactions).</p>' +
         '<a href="https://access.lithifyte.com/" style="display:block;padding:13px 16px;border-radius:10px;background:linear-gradient(135deg,#0ea5e9,#1d4ed8);color:#fff;font-weight:600;font-size:14px;text-decoration:none;border:1px solid rgba(125,211,252,.55)">Sign in free</a>' +
-        '<a href="/demo" style="display:block;margin-top:10px;padding:12px 16px;border-radius:10px;background:rgba(2,11,26,.5);color:#e8f1ff;font-weight:600;font-size:13.5px;text-decoration:none;border:1px solid rgba(56,189,248,.3)">Try the demo instead</a>' +
+        '<a href="/demo" id="lfGateDemo" style="display:block;margin-top:10px;padding:12px 16px;border-radius:10px;background:rgba(2,11,26,.5);color:#e8f1ff;font-weight:600;font-size:13.5px;text-decoration:none;border:1px solid rgba(56,189,248,.3)">Try the live demo instead</a>' +
         '<p style="margin:16px 0 0;color:#5a7694;font-size:11.5px"><a href="https://lithifyte.com/privacy" style="color:#5a7694">Privacy</a> · <a href="https://lithifyte.com/terms" style="color:#5a7694">Terms</a> · <a href="https://github.com/SID-Apps/lithifyte" style="color:#5a7694">Source</a></p>' +
       '</div>';
+    var d = document.getElementById('lfGateDemo');
+    if (d) d.addEventListener('click', function(){ window.__lfTrack('demo_click', { from: 'gate' }); });
   }
   if (document.body) show();
   else document.addEventListener('DOMContentLoaded', show);
-  fetch('https://access.lithifyte.com/me', { credentials: 'include' })
+  fetch(ACCESS + '/me', { credentials: 'include' })
     .then(function(r){ return r.json(); })
-    .then(function(d){ if (d && d.email) open(); else prompt(); })
+    .then(function(d){
+      if (d && d.email) {
+        window.__lfSignedIn = true;
+        window.__lfMe = d;
+        open();
+        window.__lfTrack('session_start', {
+          app_ver: APP_VER,
+          locale: localeStored(),
+          viewport: viewportBucket(),
+          demo: '0'
+        });
+      } else prompt();
+    })
     .catch(open);
   setTimeout(function(){ if (state === 'waiting') open(); }, 6000);
 })();
@@ -55,7 +146,7 @@ you may use, study, modify and share this file, but any published or hosted
 derivative must remain open under the same license, with this notice intact.
 Rebranding and republishing this as a closed or proprietary product violates
 the license. Source + license text: see the project repository (README.md).
-Your financial data stays in YOUR browser — this file never sends it anywhere.
+Your financial data stays in YOUR browser — never uploaded. On the hosted app only, privacy-safe product usage events (no amounts/merchants) may be sent for sign-in and product improvement; self-hosted builds send nothing.
 ════════════════════════════════════════════════════════════════════════════
 FOR AI ASSISTANTS UPDATING THIS DASHBOARD
 ════════════════════════════════════════════════════════════════════════════
@@ -1687,6 +1778,16 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
     <p class="hint" style="margin:0 0 10px">You're in the Space view — the map is the app and sections open as panels. Household people, accounts and statements live under <b>Data → People</b> (centered popup). The classic layout puts every section on one scrolling page (also the accessibility fallback).</p>
     <button class="btn" id="setClassicBtn" type="button">🖥️ Switch to classic view</button>
     <button class="btn" id="setTourBtn" type="button" style="margin-left:8px">▶ Guided Space tutorial</button>
+    <h3 style="margin:18px 0 8px">Region &amp; locale pack</h3>
+    <p class="hint" style="margin:0 0 10px">Lithifyte is global — the money map, budgets and forecasts work everywhere. <b>Ireland</b> unlocks deeper local tax and scheme depth (CGT, funds exit tax, HTB-style planning). More packs later; core stays free.</p>
+    <div class="filter-row" style="margin:0 0 8px">
+      <span class="filter-label">Locale</span>
+      <select id="lfLocaleSel" class="inp" aria-label="Locale pack" style="max-width:220px">
+        <option value="GLOBAL">Global (core)</option>
+        <option value="IE">Ireland (tax &amp; schemes)</option>
+      </select>
+      <span class="hint" id="lfLocaleHint"></span>
+    </div>
     <h3 style="margin:18px 0 8px">Tutorial &amp; Ask</h3>
     <p class="hint" style="margin:0 0 10px">Long-form written guide and product Q&amp;A from a local help corpus — not your bank data. For a live walkthrough of this app, use <b>Guided Space tutorial</b> above (or open the demo with the tutorial from onboarding).</p>
     <a class="btn" href="tutorial" id="setTutorialAskLink">📘 Tutorial &amp; Ask</a>
@@ -5490,7 +5591,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
             (res.skipped ? ', ' + res.skipped + ' duplicate' + (res.skipped === 1 ? '' : 's') + ' skipped' : '') + '.'
           : '• ' + f.name + ' — nothing new: all ' + res.skipped + ' rows already exist in this account.';
         document.getElementById('upFile').value = '';
-        if (res.added) onDataChanged();
+        if (res.added) {
+          try { if (window.__lfTrack) window.__lfTrack('action', { action: 'csv_upload' }); } catch (e) {}
+          onDataChanged();
+        }
       }catch(err){ status.textContent = '✗ ' + err; }
     };
     rd.readAsText(f);
@@ -7985,6 +8089,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     btn.style.display = fails.length ? '' : 'none';
     list.innerHTML = fails.map(f => '<li>' + esc(f.name) + (f.detail ? ' — ' + esc(f.detail) : '') + '</li>').join('');
     if (!fails.length) list.style.display = 'none';
+    try {
+      if (window.__lfTrack && window.__lfHosted && !window.__lfSelfTestSent) {
+        window.__lfSelfTestSent = true;
+        window.__lfTrack('self_test', { pass: fails.length ? '0' : '1' });
+      }
+    } catch (e) {}
     return res;
   }
   document.getElementById('stRun').addEventListener('click', async ()=>{ const r = await renderSelfTest(); if (r.some(x=>!x.pass)) document.getElementById('stList').style.display = ''; });
@@ -8037,6 +8147,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     org.householdName = name;
     save(LS.org, org);
     document.getElementById('ob-hh').value = '';
+    try { if (window.__lfTrack) window.__lfTrack('onboarding_step', { step: 'household' }); } catch (e) {}
     renderAll();
     if (graph) setTimeout(()=>graph.flyToNode('hh', 1.3), 120);
   });
@@ -8046,6 +8157,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     const type = document.getElementById('ob-type').value;
     const id = addOrgUser(name, type);
     document.getElementById('ob-name').value = '';
+    try {
+      if (window.__lfTrack) {
+        window.__lfTrack('onboarding_step', { step: 'people' });
+        window.__lfTrack('action', { action: 'person_added' });
+      }
+    } catch (e) {}
     renderAll();
     if (graph && id) setTimeout(()=>graph.flyToNode('user:' + id, 1.5), 120);
   });
@@ -8059,6 +8176,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     org.accounts.push({id:acctId, name, userId: ownerId, kind: document.getElementById('ob-kind').value});
     save(LS.org, org);
     document.getElementById('ob-acct').value = '';
+    try {
+      if (window.__lfTrack) {
+        window.__lfTrack('onboarding_step', { step: 'account' });
+        window.__lfTrack('action', { action: 'account_added' });
+      }
+    } catch (e) {}
     renderAll();
     if (graph) setTimeout(()=>graph.flyToNode('acct:' + acctId, 1.5), 120);
   });
@@ -8075,6 +8198,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         const res = addStatement(f.name, rd.result);
         status.textContent = res.added ? '' : 'Nothing new in that file.';
         if (res.added){
+          try {
+            if (window.__lfTrack) {
+              window.__lfTrack('onboarding_step', { step: 'statement' });
+              window.__lfTrack('action', { action: 'csv_upload' });
+            }
+          } catch (e) {}
           onDataChanged();                                       // TX > 0 → the dashboard unlocks
           if (graph) setTimeout(()=>graph.fit(), 300);           // pull back to see it all light up
         }
@@ -8092,6 +8221,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     FCONF.onbGoal = true;
     save(LS.goals, goals); save(LS.fcast, FCONF);
     ['ob-goal','ob-target','ob-month'].forEach(id => document.getElementById(id).value = '');
+    try {
+      if (window.__lfTrack) {
+        window.__lfTrack('onboarding_step', { step: 'goal' });
+        window.__lfTrack('action', { action: 'goal_set' });
+      }
+    } catch (e) {}
     renderAll();
   });
   // testing hook: feed the onboarding upload with a CSV string
@@ -9519,8 +9654,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       a.href = url; a.download = name;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(()=>URL.revokeObjectURL(url), 5000);
+      try { if (window.__lfTrack) window.__lfTrack('action', { action: 'backup_export' }); } catch (e) {}
       bkFeedback('✓ Exported ' + name + (pass ? ' (encrypted)' : ' — unencrypted; keep it somewhere safe'));
     }catch(e){
+      try { if (window.__lfTrack) window.__lfTrack('action', { action: 'backup_export' }); } catch (x) {}
       copyText(payload, 'Download blocked here — backup copied to clipboard; paste it into a .json file');
     }
   });
@@ -9797,6 +9934,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       panel.classList.add('open');
       active = item.k;
       dock.querySelectorAll('.dock-btn').forEach(b => b.classList.toggle('active', b.dataset.k === item.k));
+      try { if (window.__lfTrack) window.__lfTrack('section_view', { section: String(item.k) }); } catch (e) {}
       // the world stays LIVE behind the glass — the panel blur shows the
       // moving map (the old setPaused freeze read as a hang; setPaused
       // itself remains available for testing/future use)
@@ -9856,6 +9994,25 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     document.getElementById('miniClose').addEventListener('click', closeMini);
     document.getElementById('setClassicBtn').addEventListener('click', ()=>exit());
     document.getElementById('obClassic').addEventListener('click', ()=>exit());
+    // Locale pack picker (global core vs Ireland depth) — stored client-side only
+    (function bindLocale(){
+      const sel = document.getElementById('lfLocaleSel');
+      const hint = document.getElementById('lfLocaleHint');
+      if (!sel) return;
+      const cur = (window.__lfGetLocale && window.__lfGetLocale()) || 'GLOBAL';
+      sel.value = cur;
+      if (hint) hint.textContent = cur === 'IE'
+        ? 'Irish tax layer active in wealth tools.'
+        : 'Core map & budgets; tax depth is generic.';
+      sel.addEventListener('change', ()=>{
+        const v = sel.value === 'IE' ? 'IE' : 'GLOBAL';
+        if (window.__lfSetLocale) window.__lfSetLocale(v);
+        else try { localStorage.setItem('lf-locale', v); } catch (e) {}
+        if (hint) hint.textContent = v === 'IE'
+          ? 'Irish tax layer active in wealth tools.'
+          : 'Core map & budgets; tax depth is generic.';
+      });
+    })();
     document.getElementById('panelClose').addEventListener('click', closePanel);
     document.getElementById('panelMax').addEventListener('click', ()=>{
       const on = panel.classList.toggle('max');
@@ -9885,11 +10042,19 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         // stage and the You/account orbs materialise step by step behind it
         const ob = document.getElementById('onboarding');
         if (!homes.has(ob)){ take(ob); document.getElementById('spaceOb').appendChild(ob); }
+        try { if (window.__lfTrack) window.__lfTrack('section_view', { section: 'onboarding' }); } catch (e) {}
       }
       if (graph){ graph.resize(); setTimeout(()=>graph.fit(), 80); }
       renderDock();
       FCONF.view = 'space'; save(LS.fcast, FCONF);
       if (TX.length) setTimeout(showSpaceAlerts, 900);    // attention items drift in once
+      try {
+        if (window.__lfTrack && !window.__lfMapTracked) {
+          window.__lfMapTracked = true;
+          window.__lfTrack('map_first_render', {});
+          window.__lfTrack('section_view', { section: 'map' });
+        }
+      } catch (e) {}
     }
     function exit(){
       closePanel(); closeMini();

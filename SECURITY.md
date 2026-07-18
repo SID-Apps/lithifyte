@@ -1,6 +1,6 @@
 # Security policy — Lithifyte
 
-Lithifyte is a **single-file, client-only** household finance app. There is no application backend, no user accounts, and no analytics pipeline. Your bank data is meant to stay in **your browser** (and in backup files **you** export).
+Lithifyte is a **single-file, client-only** household finance app for your **bank data**. There is **no finance backend**: statements, balances, merchants and goals stay in **your browser** (and in backup files **you** export). The **hosted** product at `app.lithifyte.com` uses a separate **identity + privacy-safe product analytics** Worker (`access.lithifyte.com`) — email sign-in and allowlisted usage events only. Self-hosted / downloaded copies send nothing.
 
 This document describes the threat model, what we protect, what we do not, and how to report a vulnerability.
 
@@ -18,8 +18,9 @@ This document describes the threat model, what we protect, what we do not, and h
 - Core computation runs entirely in the browser from statements you upload (or from an optional local feeder that writes CSVs on **your** machine).
 - Default durability is **export/import backups** you control; optional **encrypted** backups and an opt-in **at-rest lock** use Web Crypto.
 - The public product default for AI categorisation is a **model you run** (e.g. Ollama / LM Studio). Pointing the card at a remote endpoint is a user choice and is not required to use the app.
+- **Hosted-only:** magic-link email identity and **allowlisted product events** (section opens, onboarding steps, “CSV uploaded” flags — never amounts or merchants). See `docs/product-analytics.md` and the privacy policy.
 
-You can audit this by reading the single HTML file and watching the network tab while using the app.
+You can audit this by reading the single HTML file, `www/workers/access.js`, and watching the network tab while using the app.
 
 ## Threat model
 

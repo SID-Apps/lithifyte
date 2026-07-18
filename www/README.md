@@ -84,7 +84,7 @@ Cloudflare Pages can attach `lithifyte.com` to a project whose build output is `
 
 ## Free access & email — opinion (Cloudflare)
 
-**Yes: Cloudflare is a strong fit** for *identity only*, if you keep a hard wall between **account email** and **financial data**.
+**Yes: Cloudflare is a strong fit** for *identity + privacy-safe product analytics*, if you keep a hard wall between **account email / usage enums** and **financial data**. See `docs/product-analytics.md`.
 
 ### What you want
 
