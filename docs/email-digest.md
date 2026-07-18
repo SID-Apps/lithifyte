@@ -19,7 +19,7 @@ access Worker  → Resend → user inbox
 **Alerts & reminders** panel → “Email me a money digest”
 
 - Checkbox: **Hide euro amounts in the email** (default on)
-- Button requires hosted app + session (demo is blocked)
+- Button requires hosted app + session (sample is blocked)
 
 ## Sections in the email
 

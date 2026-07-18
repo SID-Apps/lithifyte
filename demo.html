@@ -4,7 +4,7 @@
 /* Hosted sign-in gate — app.lithifyte.com only. This is identity, not
    security: the app is open source and all data is client-side, so the gate
    just asks visitors to sign in (free, email magic link) before using the
-   hosted blank shell. The demo stays open, and file:// / self-hosted copies
+   hosted blank shell. The sample path stays open, and file:// / self-hosted copies
    are never gated. Fails open if the identity service is unreachable. */
 (function(){
   /* Hosted product analytics + sign-in gate.
@@ -70,7 +70,7 @@
     } catch (e) {}
   };
 
-  // Demo path: light funnel only (no gate)
+  // Sample path: light funnel only (no gate)
   if (isHostedApp && isDemoPath) {
     window.__lfTrack('session_start', {
       app_ver: APP_VER,
@@ -111,7 +111,7 @@
         '<h1 style="margin:0 0 8px;font-size:24px;line-height:1.15;letter-spacing:-.01em">Sign in to open your money map</h1>' +
         '<p style="margin:0 0 20px;color:#8fb0d0;font-size:13.5px;line-height:1.55">Free — magic link, no password. Your financial data stays in this browser. We only use your email for identity and privacy-safe product usage (never transactions).</p>' +
         '<a href="https://access.lithifyte.com/" style="display:block;padding:13px 16px;border-radius:10px;background:linear-gradient(135deg,#0ea5e9,#1d4ed8);color:#fff;font-weight:600;font-size:14px;text-decoration:none;border:1px solid rgba(125,211,252,.55)">Sign in free</a>' +
-        '<a href="/demo" id="lfGateDemo" style="display:block;margin-top:10px;padding:12px 16px;border-radius:10px;background:rgba(2,11,26,.5);color:#e8f1ff;font-weight:600;font-size:13.5px;text-decoration:none;border:1px solid rgba(56,189,248,.3)">Try the live demo instead</a>' +
+        '<a href="/demo" id="lfGateDemo" style="display:block;margin-top:10px;padding:12px 16px;border-radius:10px;background:rgba(2,11,26,.5);color:#e8f1ff;font-weight:600;font-size:13.5px;text-decoration:none;border:1px solid rgba(56,189,248,.3)">Explore the sample household instead</a>' +
         '<p style="margin:16px 0 0;color:#5a7694;font-size:11.5px"><a href="https://lithifyte.com/privacy" style="color:#5a7694">Privacy</a> · <a href="https://lithifyte.com/terms" style="color:#5a7694">Terms</a> · <a href="https://github.com/SID-Apps/lithifyte" style="color:#5a7694">Source</a></p>' +
       '</div>';
     var d = document.getElementById('lfGateDemo');
@@ -1078,13 +1078,13 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
     <div class="eyebrow">Welcome</div>
     <h1 style="font-size:clamp(22px,3vw,30px); margin:6px 0 4px">Let's light up your money map</h1>
     <p class="sub">Five small steps. Name the <b>household</b>, then the <b>people</b> in it — everything stays on this device.</p>
-    <p class="sub" id="obDemoLine" style="display:none">Want a feel for it first? <a href="demo.html"><b>Explore the demo</b></a> — a fully loaded sample household, nothing to upload. Prefer a guided walkthrough? <a href="demo.html?tutorial=1"><b>Open the Tutorial guide</b></a>.</p>
+    <p class="sub" id="obDemoLine" style="display:none">Want a feel for it first? <a href="demo.html"><b>Explore the sample household</b></a> — fully loaded invented data, nothing to upload. Prefer a guided walkthrough? <a href="demo.html?tutorial=1"><b>Open the Tutorial guide</b></a>.</p>
     <ol class="ob-steps">
       <li class="ob-step" id="obs1"><span class="ob-num">1</span><b>Name your household</b>
         <input id="ob-hh" class="inp" placeholder="e.g. The Byrnes, or My household" style="min-width:200px" aria-label="Household name">
         <button class="btn primary" id="ob-hh-go" type="button">Next</button>
         <span class="hint num" id="ob-hh-done"></span>
-        <span class="hint" style="flex-basis:100%">This is the root of the money map — people and accounts hang under it (like the demo).</span></li>
+        <span class="hint" style="flex-basis:100%">This is the root of the money map — people and accounts hang under it (like the sample).</span></li>
       <li class="ob-step" id="obs2"><span class="ob-num">2</span><b>Who's in it?</b>
         <input id="ob-name" class="inp" placeholder="Your name (person or business)" style="min-width:180px" aria-label="Person name">
         <select id="ob-type" class="inp" aria-label="Person type"><option value="personal">Personal</option><option value="business">Business</option></select>
@@ -1799,7 +1799,7 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
       <span class="hint" id="lfLocaleHint"></span>
     </div>
     <h3 style="margin:18px 0 8px">Tutorial &amp; Ask</h3>
-    <p class="hint" style="margin:0 0 10px">Long-form written guide and product Q&amp;A from a local help corpus — not your bank data. For a live walkthrough of this app, use <b>Guided Space tutorial</b> above (or open the demo with the tutorial from onboarding).</p>
+    <p class="hint" style="margin:0 0 10px">Long-form written guide and product Q&amp;A from a local help corpus — not your bank data. For a live walkthrough of this app, use <b>Guided Space tutorial</b> above (or open the sample with the tutorial from onboarding).</p>
     <a class="btn" href="tutorial" id="setTutorialAskLink">📘 Tutorial &amp; Ask</a>
   </div>
 
@@ -2054,16 +2054,16 @@ rewrite the static advice cards if the picture has changed.</div>
   // ══ persistent stores (all in this browser — self-hosted) ══
   const LS = {rules:'dd-rules-v2', cats:'dd-cats-v2', goals:'dd-goals-v1', org:'dd-org-v1', recur:'dd-recur-v1', uploads:'dd-uploads-v1', xfers:'dd-xfers-v1', manrec:'dd-manrec-v1', fcast:'dd-fcast-v1', cuts:'dd-cuts-v1', visit:'dd-visit-v1', budget:'dd-budget-v1', priv:'dd-privacy-v1', debts:'dd-debts-v1', holds:'dd-holdings-v1', assets:'dd-assets-v1', nwlog:'dd-nwlog-v1', merch:'dd-merch-v1', notes:'dd-notes-v1', lm:'dd-lm-v1', cash:'dd-cash-v1', alerts:'dd-alerts-v1'};
   // demo build (raw.demo:true in the data block): every store gets its own
-  // namespace — the hosted demo shares an origin with the real app, and
+  // namespace — the sample household shares an origin with the real app, and
   // playing with sample data must never be able to touch someone's real data
   if (raw.demo) Object.keys(LS).forEach(k => LS[k] += '-demo');
   if (raw.demo){
-    document.title = 'Lithifyte demo — a sample household, nothing here is real';
+    document.title = 'Lithifyte — sample household (nothing here is real)';
     const db = document.createElement('a');
     db.id = 'demoBadge';
     db.href = './';
-    db.textContent = 'Demo Account';
-    db.setAttribute('aria-label', 'Demo Account — sample data only, changes are not saved; open the real app');
+    db.textContent = 'Sample household';
+    db.setAttribute('aria-label', 'Sample household — invented data only; changes are not saved; open your own account');
     db.title = 'Sample data only — changes are not saved (refresh resets). Click to open the real app';
     db.style.cssText = 'position:fixed;top:12px;left:14px;z-index:62;' +
       'background:rgba(16,20,34,.92);border:1px solid rgba(240,180,60,.55);color:#f0c464;' +
@@ -2071,7 +2071,7 @@ rewrite the static advice cards if the picture has changed.</div>
       'backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,.35)';
     document.body.appendChild(db);
   } else if (/^https?:$/.test(location.protocol)){
-    // hosted real app: onboarding offers the demo (a separate build whose
+    // hosted real app: onboarding offers the sample household (a separate build whose
     // stores are namespaced, so it can never collide with data added here)
     const l = document.getElementById('obDemoLine');
     if (l) l.style.display = '';
@@ -2161,9 +2161,9 @@ rewrite the static advice cards if the picture has changed.</div>
     return fallback;
   }
   function save(key, v){
-    // Demo is read-only: visitors can play with everything in-session, but
+    // The sample is read-only: visitors can play with everything in-session, but
     // nothing persists — a refresh always restores the pristine sample
-    // household (and nobody can mistake the demo for their own account).
+    // household (and nobody can mistake the sample for their own account).
     if (raw.demo) return;
     try{
       const s = JSON.stringify(v);
@@ -2253,7 +2253,7 @@ rewrite the static advice cards if the picture has changed.</div>
   let org = load(LS.org, {users:[], accounts:[], renames:{}, balances:{}, householdName:''});
   if (!org.balances) org.balances = {};
   if (org.householdName == null) org.householdName = '';
-  // Demo ships multi-person data: give the map a friendly household label once
+  // Sample ships multi-person data: give the map a friendly household label once
   if (raw.demo && !org.householdName && (raw.users || []).length > 1){
     const names = (raw.users || []).map(u => u.name).filter(Boolean);
     org.householdName = names.length >= 2 ? (names[0] + ' & ' + names[1]) : 'Household';
@@ -5872,7 +5872,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const users = allUsers(), accts = allAccounts();
       let rootId;
       const hhLabel = (org.householdName && String(org.householdName).trim()) || 'Household';
-      // Always root at Household when named or multi-person (demo shape);
+      // Always root at Household when named or multi-person (sample shape);
       // single unnamed person stays a solo “You” node for a quiet first run.
       const useHh = users.length > 1 || !!(org.householdName && String(org.householdName).trim());
       if (useHh && users.length){
@@ -9529,7 +9529,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       status.style.color = ok === true ? 'var(--ok, #16a34a)' : ok === false ? 'var(--critical, #dc2626)' : '';
     };
     if (raw.demo){
-      setSt('Demo is read-only — sign in on the real app to email a digest.', false);
+      setSt('The sample household is read-only — sign in on your own account to email a digest.', false);
       return;
     }
     if (location.hostname !== 'app.lithifyte.com' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1'){
@@ -10214,7 +10214,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // Part 2 — First data
       {part:2, dock:'people', target:'#spacePanel, #sec-people', title:'Household → people → accounts',
        loc:'Data → People 👥 (centered popup)',
-       body:'People is its own Data tab and opens centered over the map. Structure matches the demo: name the household, add people under it, then accounts and CSV statements. First-run onboarding on the map walks the same path (household → people → account → CSV → goal). Re-uploads are safe — duplicates are skipped.'},
+       body:'People is its own Data tab and opens centered over the map. Structure matches the sample: name the household, add people under it, then accounts and CSV statements. First-run onboarding on the map walks the same path (household → people → account → CSV → goal). Re-uploads are safe — duplicates are skipped.'},
       {part:2, dock:'people', target:'#hhBanner, #orgAddUser, #sec-people', title:'People, accounts & statements',
        loc:'Data → People 👥',
        body:'Edit the household name (map root). Add partners or businesses with ＋ Add person. Each person gets accounts (current / credit / savings / cash). Upload CSVs under the right account. Opening balances power cash-on-hand, net worth, and linked goals.'},
@@ -10225,7 +10225,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // Part 3 — Look around
       {part:3, dock:'map', target:'#graphCanvas, #spaceStage .graph-card', title:'The money map',
        loc:'Background stage',
-       body:'Household sits at the centre (once named), with people and accounts around it — same shape as the demo. Click a category hub to dive into merchants; double-click to fold. Scroll zooms, drag pans. ▶ Play history time-lapses month by month.'},
+       body:'Household sits at the centre (once named), with people and accounts around it — same shape as the sample. Click a category hub to dive into merchants; double-click to fold. Scroll zooms, drag pans. ▶ Play history time-lapses month by month.'},
       {part:3, dock:'range', target:'#miniPanel, #topRange', title:'Date range',
        loc:'Top-right 📅',
        body:'Almost every chart and the map’s flow view follow this range. Change it when you want “this year only” or a custom window, then reopen Cashflow or Categories to read the same period.'},

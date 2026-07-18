@@ -56,7 +56,7 @@ See [`rev2/README.md`](rev2/README.md) for the Rev 2 chapter map and preview com
 | Budget | Pace engine + rule groups |
 | Plan | Goals, forecast, pulse, wealth |
 | Privacy | Bank data never leaves the browser |
-| Dock | Email free access + demo / blank app CTAs |
+| Dock | Email free access + sample / blank app CTAs |
 
 Tech (Rev 1): single `index.html`, canvas starfield + node graph driven by scroll, smooth-scroll lerp, reduced-motion fallback, no analytics, no bank data.
 
@@ -77,7 +77,7 @@ Relative links to `../demo.html` and `../index.html` work when the **whole repo*
 |------|---------|
 | `lithifyte.com` | This landing (`www/`) |
 | `app.lithifyte.com` | Product shell (`index.html`, blank) |
-| `demo.lithifyte.com` or `lithifyte.com/demo` | `demo.html` |
+| `demo.lithifyte.com` or `lithifyte.com/demo` | Sample household (`demo.html`) |
 | `access.lithifyte.com` | Worker for magic-link auth |
 
 Cloudflare Pages can attach `lithifyte.com` to a project whose build output is `www/`, and a second project (or the existing SID-Apps deploy) for the app.
@@ -136,7 +136,7 @@ In `www/index.html`, set:
 const WAITLIST_URL = 'https://lithifyte-access.<you>.workers.dev/waitlist';
 ```
 
-Until that is set, the form stores emails in **localStorage only** (dev fallback) and invites the user to the demo.
+Until that is set, the form stores emails in **localStorage only** (dev fallback) and invites the user to the sample.
 
 ### Deploy the Worker
 
@@ -158,7 +158,7 @@ Turn off `DEV_RETURN_LINK` in production; implement `sendMagicLinkEmail` with yo
 
 ## Legal / product
 
-Landing is marketing HTML (not AGPL product derivative of the dashboard logic). Keep product copyright + AGPL on `index.html` / `demo.html`. Privacy policy for lithifyte.com should state clearly:
+Landing is marketing HTML (not AGPL product derivative of the dashboard logic). Keep product copyright + AGPL on `index.html` / sample build `demo.html`. Privacy policy for lithifyte.com should state clearly:
 
 1. What email is used for.
 2. That financial data is not collected by the account service.

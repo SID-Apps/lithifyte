@@ -22,7 +22,7 @@ Webhosted guide for new users, plus the knowledge corpus that powers **Ask**.
 
 | Phase | What the user does |
 |---|---|
-| 0 Start | What Lithifyte is, demo option, Space vs Classic, dock map |
+| 0 Start | What Lithifyte is, sample option, Space vs Classic, dock map |
 | 1 Onboarding | Name → account kind → CSV → goal (map lights up) |
 | 2 Explore | Map controls, range/search, cash HUD, privacy |
 | 3 Data | People, balances, transfers, audit, rules, merchants, optional AI categoriser |
