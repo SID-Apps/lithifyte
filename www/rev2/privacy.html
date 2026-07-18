@@ -27,10 +27,10 @@
 
 <main class="page">
   <h1>Privacy policy</h1>
-  <p class="updated">Last updated: 17 July 2026</p>
+  <p class="updated">Last updated: 18 July 2026</p>
 
   <div class="callout">
-    <p><strong>The short version:</strong> your financial data — statements, transactions, balances, goals — never leaves your browser. There is no server that could receive it. The only personal data we ever store is the <strong>email address</strong> you give us to sign in.</p>
+    <p><strong>The short version:</strong> your financial data — statements, transactions, balances, merchants, goals — never leaves your browser. There is no finance backend that could receive it. On the hosted app we store your <strong>email</strong> for sign-in, and may record <strong>privacy-safe product usage events</strong> (for example “opened budgets”, not “spent €42 at a shop”). Self-hosted copies send nothing.</p>
   </div>
 
   <h2>Who we are</h2>
@@ -46,19 +46,21 @@
     <li>You can confirm all of this by watching your browser's network tab while using the app.</li>
   </ul>
 
-  <h2>What we do collect: an email address</h2>
-  <p>If you sign in, we store:</p>
+  <h2>What we do collect: identity and product usage (hosted only)</h2>
+  <p>If you use the hosted product and sign in, we store:</p>
   <ul>
-    <li><strong>Your email address</strong>, with timestamps of when you first and last requested a sign-in link.</li>
-    <li><strong>A session token</strong> (a random identifier in a cookie named <code>lf_session</code>) so you stay signed in for up to 30 days.</li>
+    <li><strong>Your email address</strong>, with timestamps of first sign-up, last sign-in link request, last sign-in, and last activity.</li>
+    <li><strong>A session token</strong> (cookie <code>lf_session</code>) so you stay signed in for up to 30 days.</li>
+    <li><strong>Privacy-safe product events</strong> from the hosted app only — allowlisted names such as sign-in, session start, onboarding step completed, section opened (e.g. map / budget), and actions like “CSV uploaded” or “backup exported”. Events carry short enums only (never amounts, merchants, descriptions, account names, or statement contents).</li>
+    <li><strong>Optional locale preference</strong> you choose in Settings (<code>IE</code> or <code>GLOBAL</code>) so we know which region pack to improve.</li>
   </ul>
-  <p>That is the complete list. Sign-in uses magic links — we never ask for or store a password, and we never ask for bank credentials. The email address is used only to send you sign-in links and to identify your access. It is not shared with, or sold to, anyone.</p>
+  <p>Sign-in uses magic links — we never ask for or store a password, and we never ask for bank credentials. Email and usage data are used to operate access, understand activation and retention, send product emails you opt into later, and improve the product. They are not sold. Downloaded or self-hosted copies of the app do not phone home.</p>
 
   <h2>Cookies</h2>
-  <p>We set one cookie: <code>lf_session</code>, an HttpOnly session cookie scoped to lithifyte.com, used solely to keep you signed in. There are no advertising or tracking cookies.</p>
+  <p>We set one first-party cookie: <code>lf_session</code>, an HttpOnly session cookie scoped to lithifyte.com, used to keep you signed in. There are no advertising cookies and no third-party analytics cookies.</p>
 
   <h2>Analytics and tracking</h2>
-  <p>None. No analytics scripts, no tracking pixels, no fingerprinting, no third-party advertising.</p>
+  <p>We do <strong>not</strong> use Google Analytics, advertising pixels, or fingerprinting. On <code>app.lithifyte.com</code> only, the app may send the allowlisted product events above to our Cloudflare Worker at <code>access.lithifyte.com</code>. That is first-party product analytics for retention and product decisions — not a finance data pipeline. See the open-source worker and <code>docs/product-analytics.md</code> in the repository for the exact allowlist.</p>
 
   <h2>Infrastructure</h2>
   <p>Our web pages and the sign-in service are served by <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare</a>. Like any host, Cloudflare processes standard connection logs (such as IP addresses) to deliver the site and defend it against abuse. The marketing pages load fonts from Google Fonts and a small script library from unpkg (a CDN); the finance app itself loads nothing external.</p>

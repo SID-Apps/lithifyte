@@ -2,7 +2,7 @@
 
 **Household finance mission control in a single HTML file. Your bank data never leaves your browser.**
 
-Lithifyte turns your bank statements into a living picture of your household's money: a neural map of people, accounts and merchants; goal planning with honest feasibility dates; a pace-based budget; cautious forecasting; debt, investment and net-worth tracking with an Irish tax layer; and a financial-health dial over it all. It is one self-contained file — no server, no account, no tracking, no analytics, nothing phones home. That is not a feature toggle; there is no backend to send anything to.
+Lithifyte turns your bank statements into a **full financial neural map** of your household's money patterns: people, accounts and merchants; goal planning with honest feasibility dates; a pace-based budget; cautious forecasting; debt, investment and net-worth tracking (with an optional **Ireland** locale pack for local tax depth); and a financial-health dial over it all. It is one self-contained file — **your bank data never leaves the browser**. There is no finance backend. The hosted app may use email sign-in and privacy-safe product usage events only (see `docs/product-analytics.md`); self-hosted builds phone home with nothing.
 
 > **The privacy promise, bluntly:** everything is computed in your browser from statements you upload. Your data lives in your browser's local storage (optionally encrypted at rest with a passphrase) and in backup files you export yourself. The page makes zero network requests with your data. You can read this file's source and verify every word of that.
 
