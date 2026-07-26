@@ -22,7 +22,7 @@ Lithifyte turns your bank statements into a **full financial neural map** of you
 4. Re-uploading is always safe: duplicates are detected and skipped.
 5. **Export a backup** (Settings → Backup) once you have real data in. That file is your durability story — optionally encrypted with a passphrase.
 
-The self-test in the footer runs ~100 behavioural checks on every load. If it is ever red, don't trust the numbers — something changed.
+The self-test in the footer runs ~150 behavioural checks on every load. If it is ever red, don't trust the numbers — something changed.
 
 ## What's inside
 
@@ -32,8 +32,22 @@ The self-test in the footer runs ~100 behavioural checks on every load. If it is
 - **Cashflow** month by month, with a Sankey money-flow view that balances to the cent (overspend shows as "from balance" — no flattering lies).
 - **Forecast** with a robust safety buffer, detected recurring bills, and what-if spending levers.
 - **Wealth**: debts (exact amortisation, payoff dates feeding the forecast), stocks/ETFs/crypto with the Irish tax layer (CGT, exit tax, 8-year deemed disposal), manual assets, net worth with an honesty layer (stale valuations get flagged), and a 7-measure financial Pulse score.
-- **Categorisation you control**: the feed's guesses are auditable, one click writes a correction rule, rules always win, and statement-name variants (ALDI 23 873, ALDI51873…) are grouped under one merchant with merge/split controls.
+- **Cashflow** also carries **balances brought forward** — where every account ended each month, with overdrawn months shown as the negative figures they are — and a month stepper so you can walk through the year without leaving the breakdown.
+- **Categorisation you control**: the feed's guesses are auditable, one click writes a correction rule, rules always win, and statement-name variants (ALDI 23 873, ALDI51873…) are grouped under one merchant with merge/split controls. Rules can match a **pattern** where the name varies (`C***GB` catches C123GB and C481GB), and the app suggests the pattern from your own statement names. **Tick several transactions** in Search to move a batch to one category in a single action — that moves exactly those rows, and optionally writes a rule so future statements follow.
+- **One category, month by month**: pick Rent and see every month in the range, its average with and without the empty months, its peak, and whether it is trending up. Date adjusters sit in Cashflow and Categories, not just at the top.
+- **Guided setup** for your first goal and your first debt: a few questions at a time instead of a nine-field grid, with the arithmetic checked as you go (it will tell you when a monthly payment can never clear a balance). Nothing is seeded — a new install starts with no invented goal.
+- **Your data survives updates**: before a new version changes how anything is stored it snapshots every store, and it refuses to write at all rather than risk data it cannot read (see *Data safety* below).
 - **AI categoriser (optional, local)**: point it at an OpenAI-compatible model on your own machine (Ollama, LM Studio) and it suggests categories for the leftovers. Nothing auto-applies; every acceptance becomes an ordinary rule. Savings, rent and gambling-shaped calls are flagged for your judgement, never trusted.
+
+## Data safety
+
+Your finances live in this browser and nowhere else, so there is no server copy to restore from. Updates are handled accordingly:
+
+- **Snapshot before change.** When a new version needs to change how anything is stored, every store is copied into a restore slot *first*. Roll back from **Settings → Backup → Pre-update snapshots**; the newest three are kept. Restored data is then *held* at its old version, so reloading cannot walk you back into the same problem — you lift the hold yourself when you are ready.
+- **Refuse rather than guess.** Data written by a newer version, or a store that will not parse, puts the page in **read-only mode**: a banner explains it, nothing is written, and you are offered an export. A version that cannot understand your data will never overwrite it.
+- **Additive by default.** New features add fields and stores rather than reshaping existing ones — the pattern-matching rules added `match` alongside the old behaviour instead of reinterpreting rules you already had.
+
+None of this replaces **Export everything**. Snapshots live in the same browser, so they do not survive clearing site data or losing the device — keep a backup file somewhere else.
 
 ## Opened locally vs hosted
 

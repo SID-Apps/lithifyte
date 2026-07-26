@@ -168,9 +168,10 @@ shows a visible "Data integrity" warning when they fail):
   3. Every transaction row: [valid "YYYY-MM-DD", non-empty merchant, cat, sub,
      debit ≥ 0, credit ≥ 0, confidence] (+ optional accountId that exists).
   4. Every account.userId exists in users; every rule has merchantContains +
-     setCategory; every goal has a name and target > 0; no duplicate ids.
+     setCategory; every goal PRESENT has a name and target > 0 (an empty goals
+     array is valid — see below); no duplicate ids.
   5. Open the page: the "Self-test" line must show ALL tests passing
-     (~90 behavioural checks on pure Engine kernels + live invariants; also
+     (~150 behavioural checks on pure Engine kernels + live invariants; also
      callable as window.__ddSelfTest()). A failure means your edit changed
      behaviour — fix it before returning the file to the user.
      ARCHITECTURE NOTE: pure computation lives in the `Engine` object (no DOM,
@@ -203,7 +204,11 @@ The JSON block contains:
                   other accounts after the linked account's data ends). The
                   link activates once the account has opening + asOf in the
                   org store and then beats pot/potAsOf.
-                  First goal is primary. Account opening balances for
+                  First goal is primary. An EMPTY goals array is valid and is
+                  what a fresh build ships: the goals card then invites the
+                  guided first-goal wizard instead of seeding an invented
+                  target. Never seed a goal into a fresh/public build.
+                  Account opening balances for
                   reconciliation live in the browser org store (backup:
                   stores.org.balances = {acctId:{opening, asOf, checked}};
                   stores.org.householdName = "The Byrnes" (map root label).
@@ -220,8 +225,17 @@ The JSON block contains:
                   colours (flow into every chart and the money map).
   rules         — recategorisation rules, first-match-wins:
                   {label, merchantContains, amountEquals|null, setCategory,
-                   note, enabled}. SPECIAL CATEGORY "Deposit savings" = money
-                  counted toward goals, excluded from spending.
+                   note, enabled, match?}. SPECIAL CATEGORY "Deposit savings" =
+                  money counted toward goals, excluded from spending.
+                  match:"wildcard" makes merchantContains a PATTERN instead of
+                  a substring: "*" is exactly one character, "%" is any run
+                  (C***GB catches C123GB and C481GB, not C12GB), matched
+                  anywhere in the name, everything else literal. NEVER add
+                  match to an existing rule or reinterpret a rule without it —
+                  a stored rule keeps plain contains semantics for ever, or the
+                  user's categorisation silently changes under them.
+                  Engine.suggestPattern derives a pattern from the real
+                  statement names behind a merchant (used by "+ Rule").
   transfers     — [{key, decision "yes"|"no"}] — user rulings on detected
                   internal transfers. Pairs of equal-and-opposite amounts on
                   different accounts within ±4 days are auto-detected and get
@@ -280,6 +294,16 @@ toggles for automatic alerts (upcoming bills predicted from the recurring
 engine via Engine.upcomingBills, and goals whose verdict is behind pace).
 Engine.alertsView merges them into one due-date-sorted list; in-app only —
 no server, so nothing is pushed or emailed.
+stores.txcat = {overrides:{txKey: "Category"}} — per-transaction
+category overrides from the multi-select bulk-assign bar in Search (browser
+store dd-txcat-v1). txKey = Engine.txKey(t) = accountId + "|" +
+Engine.txFingerprint(t) (date|merchant|debit|credit), so the same rows keep
+their override across a re-upload of the same statement. An override BEATS
+every rule for that row (Engine.effCat's 3rd argument) because it is the most
+specific thing the user has said about it. Two byte-identical rows on one
+account share a key and move together — they are indistinguishable in the
+data. Bulk assign moves only the ticked rows; "also make a rule" additionally
+creates ordinary merchant rules so future statements sort themselves.
 stores.merch = {rules:[{contains, name}], keep:[raw]}
 — merchant-normalisation overrides (browser store dd-merch-v1). Statement
 merchant names are auto-grouped for DISPLAY (map nodes, audit rows, search)
@@ -351,6 +375,41 @@ that statement's accountId as the 8th element.
 When re-assessing: numbers recompute themselves, but the static prose does
 not — re-check the "wealth plan" cards, cashflow annotations and footnotes,
 and report: goal feasibility verdicts, new projected dates, and top actions.
+
+────────────────────────────────────────────────────────────────────────────
+DATA SAFETY — READ THIS BEFORE CHANGING HOW ANY STORE IS SHAPED
+────────────────────────────────────────────────────────────────────────────
+Every user's finances live in their browser and nowhere else. There is no
+server copy to restore from, so a shipped edit that misreads a store destroys
+data permanently. The upgrade guard (search "upgrade guard") enforces:
+
+  DATA_VERSION  — this build's understanding of the stored shapes.
+  MIGRATIONS    — [{to, writes, note, run()}]. A step with writes:true gets a
+                  full snapshot of every store into IndexedDB BEFORE it runs;
+                  writes:false (purely additive: new fields, new stores) needs
+                  none. Restorable from Settings → Backup → Pre-update
+                  snapshots; a restored snapshot is HELD at its old version so
+                  a reload cannot walk the user back into the same problem.
+  refusal       — data from a NEWER build, a store whose text will not parse,
+                  or a snapshot that could not be written all put the page in
+                  read-only mode (safeMode): every save() and storeRemove()
+                  becomes a no-op, a banner offers an export. Never "fix" this
+                  by letting writes through.
+
+So, when you change a stored shape:
+  1. Prefer additive changes. A new optional field or a new dd-* store costs
+     nothing and cannot break an existing user (rule.match is the model here).
+  2. If you must rewrite existing data, add a MIGRATIONS step with
+     writes:true and bump DATA_VERSION by one. Never mutate stores at load
+     time outside a migration step.
+  3. A migration may add and rewrite; it must never DISCARD. If it does not
+     recognise a shape, leave that store exactly as found and report it.
+  4. Add a self-test that loads the OLD shape and asserts the user's content
+     survives — a structural check is not evidence. See the "guard:" and
+     "upgradePlan:" tests.
+  5. New stores go in LS (so they are namespaced for the sample, snapshotted,
+     locked with the vault, and wiped by "erase all") AND in buildBackup /
+     importBackup, or the user's export silently loses them.
 ════════════════════════════════════════════════════════════════════════════
 -->
 <style>
@@ -684,6 +743,31 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
   .drill-row .dr-date{color:var(--muted); font-variant-numeric:tabular-nums; flex:0 0 auto}
   #ncBody .nc-bar:hover > div{filter:brightness(1.35)}
 
+  /* ── one category, month by month (Categories drill-down) ── */
+  .cm-stats{display:flex; flex-wrap:wrap; gap:6px 18px; font-size:12.5px; color:var(--ink-2); margin:0 0 12px}
+  .cm-stats b{color:var(--ink)}
+  .cm-chart{display:flex; align-items:flex-end; gap:4px; overflow-x:auto; padding-bottom:2px;
+    -webkit-overflow-scrolling:touch}
+  .cm-col{flex:1 0 44px; min-width:44px; display:flex; flex-direction:column; align-items:center; gap:3px}
+  .cm-bar-wrap{height:110px; width:100%; display:flex; align-items:flex-end; justify-content:center}
+  .cm-bar{width:60%; min-width:10px; max-width:34px; border-radius:3px 3px 0 0; transition:filter .15s}
+  .cm-col:hover .cm-bar{filter:brightness(1.3)}
+  .cm-val{font-size:11px; color:var(--ink-2); white-space:nowrap}
+  .cm-col:hover .cm-val{color:var(--ink)}
+  .cm-mo{font-size:10.5px; color:var(--muted); white-space:nowrap}
+  /* month stepper in the cashflow drill-down */
+  .mo-nav{display:inline-flex; gap:4px; align-items:center; margin-left:6px}
+  .mo-nav .btn[disabled]{opacity:.35; cursor:default}
+  /* balances carried forward: the account column needs room to breathe, and the
+     month columns must stay narrow so a 12-month range fits without wrapping */
+  #balTable{border-collapse:collapse}
+  #balTable th, #balTable td{padding:7px 9px; white-space:nowrap}
+  #balTable td:first-child, #balTable th:first-child{min-width:190px; white-space:normal}
+  #balTable td:first-child .rule-meta{margin-top:2px; line-height:1.5}
+  #balTable td:first-child .flag{display:inline-block; margin-top:3px; white-space:nowrap}
+  #balTable tbody tr{border-top:1px solid var(--grid)}
+  #balTable th{font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
+
   /* ── Space Phase D: HUD, insight rail, alert stack ── */
   #spaceHud{display:none}
   body.space #spaceHud{display:flex; position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:25;
@@ -955,6 +1039,35 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
   #skOverlay[hidden]{display:none}
   .sk-box{width:min(1160px, 96vw); max-height:92vh; overflow:auto; background:var(--surface);
     border:1px solid var(--grid); border-radius:14px; padding:16px 20px 20px; box-shadow:0 18px 60px rgba(0,0,0,.35)}
+  /* ── guided wizards (first goal, first debt) ── */
+  #wizOverlay{position:fixed; inset:0; z-index:96; display:flex; align-items:center; justify-content:center; padding:20px;
+    background:color-mix(in srgb, var(--page) 58%, transparent); backdrop-filter:blur(14px) saturate(1.1); -webkit-backdrop-filter:blur(14px) saturate(1.1)}
+  #wizOverlay[hidden]{display:none}
+  .wiz-box{width:min(560px, 96vw); max-height:92vh; overflow:auto; background:var(--surface);
+    border:1px solid var(--border-strong,#334155); border-radius:14px; padding:18px 20px 20px;
+    box-shadow:0 18px 60px rgba(0,0,0,.42)}
+  .wiz-kicker{font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted)}
+  .wiz-box h3{margin:4px 0 2px; font-size:19px}
+  .wiz-sub{margin:0 0 14px; font-size:13px; color:var(--ink-2)}
+  .wiz-dots{display:flex; gap:5px; margin:0 0 14px}
+  .wiz-dots i{height:4px; flex:1; border-radius:2px; background:var(--grid)}
+  .wiz-dots i.on{background:var(--accent,#38bdf8)}
+  .wiz-dots i.done{background:color-mix(in srgb, var(--accent,#38bdf8) 45%, transparent)}
+  .wiz-field{margin:0 0 12px}
+  .wiz-field label{display:block; font-size:12px; color:var(--muted); margin-bottom:4px}
+  .wiz-field .inp{width:100%}
+  .wiz-chips{display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 0}
+  .wiz-chip{cursor:pointer; font-size:12.5px; padding:5px 11px; border-radius:999px;
+    border:1px solid var(--border-strong,#334155); background:var(--chip); color:var(--ink-2)}
+  .wiz-chip:hover{color:var(--ink)}
+  .wiz-chip.on{border-color:var(--accent,#38bdf8); color:var(--ink)}
+  .wiz-err{color:var(--critical); font-size:12.5px; min-height:17px; margin:2px 0 0}
+  .wiz-nav{display:flex; gap:8px; align-items:center; margin-top:16px}
+  .wiz-nav .wiz-spacer{margin-left:auto}
+  .wiz-review{font-size:13px; color:var(--ink-2)}
+  .wiz-review div{display:flex; justify-content:space-between; gap:10px; padding:4px 0; border-bottom:1px solid var(--grid)}
+  .wiz-review div:last-child{border-bottom:none}
+  .wiz-review b{color:var(--ink); font-variant-numeric:tabular-nums}
   .node-card{position:absolute; right:14px; bottom:44px; z-index:3; width:min(320px, 78vw);
     background:rgba(4,18,38,.9); border:1px solid rgba(56,189,248,.42); border-radius:12px;
     padding:12px 14px; color:#dbeafe; backdrop-filter:blur(8px);
@@ -1107,10 +1220,17 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
         <span class="hint">CSV with date, description, and debit/credit (or amount) columns — duplicates are skipped automatically</span>
         <span class="hint" id="ob-file-status"></span></li>
       <li class="ob-step" id="obs5"><span class="ob-num">5</span><b>Your first goal</b>
-        <input id="ob-goal" class="inp" placeholder="e.g. House deposit" style="min-width:160px">
-        <input id="ob-target" class="inp" type="number" min="100" step="100" placeholder="Target €" style="width:110px">
-        <input id="ob-month" class="inp" type="month" title="Deadline (optional)">
-        <button class="btn primary" id="ob-goal-go" type="button">Set goal</button>
+        <button class="btn primary" id="ob-goal-wiz" type="button">Set up my first goal</button>
+        <span class="hint">a few short questions — or fill it in yourself below</span>
+        <details style="margin-top:6px">
+          <summary class="hint">type it in directly</summary>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:6px">
+            <input id="ob-goal" class="inp" placeholder="e.g. House deposit" style="min-width:160px">
+            <input id="ob-target" class="inp" type="number" min="100" step="100" placeholder="Target €" style="width:110px">
+            <input id="ob-month" class="inp" type="month" title="Deadline (optional)">
+            <button class="btn" id="ob-goal-go" type="button">Set goal</button>
+          </div>
+        </details>
         <span class="hint num" id="ob-goal-done"></span></li>
     </ol>
     <div class="callout" style="margin-top:16px">Watch the map as you go — the <b>household</b> appears at step 1, <b>people</b> at step 2, an <b>account</b> at step 3, and your <b>money</b> lights it up at step 4. Manage people anytime from <b>Data → People</b>. Restoring instead? Use <b>Backup &amp; restore</b> in Settings. <button class="btn small" id="obClassic" type="button">🖥️ prefer the classic page?</button></div>
@@ -1157,6 +1277,10 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
         <select id="gf-acct" class="inp"><option value="">none — track by transfers</option></select></div>
       <div><button class="btn primary" id="gf-save" type="button">Add goal</button></div>
     </div>
+    <div class="rule-actions" style="margin-top:8px">
+      <button class="btn" id="gf-wizard" type="button" title="Answer a few questions instead of filling in the grid">🧭 Guide me through a new goal</button>
+      <span class="hint">the guided route asks one thing at a time and fills the same fields</span>
+    </div>
     <p class="hint" style="margin:8px 0 0">Goals are funded in the order shown (top goal first). Each goal's verdict checks your <b>forecast</b> surplus — including when recurring bills end — not just today's average.</p>
   </div>
 
@@ -1183,6 +1307,19 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
       <select id="cashAcctSel" class="inp" style="max-width:min(320px,100%)" aria-label="Cashflow account scope"></select>
       <span class="hint num" id="cashAcctHint" style="margin:0"></span>
     </div>
+    <div class="filter-row local-range" id="cashRangeBar" data-range-bar="cash" style="margin:0 0 10px; flex-wrap:wrap; gap:8px; align-items:center">
+      <span class="filter-label">Dates</span>
+      <select class="inp lr-preset" aria-label="Date range preset for cashflow" style="max-width:170px">
+        <option value="12">Last 12 months</option>
+        <option value="6">Last 6 months</option>
+        <option value="3">Last 3 months</option>
+        <option value="all">All data</option>
+        <option value="custom">Custom</option>
+      </select>
+      <label class="ctl">from <input type="month" class="inp lr-from"></label>
+      <label class="ctl">to <input type="month" class="inp lr-to"></label>
+      <span class="hint num lr-info" style="margin:0"></span>
+    </div>
     <div class="chart-card">
       <div class="legend">
         <span><i class="sw" style="background:var(--income)"></i>Income</span>
@@ -1192,6 +1329,11 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
         <div id="cashflowChart"></div>
       </div>
       <div id="cashDetail"></div>
+    </div>
+    <div class="card" id="balCard" style="margin-top:14px">
+      <h3 style="margin:0 0 4px">Balances carried forward</h3>
+      <p class="hint" style="margin:0 0 12px">Where each account <b>ended every month</b> — each month opens on the previous month's closing balance, so a month that went <b>negative</b> shows as the negative figure it was. Accounts with a reconciled <b>opening balance</b> show real balances; the rest show movement from zero until you set one (People, accounts &amp; statements → opening balance).</p>
+      <div id="balBody"></div>
     </div>
     <div class="chart-card sk-mini-card" id="skCard" title="Click to view large">
       <button class="sk-big-btn" id="skBigBtn" type="button" aria-label="Open the money flow large">⛶ View large</button>
@@ -1215,6 +1357,19 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
       <span class="filter-label">Account</span>
       <select id="catAcctSel" class="inp" style="max-width:min(320px,100%)" aria-label="Categories account scope"></select>
       <span class="hint num" id="catAcctHint" style="margin:0"></span>
+    </div>
+    <div class="filter-row local-range" id="catRangeBar" data-range-bar="cats" style="margin:0 0 10px; flex-wrap:wrap; gap:8px; align-items:center">
+      <span class="filter-label">Dates</span>
+      <select class="inp lr-preset" aria-label="Date range preset for categories" style="max-width:170px">
+        <option value="12">Last 12 months</option>
+        <option value="6">Last 6 months</option>
+        <option value="3">Last 3 months</option>
+        <option value="all">All data</option>
+        <option value="custom">Custom</option>
+      </select>
+      <label class="ctl">from <input type="month" class="inp lr-from"></label>
+      <label class="ctl">to <input type="month" class="inp lr-to"></label>
+      <span class="hint num lr-info" style="margin:0"></span>
     </div>
     <div class="chart-card"><div id="catChart"></div><div id="catDetail"></div></div>
   </div>
@@ -1375,12 +1530,22 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
 <div class="hint num" id="txFound" style="margin:-6px 0 10px; color:var(--ink)"></div>
     <div class="card">
       <input id="txSearch" class="search-input" placeholder="Merchant name or amount…" aria-label="Search transactions">
+      <div class="filter-row" id="txBulkBar" style="margin:8px 0 4px; display:none; flex-wrap:wrap; gap:8px; align-items:center">
+        <span class="filter-label" id="txSelCount">0 selected</span>
+        <select id="txBulkCat" class="inp" style="max-width:200px" aria-label="Send selected transactions to category">
+          <option value="">send to category…</option>
+        </select>
+        <button class="btn primary small" id="txBulkGo" type="button">Move selected</button>
+        <label class="chk" title="Also create an auto-categorisation rule so future transactions from these names follow"><input type="checkbox" id="txBulkRule"> also make a rule for these names</label>
+        <button class="btn small" id="txSelClear" type="button">Clear selection</button>
+      </div>
       <div style="overflow-x:auto">
         <table id="txTable">
-          <thead><tr><th>Date</th><th>Merchant</th><th>Category</th><th class="r">Amount</th><th></th></tr></thead>
-          <tbody><tr><td colspan="5" style="color:var(--muted)">Type above to search all transactions.</td></tr></tbody>
+          <thead><tr><th class="r" style="width:34px"><input type="checkbox" id="txSelAll" aria-label="Select all matches shown"></th><th>Date</th><th>Merchant</th><th>Category</th><th class="r">Amount</th><th></th></tr></thead>
+          <tbody><tr><td colspan="6" style="color:var(--muted)">Type above to search all transactions.</td></tr></tbody>
         </table>
       </div>
+      <p class="rule-hint" style="margin:8px 0 0">Tick rows to move a batch at once — that moves <b>exactly those transactions</b> and nothing else. <b>＋ Rule</b> on a row builds an auto-categorisation rule from its name instead, so future statements sort themselves; where a name has a varying part (a card reference like C123GB) a pattern is suggested for you.</p>
     </div>
   </div>
 
@@ -1397,14 +1562,20 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
           <tbody></tbody>
         </table>
       </div>
-      <div class="rule-form" style="grid-template-columns:1.3fr .55fr .55fr 1.1fr 1.2fr auto">
-        <div><label for="rf-merchant">Merchant contains</label><input id="rf-merchant" placeholder="e.g. NETFLIX"></div>
+      <div class="rule-form" style="grid-template-columns:.8fr 1.3fr .55fr .55fr 1.1fr 1.2fr auto">
+        <div><label for="rf-match">Match by</label>
+          <select id="rf-match" class="inp">
+            <option value="contains" selected>contains</option>
+            <option value="wildcard">pattern</option>
+          </select></div>
+        <div><label for="rf-merchant" id="rf-merchant-lab">Merchant contains</label><input id="rf-merchant" placeholder="e.g. NETFLIX"></div>
         <div><label for="rf-amt-min">€ from</label><input id="rf-amt-min" type="number" step="0.01" min="0" placeholder="any"></div>
         <div><label for="rf-amt-max">€ to</label><input id="rf-amt-max" type="number" step="0.01" min="0" placeholder="any"></div>
         <div><label for="rf-cat">Set category to</label><input id="rf-cat" list="catList" placeholder="pick or type"></div>
         <div><label for="rf-note">Note (optional)</label><input id="rf-note" placeholder="why?"></div>
         <div><button class="btn primary" id="rf-add" type="button">Add rule</button></div>
       </div>
+      <p class="rule-hint" id="rf-wc-hint" style="display:none; margin:-4px 0 8px">Pattern matching: <b>*</b> stands for exactly one character, <b>%</b> for any run of them. <code>C***GB</code> catches C123GB and C481GB but not C12GB; <code>C%GB</code> catches all three. Everything else is literal. <span id="rf-wc-preview" class="num"></span></p>
       <datalist id="catList"></datalist>
       <div class="rule-actions">
         <button class="btn" id="copyRules" type="button">Copy rules JSON</button>
@@ -1719,6 +1890,10 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
         <div><button class="btn" id="dbExportXl" type="button" title="Export debts for Excel">⬇ CSV</button>
         <button class="btn primary" id="db-save" type="button">Add debt</button></div>
       </div>
+      <div class="rule-actions" style="margin-top:8px">
+        <button class="btn" id="db-wizard" type="button" title="Answer a few questions instead of filling in the grid">🧭 Guide me through a new debt</button>
+        <span class="hint">the guided route checks as you go — it will tell you if a payment can never clear the balance</span>
+      </div>
       <div id="debtWhatIf" style="margin-top:12px"></div>
       <div id="debtStrategy" style="margin-top:12px"></div>
       </div>
@@ -1844,6 +2019,15 @@ and report: goal feasibility verdicts, new projected dates, and top actions.
         <span class="copied" id="bkStatus"></span>
       </div>
       <p class="rule-hint" style="margin-top:10px">With a passphrase set, exports are AES-encrypted (same passphrase needed to import) and “Lock” keeps every store encrypted at rest in this browser — you'll be asked for the passphrase whenever the page opens. There is <b>no recovery</b> from a forgotten passphrase; keep an unencrypted backup somewhere safe if unsure.</p>
+    </div>
+    <div class="card" style="margin-bottom:14px" id="snapCard">
+      <h3>Pre-update snapshots</h3>
+      <p class="hint" style="margin:0 0 10px">When an update needs to change how your data is stored, this page copies every store into a restore slot <b>first</b>. If an update ever misreads your data, roll back here — then export a backup before trying the update again. Snapshots live in this browser only; the newest <b id="snapKeep">3</b> are kept.</p>
+      <div id="snapList" class="hint">checking…</div>
+      <div id="snapHold" style="display:none; margin-top:10px">
+        <p class="rule-hint" style="margin:0 0 8px; color:var(--critical)">Your data is <b>held</b> at its restored version, so this build is not writing to it. Export a backup first; then lift the hold to let the update run again.</p>
+        <button class="btn small danger" id="snapUnhold" type="button">Lift the hold and update again</button>
+      </div>
     </div>
     <div class="card" style="margin-bottom:14px">
       <h3>Danger zone</h3>
@@ -1999,6 +2183,22 @@ rewrite the static advice cards if the picture has changed.</div>
 
 <div class="tip" id="tip"></div>
 
+<div id="wizOverlay" hidden>
+  <div class="wiz-box" role="dialog" aria-modal="true" aria-labelledby="wizTitle">
+    <div class="wiz-kicker" id="wizKicker">Guided setup</div>
+    <h3 id="wizTitle">Step</h3>
+    <p class="wiz-sub" id="wizSub"></p>
+    <div class="wiz-dots" id="wizDots" aria-hidden="true"></div>
+    <div id="wizBody"></div>
+    <p class="wiz-err" id="wizErr" role="alert"></p>
+    <div class="wiz-nav">
+      <button class="btn" id="wizBack" type="button">Back</button>
+      <span class="wiz-spacer"></span>
+      <button class="btn" id="wizCancel" type="button">Cancel</button>
+      <button class="btn primary" id="wizNext" type="button">Next</button>
+    </div>
+  </div>
+</div>
 <div id="skOverlay" hidden>
   <div class="sk-box" role="dialog" aria-label="Money flow, full size">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
@@ -2056,7 +2256,7 @@ rewrite the static advice cards if the picture has changed.</div>
   const MAP_LEGEND = false;
 
   // ══ persistent stores (all in this browser — self-hosted) ══
-  const LS = {rules:'dd-rules-v2', cats:'dd-cats-v2', goals:'dd-goals-v1', org:'dd-org-v1', recur:'dd-recur-v1', uploads:'dd-uploads-v1', xfers:'dd-xfers-v1', manrec:'dd-manrec-v1', fcast:'dd-fcast-v1', cuts:'dd-cuts-v1', visit:'dd-visit-v1', budget:'dd-budget-v1', priv:'dd-privacy-v1', debts:'dd-debts-v1', holds:'dd-holdings-v1', assets:'dd-assets-v1', nwlog:'dd-nwlog-v1', merch:'dd-merch-v1', notes:'dd-notes-v1', lm:'dd-lm-v1', cash:'dd-cash-v1', alerts:'dd-alerts-v1'};
+  const LS = {rules:'dd-rules-v2', cats:'dd-cats-v2', goals:'dd-goals-v1', org:'dd-org-v1', recur:'dd-recur-v1', uploads:'dd-uploads-v1', xfers:'dd-xfers-v1', manrec:'dd-manrec-v1', fcast:'dd-fcast-v1', cuts:'dd-cuts-v1', visit:'dd-visit-v1', budget:'dd-budget-v1', priv:'dd-privacy-v1', debts:'dd-debts-v1', holds:'dd-holdings-v1', assets:'dd-assets-v1', nwlog:'dd-nwlog-v1', merch:'dd-merch-v1', notes:'dd-notes-v1', lm:'dd-lm-v1', cash:'dd-cash-v1', alerts:'dd-alerts-v1', txcat:'dd-txcat-v1'};
   // demo build (raw.demo:true in the data block): every store gets its own
   // namespace — the sample household shares an origin with the real app, and
   // playing with sample data must never be able to touch someone's real data
@@ -2157,18 +2357,38 @@ rewrite the static advice cards if the picture has changed.</div>
   const VAULT_KEY = 'dd-vault-v1' + (raw.demo ? '-demo' : '');
   let lockedMode = false, vaultPass = null, flushTimer = null;
   const memStore = new Map();
+  // ── read-only guard (data safety) ──
+  // safeMode is set when this build must NOT write: data stamped by a newer
+  // build, a store whose text is present but unreadable, or a failed
+  // pre-migration snapshot. Everything still renders from what could be read;
+  // nothing can be overwritten, so the user keeps the chance to export or to
+  // reopen in the build that wrote it. See the upgrade guard below.
+  let safeMode = null;            // null | {reason, detail[]}
+  const safeStores = [];          // stores present but unreadable — never rewritten
+  function enterSafeMode(reason, detail){
+    if (safeMode) { if (detail) safeMode.detail.push(detail); return; }
+    safeMode = {reason, detail: detail ? [detail] : []};
+  }
   function load(key, fallback){
-    try{
-      const s = lockedMode ? memStore.get(key) : localStorage.getItem(key);
-      if (s) return JSON.parse(s);
-    }catch(e){}
-    return fallback;
+    let s = null;
+    try{ s = lockedMode ? memStore.get(key) : localStorage.getItem(key); }catch(e){ return fallback; }
+    if (!s) return fallback;
+    try{ return JSON.parse(s); }
+    catch(e){
+      // A store that exists but will not parse is damaged data, not absent
+      // data. Starting fresh here would look harmless and then overwrite it on
+      // the next save — so refuse to write instead and keep the bytes intact.
+      if (safeStores.indexOf(key) < 0) safeStores.push(key);
+      enterSafeMode('unreadable', key + ' could not be parsed');
+      return fallback;
+    }
   }
   function save(key, v){
     // The sample is read-only: visitors can play with everything in-session, but
     // nothing persists — a refresh always restores the pristine sample
     // household (and nobody can mistake the sample for their own account).
     if (raw.demo) return;
+    if (safeMode) return;
     try{
       const s = JSON.stringify(v);
       if (lockedMode){ memStore.set(key, s); scheduleVaultFlush(); }
@@ -2177,14 +2397,17 @@ rewrite the static advice cards if the picture has changed.</div>
     }catch(e){}
   }
   function storeRemove(key){
+    if (safeMode) return;
     try{
       if (lockedMode){ memStore.delete(key); scheduleVaultFlush(); }
       else if (key === LS.uploads && IDB_OK) idbDel(key).catch(()=>{});
       else localStorage.removeItem(key);
     }catch(e){}
   }
-  async function flushVault(){
-    if (!lockedMode || vaultPass == null) return;
+  async function flushVault(force){
+    // force: a deliberate user action (snapshot restore) writing through the
+    // read-only guard that safeMode otherwise puts on every store.
+    if (!lockedMode || vaultPass == null || (safeMode && !force)) return;
     try{
       const env = JSON.stringify(await encryptJSON(Object.fromEntries(memStore), vaultPass));
       if (IDB_OK){
@@ -2248,6 +2471,143 @@ rewrite the static advice cards if the picture has changed.</div>
     });
   }
 
+  // ══ upgrade guard (data safety) ═══════════════════════════════════════
+  // Every user's finances live in this browser and nowhere else, so shipping a
+  // new build must never be able to eat them. Three layers, in this order:
+  //
+  //   1. SNAPSHOT — when the stored data version differs from this build's,
+  //      every store is copied into an IndexedDB restore slot BEFORE any
+  //      migration step touches a byte. Restorable from Settings → Backup.
+  //   2. MIGRATE  — known shapes step forward through MIGRATIONS below. A
+  //      store a step does not recognise is left exactly as found and
+  //      reported; steps may add and rewrite, never discard.
+  //   3. REFUSE   — data stamped by a NEWER build is never written to. The app
+  //      goes read-only and offers an export, the same stance the backup
+  //      importer already takes on a newer schema. Same for a store that will
+  //      not parse (see load()) or a snapshot that could not be written.
+  //
+  // Bump DATA_VERSION only when a step is added; a step that only reads
+  // existing shapes (additive fields, new stores) sets writes:false and needs
+  // no snapshot.
+  const DATA_VERSION = 2;
+  const META_KEY = 'dd-meta-v1' + (raw.demo ? '-demo' : '');
+  const SNAP_PREFIX = 'dd-snapshot-' + (raw.demo ? 'demo-' : '');
+  const SNAP_KEEP = 3;                       // restore slots retained
+  const MIGRATIONS = [
+    {to: 2, writes: false,
+     note: 'rule match modes, per-transaction category overrides, carried-forward balances — all additive; existing stores are read as they stand',
+     run: () => []}
+  ];
+  const upgrade = {from: null, to: DATA_VERSION, ran: [], snapshot: null, notes: []};
+
+  // Pure decision kernel (exposed as Engine.upgradePlan; see the note there).
+  // Given what is stored and what this build understands, decide what may
+  // happen to the user's data. Every branch that could overwrite data reports
+  // needSnapshot, and no branch ever proposes discarding a store.
+  function upgradePlan({stored, current, migrations, hold, anyStored}){
+    const steps = (migrations || []).filter(m => m.to > stored && m.to <= current)
+      .sort((a, b) => a.to - b.to);
+    if (stored > current) return {action:'refuse', reason:'newer', steps:[], needSnapshot:false};
+    if (hold != null && stored < current) return {action:'refuse', reason:'held', steps:[], needSnapshot:false};
+    if (stored === current) return {action: anyStored === false ? 'stamp' : 'none', steps:[], needSnapshot:false};
+    return {action:'migrate', steps: steps.map(s => s.to),
+            needSnapshot: steps.some(s => s.writes === true)};
+  }
+
+  function metaRead(){
+    const m = load(META_KEY, null);
+    if (m && typeof m.dataVersion === 'number') return m;
+    // No meta: either a first run (nothing stored yet) or a user from a build
+    // that predates the guard. Distinguish by whether any store exists.
+    const any = Object.values(LS).some(k => {
+      try{ return (lockedMode ? memStore.get(k) : localStorage.getItem(k)) != null; }catch(e){ return false; }
+    });
+    return {dataVersion: any ? 1 : DATA_VERSION, seeded: !any};
+  }
+  function storeSnapshotPayload(){
+    const stores = {};
+    for (const [name, key] of Object.entries(LS)){
+      try{
+        const s = lockedMode ? memStore.get(key) : localStorage.getItem(key);
+        if (s != null) stores[key] = s;          // raw text: copied verbatim, never re-serialised
+      }catch(e){}
+    }
+    return {kind: 'dd-store-snapshot', takenAt: new Date().toISOString(), stores};
+  }
+  async function snapshotStores(fromVersion){
+    // Uploads alone can be megabytes, so snapshots live in IndexedDB. Without
+    // IndexedDB there is nowhere safe to put one — the caller decides whether
+    // that blocks the upgrade.
+    if (!IDB_OK) return null;
+    const payload = storeSnapshotPayload();
+    if (!Object.keys(payload.stores).length) return null;
+    const slot = SNAP_PREFIX + fromVersion + '-' + Date.now().toString(36);
+    payload.fromVersion = fromVersion;
+    payload.toVersion = DATA_VERSION;
+    if (lockedMode) payload.locked = true;      // written inside the vault's own store list
+    await idbSet(slot, JSON.stringify(payload));
+    const index = load(META_KEY, {}) || {};
+    const slots = (index.snapshots || []).concat([{slot, fromVersion, takenAt: payload.takenAt}]);
+    // keep the newest few, drop the rest so snapshots cannot grow without bound
+    const keep = slots.slice(-SNAP_KEEP), drop = slots.slice(0, -SNAP_KEEP);
+    for (const d of drop){ try{ await idbDel(d.slot); }catch(e){} }
+    return {slot, takenAt: payload.takenAt, keep};
+  }
+  async function runUpgradeGuard(){
+    if (raw.demo) return;                       // sample never persists anything
+    const meta = metaRead();
+    const stored = meta.dataVersion;
+    upgrade.from = stored;
+    const plan = upgradePlan({stored, current: DATA_VERSION, migrations: MIGRATIONS,
+                              hold: meta.holdAt, anyStored: !meta.seeded});
+    upgrade.plan = plan;
+    if (plan.action === 'refuse'){
+      // layer 3: newer data is never migrated down; restored-and-held data is
+      // never silently re-migrated into the problem it was rolled back from.
+      if (plan.reason === 'newer')
+        enterSafeMode('newer', 'stored data version ' + stored + ' was written by a newer build (this build understands ' + DATA_VERSION + ')');
+      else
+        enterSafeMode('held', 'your data was restored from a snapshot and is held at version ' + stored + ' until you lift the hold');
+      return;
+    }
+    if (plan.action === 'stamp'){
+      try{ localStorage.setItem(META_KEY, JSON.stringify({dataVersion: DATA_VERSION, snapshots: []})); }catch(e){}
+      return;
+    }
+    if (plan.action === 'none') return;
+    const steps = MIGRATIONS.filter(m => plan.steps.includes(m.to)).sort((a,b) => a.to - b.to);
+    if (plan.needSnapshot){
+      // layer 1: nothing is rewritten until a restore slot exists
+      let snap = null;
+      try{ snap = await snapshotStores(stored); }
+      catch(e){ snap = null; }
+      if (!snap){
+        enterSafeMode('no-snapshot', 'this build needs to update how your data is stored, but no pre-update snapshot could be saved');
+        return;
+      }
+      upgrade.snapshot = snap;
+    }
+    // layer 2: step forward
+    for (const step of steps){
+      try{
+        const notes = step.run() || [];
+        upgrade.ran.push(step.to);
+        upgrade.notes.push(...notes);
+      }catch(e){
+        enterSafeMode('migration-failed', 'updating stored data to version ' + step.to + ' failed: ' + (e && e.message || e));
+        return;
+      }
+    }
+    if (safeMode) return;
+    const next = {dataVersion: DATA_VERSION, upgradedAt: new Date().toISOString(),
+                  snapshots: upgrade.snapshot ? upgrade.snapshot.keep : (load(META_KEY, {}) || {}).snapshots || []};
+    try{
+      if (lockedMode){ memStore.set(META_KEY, JSON.stringify(next)); scheduleVaultFlush(); }
+      else localStorage.setItem(META_KEY, JSON.stringify(next));
+    }catch(e){}
+  }
+  await runUpgradeGuard();
+
   let _uidSeq = 0;
   const uid = p => p + Date.now().toString(36) + '-' + (_uidSeq++).toString(36);
   let rules = load(LS.rules, JSON.parse(JSON.stringify(raw.rules)));
@@ -2299,6 +2659,10 @@ rewrite the static advice cards if the picture has changed.</div>
   // the recurring engine, goal-pace warnings). ack = {alertKey: dueISO} —
   // dismissed occurrences; done = per-reminder completed due dates.
   let alertStore = load(LS.alerts, {items:[], auto:{upcoming:true, goalPace:true}, ack:{}});
+  // Bulk assign: per-transaction category overrides, {txKey: category}. Beats
+  // every rule for that row — see Engine.txKey / Engine.effCat.
+  let txCatStore = load(LS.txcat, {overrides:{}});
+  if (!txCatStore.overrides || typeof txCatStore.overrides !== 'object') txCatStore = {overrides:{}};
   const merchCanon = new Map();                   // raw → canonical cache; cleared on merchStore change
   function canonOf(m){
     let v = merchCanon.get(m);
@@ -2334,9 +2698,139 @@ rewrite the static advice cards if the picture has changed.</div>
     fvMonthly(m, r, yrs){ const i = r/12, n = yrs*12; return m * ((Math.pow(1+i, n) - 1) / i); },
     addMonths(m, k){ const d = new Date(+m.slice(0,4), +m.slice(5)-1 + k, 1); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); },
     monthDiff(a, b){ return (+b.slice(0,4) - +a.slice(0,4))*12 + (+b.slice(5) - +a.slice(5)); },
+    // upgradePlan lives up in the upgrade-guard block instead of inline here:
+    // the guard has to decide what may happen to stored data BEFORE the stores
+    // are read, which is before this object exists. It is a plain hoisted
+    // function so both can share it, and it is an Engine kernel in every other
+    // sense — pure, parameterised, covered by the self-test as E.upgradePlan.
+    upgradePlan,
+    // ── one category, month by month ──
+    // The category chart answers "how much per month on average"; this answers
+    // "was that steady?" — pick Rent and see every month in the selected range,
+    // including the months with nothing in them (a gap is information: it is
+    // usually a missing statement or a bill that moved).
+    // Savings nets debits against credits, exactly as catsFromTxe does, so the
+    // two views can never disagree about the same category.
+    catMonthly({txe, months, category, saveCat}){
+      const isSave = category === saveCat;
+      const by = new Map(months.map(m => [m, {month:m, total:0, n:0}]));
+      for (const t of txe){
+        if (t.ec !== category) continue;
+        const b = by.get(t.mo);
+        if (!b) continue;
+        if (isSave){ b.total += t.de - t.cr; b.n++; }
+        else if (t.de > 0){ b.total += t.de; b.n++; }
+      }
+      const rows = months.map(m => by.get(m));
+      const vals = rows.map(r => r.total);
+      const active = rows.filter(r => r.n > 0);
+      const sum = vals.reduce((s, v) => s + v, 0);
+      const avg = rows.length ? sum / rows.length : 0;
+      // avgActive ignores empty months: for a quarterly bill the all-months
+      // average understates what it costs when it does land
+      const avgActive = active.length ? active.reduce((s, r) => s + r.total, 0) / active.length : 0;
+      const peak = rows.reduce((a, r) => (a && Math.abs(a.total) >= Math.abs(r.total)) ? a : r, null);
+      const lowActive = active.reduce((a, r) => (a && Math.abs(a.total) <= Math.abs(r.total)) ? a : r, null);
+      // trend: mean of the later half against the earlier half
+      let trend = 0;
+      if (rows.length >= 4){
+        const half = Math.floor(rows.length / 2);
+        const first = vals.slice(0, half), last = vals.slice(rows.length - half);
+        const fa = first.reduce((s,v)=>s+v,0) / half, la = last.reduce((s,v)=>s+v,0) / half;
+        trend = Math.abs(fa) < 0.005 ? (Math.abs(la) < 0.005 ? 0 : 1) : (la - fa) / Math.abs(fa);
+      }
+      return {rows, total: sum, avg, avgActive, months: rows.length,
+              activeMonths: active.length, emptyMonths: rows.length - active.length,
+              peak, low: lowActive, trend, txCount: rows.reduce((s, r) => s + r.n, 0)};
+    },
+    // ── per-transaction category overrides (bulk assign) ──
+    // Selecting a handful of transactions and sending them to a category is a
+    // statement about THOSE transactions, not about the merchant — so it is
+    // stored per transaction rather than as a rule. The key is the row's own
+    // identity (account + the dedupe fingerprint), so re-uploading the same
+    // statement lands the override back on the same rows.
+    // Two genuinely identical rows on one account share a key and move
+    // together; they are indistinguishable in the data, so that is honest.
+    txKey(t){ return (t.acct || '') + '|' + Engine.txFingerprint(t); },
+    // ── wildcard patterns (rule.match === 'wildcard') ──
+    // Card and reference strings vary in the middle — C123GB, C481GB — so a
+    // contains-rule cannot group them. A pattern rule can:
+    //     *  matches exactly one character   (C***GB → C123GB, not C12GB)
+    //     %  matches any run, including none (C%GB   → C123GB and CGB)
+    // The pattern is matched anywhere in the merchant string, exactly like
+    // "contains". Everything else in the pattern is literal — regex
+    // metacharacters are escaped, so a rule for "AMAZON.DE*2T3" still means
+    // the dot, not "any character".
+    // Rules WITHOUT match:'wildcard' keep plain contains semantics for ever:
+    // reinterpreting stored rules would silently change what a user's existing
+    // rules capture, which is data loss wearing a feature's clothes.
+    wildcardRegex(pattern){
+      const key = String(pattern == null ? '' : pattern).toUpperCase();
+      let re = Engine._wc.get(key);
+      if (re === undefined){
+        const body = key.split('').map(ch =>
+          ch === '*' ? '.'
+          : ch === '%' ? '[\\s\\S]*'
+          : ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('');
+        try{ re = new RegExp(body); }catch(e){ re = null; }
+        Engine._wc.set(key, re);
+      }
+      return re;
+    },
+    _wc: new Map(),
+    // ── suggest a pattern from real statement names ──
+    // Feeds "make a rule from this name": given every raw name a merchant
+    // appears under, propose a pattern that covers them all. With several
+    // names the varying middle is derived from what they share; with one name
+    // the digit runs are what usually vary (C123GB → C***GB).
+    // Returns null when a plain contains rule already covers the group — a
+    // suggestion that adds nothing is worse than no suggestion.
+    suggestPattern(names){
+      const list = [...new Set((names || []).map(n => String(n == null ? '' : n).toUpperCase().trim()).filter(Boolean))];
+      if (!list.length) return null;
+      if (list.length === 1){
+        const one = list[0];
+        if (!/\d/.test(one)) return null;
+        const pattern = one.replace(/\d+/g, d => '*'.repeat(d.length));
+        return pattern === one ? null : {pattern, why: 'digits in this name usually vary'};
+      }
+      // longest shared prefix and suffix across every name
+      let pre = list[0];
+      for (const s of list.slice(1)){
+        let i = 0;
+        while (i < pre.length && i < s.length && pre[i] === s[i]) i++;
+        pre = pre.slice(0, i);
+      }
+      let suf = list[0].slice(pre.length);
+      for (const s of list.slice(1)){
+        const tail = s.slice(pre.length);
+        let i = 0;
+        while (i < suf.length && i < tail.length && suf[suf.length-1-i] === tail[tail.length-1-i]) i++;
+        suf = suf.slice(suf.length - i);
+      }
+      if (!pre && !suf) return null;                       // nothing in common to build on
+      const mids = list.map(s => s.slice(pre.length, s.length - suf.length));
+      if (mids.every(m => !m)) return null;                // the names differ elsewhere; contains is enough
+      const len = mids[0].length;
+      const fixed = mids.every(m => m.length === len) && len > 0;
+      const pattern = pre + (fixed ? '*'.repeat(len) : '%') + suf;
+      return {pattern, why: fixed
+        ? len + ' character' + (len === 1 ? '' : 's') + ' vary in the middle of ' + list.length + ' names'
+        : 'the middle varies in length across ' + list.length + ' names'};
+    },
+    ruleMatchesMerchant(r, merchant){
+      const needle = r.merchantContains;
+      if (!needle) return true;                       // amount-only rule
+      const hay = String(merchant == null ? '' : merchant).toUpperCase();
+      if (r.match === 'wildcard'){
+        const re = Engine.wildcardRegex(needle);
+        return !!re && re.test(hay);
+      }
+      return hay.includes(needle.toUpperCase());
+    },
     ruleMatches(r, t){
       if (!r.enabled) return false;
-      if (r.merchantContains && !t.m.toUpperCase().includes(r.merchantContains.toUpperCase())) return false;
+      if (!Engine.ruleMatchesMerchant(r, t.m)) return false;
       if (r.amountEquals != null && r.amountEquals !== '' &&
           Math.abs(t.de - r.amountEquals) > 0.005 && Math.abs(t.cr - r.amountEquals) > 0.005) return false;
       const amt = t.de > 0 ? t.de : t.cr;
@@ -2344,7 +2838,10 @@ rewrite the static advice cards if the picture has changed.</div>
       if (r.amountMax != null && r.amountMax !== '' && amt > r.amountMax + 0.005) return false;
       return true;
     },
-    effCat(t, rules){
+    // override (a manual per-transaction assignment) is the most specific thing
+    // the user has said about this row, so it outranks every rule
+    effCat(t, rules, override){
+      if (override) return override;
       for (const r of rules) if (Engine.ruleMatches(r, t)) return r.setCategory;
       return t.c;
     },
@@ -2915,6 +3412,58 @@ rewrite the static advice cards if the picture has changed.</div>
       }
       return {total: Math.round(rows.reduce((s, r) => s + r.bal, 0)), rows, untracked};
     },
+    // ── balances carried forward ──
+    // cashPosition answers "what is in the accounts today". This answers "what
+    // was in them at the end of each month" — each month opens on the previous
+    // month's close, so an account that dips below zero is visible as the
+    // negative number it is, in the month it happened.
+    //
+    // Two honesty rules:
+    //  · An account with a reconciled opening balance reports ABSOLUTE
+    //    balances. One without reports movement from zero (relative:true) —
+    //    useful for the shape, but never presented as the real balance.
+    //  · Months entirely before the opening balance's as-of date are marked
+    //    unknown rather than back-projected: the statements do not say what was
+    //    there, and inventing a figure would be worse than leaving a gap.
+    // Credit accounts are included: a negative balance there is money owed, and
+    // hiding it is exactly the gap this closes.
+    balanceRuns({accounts, balances, tx, months}){
+      const r2 = v => Math.round(v * 100) / 100;
+      const ms = (months || []).slice().sort();
+      const out = [];
+      for (const a of (accounts || [])){
+        const b = (balances || {})[a.id] || {};
+        const hasOpening = b.opening != null && !!b.asOf;
+        const asOf = hasOpening ? b.asOf : null;
+        const asOfMonth = asOf ? asOf.slice(0, 7) : null;
+        const mine = (tx || []).filter(t => t.acct === a.id && (!asOf || t.d > asOf));
+        // anything after asOf but before the first reported month is already
+        // part of where that first month opens
+        let run = hasOpening ? b.opening : 0;
+        if (ms.length) for (const t of mine) if (t.mo < ms[0]) run += t.cr - t.de;
+        const rows = [];
+        for (const m of ms){
+          const opening = run;
+          let inflow = 0, outflow = 0, n = 0;
+          for (const t of mine) if (t.mo === m){ inflow += t.cr; outflow += t.de; n++; }
+          const closing = opening + inflow - outflow;
+          run = closing;
+          const unknown = !!(asOfMonth && m < asOfMonth);
+          rows.push({month: m, opening: r2(opening), inflow: r2(inflow), outflow: r2(outflow),
+                     closing: r2(closing), net: r2(inflow - outflow), n,
+                     negative: !unknown && closing < -0.005, unknown});
+        }
+        const known = rows.filter(r => !r.unknown);
+        const worst = known.reduce((w, r) => (w && w.closing <= r.closing) ? w : r, null);
+        out.push({id: a.id, name: a.name, kind: a.kind || 'current',
+                  relative: !hasOpening, asOf: asOf || null,
+                  opening: hasOpening ? r2(b.opening) : null,
+                  rows, endBal: rows.length ? rows[rows.length-1].closing : r2(run),
+                  worst, negativeMonths: known.filter(r => r.negative).length,
+                  everNegative: known.some(r => r.negative)});
+      }
+      return out;
+    },
     // ── debts (P5-21) ──
     // amortize: balance (as of asOfMonth), APR %, and either the monthly
     // payment or a target end month — derives the other side, the payoff
@@ -3181,7 +3730,8 @@ rewrite the static advice cards if the picture has changed.</div>
 
   // ══ rule engine (thin wrappers over Engine) ══
   const ruleMatches = (r, t) => Engine.ruleMatches(r, t);
-  const effCat = t => Engine.effCat(t, rules);
+  const txOverride = t => txCatStore.overrides[Engine.txKey(t)] || null;
+  const effCat = t => Engine.effCat(t, rules, txOverride(t));
 
   const LEAK_DEFS = [
     {name:'Full-price supermarkets (SuperValu, Tesco)', note:'shift to Lidl/Aldi', verdict:'hot',  test:t=>t.ec==='Groceries' && t.s==='Supermarket'},
@@ -3430,6 +3980,27 @@ rewrite the static advice cards if the picture has changed.</div>
 
   // ══ renders ══
   function renderGoals(as){
+    // No goals is a legitimate starting state now that nothing is seeded: the
+    // hero invites the wizard instead of pretending there is a goal to report.
+    if (!as.length){
+      document.getElementById('heroName').textContent = 'No goal yet';
+      document.getElementById('heroSaved').innerHTML = '—';
+      document.getElementById('heroFill').style.width = '0%';
+      document.getElementById('heroPct').textContent = '';
+      document.getElementById('heroTarget').textContent = '';
+      document.getElementById('heroDate').textContent = '—';
+      document.getElementById('heroMonths').textContent = '';
+      const co = document.getElementById('provCallout');
+      co.className = 'callout';
+      co.innerHTML = `<strong>Set your first goal.</strong> Everything else here works without one, but a goal is what turns
+        your surplus into a date — how much, by when, and whether the forecast actually gets you there.
+        <button class="btn small" id="goalHeroWiz" type="button" style="margin-left:6px">🧭 Set up a goal</button>`;
+      const b = document.getElementById('goalHeroWiz');
+      if (b) b.addEventListener('click', openGoalWizard);
+      document.getElementById('goalsVerdict').style.display = 'none';
+      document.getElementById('goalGrid').innerHTML = '';
+      return;
+    }
     const P = as[0];
     document.getElementById('heroName').textContent = 'Priority goal · ' + P.g.name;
     document.getElementById('heroSaved').innerHTML = eur(P.pot) + ' <small>of ' + eur(P.g.target) + '</small>';
@@ -3720,6 +4291,7 @@ rewrite the static advice cards if the picture has changed.</div>
     viewAcct = id || null;
     fillAcctScopeSelects();
     if (typeof renderCashflow === 'function') renderCashflow();
+    if (typeof renderBalances === 'function') renderBalances();
     if (typeof renderCats === 'function') renderCats();
     if (typeof renderSankey === 'function') renderSankey();
     syncScopeMapHighlight();
@@ -3736,6 +4308,8 @@ rewrite the static advice cards if the picture has changed.</div>
   function renderCashflow(){
     fillAcctScopeSelects();
     bindAcctScopeSelects();
+    bindLocalRanges();
+    syncLocalRanges();
     // Must match A.monthly: months inside the selected date RANGE only.
     // Bug fix: monthlyFromTxe() over all MONTHS made bars 13+ map to
     // A.monthly[i] === undefined (range is typically last 12 months).
@@ -3816,6 +4390,23 @@ rewrite the static advice cards if the picture has changed.</div>
   }
   let cashSel = null, cashCatSel = null;
 
+  // the months the cashflow chart is showing, in chart order — the stepper in
+  // the drill-down walks exactly this list, so it can never land on a month the
+  // graph above does not show
+  function cashMonthList(){
+    return monthlyFromTxe(scopedTxe()).filter(m => RANGE.has(m.month)).map(m => m.month);
+  }
+  function stepCashMonth(delta){
+    const list = cashMonthList();
+    const i = list.indexOf(cashSel);
+    if (i < 0) return;
+    const j = i + delta;
+    if (j < 0 || j >= list.length) return;
+    cashSel = list[j];
+    cashCatSel = null;                 // a category unfolded in one month means nothing in the next
+    renderCashDetail();
+    renderSankey();
+  }
   function renderCashDetail(){
     const el = document.getElementById('cashDetail');
     if (!cashSel){ el.innerHTML = ''; return; }
@@ -3848,9 +4439,27 @@ rewrite the static advice cards if the picture has changed.</div>
       `<div class="drill-row drill-exp" data-cat="${esc(k)}" role="button" tabindex="0" style="cursor:pointer" title="Click to see the transactions behind this">
         <span>${cashCatSel === k ? '▾' : '▸'} ${esc(k)}</span><b>−${eur(v)}</b></div>` +
       (cashCatSel === k ? expTx(k) : '')).join('');
+    const moList = cashMonthList();
+    const moIdx = moList.indexOf(mo);
+    const prevMo = moIdx > 0 ? moList[moIdx-1] : null;
+    const nextMo = (moIdx >= 0 && moIdx < moList.length-1) ? moList[moIdx+1] : null;
     el.innerHTML = `<div class="drill">
       <div class="drill-head">📅 ${fmtMoLbl(mo)} · ${esc(acctLabel(viewAcct))}
-        <span class="hint num">in ${eur(iTot)} · out ${eur(eTot)} · saved ${eur(sTot)} · margin ${eur(iTot - eTot - sTot)}</span>
+        <span class="mo-nav">
+          <button class="btn small" id="cashPrevMo" type="button" ${prevMo ? `title="${esc(fmtMoLbl(prevMo))}"` : 'disabled title="no earlier month in this range"'} aria-label="Previous month">‹ Prev</button>
+          <span class="hint num" style="margin:0">${moIdx >= 0 ? (moIdx+1) + ' of ' + moList.length : ''}</span>
+          <button class="btn small" id="cashNextMo" type="button" ${nextMo ? `title="${esc(fmtMoLbl(nextMo))}"` : 'disabled title="no later month in this range"'} aria-label="Next month">Next ›</button>
+        </span>
+        <span class="hint num">in ${eur(iTot)} · out ${eur(eTot)} · saved ${eur(sTot)} · margin ${eur(iTot - eTot - sTot)}${(()=>{
+          // where the scoped accounts stood at the end of this month
+          const runs = balanceRunsModel();
+          const known = runs.map(a => ({a, r: a.rows.find(x => x.month === mo)}))
+                            .filter(x => x.r && !x.r.unknown && !x.a.relative);
+          if (!known.length) return '';
+          const close = known.reduce((s, x) => s + x.r.closing, 0);
+          const label = known.length === 1 ? 'closing balance' : 'closing balance (' + known.length + ' accounts)';
+          return ` · ${label} <b style="color:${close < -0.005 ? 'var(--critical)' : 'var(--ink)'}">${close < -0.005 ? '−' : ''}${eur(Math.abs(close))}</b>`;
+        })()}</span>
         <button class="btn small" id="cashDetailClose" type="button">✕</button></div>
       <div class="drill-cols">
         <div class="drill-col"><h4 class="dr-h dr-inc">Income <b>+${eur(iTot)}</b></h4>${rows(incomes, '+') || '<div class="hint">none</div>'}</div>
@@ -3859,11 +4468,348 @@ rewrite the static advice cards if the picture has changed.</div>
           `<div class="drill-row"><span class="dr-date">${s2.d}</span><span>${esc(s2.m)}</span><b>${s2.v >= 0 ? '' : '−'}${eur(Math.abs(s2.v))}</b></div>`).join('') || '<div class="hint">no savings movement this month</div>'}</div>
       </div></div>`;
     document.getElementById('cashDetailClose').addEventListener('click', ()=>{ cashSel = null; cashCatSel = null; renderCashflow(); renderSankey(); });
+    const prevBtn = document.getElementById('cashPrevMo'), nextBtn = document.getElementById('cashNextMo');
+    if (prevMo) prevBtn.addEventListener('click', ()=>stepCashMonth(-1));
+    if (nextMo) nextBtn.addEventListener('click', ()=>stepCashMonth(1));
+    // ← / → step months while the breakdown is open and focus is on the stepper
+    for (const b of [prevBtn, nextBtn]) b.addEventListener('keydown', e => {
+      if (e.key === 'ArrowLeft' && prevMo){ e.preventDefault(); stepCashMonth(-1); }
+      if (e.key === 'ArrowRight' && nextMo){ e.preventDefault(); stepCashMonth(1); }
+    });
     el.querySelectorAll('.drill-exp').forEach(r => {
       const toggle = () => { cashCatSel = cashCatSel === r.dataset.cat ? null : r.dataset.cat; renderCashDetail(); };
       r.addEventListener('click', toggle);
       r.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggle(); } });
     });
+  }
+
+  // ══ guided wizards (first goal, first debt) ══
+  // One driver, two step lists. A wizard asks one question per screen and
+  // validates it there, so a first-time user is never staring at a nine-field
+  // form wondering which boxes are compulsory. The manual forms stay exactly as
+  // they were — the wizard is an alternative route to the same stores, not a
+  // replacement, and power users can keep typing straight into the grid.
+  const Wiz = (function(){
+    let steps = [], i = 0, state = {}, onDone = null, kicker = '';
+    const $ = id => document.getElementById(id);
+    function close(){
+      $('wizOverlay').hidden = true;
+      steps = []; state = {}; onDone = null;
+      document.removeEventListener('keydown', onKey, true);
+    }
+    function onKey(e){
+      if ($('wizOverlay').hidden) return;
+      if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); close(); }
+      else if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA'){ e.preventDefault(); e.stopPropagation(); next(); }
+    }
+    function render(){
+      const s = steps[i];
+      $('wizKicker').textContent = kicker + ' · step ' + (i+1) + ' of ' + steps.length;
+      $('wizTitle').textContent = s.title;
+      $('wizSub').innerHTML = s.sub || '';
+      $('wizSub').style.display = s.sub ? '' : 'none';
+      $('wizDots').innerHTML = steps.map((_, k) =>
+        `<i class="${k === i ? 'on' : (k < i ? 'done' : '')}"></i>`).join('');
+      $('wizBody').innerHTML = s.body(state);
+      $('wizErr').textContent = '';
+      $('wizBack').style.visibility = i ? '' : 'hidden';
+      $('wizNext').textContent = i === steps.length-1 ? (s.cta || 'Create') : 'Next';
+      // chip pickers: fill the field they belong to
+      $('wizBody').querySelectorAll('.wiz-chip').forEach(c => c.addEventListener('click', ()=>{
+        const tgt = c.dataset.for && $(c.dataset.for);
+        if (tgt){ tgt.value = c.dataset.val; tgt.dispatchEvent(new Event('input')); }
+        $('wizBody').querySelectorAll(`.wiz-chip[data-for="${c.dataset.for}"]`).forEach(x => x.classList.toggle('on', x === c));
+        if (c.dataset.advance === '1') next();
+      }));
+      if (s.after) s.after(state);
+      const first = $('wizBody').querySelector('input:not([type=hidden]), select, textarea');
+      if (first) setTimeout(()=>{ try{ first.focus(); }catch(e){} }, 30);
+    }
+    function next(){
+      const s = steps[i];
+      const v = s.read ? s.read(state) : true;
+      if (v !== true){ $('wizErr').textContent = v || 'Please check this step'; return; }
+      if (i === steps.length-1){
+        const done = onDone;
+        const st = state;
+        close();
+        if (done) done(st);
+        return;
+      }
+      i++; render();
+    }
+    function back(){ if (i){ i--; render(); } }
+    $('wizNext').addEventListener('click', next);
+    $('wizBack').addEventListener('click', back);
+    $('wizCancel').addEventListener('click', close);
+    $('wizOverlay').addEventListener('click', e => { if (e.target.id === 'wizOverlay') close(); });
+    return {
+      open(opts){
+        steps = opts.steps; i = 0; state = opts.state || {}; onDone = opts.done;
+        kicker = opts.kicker || 'Guided setup';
+        $('wizOverlay').hidden = false;
+        document.addEventListener('keydown', onKey, true);
+        render();
+      },
+      close,
+      isOpen: () => !$('wizOverlay').hidden,
+      state: () => state
+    };
+  })();
+
+  // ── first-goal wizard ──
+  const GOAL_PRESETS = ['House deposit', 'Emergency fund', 'New car', 'Holiday', 'Wedding', 'Home improvements'];
+  function goalWizardSteps(){
+    const accts = allAccounts();
+    return [
+      {title: 'What are you saving for?',
+       sub: 'Give it a name you will recognise on the map. You can rename it later.',
+       body: st => `<div class="wiz-field"><label for="wz-g-name">Goal name</label>
+           <input id="wz-g-name" class="inp" placeholder="e.g. House deposit" value="${esc(st.name || '')}"></div>
+         <div class="wiz-chips">${GOAL_PRESETS.map(p =>
+           `<button type="button" class="wiz-chip${st.name === p ? ' on' : ''}" data-for="wz-g-name" data-val="${esc(p)}">${esc(p)}</button>`).join('')}</div>`,
+       read: st => {
+         st.name = (document.getElementById('wz-g-name').value || '').trim();
+         return st.name ? true : 'Give the goal a name.';
+       }},
+      {title: 'How much do you need?',
+       sub: 'The full amount you are aiming at — not what is left to save.',
+       body: st => `<div class="wiz-field"><label for="wz-g-target">Target €</label>
+           <input id="wz-g-target" class="inp num" type="number" min="1" step="100" placeholder="50000" value="${st.target != null ? esc(st.target) : ''}"></div>`,
+       read: st => {
+         const v = +document.getElementById('wz-g-target').value;
+         if (!(v > 0)) return 'Enter the amount you are aiming at.';
+         st.target = v; return true;
+       }},
+      {title: 'Do you have a deadline?',
+       sub: 'Optional. With a date, the goal is judged on whether your forecast surplus actually gets you there in time.',
+       body: st => `<div class="wiz-field"><label for="wz-g-month">Target month</label>
+           <input id="wz-g-month" class="inp" type="month" value="${esc(st.targetMonth || '')}"></div>
+         <div class="wiz-chips"><button type="button" class="wiz-chip" data-for="wz-g-month" data-val="">No deadline — just keep going</button></div>`,
+       read: st => { st.targetMonth = document.getElementById('wz-g-month').value || null; return true; }},
+      {title: 'How much is set aside already?',
+       sub: 'Leave this blank to let the app count it from your “Deposit savings” transfers instead.',
+       body: st => `<div class="wiz-field"><label for="wz-g-pot">Saved so far €</label>
+           <input id="wz-g-pot" class="inp num" type="number" min="0" step="50" placeholder="0" value="${st.pot != null ? esc(st.pot) : ''}"></div>
+         <div class="wiz-field"><label for="wz-g-asof">Confirmed as of (optional)</label>
+           <input id="wz-g-asof" class="inp" type="month" value="${esc(st.potAsOf || '')}"></div>
+         <p class="hint" style="margin:0">With a figure here, savings transfers after that month are added on top of it.</p>`,
+       read: st => {
+         const raw = document.getElementById('wz-g-pot').value;
+         if (raw === ''){ st.pot = null; st.potAsOf = null; st.autoFromSavings = true; return true; }
+         const v = +raw;
+         if (!(v >= 0)) return 'That is not an amount.';
+         st.pot = v;
+         st.potAsOf = document.getElementById('wz-g-asof').value || null;
+         st.autoFromSavings = true;
+         return true;
+       }},
+      {title: 'Is the money in one of your accounts?',
+       sub: accts.length ? 'Link it and the pot always equals that account’s reconciled balance — no manual updating.' : 'You have no accounts yet, so skip this for now.',
+       body: st => `<div class="wiz-field"><label for="wz-g-acct">Linked account</label>
+           <select id="wz-g-acct" class="inp">
+             <option value="">none — track it from savings transfers</option>
+             ${accts.map(a => `<option value="${esc(a.id)}" ${st.accountId === a.id ? 'selected' : ''}>${esc(a.name)}${a.kind ? ' · ' + esc(a.kind) : ''}</option>`).join('')}
+           </select></div>
+         <p class="hint" style="margin:0">A linked account needs an opening balance set in <b>People, accounts &amp; statements</b> before the link activates.</p>`,
+       read: st => { st.accountId = document.getElementById('wz-g-acct').value || null; return true; }},
+      {title: 'Ready to create it', cta: 'Create goal',
+       sub: 'Check it over — everything here can be edited afterwards.',
+       body: st => `<div class="wiz-review">
+           <div><span>Goal</span><b>${esc(st.name)}</b></div>
+           <div><span>Target</span><b>${eur(st.target)}</b></div>
+           <div><span>Deadline</span><b>${st.targetMonth ? esc(fmtMoLbl(st.targetMonth)) : 'none'}</b></div>
+           <div><span>Saved so far</span><b>${st.pot != null ? eur(st.pot) + (st.potAsOf ? ' as of ' + esc(fmtMoLbl(st.potAsOf)) : '') : 'counted from savings transfers'}</b></div>
+           <div><span>Linked account</span><b>${st.accountId ? esc((acctOf(st.accountId)||{}).name || st.accountId) : 'none'}</b></div>
+         </div>`,
+       read: () => true}
+    ];
+  }
+  function openGoalWizard(){
+    Wiz.open({
+      kicker: 'First goal',
+      steps: goalWizardSteps(),
+      state: {autoFromSavings: true},
+      done: st => {
+        const g = {id: uid('g'), name: st.name, target: st.target, targetMonth: st.targetMonth || null,
+                   pot: st.pot != null ? st.pot : null, potAsOf: st.potAsOf || null,
+                   autoFromSavings: st.autoFromSavings !== false, accountId: st.accountId || null};
+        goals.push(g);
+        FCONF.onbGoal = true;
+        save(LS.goals, goals); save(LS.fcast, FCONF);
+        try{ if (window.__lfTrack) window.__lfTrack('action', {action: 'goal_set'}); }catch(e){}
+        renderAll();
+        undoToast('Goal “' + g.name + '” created', ()=>{
+          const k = goals.indexOf(g);
+          if (k >= 0) goals.splice(k, 1);
+          save(LS.goals, goals); renderAll();
+        });
+      }
+    });
+  }
+
+  // ── first-debt wizard ──
+  const DEBT_KINDS = [['personal','Personal loan'], ['car','Car loan'], ['mortgage','Mortgage'],
+                      ['credit-card','Credit card'], ['student','Student loan'], ['other','Other']];
+  function debtWizardSteps(){
+    const merchants = (typeof REC !== 'undefined' && REC)
+      ? [...new Set(REC.filter(r => r.kind === 'expense').map(r => r.merchant))].sort()
+      : [];
+    const lastMonth = MONTHS.length ? MONTHS[MONTHS.length-1] : '';
+    return [
+      {title: 'What kind of debt is it?',
+       sub: 'This only affects how it is labelled and grouped.',
+       body: st => `<div class="wiz-field"><label for="wz-d-name">Name</label>
+           <input id="wz-d-name" class="inp" placeholder="e.g. Car loan" value="${esc(st.name || '')}"></div>
+         <div class="wiz-field"><label for="wz-d-kind">Kind</label>
+           <select id="wz-d-kind" class="inp">${DEBT_KINDS.map(([v, l]) =>
+             `<option value="${v}" ${st.kind === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></div>
+         <div class="wiz-chips">${DEBT_KINDS.map(([, l]) =>
+           `<button type="button" class="wiz-chip" data-for="wz-d-name" data-val="${esc(l)}">${esc(l)}</button>`).join('')}</div>`,
+       read: st => {
+         st.name = (document.getElementById('wz-d-name').value || '').trim();
+         st.kind = document.getElementById('wz-d-kind').value;
+         return st.name ? true : 'Give the debt a name.';
+       }},
+      {title: 'What is the balance outstanding?',
+       sub: 'The amount still owed, and the month that figure is from — a statement or an online balance is ideal.',
+       body: st => `<div class="wiz-field"><label for="wz-d-bal">Balance owed €</label>
+           <input id="wz-d-bal" class="inp num" type="number" min="0" step="50" placeholder="8000" value="${st.balance != null ? esc(st.balance) : ''}"></div>
+         <div class="wiz-field"><label for="wz-d-asof">Balance as of</label>
+           <input id="wz-d-asof" class="inp" type="month" value="${esc(st.asOf || lastMonth)}"></div>`,
+       read: st => {
+         const v = +document.getElementById('wz-d-bal').value;
+         if (!(v > 0)) return 'Enter what is still owed.';
+         const asOf = document.getElementById('wz-d-asof').value;
+         if (!asOf) return 'Pick the month that balance is from.';
+         st.balance = v; st.asOf = asOf; return true;
+       }},
+      {title: 'What interest rate are you paying?',
+       sub: 'The APR. If you are not sure, say zero — the payoff date will still be right, only the interest total will read low.',
+       body: st => `<div class="wiz-field"><label for="wz-d-apr">APR %</label>
+           <input id="wz-d-apr" class="inp num" type="number" min="0" max="60" step="0.05" placeholder="6.5" value="${st.apr != null ? esc(st.apr) : ''}"></div>
+         <div class="wiz-chips"><button type="button" class="wiz-chip" data-for="wz-d-apr" data-val="0">I don’t know — use 0%</button></div>`,
+       read: st => {
+         const raw = document.getElementById('wz-d-apr').value;
+         const v = raw === '' ? 0 : +raw;
+         if (!(v >= 0) || v > 60) return 'Enter a rate between 0 and 60.';
+         st.apr = v; return true;
+       }},
+      {title: 'How are you clearing it?',
+       sub: 'Give the monthly payment <b>or</b> the date it should be gone by — whichever you know. The other is derived exactly.',
+       body: st => `<div class="wiz-field"><label for="wz-d-pay">Payment €/month</label>
+           <input id="wz-d-pay" class="inp num" type="number" min="0" step="5" placeholder="e.g. 250" value="${st.payment != null ? esc(st.payment) : ''}"></div>
+         <div class="wiz-field"><label for="wz-d-end">…or cleared by</label>
+           <input id="wz-d-end" class="inp" type="month" value="${esc(st.endMonth || '')}"></div>`,
+       read: st => {
+         const payRaw = document.getElementById('wz-d-pay').value;
+         const end = document.getElementById('wz-d-end').value || null;
+         const pay = payRaw === '' ? null : +payRaw;
+         if (pay == null && !end) return 'Give either a monthly payment or a date to clear it by.';
+         if (pay != null && !(pay > 0)) return 'A payment has to be more than zero.';
+         if (end && st.asOf && end <= st.asOf) return 'The clear-by date has to be after the balance date.';
+         // a payment that does not even cover the interest never clears the debt
+         if (pay != null){
+           const check = Engine.amortize({balance: st.balance, aprPct: st.apr, payment: pay,
+                                          endMonth: null, asOfMonth: st.asOf});
+           if (check.underwater)
+             return 'At ' + st.apr + '% APR, ' + eur(pay) + ' a month never clears this balance — it does not cover the interest.';
+         }
+         st.payment = pay; st.endMonth = end; return true;
+       }},
+      {title: 'Do the repayments show in your statements?',
+       sub: merchants.length ? 'Pick the merchant and the forecast stops that line at payoff instead of counting the payment twice.' : 'No recurring expenses detected yet, so skip this.',
+       body: st => `<div class="wiz-field"><label for="wz-d-merch">In statements as</label>
+           <select id="wz-d-merch" class="inp">
+             <option value="">not in my statements</option>
+             ${merchants.map(m => `<option value="${esc(m)}" ${st.merchant === m ? 'selected' : ''}>${esc(m)}</option>`).join('')}
+           </select></div>`,
+       read: st => { st.merchant = document.getElementById('wz-d-merch').value || null; return true; }},
+      {title: 'Ready to add it', cta: 'Add debt',
+       sub: 'Check it over — everything here can be edited afterwards.',
+       body: st => {
+         const am = Engine.amortize({balance: st.balance, aprPct: st.apr, payment: st.payment,
+                                     endMonth: st.endMonth, asOfMonth: st.asOf});
+         return `<div class="wiz-review">
+           <div><span>Debt</span><b>${esc(st.name)}</b></div>
+           <div><span>Balance</span><b>${eur(st.balance)} as of ${esc(fmtMoLbl(st.asOf))}</b></div>
+           <div><span>APR</span><b>${esc(String(st.apr))}%</b></div>
+           <div><span>Payment</span><b>${am.payment ? eur(am.payment) + ' / month' : '—'}${st.payment == null ? ' (derived)' : ''}</b></div>
+           <div><span>Cleared</span><b>${am.payoffMonth ? esc(fmtMoLbl(am.payoffMonth)) : 'never at this payment'}</b></div>
+           <div><span>Interest still to pay</span><b>${isFinite(am.interest) ? eur(am.interest) : '—'}</b></div>
+           <div><span>In statements as</span><b>${st.merchant ? esc(st.merchant) : 'not tracked'}</b></div>
+         </div>`;
+       },
+       read: () => true}
+    ];
+  }
+  function openDebtWizard(){
+    Wiz.open({
+      kicker: 'Add a debt',
+      steps: debtWizardSteps(),
+      state: {kind: 'personal', apr: null},
+      done: st => {
+        const d = {id: uid('d'), name: st.name, kind: st.kind, balance: st.balance, asOf: st.asOf,
+                   apr: st.apr, payment: st.payment != null ? st.payment : null,
+                   endMonth: st.endMonth || null, merchant: st.merchant || null, fixedUntil: null};
+        debtStore.items.push(d);
+        save(LS.debts, debtStore);
+        renderAll();
+        undoToast('Debt “' + d.name + '” added', ()=>{
+          const k = debtStore.items.indexOf(d);
+          if (k >= 0) debtStore.items.splice(k, 1);
+          save(LS.debts, debtStore); renderAll();
+        });
+      }
+    });
+  }
+  window.__ddWiz = Wiz;
+  window.__ddOpenGoalWizard = openGoalWizard;
+  window.__ddOpenDebtWizard = openDebtWizard;
+  document.getElementById('gf-wizard').addEventListener('click', openGoalWizard);
+  document.getElementById('db-wizard').addEventListener('click', openDebtWizard);
+  document.getElementById('ob-goal-wiz').addEventListener('click', openGoalWizard);
+
+  // ══ balances carried forward ══
+  function balanceRunsModel(){
+    const months = [...RANGE].sort();
+    const accts = viewAcct ? allAccounts().filter(a => a.id === viewAcct) : allAccounts();
+    return Engine.balanceRuns({accounts: accts, balances: org.balances, tx: TX, months});
+  }
+  function renderBalances(){
+    const el = document.getElementById('balBody');
+    if (!el) return;
+    const runs = balanceRunsModel();
+    if (!runs.length){
+      el.innerHTML = '<div class="hint">No accounts yet — add one in People, accounts &amp; statements.</div>';
+      return;
+    }
+    const months = [...RANGE].sort();
+    const cell = r => {
+      if (r.unknown) return `<td class="r num" style="color:var(--muted)" title="Before this account's opening-balance date — the statements do not say what was there">·</td>`;
+      const neg = r.negative;
+      return `<td class="r num" style="color:${neg ? 'var(--critical)' : 'var(--ink)'}${neg ? '; font-weight:700' : ''}"
+        title="${esc(fmtMoLbl(r.month))} — opened ${eur(r.opening)}, in ${eur(r.inflow)}, out ${eur(r.outflow)}, closed ${eur(r.closing)}">${neg ? '−' : ''}${eur(Math.abs(r.closing))}</td>`;
+    };
+    const anyRelative = runs.some(r => r.relative);
+    el.innerHTML = `<div style="overflow-x:auto">
+      <table id="balTable">
+        <thead><tr><th>Account</th>${months.map(m => `<th class="r">${esc(m.slice(2))}</th>`).join('')}<th class="r">Now</th></tr></thead>
+        <tbody>${runs.map(a => `<tr>
+          <td><b>${esc(a.name)}</b>
+            <div class="rule-meta">${esc(a.kind)}${a.relative
+              ? ' · <span title="No opening balance set — these are movements from zero, not real balances">movement only</span>'
+              : ' · from ' + esc(a.opening != null ? eur(a.opening) : '—') + ' on ' + esc(a.asOf)}
+              ${a.everNegative ? ` · <span class="flag hot" title="Months this account closed below zero">${a.negativeMonths} negative month${a.negativeMonths === 1 ? '' : 's'}</span>` : ''}</div></td>
+          ${a.rows.map(cell).join('')}
+          <td class="r num" style="font-weight:700; color:${a.endBal < -0.005 ? 'var(--critical)' : 'var(--ink)'}">${a.endBal < -0.005 ? '−' : ''}${eur(Math.abs(a.endBal))}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+      ${anyRelative ? `<p class="rule-hint" style="margin:10px 0 0">Accounts marked <b>movement only</b> have no opening balance yet, so their figures start from zero and show change, not real balances.
+        <button class="btn small" id="balGoOpening" type="button">Set opening balances</button></p>` : ''}
+      ${runs.some(a => a.everNegative) ? `<p class="rule-hint" style="margin:8px 0 0; color:var(--critical)">Negative closes are shown in red. On a credit-card account a negative balance is the amount owed; on a current account it means the account was overdrawn that month.</p>` : ''}`;
+    const go = document.getElementById('balGoOpening');
+    if (go) go.addEventListener('click', ()=>goSection('people', 'sec-people'));
   }
 
   // ══ money flow — Sankey (P7-33) ══
@@ -3975,6 +4921,8 @@ rewrite the static advice cards if the picture has changed.</div>
   function renderCats(){
     fillAcctScopeSelects();
     bindAcctScopeSelects();
+    bindLocalRanges();
+    syncLocalRanges();
     const C = catsFromTxe(scopedTxe());
     const W = 860, rowH = 30, padL = 200, padR = 74, padT = 4;
     const H = padT + Math.max(1, C.length)*rowH + 8;
@@ -4022,6 +4970,41 @@ rewrite the static advice cards if the picture has changed.</div>
     renderCatDetail();
   }
   let catSel = null;
+  let catView = 'months';                 // 'months' | 'tx' — remembered across renders
+  function catMonthlyModel(name){
+    return Engine.catMonthly({txe: scopedTxe(), months: [...RANGE].sort(), category: name, saveCat: SAVE_CAT});
+  }
+  // month-by-month bars for one category: the shape of a bill over time, which
+  // an average can hide completely (a €90 average can be €0, €0, €270)
+  function catMonthsHtml(name, M){
+    if (!M.rows.length) return '<div class="hint">No months in the selected date range.</div>';
+    const maxV = Math.max(1, ...M.rows.map(r => Math.abs(r.total)));
+    const col = catColor(name);
+    const bars = M.rows.map(r => {
+      const h = Math.round(Math.abs(r.total) / maxV * 100);
+      const empty = r.n === 0;
+      return `<div class="cm-col" title="${esc(fmtMoLbl(r.month))} — ${empty ? 'nothing in this month' : eur(r.total) + ' across ' + r.n + ' transaction' + (r.n === 1 ? '' : 's')}">
+          <div class="cm-bar-wrap"><div class="cm-bar" style="height:${empty ? 2 : Math.max(3, h)}%; background:${empty ? 'var(--border-strong,#334155)' : col}"></div></div>
+          <div class="cm-val num">${empty ? '—' : eur(r.total)}</div>
+          <div class="cm-mo num">${esc(r.month.slice(2))}</div>
+        </div>`;
+    }).join('');
+    const trendPct = Math.round(M.trend * 100);
+    const trendBit = M.rows.length >= 4
+      ? `<span class="flag ${Math.abs(trendPct) < 10 ? 'ok' : (trendPct > 0 ? 'hot' : 'ok')}" title="Later half of the range against the earlier half">${trendPct > 0 ? '▲ up ' : trendPct < 0 ? '▼ down ' : '▬ flat '}${Math.abs(trendPct)}%</span>`
+      : '';
+    return `<div class="cm-wrap">
+        <div class="cm-stats num">
+          <span><b>${eur(M.avg)}</b> / month across ${M.months} month${M.months === 1 ? '' : 's'}</span>
+          ${M.emptyMonths ? `<span title="Months with nothing in this category — often a missing statement or a bill that moved"><b>${eur(M.avgActive)}</b> / month in the ${M.activeMonths} month${M.activeMonths === 1 ? '' : 's'} it appears</span>` : ''}
+          ${M.peak && M.peak.n ? `<span>highest <b>${eur(M.peak.total)}</b> in ${esc(fmtMoLbl(M.peak.month))}</span>` : ''}
+          ${M.low && M.low.n && M.activeMonths > 1 ? `<span>lowest <b>${eur(M.low.total)}</b> in ${esc(fmtMoLbl(M.low.month))}</span>` : ''}
+          ${trendBit}
+        </div>
+        <div class="cm-chart">${bars}</div>
+        ${M.emptyMonths ? `<p class="hint" style="margin:6px 0 0">${M.emptyMonths} month${M.emptyMonths === 1 ? '' : 's'} in this range had nothing in ${esc(name)} — shown as a flat stub.</p>` : ''}
+      </div>`;
+  }
   function renderCatDetail(){
     const el = document.getElementById('catDetail');
     if (!catSel){ el.innerHTML = ''; return; }
@@ -4030,16 +5013,23 @@ rewrite the static advice cards if the picture has changed.</div>
       .sort((a,b) => b.d < a.d ? -1 : 1);
     const tot = txs.reduce((s,t) => s + t.de - (name === SAVE_CAT ? t.cr : 0), 0);
     const shown = txs.slice(0, 60);
+    const M = catMonthlyModel(name);
     el.innerHTML = `<div class="drill">
       <div class="drill-head"><span class="nc-dot" style="background:${catColor(name)}; color:${catColor(name)}; width:11px; height:11px; border-radius:50%"></span>
-        ${esc(name)} · ${esc(acctLabel(viewAcct))} <span class="hint num">${eur(tot)} across ${txs.length} transaction${txs.length === 1 ? '' : 's'} in this range${txs.length > 60 ? ' · showing the latest 60' : ''}</span>
+        ${esc(name)} · ${esc(acctLabel(viewAcct))} <span class="hint num">${eur(tot)} across ${txs.length} transaction${txs.length === 1 ? '' : 's'} in this range</span>
+        <span class="cat-view-pick" style="margin-left:auto; display:inline-flex; gap:6px">
+          <button class="btn small cat-view ${catView === 'months' ? 'primary' : ''}" data-v="months" type="button">📊 By month</button>
+          <button class="btn small cat-view ${catView === 'tx' ? 'primary' : ''}" data-v="tx" type="button">🧾 Transactions</button>
+        </span>
         <button class="btn small" id="catDetailClose" type="button">✕</button></div>
       <div class="drill-cols" style="grid-template-columns:1fr">
-        <div class="drill-col">${shown.map(t =>
+        <div class="drill-col">${catView === 'months' ? catMonthsHtml(name, M) : (shown.map(t =>
           `<div class="drill-row"><span class="dr-date">${t.d}</span><span style="flex:1">${esc(t.m)}</span>
-           <b style="color:${t.de > 0 ? 'var(--ink)' : 'var(--good-text)'}">${t.de > 0 ? '−' + eur(t.de) : '+' + eur(t.cr)}</b></div>`).join('')}</div>
+           <b style="color:${t.de > 0 ? 'var(--ink)' : 'var(--good-text)'}">${t.de > 0 ? '−' + eur(t.de) : '+' + eur(t.cr)}</b></div>`).join('') +
+          (txs.length > 60 ? `<div class="hint" style="padding:4px 0">showing the latest 60 of ${txs.length}</div>` : '')) || '<div class="hint">No transactions in this range.</div>'}</div>
       </div></div>`;
     document.getElementById('catDetailClose').addEventListener('click', ()=>{ catSel = null; renderCats(); syncScopeMapHighlight(); });
+    el.querySelectorAll('.cat-view').forEach(b => b.addEventListener('click', ()=>{ catView = b.dataset.v; renderCatDetail(); }));
   }
 
   function renderLeaks(){
@@ -4071,13 +5061,15 @@ rewrite the static advice cards if the picture has changed.</div>
     return [...map.values()].map(e => {
       e.raws = [...e.rawSet].sort(); delete e.rawSet;
       e.ov = rules.find(r => r.enabled && r.merchantContains &&
-              e.raws.some(m => m.toUpperCase().includes(r.merchantContains.toUpperCase()))) || null;
+              e.raws.some(m => Engine.ruleMatchesMerchant(r, m))) || null;
       e.shown = e.ov ? e.ov.setCategory : e.c;
       // needle for new rules: the canonical name when it appears in every
       // variant (heuristic canon is always a prefix, so this is the norm);
       // for user-renamed merges fall back to the merge rule's own needle
       e.mc = e.raws.every(m => m.toUpperCase().includes(e.m.toUpperCase())) ? e.m
            : ((merchStore.rules.find(r => r.name === e.m) || {}).contains || e.raws[0]);
+      // a pattern covering every statement name in this group, when one helps
+      e.pat = Engine.suggestPattern(e.raws);
       return e;
     });
   }
@@ -4121,7 +5113,7 @@ rewrite the static advice cards if the picture has changed.</div>
           <select class="inp audit-re" data-m="${esc(e.mc)}" data-shown="${esc(e.shown)}" aria-label="Reassign ${esc(e.m)}" style="padding:4px 6px; font-size:12.5px; max-width:130px">
             <option value="">reassign…</option>
           </select>
-          <button class="btn small audit-fix" data-m="${esc(e.mc)}" type="button" title="Open the rule form (e.g. for amount-specific rules)">…</button>
+          <button class="btn small audit-fix" data-m="${esc(e.mc)}"${e.pat ? ` data-pat="${esc(e.pat.pattern)}" data-why="${esc(e.pat.why)}"` : ''} type="button" title="${e.pat ? 'Open the rule form — pattern ' + esc(e.pat.pattern) + ' suggested (' + esc(e.pat.why) + ')' : 'Open the rule form (e.g. for amount-specific rules)'}">…</button>
         </td>
       </tr>`;
     }).join('') || '<tr><td colspan="6" style="color:var(--muted)">Nothing matches these filters.</td></tr>';
@@ -4154,7 +5146,11 @@ rewrite the static advice cards if the picture has changed.</div>
       const m = sel.dataset.m, cat = sel.value;
       // one rule per exact merchant: update in place, or add at the FRONT so it
       // wins over broader contains-rules (first match applies)
-      const existing = rules.find(r => r.merchantContains && r.merchantContains.toUpperCase() === m.toUpperCase() && (r.amountEquals == null || r.amountEquals === ''));
+      // the exact-merchant rule to update in place is a plain contains rule —
+      // a pattern rule that happens to spell the same text means something
+      // broader, so it is left alone rather than quietly repointed
+      const existing = rules.find(r => r.merchantContains && r.match !== 'wildcard' &&
+        r.merchantContains.toUpperCase() === m.toUpperCase() && (r.amountEquals == null || r.amountEquals === ''));
       let undo;
       if (existing){
         const prevCat = existing.setCategory, prevOn = existing.enabled;
@@ -4177,7 +5173,21 @@ rewrite the static advice cards if the picture has changed.</div>
   }
   function hookFixButtons(scope, sel){
     scope.querySelectorAll(sel).forEach(b => b.addEventListener('click', ()=>{
-      document.getElementById('rf-merchant').value = b.dataset.m;
+      // data-pat means this name has a varying part (a card reference, a store
+      // number) and a pattern covers the whole family — start the user there,
+      // with the exact name one dropdown change away.
+      const pat = b.dataset.pat;
+      const mode = document.getElementById('rf-match');
+      if (mode) mode.value = pat ? 'wildcard' : 'contains';
+      document.getElementById('rf-merchant').value = pat || b.dataset.m;
+      const note = document.getElementById('rf-note');
+      if (note && pat && !note.value) note.value = 'pattern from ' + b.dataset.m;
+      if (typeof rfSyncMatchMode === 'function') rfSyncMatchMode();
+      if (pat){
+        const hint = document.getElementById('rf-wc-preview');
+        if (hint && b.dataset.why) hint.textContent += ' · suggested because ' + b.dataset.why;
+      }
+      goSection('rules', 'sec-rules');
       document.getElementById('rulesCard').scrollIntoView({behavior:'smooth', block:'center'});
       setTimeout(()=>document.getElementById('rf-cat').focus({preventScroll:true}), 450);
     }));
@@ -4884,13 +5894,21 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
   window.__ddMapFilter = MapFilter;
 
   // ══ transaction search ══
+  // txSel holds the ticked rows' own txKeys, so a selection survives a
+  // re-render (and a re-upload of the same statement) without holding on to
+  // transaction objects that rebuildTX() replaces.
+  const txSel = new Set();
+  let txShown = [];                     // the rows currently listed, for select-all
   function renderTxSearch(){
     const qRaw = (document.getElementById('txSearch').value || '').trim();
     const tb = document.querySelector('#txTable tbody');
     const found = document.getElementById('txFound');
     if (!qRaw){
-      tb.innerHTML = '<tr><td colspan="5" style="color:var(--muted)">Type above to search all transactions.</td></tr>';
+      tb.innerHTML = '<tr><td colspan="6" style="color:var(--muted)">Type above to search all transactions.</td></tr>';
       found.textContent = '';
+      txShown = [];
+      txSel.clear();
+      renderTxBulkBar();
       if (graph) graph.highlight(null);
       MapFilter.set('search', null);
       if (typeof syncScopeMapHighlight === 'function') syncScopeMapHighlight();
@@ -4912,24 +5930,44 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
     const total = hits.length;
     const totalOut = hits.reduce((s,t)=>s+t.de,0), totalIn = hits.reduce((s,t)=>s+t.cr,0);
     hits = hits.slice(0, 100);
+    txShown = hits.slice();
     tb.innerHTML = hits.map(t=>{
       const ec = effCatFull(t);
+      const key = Engine.txKey(t);
+      const ov = txOverride(t);
       let why = '';
       if (ec !== t.c){
         const rr = rules.find(r => Engine.ruleMatches(r, t));
         why = xferMark.has(t) ? 'internal-transfer pair'
+            : ov ? 'you moved this transaction'
             : (rr && rr.setCategory === ec) ? 'your rule “' + rr.merchantContains + '”'
             : 'credit-card credit';
       }
+      const pat = Engine.suggestPattern(rawNamesFor(t));
       return `<tr>
+        <td class="r"><input type="checkbox" class="tx-pick" data-key="${esc(key)}" ${txSel.has(key) ? 'checked' : ''} aria-label="Select ${esc(t.d)} ${esc(t.m)}"></td>
         <td class="num" style="white-space:nowrap">${t.d}</td>
         <td><b>${esc(t.m)}</b>${allAccounts().length > 1 ? `<div class="rule-meta">${esc((acctOf(t.acct)||{}).name || t.acct)}</div>` : ''}</td>
         <td>${esc(ec)}${ec !== t.c ? ` <span class="rule-meta" title="was ${esc(t.c)}">(was ${esc(t.c)} · via ${esc(why)})</span>` : ''}</td>
         <td class="r" style="color:${t.de > 0 ? 'var(--critical)' : 'var(--good-text)'}">${t.de > 0 ? '−' + eur(t.de) : '+' + eur(t.cr)}</td>
-        <td class="r"><button class="btn small audit-fix" data-m="${esc(t.m)}" type="button">Fix</button></td>
+        <td class="r" style="white-space:nowrap">
+          <button class="btn small audit-fix" data-m="${esc(t.m)}"${pat ? ` data-pat="${esc(pat.pattern)}" data-why="${esc(pat.why)}"` : ''} type="button" title="${pat ? 'Build a rule from this name — pattern ' + esc(pat.pattern) + ' suggested (' + esc(pat.why) + ')' : 'Build a rule from this name'}">＋ Rule</button>
+          ${ov ? `<button class="btn small tx-unset" data-key="${esc(key)}" type="button" title="Undo the manual move — this row goes back to what the rules say">↺</button>` : ''}
+        </td>
       </tr>`;
-    }).join('') || '<tr><td colspan="5" style="color:var(--muted)">No transactions match in the selected date range.</td></tr>';
+    }).join('') || '<tr><td colspan="6" style="color:var(--muted)">No transactions match in the selected date range.</td></tr>';
     found.textContent = total ? `${total.toLocaleString('en-IE')} matches${total > 100 ? ' (showing first 100)' : ''} · out ${eur(totalOut)} · in ${eur(totalIn)} — lit up on the money map` : '';
+    tb.querySelectorAll('.tx-pick').forEach(cb => cb.addEventListener('change', ()=>{
+      if (cb.checked) txSel.add(cb.dataset.key); else txSel.delete(cb.dataset.key);
+      renderTxBulkBar();
+    }));
+    tb.querySelectorAll('.tx-unset').forEach(b => b.addEventListener('click', ()=>{
+      const key = b.dataset.key, prev = txCatStore.overrides[key];
+      delete txCatStore.overrides[key];
+      onTxCatChanged();
+      undoToast('Manual move undone', ()=>{ txCatStore.overrides[key] = prev; onTxCatChanged(); });
+    }));
+    renderTxBulkBar();
     hookFixButtons(tb, '.audit-fix');
     // matches illuminate the money map: their categories, merchants and
     // accounts glow while everything else fades (hover still wins)
@@ -4962,6 +6000,78 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
   }
   document.getElementById('txSearch').addEventListener('input', renderTxSearch);
 
+  // ── bulk assign (multi-select → one category) ──
+  function onTxCatChanged(){ save(LS.txcat, txCatStore); renderAll(); }
+  // every raw statement name that groups under this transaction's merchant —
+  // the input a pattern suggestion is derived from
+  function rawNamesFor(t){
+    const canon = canonOf(t.m);
+    const names = new Set([t.m]);
+    for (const x of TX) if (canonOf(x.m) === canon) names.add(x.m);
+    return [...names];
+  }
+  function renderTxBulkBar(){
+    const bar = document.getElementById('txBulkBar');
+    if (!bar) return;
+    const n = txSel.size;
+    bar.style.display = n ? '' : 'none';
+    document.getElementById('txSelCount').textContent = n + ' selected';
+    const all = document.getElementById('txSelAll');
+    if (all){
+      const shownKeys = txShown.map(t => Engine.txKey(t));
+      all.checked = shownKeys.length > 0 && shownKeys.every(k => txSel.has(k));
+      all.indeterminate = !all.checked && shownKeys.some(k => txSel.has(k));
+    }
+    const sel = document.getElementById('txBulkCat');
+    if (sel && sel.options.length <= 1){
+      sel.insertAdjacentHTML('beforeend',
+        (A && A.allCats ? A.allCats : []).map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join(''));
+    }
+  }
+  document.getElementById('txSelAll').addEventListener('change', e => {
+    for (const t of txShown){
+      const k = Engine.txKey(t);
+      if (e.target.checked) txSel.add(k); else txSel.delete(k);
+    }
+    renderTxSearch();
+  });
+  document.getElementById('txSelClear').addEventListener('click', ()=>{ txSel.clear(); renderTxSearch(); });
+  document.getElementById('txBulkGo').addEventListener('click', ()=>{
+    const cat = document.getElementById('txBulkCat').value;
+    if (!cat){ feedback('Pick a category first'); return; }
+    if (!txSel.size) return;
+    const keys = [...txSel];
+    const picked = txShown.filter(t => txSel.has(Engine.txKey(t)));
+    const before = {};
+    for (const k of keys) before[k] = txCatStore.overrides[k];
+    for (const k of keys) txCatStore.overrides[k] = cat;
+    // optional: also teach future statements, which is the rules half of the job
+    let ruleNote = '';
+    if (document.getElementById('txBulkRule').checked){
+      const names = [...new Set(picked.map(t => t.m))];
+      let added = 0;
+      for (const m of names){
+        const exists = rules.some(r => r.enabled !== false && r.match !== 'wildcard' &&
+          String(r.merchantContains || '').toUpperCase() === m.toUpperCase() && r.setCategory === cat);
+        if (exists) continue;
+        rules.unshift({label:'', merchantContains:m, amountEquals:null, amountMin:null, amountMax:null,
+                       setCategory:cat, note:'from a bulk move', enabled:true});
+        added++;
+      }
+      if (added){ save(LS.rules, rules); ruleNote = ' · ' + added + ' rule' + (added === 1 ? '' : 's') + ' added'; }
+    }
+    ensureCategoryExists(cat);
+    txSel.clear();
+    onTxCatChanged();
+    undoToast(keys.length + ' transaction' + (keys.length === 1 ? '' : 's') + ' → ' + cat + ruleNote, ()=>{
+      for (const k of keys){
+        if (before[k] === undefined) delete txCatStore.overrides[k];
+        else txCatStore.overrides[k] = before[k];
+      }
+      onTxCatChanged();
+    });
+  });
+
   // ══ rules UI ══
   function renderRules(){
     const tb = document.querySelector('#rulesTable tbody');
@@ -4973,9 +6083,11 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
       if (r.amountEquals != null && r.amountEquals !== '') amtBits.push('amount €' + r.amountEquals);
       if (r.amountMin != null && r.amountMin !== '') amtBits.push('≥ €' + r.amountMin);
       if (r.amountMax != null && r.amountMax !== '') amtBits.push('≤ €' + r.amountMax);
+      const wc = r.match === 'wildcard';
+      const how = wc ? 'matches pattern' : 'contains';
       return `<tr class="${r.enabled?'':'off'}">
-        <td><b>${esc(r.label || ('Merchant contains “'+r.merchantContains+'”'))}</b>
-            <div class="rule-meta">merchant contains “${esc(r.merchantContains)}”${amtBits.length ? ' · ' + amtBits.join(' · ') : ''}${r.note ? ' — '+esc(r.note) : ''}</div></td>
+        <td><b>${esc(r.label || ('Merchant ' + how + ' “'+r.merchantContains+'”'))}</b>
+            <div class="rule-meta">merchant ${how} “${esc(r.merchantContains)}”${wc ? ' <span title="* is one character, % is any run">(pattern)</span>' : ''}${amtBits.length ? ' · ' + amtBits.join(' · ') : ''}${r.note ? ' — '+esc(r.note) : ''}</div></td>
         <td class="num">${st.n} tx · ${eur(Math.abs(st.net))}</td>
         <td><select data-i="${i}" class="rule-cat" aria-label="Recategorise as">${catOpts}</select></td>
         <td class="r"><input type="checkbox" data-i="${i}" class="rule-on" ${r.enabled?'checked':''} aria-label="Rule enabled"></td>
@@ -5006,12 +6118,44 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
     if (!m || !cat) return;
     const lo = document.getElementById('rf-amt-min').value;
     const hi = document.getElementById('rf-amt-max').value;
-    rules.push({label:'', merchantContains:m, amountEquals:null,
+    const mode = document.getElementById('rf-match').value === 'wildcard' ? 'wildcard' : 'contains';
+    const rule = {label:'', merchantContains:m, amountEquals:null,
       amountMin: lo === '' ? null : +lo, amountMax: hi === '' ? null : +hi,
-      setCategory:cat, note:document.getElementById('rf-note').value.trim(), enabled:true});
+      setCategory:cat, note:document.getElementById('rf-note').value.trim(), enabled:true};
+    if (mode === 'wildcard') rule.match = 'wildcard';   // absent = contains, as every older rule means
+    rules.push(rule);
     ['rf-merchant','rf-amt-min','rf-amt-max','rf-cat','rf-note'].forEach(id=>document.getElementById(id).value='');
+    rfSyncMatchMode();
     onRulesChanged();
   });
+  // pattern mode: relabel the field and show, live, how many transactions the
+  // pattern would actually capture — a wildcard is easy to write too broadly
+  function rfMatchPreview(){
+    const el = document.getElementById('rf-wc-preview');
+    if (!el) return;
+    const wc = document.getElementById('rf-match').value === 'wildcard';
+    const pat = document.getElementById('rf-merchant').value.trim();
+    if (!wc || !pat){ el.textContent = ''; return; }
+    const probe = {enabled:true, match:'wildcard', merchantContains:pat, amountEquals:null, amountMin:null, amountMax:null};
+    const hits = TX.filter(t => RANGE.has(t.mo) && Engine.ruleMatchesMerchant(probe, t.m));
+    const names = [...new Set(hits.map(t => t.m))];
+    el.textContent = pat
+      ? ' → matches ' + hits.length + ' transaction' + (hits.length === 1 ? '' : 's') +
+        ' across ' + names.length + ' name' + (names.length === 1 ? '' : 's') + ' in this date range' +
+        (names.length ? ': ' + names.slice(0, 3).join(', ') + (names.length > 3 ? ', …' : '') : '')
+      : '';
+  }
+  function rfSyncMatchMode(){
+    const sel = document.getElementById('rf-match');
+    if (!sel) return;
+    const wc = sel.value === 'wildcard';
+    document.getElementById('rf-merchant-lab').textContent = wc ? 'Merchant pattern' : 'Merchant contains';
+    document.getElementById('rf-merchant').placeholder = wc ? 'e.g. C***GB' : 'e.g. NETFLIX';
+    document.getElementById('rf-wc-hint').style.display = wc ? '' : 'none';
+    rfMatchPreview();
+  }
+  document.getElementById('rf-match').addEventListener('change', rfSyncMatchMode);
+  document.getElementById('rf-merchant').addEventListener('input', rfMatchPreview);
   function feedback(msg){
     const el = document.getElementById('copyFeedback');
     el.textContent = msg;
@@ -5045,7 +6189,10 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
 "accounts": ${JSON.stringify(allAccounts(), null, 1)}
 "recurring": ${JSON.stringify(recur, null, 1)}
 "transfers": ${JSON.stringify(Object.entries(xferStore).map(([key, decision]) => ({key, decision})), null, 1)}
-"manualRecurring": ${JSON.stringify(manrec, null, 1)}${debtStore.items.length ? `
+"manualRecurring": ${JSON.stringify(manrec, null, 1)}${Object.keys(txCatStore.overrides).length ? `
+Also keep my per-transaction category moves (browser-only store dd-txcat-v1 —
+keys are accountId|date|merchant|debit|credit and they override rules for those
+exact rows): ${JSON.stringify(txCatStore.overrides, null, 1)}` : ''}${debtStore.items.length ? `
 Also note my tracked debts (browser-only store dd-debts-v1, not part of the
 finance-data JSON — they end repayments in the forecast at each payoff and
 set the readiness commitments figure): ${JSON.stringify(debtStore.items, null, 1)}` : ''}${holdStore.items.length ? `
@@ -5771,6 +6918,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     document.getElementById('rangeInfo').textContent = MONTHS.length
       ? RN + ' months · ' + fmtMoLbl(rangeFrom) + ' – ' + fmtMoLbl(rangeTo)
       : 'no data yet';
+    if (typeof syncLocalRanges === 'function') syncLocalRanges();
   }
   function buildRangePresets(){
     const sel = document.getElementById('rangePreset');
@@ -5795,6 +6943,64 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     document.getElementById('rangePreset').value = 'custom';
     setRange(f, t); syncRangeUI(); renderAll();
   }));
+
+  // ── section date adjusters (Cashflow, Categories) ──
+  // These drive the SAME global range as the bar at the top rather than each
+  // section keeping its own: two ranges that disagree would make the numbers in
+  // one section unreconcilable with another, and every figure in the app is
+  // documented as "for the selected date range". Changing one updates all.
+  function applyRangePreset(v){
+    if (!MONTHS.length || v === 'custom') return false;
+    if (v === 'all') setRange(MONTHS[0], MONTHS[MONTHS.length-1]);
+    else if (v[0] === 'y') setRange(v.slice(1) + '-01', v.slice(1) + '-12');
+    else setRange(MONTHS[Math.max(0, MONTHS.length - +v)], MONTHS[MONTHS.length-1]);
+    return true;
+  }
+  function localRangeBars(){ return [...document.querySelectorAll('.local-range')]; }
+  function syncLocalRanges(){
+    const preset = document.getElementById('rangePreset');
+    for (const bar of localRangeBars()){
+      const sel = bar.querySelector('.lr-preset');
+      if (sel){
+        // mirror the top bar's option list so year presets appear here too
+        if (sel.dataset.built !== preset.innerHTML.length + ''){
+          sel.innerHTML = preset.innerHTML;
+          sel.dataset.built = preset.innerHTML.length + '';
+        }
+        sel.value = preset.value;
+      }
+      const from = bar.querySelector('.lr-from'), to = bar.querySelector('.lr-to');
+      if (from) from.value = rangeFrom;
+      if (to) to.value = rangeTo;
+      const info = bar.querySelector('.lr-info');
+      if (info) info.textContent = MONTHS.length
+        ? RN + ' months · ' + fmtMoLbl(rangeFrom) + ' – ' + fmtMoLbl(rangeTo)
+        : 'no data yet';
+    }
+  }
+  function bindLocalRanges(){
+    for (const bar of localRangeBars()){
+      if (bar.dataset.bound) continue;
+      bar.dataset.bound = '1';
+      const sel = bar.querySelector('.lr-preset');
+      if (sel) sel.addEventListener('change', ()=>{
+        if (!applyRangePreset(sel.value)) return;
+        document.getElementById('rangePreset').value = sel.value;
+        syncRangeUI(); renderAll();
+      });
+      for (const cls of ['.lr-from', '.lr-to']){
+        const el = bar.querySelector(cls);
+        if (!el) continue;
+        el.addEventListener('change', ()=>{
+          const f = bar.querySelector('.lr-from').value || MONTHS[0];
+          const t = bar.querySelector('.lr-to').value || MONTHS[MONTHS.length-1];
+          if (!f || !t) return;
+          document.getElementById('rangePreset').value = 'custom';
+          setRange(f, t); syncRangeUI(); renderAll();
+        });
+      }
+    }
+  }
 
   // ══ money map — neural / cyber canvas ══
   // P7-34: live wealth data → node descriptors (thin wrapper over the kernel);
@@ -7263,7 +8469,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
 
   // ══ data integrity — a botched edit must announce itself ══
   function runIntegrity(){
-    const issues = [];
+    const issues = [];         // the data cannot be trusted until these are fixed
+    const notes = [];          // things worth doing — never a trust problem
     let badRows = 0, firstBad = null, dSum = 0, cSum = 0;
     raw.transactions.forEach((a, i)=>{
       const ok = Array.isArray(a) && a.length >= 7 && /^\d{4}-\d{2}-\d{2}$/.test(String(a[0])) &&
@@ -7288,24 +8495,27 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     if (badAcct) issues.push(badAcct + ' embedded transaction(s) reference a missing account id.');
     rules.forEach((r, i)=>{ if (!r || !r.setCategory || !r.merchantContains) issues.push('Rule #' + (i+1) + ' is incomplete — needs merchantContains and setCategory.'); });
     goals.forEach((g, i)=>{ if (!g || !g.name || !(g.target > 0)) issues.push('Goal #' + (i+1) + ' is invalid — needs a name and a target above zero.'); });
-    if (!goals.length) issues.push('No goals defined — the goals engine has nothing to plan for.');
+    // Having no goal is a normal state before the guided setup has been run —
+    // it is a prompt, not a data-integrity fault, so it must not read as one.
+    if (!goals.length) notes.push('No goal set yet — “Set up a goal” in the goals card turns your surplus into a date.');
     const dup = (arr, what)=>{ const seen = new Set(); for (const x of arr){ if (seen.has(x.id)) issues.push('Duplicate ' + what + ' id: ' + x.id); seen.add(x.id); } };
     dup(allAccounts(), 'account'); dup(allUsers(), 'user'); dup(goals, 'goal');
     if (!lockedMode) for (const [name, key] of Object.entries(LS)){
       try{ const s = localStorage.getItem(key); if (s) JSON.parse(s); }
       catch(e){ issues.push('Stored “' + name + '” settings are corrupted and were ignored — re-save them or import a backup.'); }
     }
-    return {issues, dSum, cSum};
+    return {issues, notes, dSum, cSum};
   }
   function renderIntegrity(){
-    const {issues, dSum, cSum} = runIntegrity();
+    const {issues, notes, dSum, cSum} = runIntegrity();
     const st = document.getElementById('integStatus');
     const list = document.getElementById('integList');
     const btn = document.getElementById('integToggle');
     if (!issues.length){
       st.innerHTML = '<span class="flag ok">OK</span> <span class="hint num">' +
         raw.transactions.length.toLocaleString('en-IE') + ' embedded transactions · ' + eur(dSum) + ' debits / ' + eur(cSum) +
-        ' credits verified · checksum ' + BASE_SUM + '</span>';
+        ' credits verified · checksum ' + BASE_SUM + '</span>' +
+        (notes.length ? ' <span class="hint">· ' + notes.map(esc).join(' · ') + '</span>' : '');
       btn.style.display = 'none'; list.style.display = 'none';
     } else {
       st.innerHTML = '<span class="flag hot">' + issues.length + ' issue' + (issues.length === 1 ? '' : 's') + '</span> <span class="hint">the data may not be trustworthy until fixed</span>';
@@ -7947,6 +9157,319 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     T('waterfall: deadline allocation window respected', () => {
       const w = E.waterfall({goals:[{target:10000, pot:0, targetMonth:'2026-09'}], surpluses:Array(24).fill(100), lastMonth:'2026-06'});
       return approx(w.allocByDl[0], 300, 0.01);   // 3 months to deadline × 100
+    });
+
+    // ── wildcard rule patterns ──
+    T('wildcard: * is exactly one character', () => {
+      const r = {enabled:true, match:'wildcard', merchantContains:'C***GB'};
+      const hit = ['C123GB', 'XXC481GBYY', 'CabcGB'].every(m => E.ruleMatchesMerchant(r, m));
+      const miss = ['C12GB', 'C1234GB', 'CGB', 'D123GB'].every(m => !E.ruleMatchesMerchant(r, m));
+      return (hit && miss) || JSON.stringify({hit, miss});
+    });
+    T('wildcard: % is any run including none', () => {
+      const r = {enabled:true, match:'wildcard', merchantContains:'C%GB'};
+      return (['CGB', 'C1GB', 'C123456GB'].every(m => E.ruleMatchesMerchant(r, m)) &&
+              !E.ruleMatchesMerchant(r, 'CB')) || 'run matching wrong';
+    });
+    T('wildcard: case-insensitive, like contains rules', () => {
+      const r = {enabled:true, match:'wildcard', merchantContains:'c***gb'};
+      return E.ruleMatchesMerchant(r, 'C123GB') || 'case sensitivity leaked in';
+    });
+    T('wildcard: regex metacharacters stay literal', () => {
+      const dot = {enabled:true, match:'wildcard', merchantContains:'AMAZON.DE'};
+      const plus = {enabled:true, match:'wildcard', merchantContains:'A+B'};
+      return (E.ruleMatchesMerchant(dot, 'AMAZON.DE*2T3') &&
+              !E.ruleMatchesMerchant(dot, 'AMAZONXDE') &&
+              E.ruleMatchesMerchant(plus, 'XA+BY') &&
+              !E.ruleMatchesMerchant(plus, 'AAAB')) || 'metacharacters not escaped';
+    });
+    T('wildcard: a malformed pattern matches nothing rather than throwing', () => {
+      const r = {enabled:true, match:'wildcard', merchantContains:'['};
+      return E.ruleMatchesMerchant(r, '[ANYTHING') === true || E.ruleMatchesMerchant(r, 'X') === false
+             || 'malformed pattern misbehaved';
+    });
+    T('wildcard: existing rules keep exact contains semantics', () => {
+      // the compatibility guarantee: no match field means what it always meant,
+      // even when the stored needle contains * or %
+      const old = {enabled:true, merchantContains:'AMAZON.DE*2T3'};
+      const pct = {enabled:true, merchantContains:'50%'};
+      return (E.ruleMatchesMerchant(old, 'AMAZON.DE*2T3AB') &&
+              !E.ruleMatchesMerchant(old, 'AMAZON.DEX2T3AB') &&
+              E.ruleMatchesMerchant(pct, 'BONUS 50% OFF') &&
+              !E.ruleMatchesMerchant(pct, 'BONUS 5099 OFF')) || 'stored contains rules changed meaning';
+    });
+    T('wildcard: amount gates still apply to pattern rules', () => {
+      const r = {enabled:true, match:'wildcard', merchantContains:'C***GB', amountMin:10, amountMax:20};
+      const mk = de => ({m:'C123GB', de, cr:0, c:'Base'});
+      return (E.ruleMatches(r, mk(15)) && !E.ruleMatches(r, mk(5)) && !E.ruleMatches(r, mk(25)))
+             || 'amount gate bypassed for pattern rules';
+    });
+    T('wildcard: effCat honours pattern rules in priority order', () => {
+      const rr = [{enabled:true, match:'wildcard', merchantContains:'C***GB', setCategory:'Cards'},
+                  {enabled:true, merchantContains:'C123GB', setCategory:'Late'}];
+      return (E.effCat({m:'C123GB', de:5, cr:0, c:'Base'}, rr) === 'Cards' &&
+              E.effCat({m:'NOPE', de:5, cr:0, c:'Base'}, rr) === 'Base') || 'pattern rule not in the chain';
+    });
+    T('wildcard: an empty needle does not match everything by accident', () => {
+      const amountOnly = {enabled:true, match:'wildcard', merchantContains:'', amountEquals:10};
+      // needle-less rules are amount-only by design in both modes
+      return (E.ruleMatches(amountOnly, {m:'ANY', de:10, cr:0, c:'X'}) &&
+              !E.ruleMatches(amountOnly, {m:'ANY', de:11, cr:0, c:'X'})) || 'empty needle mishandled';
+    });
+
+    // ── balances carried forward ──
+    const BR_ACCTS = [{id:'a1', name:'Current', kind:'current'}, {id:'a2', name:'Card', kind:'credit'}];
+    const BR_TX = [
+      {acct:'a1', d:'2026-02-05', mo:'2026-02', de:0,   cr:2000},
+      {acct:'a1', d:'2026-02-20', mo:'2026-02', de:1800, cr:0},
+      {acct:'a1', d:'2026-03-10', mo:'2026-03', de:900,  cr:0},
+      {acct:'a2', d:'2026-03-11', mo:'2026-03', de:150,  cr:0}
+    ];
+    T('balanceRuns: each month opens on the previous month’s close', () => {
+      const r = E.balanceRuns({accounts:[BR_ACCTS[0]], balances:{a1:{opening:500, asOf:'2026-01-31'}},
+                               tx:BR_TX, months:['2026-02','2026-03']})[0];
+      return (r.rows[0].opening === 500 && r.rows[0].closing === 700 &&
+              r.rows[1].opening === 700 && r.rows[1].closing === -200 &&
+              r.endBal === -200) || JSON.stringify(r.rows);
+    });
+    T('balanceRuns: a month that closes below zero is flagged negative', () => {
+      const r = E.balanceRuns({accounts:[BR_ACCTS[0]], balances:{a1:{opening:500, asOf:'2026-01-31'}},
+                               tx:BR_TX, months:['2026-02','2026-03']})[0];
+      return (r.rows[0].negative === false && r.rows[1].negative === true &&
+              r.everNegative === true && r.negativeMonths === 1 &&
+              r.worst.month === '2026-03') || JSON.stringify({neg:r.negativeMonths, worst:r.worst});
+    });
+    T('balanceRuns: no opening balance means relative movement, never a fake balance', () => {
+      const r = E.balanceRuns({accounts:[BR_ACCTS[0]], balances:{}, tx:BR_TX, months:['2026-02','2026-03']})[0];
+      return (r.relative === true && r.opening === null && r.rows[0].opening === 0 &&
+              r.rows[0].closing === 200 && r.endBal === -700) || JSON.stringify(r);
+    });
+    T('balanceRuns: months before the opening date are unknown, not back-projected', () => {
+      const r = E.balanceRuns({accounts:[BR_ACCTS[0]], balances:{a1:{opening:500, asOf:'2026-02-28'}},
+                               tx:BR_TX, months:['2026-01','2026-02','2026-03']})[0];
+      return (r.rows[0].unknown === true && r.rows[1].unknown === false &&
+              r.rows[0].negative === false) || JSON.stringify(r.rows.map(x => [x.month, x.unknown]));
+    });
+    T('balanceRuns: transactions on or before the as-of date are already in the opening', () => {
+      // the 2026-02-20 debit precedes as-of, so it must not be subtracted twice
+      const r = E.balanceRuns({accounts:[BR_ACCTS[0]], balances:{a1:{opening:700, asOf:'2026-02-28'}},
+                               tx:BR_TX, months:['2026-02','2026-03']})[0];
+      return (r.rows[0].closing === 700 && r.rows[0].n === 0 && r.rows[1].closing === -200)
+             || JSON.stringify(r.rows);
+    });
+    T('balanceRuns: credit accounts are reported, not skipped like in cash position', () => {
+      const runs = E.balanceRuns({accounts:BR_ACCTS, balances:{a2:{opening:0, asOf:'2026-01-31'}},
+                                  tx:BR_TX, months:['2026-03']});
+      const card = runs.find(r => r.id === 'a2');
+      const cash = E.cashPosition({accounts:BR_ACCTS, balances:{a2:{opening:0, asOf:'2026-01-31'}}, tx:BR_TX});
+      return (card && card.rows[0].closing === -150 && card.everNegative === true &&
+              !cash.rows.some(r => r.id === 'a2')) || JSON.stringify({card, cash});
+    });
+    T('balanceRuns: inflow and outflow sum to the month’s net movement', () => {
+      const r = E.balanceRuns({accounts:[BR_ACCTS[0]], balances:{a1:{opening:0, asOf:'2026-01-31'}},
+                               tx:BR_TX, months:['2026-02']})[0];
+      const row = r.rows[0];
+      return (approx(row.net, row.inflow - row.outflow, 0.005) &&
+              approx(row.closing, row.opening + row.net, 0.005) && row.n === 2) || JSON.stringify(row);
+    });
+    T('live: carried-forward end balance agrees with the cash position', () => {
+      if (!TX.length) return true;
+      const months = [...RANGE].sort();
+      if (!months.length) return true;
+      const runs = Engine.balanceRuns({accounts: allAccounts(), balances: org.balances, tx: TX, months});
+      const cash = Engine.cashPosition({accounts: allAccounts(), balances: org.balances, tx: TX});
+      // compare only the non-credit accounts cashPosition reports, and only
+      // when the range runs to the end of the data (otherwise the roll-forward
+      // legitimately stops earlier than "today")
+      if (months[months.length-1] !== MONTHS[MONTHS.length-1]) return true;
+      for (const c of cash.rows){
+        const r = runs.find(x => x.id === c.id);
+        if (!r || r.relative) continue;
+        if (Math.abs(r.endBal - c.bal) > 0.02)
+          return r.name + ': carried forward ' + r.endBal.toFixed(2) + ' vs cash position ' + c.bal.toFixed(2);
+      }
+      return true;
+    });
+
+    // ── one category, month by month ──
+    T('catMonthly: every month in the range appears, empty ones included', () => {
+      const txe = [{mo:'2026-01', ec:'Rent', de:1000, cr:0}, {mo:'2026-03', ec:'Rent', de:1200, cr:0}];
+      const M = E.catMonthly({txe, months:['2026-01','2026-02','2026-03'], category:'Rent', saveCat:'Deposit savings'});
+      return (M.rows.length === 3 && M.rows[1].total === 0 && M.rows[1].n === 0 &&
+              M.emptyMonths === 1 && M.activeMonths === 2 && M.total === 2200) || JSON.stringify(M.rows);
+    });
+    T('catMonthly: averages over all months and over active months differ', () => {
+      const txe = [{mo:'2026-01', ec:'Bins', de:90, cr:0}];
+      const M = E.catMonthly({txe, months:['2026-01','2026-02','2026-03'], category:'Bins', saveCat:'Deposit savings'});
+      return (approx(M.avg, 30, 0.01) && approx(M.avgActive, 90, 0.01)) || JSON.stringify({avg:M.avg, act:M.avgActive});
+    });
+    T('catMonthly: ignores other categories and credits on spend categories', () => {
+      const txe = [{mo:'2026-01', ec:'Rent', de:1000, cr:0}, {mo:'2026-01', ec:'Dining', de:40, cr:0},
+                   {mo:'2026-01', ec:'Rent', de:0, cr:250}];
+      const M = E.catMonthly({txe, months:['2026-01'], category:'Rent', saveCat:'Deposit savings'});
+      return (M.total === 1000 && M.txCount === 1) || JSON.stringify(M);
+    });
+    T('catMonthly: savings nets credits against debits like the category chart', () => {
+      const txe = [{mo:'2026-01', ec:'Deposit savings', de:500, cr:0},
+                   {mo:'2026-01', ec:'Deposit savings', de:0, cr:200}];
+      const M = E.catMonthly({txe, months:['2026-01'], category:'Deposit savings', saveCat:'Deposit savings'});
+      return M.total === 300 || JSON.stringify(M);
+    });
+    T('catMonthly: peak and low come from months that actually have spend', () => {
+      const txe = [{mo:'2026-01', ec:'X', de:10, cr:0}, {mo:'2026-03', ec:'X', de:80, cr:0}];
+      const M = E.catMonthly({txe, months:['2026-01','2026-02','2026-03'], category:'X', saveCat:'S'});
+      return (M.peak.month === '2026-03' && M.low.month === '2026-01') || JSON.stringify({p:M.peak, l:M.low});
+    });
+    T('catMonthly: trend compares the later half with the earlier half', () => {
+      const flat = E.catMonthly({txe:['2026-01','2026-02','2026-03','2026-04'].map(mo => ({mo, ec:'X', de:100, cr:0})),
+                                 months:['2026-01','2026-02','2026-03','2026-04'], category:'X', saveCat:'S'});
+      const up = E.catMonthly({txe:[{mo:'2026-01', ec:'X', de:100, cr:0}, {mo:'2026-02', ec:'X', de:100, cr:0},
+                                    {mo:'2026-03', ec:'X', de:200, cr:0}, {mo:'2026-04', ec:'X', de:200, cr:0}],
+                               months:['2026-01','2026-02','2026-03','2026-04'], category:'X', saveCat:'S'});
+      return (Math.abs(flat.trend) < 0.001 && approx(up.trend, 1, 0.01)) || JSON.stringify({f:flat.trend, u:up.trend});
+    });
+    T('catMonthly: totals reconcile with the category chart for the same range', () => {
+      if (!TX.length) return true;
+      const top = A.cats12[0];
+      if (!top) return true;
+      const M = E.catMonthly({txe: scopedTxe(), months:[...RANGE].sort(), category: top.category, saveCat: SAVE_CAT});
+      return approx(M.total, top.total12, 0.02) || ('monthly ' + M.total.toFixed(2) + ' vs chart ' + top.total12.toFixed(2));
+    });
+
+    // ── per-transaction overrides + pattern suggestions ──
+    T('txKey: identity is account + row fingerprint', () => {
+      const t = {acct:'a1', d:'2026-03-04', m:'ALDI', de:12.5, cr:0};
+      const same = {acct:'a1', d:'2026-03-04', m:'ALDI', de:12.5, cr:0};
+      const otherAcct = Object.assign({}, t, {acct:'a2'});
+      const otherAmt = Object.assign({}, t, {de:12.51});
+      return (E.txKey(t) === E.txKey(same) && E.txKey(t) !== E.txKey(otherAcct) &&
+              E.txKey(t) !== E.txKey(otherAmt)) || 'tx identity unstable';
+    });
+    T('effCat: a manual override beats every rule', () => {
+      const rr = [{enabled:true, merchantContains:'ALDI', setCategory:'Groceries'}];
+      const t = {m:'ALDI', de:10, cr:0, c:'Base'};
+      return (E.effCat(t, rr) === 'Groceries' && E.effCat(t, rr, 'Gifts') === 'Gifts' &&
+              E.effCat(t, [], 'Gifts') === 'Gifts' && E.effCat(t, rr, null) === 'Groceries')
+             || 'override precedence wrong';
+    });
+    T('suggestPattern: fixed-width variation becomes *', () => {
+      const s = E.suggestPattern(['C123GB', 'C481GB', 'C900GB']);
+      return (s && s.pattern === 'C***GB') || JSON.stringify(s);
+    });
+    T('suggestPattern: variable-width variation becomes %', () => {
+      const s = E.suggestPattern(['REFAGB', 'REFBCDGB']);
+      // the shared prefix is taken greedily, so a digit common to every name
+      // stays literal — and the result still covers every name it was built on
+      const greedy = E.suggestPattern(['REF1GB', 'REF12345GB']);
+      const covers = ['REF1GB', 'REF12345GB'].every(m =>
+        E.ruleMatchesMerchant({enabled:true, match:'wildcard', merchantContains:greedy.pattern}, m));
+      return (s && s.pattern === 'REF%GB' && greedy.pattern === 'REF1%GB' && covers)
+             || JSON.stringify({s, greedy, covers});
+    });
+    T('suggestPattern: a single name generalises its digit runs', () => {
+      const s = E.suggestPattern(['C123GB']);
+      const none = E.suggestPattern(['NETFLIX']);
+      return (s && s.pattern === 'C***GB' && none === null) || JSON.stringify({s, none});
+    });
+    T('suggestPattern: suggests nothing when contains already covers it', () => {
+      return (E.suggestPattern(['ALDI', 'ALDI']) === null &&
+              E.suggestPattern([]) === null &&
+              E.suggestPattern(['ALDI', 'TESCO']) === null) || 'useless suggestion offered';
+    });
+    T('suggestPattern: what it suggests actually matches what it saw', () => {
+      const names = ['C123GB', 'C481GB'];
+      const s = E.suggestPattern(names);
+      const r = {enabled:true, match:'wildcard', merchantContains:s.pattern};
+      return names.every(m => E.ruleMatchesMerchant(r, m)) || 'suggested pattern misses its own inputs';
+    });
+
+    // ── upgrade guard (data safety) ──
+    const MIG_FIX = [{to:2, writes:false}, {to:3, writes:true}, {to:4, writes:false}];
+    T('upgradePlan: newer stored data is refused, never migrated down', () => {
+      const p = E.upgradePlan({stored:9, current:4, migrations:MIG_FIX});
+      return (p.action === 'refuse' && p.reason === 'newer' && !p.steps.length && !p.needSnapshot) || JSON.stringify(p);
+    });
+    T('upgradePlan: a rewriting step demands a snapshot first', () => {
+      const p = E.upgradePlan({stored:2, current:4, migrations:MIG_FIX});
+      return (p.action === 'migrate' && p.needSnapshot === true &&
+              JSON.stringify(p.steps) === '[3,4]') || JSON.stringify(p);
+    });
+    T('upgradePlan: read-only steps need no snapshot', () => {
+      const p = E.upgradePlan({stored:3, current:4, migrations:MIG_FIX});
+      return (p.action === 'migrate' && p.needSnapshot === false &&
+              JSON.stringify(p.steps) === '[4]') || JSON.stringify(p);
+    });
+    T('upgradePlan: a held restore is refused, not re-migrated', () => {
+      const p = E.upgradePlan({stored:2, current:4, migrations:MIG_FIX, hold:2});
+      return (p.action === 'refuse' && p.reason === 'held' && !p.needSnapshot) || JSON.stringify(p);
+    });
+    T('upgradePlan: current version is left alone; first run is stamped', () => {
+      const same = E.upgradePlan({stored:4, current:4, migrations:MIG_FIX, anyStored:true});
+      const fresh = E.upgradePlan({stored:4, current:4, migrations:MIG_FIX, anyStored:false});
+      return (same.action === 'none' && fresh.action === 'stamp') || JSON.stringify({same, fresh});
+    });
+    T('upgradePlan: a hold on current data does not block use', () => {
+      const p = E.upgradePlan({stored:4, current:4, migrations:MIG_FIX, hold:4, anyStored:true});
+      return p.action === 'none' || JSON.stringify(p);
+    });
+    T('guard: this build shipped a coherent migration path', () => {
+      const tos = MIGRATIONS.map(m => m.to);
+      if (new Set(tos).size !== tos.length) return 'duplicate migration targets';
+      if (tos.some(t => t > DATA_VERSION)) return 'migration targets a version beyond DATA_VERSION';
+      if (MIGRATIONS.some(m => typeof m.run !== 'function')) return 'migration without a run()';
+      const p = Engine.upgradePlan({stored:1, current:DATA_VERSION, migrations:MIGRATIONS, anyStored:true});
+      return (p.action === 'migrate' || p.action === 'none') || JSON.stringify(p);
+    });
+    T('guard: snapshot copies every present store verbatim', () => {
+      const snap = storeSnapshotPayload();
+      const present = Object.values(LS).filter(k => {
+        try{ return (lockedMode ? memStore.get(k) : localStorage.getItem(k)) != null; }catch(e){ return false; }
+      });
+      const missed = present.filter(k => snap.stores[k] == null);
+      if (missed.length) return 'snapshot missed ' + missed.join(', ');
+      const altered = present.filter(k => {
+        const live = lockedMode ? memStore.get(k) : localStorage.getItem(k);
+        return snap.stores[k] !== live;              // raw text, byte for byte
+      });
+      return !altered.length || ('snapshot re-serialised ' + altered.join(', '));
+    });
+    T('guard: an unreadable store puts the page read-only instead of starting fresh', () => {
+      if (raw.demo || lockedMode) return true;      // demo never persists; vault path has no loose text
+      const probe = 'dd-selftest-corrupt';
+      const before = safeMode, beforeStores = safeStores.slice();
+      let got;
+      try{
+        localStorage.setItem(probe, '{not json');
+        safeMode = null; safeStores.length = 0;
+        got = load(probe, {fallback:true});
+      } finally {
+        try{ localStorage.removeItem(probe); }catch(e){}
+        const flagged = safeMode && safeMode.reason === 'unreadable' && safeStores.includes(probe);
+        safeMode = before; safeStores.length = 0; safeStores.push(...beforeStores);
+        if (!flagged) return 'damaged store did not trip the read-only guard';
+      }
+      return (got && got.fallback === true) || 'load() did not fall back for rendering';
+    });
+    T('guard: read-only mode blocks every write path', () => {
+      if (raw.demo) return true;                    // already write-free by design
+      const probe = 'dd-selftest-guard';
+      const before = safeMode;
+      try{
+        safeMode = {reason:'newer', detail:[]};
+        save(probe, {x:1});
+        if ((lockedMode ? memStore.get(probe) : localStorage.getItem(probe)) != null) return 'save() wrote in read-only mode';
+        safeMode = null;
+        save(probe, {x:1});
+        if ((lockedMode ? memStore.get(probe) : localStorage.getItem(probe)) == null) return 'save() did not write when allowed';
+        safeMode = {reason:'newer', detail:[]};
+        storeRemove(probe);
+        if ((lockedMode ? memStore.get(probe) : localStorage.getItem(probe)) == null) return 'storeRemove() deleted in read-only mode';
+        return true;
+      } finally {
+        safeMode = null;
+        try{ storeRemove(probe); }catch(e){}
+        safeMode = before;
+      }
     });
 
     // ── live-state invariants (read-only) ──
@@ -8697,7 +10220,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   function parseKeywords(str){
     return String(str || '').split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
   }
-  function ensureBudgetCategory(name){
+  // shared by Budget-by-rule and the bulk-assign bar: a category the user just
+  // named must exist as a real category, or the rest of the app cannot show it
+  function ensureCategoryExists(name){
     if (!name) return;
     if (!catStore.custom.some(x => x.name === name) && !(A && A.allCats && A.allCats.includes(name))){
       catStore.custom.push({name});
@@ -8940,7 +10465,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     const rules = drafts.map(d => normalizeBudgetRule({id: uid('br'), name: d.name, keywords: d.keywords, budget: d.budget}));
     // Ensure categories + recategorise rules so audit/cashflow reflect the groups
     for (const r of rules){
-      ensureBudgetCategory(r.name);
+      ensureCategoryExists(r.name);
       ensureBudgetKeywordRules(r.name, r.keywords);
     }
     if (appendToActive){
@@ -9262,7 +10787,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     const budget = Math.max(0, Math.round(+amtStr || 0));
     const pack = activePack();
     if (!pack) return;
-    ensureBudgetCategory(name.trim());
+    ensureCategoryExists(name.trim());
     ensureBudgetKeywordRules(name.trim(), keywords);
     pack.rules.push(normalizeBudgetRule({id: uid('br'), name: name.trim(), keywords, budget}));
     saveBudget(); renderBudget();
@@ -9683,6 +11208,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     renderDerived();
     guard('rules', renderRules);
     guard('cashflow', renderCashflow);
+    guard('balances carried forward', renderBalances);
     guard('money flow', renderSankey);
     guard('categories', renderCats);
     guard('leaks', renderLeaks);
@@ -9722,7 +11248,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       base: {txCount: raw.transactions.length, checksum: BASE_SUM,
              from: raw.transactions.length ? raw.transactions[0][0] : null,
              to: raw.transactions.length ? raw.transactions[raw.transactions.length-1][0] : null},
-      stores: {rules, cats: catStore, goals, org, recur: recurStore, uploads, xfers: xferStore, manrec, fcast: FCONF, budget: budgetStore, debts: debtStore, holdings: holdStore, assets: assetStore, nwlog: nwLog, merch: merchStore, notes: noteStore, lm: lmStore, cash: cashStore, alerts: alertStore},
+      stores: {rules, cats: catStore, goals, org, recur: recurStore, uploads, xfers: xferStore, manrec, fcast: FCONF, budget: budgetStore, debts: debtStore, holdings: holdStore, assets: assetStore, nwlog: nwLog, merch: merchStore, notes: noteStore, lm: lmStore, cash: cashStore, alerts: alertStore, txcat: txCatStore},
       ui: {cuts: {...cutStore}, rangeFrom, rangeTo, privacy: {...PRIV}}
     };
   }
@@ -9730,6 +11256,103 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     const el = document.getElementById('bkStatus');
     el.textContent = msg;
     setTimeout(()=>{ if (el.textContent === msg) el.textContent = ''; }, 7000);
+  }
+
+  // ── data-safety UI: read-only banner + snapshot restore ──
+  // The banner is fixed so it is impossible to miss in either the classic page
+  // or Space view — a user whose data this build will not write to needs to
+  // know before they spend an evening typing into it.
+  const SAFE_COPY = {
+    newer: ['This browser holds data from a newer version of Lithifyte',
+            'Nothing here will be written to or changed. Open the newer version, or export a backup and import it into that version.'],
+    unreadable: ['Some of your stored data could not be read',
+                 'Nothing will be overwritten, so the data is still on disk. Export what did load, then restore a backup or a snapshot below.'],
+    'no-snapshot': ['This update needs to change how your data is stored — but it could not save a rollback snapshot first',
+                    'Nothing has been changed. Export a backup, then reload: with a backup in hand the update is safe to let through.'],
+    'migration-failed': ['Updating your stored data did not finish',
+                         'Nothing further will be written. Your pre-update snapshot is below — restore it, or export a backup first.'],
+    held: ['Your restored data is held at its previous version',
+           'This build is not writing to it. Export a backup, then lift the hold in Settings → Backup to let the update run again.']
+  };
+  function renderSafeBanner(){
+    const existing = document.getElementById('safeBanner');
+    if (!safeMode){ if (existing) existing.remove(); return; }
+    const [title, advice] = SAFE_COPY[safeMode.reason] || ['This page is in read-only mode', 'Nothing will be written to your stored data.'];
+    const el = existing || document.createElement('div');
+    el.id = 'safeBanner';
+    el.setAttribute('role', 'alert');
+    el.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:95;background:#3b1d1d;border-bottom:2px solid var(--critical);' +
+      'color:#ffe4e4;padding:10px 14px;font:13.5px/1.45 system-ui,sans-serif;display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap';
+    el.innerHTML = `<div style="flex:1; min-width:260px">
+        <b style="font-size:14px">🛡 Read-only — ${esc(title)}</b>
+        <div style="margin-top:3px; opacity:.92">${esc(advice)}</div>
+        ${safeMode.detail.length ? `<div style="margin-top:4px; opacity:.72; font-size:12.5px">${safeMode.detail.map(esc).join(' · ')}</div>` : ''}
+      </div>
+      <span style="display:flex; gap:8px; align-items:center">
+        <button class="btn small primary" id="safeExport" type="button">⬇ Export a backup</button>
+        <button class="btn small" id="safeGo" type="button">Open Backup settings</button>
+      </span>`;
+    if (!existing) document.body.appendChild(el);
+    el.querySelector('#safeExport').addEventListener('click', ()=>document.getElementById('bkExport').click());
+    el.querySelector('#safeGo').addEventListener('click', ()=>goSection('settings', 'sec-alive'));
+  }
+  window.__ddSafeMode = () => safeMode ? {reason: safeMode.reason, detail: safeMode.detail.slice(), stores: safeStores.slice()} : null;
+  window.__ddUpgrade = () => JSON.parse(JSON.stringify(upgrade));
+
+  async function renderSnapshots(){
+    const list = document.getElementById('snapList');
+    const keepEl = document.getElementById('snapKeep');
+    if (keepEl) keepEl.textContent = String(SNAP_KEEP);
+    if (!list) return;
+    const held = (load(META_KEY, {}) || {}).holdAt != null;
+    const holdBox = document.getElementById('snapHold');
+    if (holdBox) holdBox.style.display = held ? '' : 'none';
+    if (!IDB_OK){ list.textContent = 'This browser has no IndexedDB, so snapshots cannot be stored here — keep exported backups instead.'; return; }
+    const slots = ((load(META_KEY, {}) || {}).snapshots || []).slice().reverse();
+    if (!slots.length){ list.textContent = 'No snapshots yet — one is written automatically the first time an update needs to change how your data is stored.'; return; }
+    list.innerHTML = slots.map(s => `<div class="drill-row" style="gap:10px">
+        <span style="flex:1">Before version ${esc(String(s.fromVersion))} → ${esc(String(DATA_VERSION))} · <span class="num">${esc(new Date(s.takenAt).toLocaleString('en-IE'))}</span></span>
+        <button class="btn small snap-restore" data-slot="${esc(s.slot)}" type="button">↺ Restore this</button>
+      </div>`).join('');
+    list.querySelectorAll('.snap-restore').forEach(b => b.addEventListener('click', ()=>restoreSnapshot(b.dataset.slot)));
+  }
+  async function restoreSnapshot(slot){
+    let payload;
+    try{ payload = JSON.parse(await idbGet(slot)); }
+    catch(e){ bkFeedback('✗ that snapshot could not be read'); return; }
+    if (!payload || payload.kind !== 'dd-store-snapshot'){ bkFeedback('✗ that snapshot could not be read'); return; }
+    const n = Object.keys(payload.stores || {}).length;
+    if (!window.confirm('Restore ' + n + ' store' + (n === 1 ? '' : 's') + ' from ' + new Date(payload.takenAt).toLocaleString('en-IE') + '?\n\n' +
+        'Everything you changed since then is replaced by the snapshot. Your data is then HELD at its older version until you lift the hold, so this build will not write to it.\n\n' +
+        'Export a backup first if you want to keep both.')) return;
+    // Deliberate user action: writes go straight to storage, bypassing the
+    // read-only guard that safeMode puts on save().
+    try{
+      for (const [key, text] of Object.entries(payload.stores)){
+        if (lockedMode) memStore.set(key, text);
+        else if (key === LS.uploads && IDB_OK) await idbSet(key, text);
+        else localStorage.setItem(key, text);
+      }
+      const meta = {dataVersion: payload.fromVersion, holdAt: payload.fromVersion,
+                    restoredAt: new Date().toISOString(),
+                    snapshots: (load(META_KEY, {}) || {}).snapshots || []};
+      if (lockedMode){ memStore.set(META_KEY, JSON.stringify(meta)); await flushVault(true); }
+      else localStorage.setItem(META_KEY, JSON.stringify(meta));
+    }catch(e){ bkFeedback('✗ restore failed — ' + (e && e.message || e)); return; }
+    location.reload();
+  }
+  {
+    const unhold = document.getElementById('snapUnhold');
+    if (unhold) unhold.addEventListener('click', ()=>{
+      if (!window.confirm('Lift the hold and let the update run again?\n\nExport a backup first — if the update misreads your data a second time you will want the file.')) return;
+      try{
+        const meta = load(META_KEY, {}) || {};
+        delete meta.holdAt;
+        if (lockedMode){ memStore.set(META_KEY, JSON.stringify(meta)); }
+        else localStorage.setItem(META_KEY, JSON.stringify(meta));
+      }catch(e){}
+      location.reload();
+    });
   }
   document.getElementById('wipeAllBtn').addEventListener('click', async ()=>{
     if (!window.confirm('Erase ALL data this page stores in this browser?\n\nStatements, rules, goals, people & accounts, budgets, notes, colours and settings will all be gone. Export a backup first if you might ever want any of it back.')) return;
@@ -9869,11 +11492,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     if (st.alerts && typeof st.alerts === 'object') alertStore = {items: st.alerts.items || [], auto: {upcoming: true, goalPace: true, ...(st.alerts.auto || {})}, ack: st.alerts.ack || {}};
     if (Array.isArray(st.manrec)) manrec = st.manrec;
     if (st.fcast && typeof st.fcast.bufferPct === 'number') FCONF = st.fcast;
+    if (st.txcat && st.txcat.overrides && typeof st.txcat.overrides === 'object') txCatStore = {overrides: st.txcat.overrides};
     save(LS.rules, rules); save(LS.cats, catStore); save(LS.goals, goals);
     save(LS.org, org); save(LS.recur, recurStore); save(LS.uploads, uploads);
     save(LS.xfers, xferStore); save(LS.manrec, manrec); save(LS.fcast, FCONF);
     save(LS.debts, debtStore); save(LS.holds, holdStore);
-    save(LS.assets, assetStore); save(LS.nwlog, nwLog); save(LS.merch, merchStore); save(LS.notes, noteStore); save(LS.lm, lmStore); save(LS.alerts, alertStore);
+    save(LS.assets, assetStore); save(LS.nwlog, nwLog); save(LS.merch, merchStore); save(LS.notes, noteStore); save(LS.lm, lmStore); save(LS.alerts, alertStore); save(LS.txcat, txCatStore);
     if (budgetStore) save(LS.budget, budgetStore);
     if (b.ui && b.ui.cuts){
       const legacy = {groc:'Groceries', dine:'Dining', shop:'Shopping', bills:'Bills & Utilities', ent:'Entertainment', misc:'Uncategorized'};
@@ -9902,6 +11526,18 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   window.__ddRenderAll = () => renderAll();
   window.__ddRenderErrors = () => renderErrors.slice();
   window.__ddAgg = () => A;
+  window.__ddTxCat = () => txCatStore;
+  window.__ddRange = () => ({from: rangeFrom, to: rangeTo, n: RN});
+  window.__ddCatSel = () => catSel;
+  window.__ddCatMonthly = name => catMonthlyModel(name);
+  window.__ddCashSel = () => cashSel;
+  window.__ddCashMonths = () => cashMonthList();
+  window.__ddBalRuns = () => balanceRunsModel();
+  window.__ddGoals = () => goals;
+  window.__ddDebts = () => debtStore.items;
+  window.__ddOrg = () => org;
+  window.__ddSaveOrg = () => save(LS.org, org);
+  window.__ddMonths = () => MONTHS.slice();
   window.__ddXfers = () => XFERS;
   window.__ddRec = () => REC;
   window.__ddFc = () => FC;
@@ -10246,7 +11882,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
        body:'Every merchant→category decision, biggest money first. Hit Fix to pre-fill a rule. Statement name variants (store numbers, SEPA tails) group under one merchant — open “N names” to split or merge.'},
       {part:4, dock:'rules', target:'#sec-rules', title:'Rules',
        loc:'Data → Rules',
-       body:'First-match-wins permanent fixes. Use a short stable token (e.g. PROVINCEF), optional amount range, and put narrow rules above broad ones. Deposit savings counts toward goals; do not invent Internal transfer rules — the matcher owns those.'},
+       body:'First-match-wins permanent fixes. Use a short stable token (e.g. NETFLIX), optional amount range, and put narrow rules above broad ones. Where the name itself varies — a card reference like C123GB — switch Match by to <b>pattern</b> and write C***GB. Deposit savings counts toward goals; do not invent Internal transfer rules — the matcher owns those.'},
 
       // Part 5 — Understand
       {part:5, dock:'cash', target:'#sec-cashflow', title:'Cashflow',
@@ -11017,6 +12653,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   if (graph) graph.onNode(showNodeCard);
 
   renderLockUI();
+  renderSafeBanner();          // read-only warning must survive any later render failure
+  renderSnapshots();
   renderAll();
   renderSelfTest();
   showVisitDigest();
