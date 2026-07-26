@@ -304,6 +304,20 @@ specific thing the user has said about it. Two byte-identical rows on one
 account share a key and move together — they are indistinguishable in the
 data. Bulk assign moves only the ticked rows; "also make a rule" additionally
 creates ordinary merchant rules so future statements sort themselves.
+stores.docs = {items:[{id, title, body, links:[userId|acctId],
+tags:[], created, updated}]} — LINKED CONCEPT NOTES (browser store
+dd-docs-v1, "Notes &amp; context" section + Planning dock tab). The household's
+own context: plans, circumstances and intentions that transactions cannot
+carry ("hours drop every January", "this is the joint house account"). Each
+note links to any number of users and accounts BY ID; Engine.noteLinks
+resolves them and reports links to deleted items as broken rather than
+dropping them — the note text is the user's own work. Linked notes surface on
+that person's or account's money-map node. Engine.noteContext groups them for
+the LLM handoff: notesForPrompt() feeds both "Copy re-assess prompt" and the
+local-AI categoriser's context, which is the whole point of the feature — a
+model that knows WHY beats one that only sees WHAT. Distinct from
+stores.notes (dd-notes-v1), the one-liners pinned to a single map node.
+When re-assessing, READ THESE and let them shape the advice.
 stores.merch = {rules:[{contains, name}], keep:[raw]}
 — merchant-normalisation overrides (browser store dd-merch-v1). Statement
 merchant names are auto-grouped for DISPLAY (map nodes, audit rows, search)
@@ -755,6 +769,106 @@ So, when you change a stored shape:
   .cm-val{font-size:11px; color:var(--ink-2); white-space:nowrap}
   .cm-col:hover .cm-val{color:var(--ink)}
   .cm-mo{font-size:10.5px; color:var(--muted); white-space:nowrap}
+  .cm-col.cm-live{cursor:pointer; border-radius:6px; padding-top:2px}
+  .cm-col.cm-live:hover, .cm-col.cm-live:focus-visible{background:var(--chip); outline:none}
+  .cm-col.on{background:var(--chip)}
+  .cm-col.on .cm-val{color:var(--ink); font-weight:700}
+  .cm-drill{border-top:1px solid var(--grid); margin-top:10px; padding-top:4px}
+  .cm-tx{align-items:center}
+  .cm-tx .cm-fix{flex:0 0 auto; margin-left:8px}
+
+  /* ── notes & context ── */
+  .nd-links{display:flex; flex-wrap:wrap; gap:6px}
+  .nd-link-chip{border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-size:12.5px}
+  .nd-item{border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:10px;
+    background:var(--surface)}
+  .nd-top{display:flex; align-items:baseline; gap:8px; flex-wrap:wrap}
+  .nd-top b{font-size:14px}
+  .nd-when{margin-left:auto}
+  .nd-body{margin:6px 0 8px; font-size:13px; color:var(--ink-2); white-space:pre-wrap; line-height:1.55}
+  .nd-meta{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
+  .nd-chip{font-weight:600}
+  .nd-tag{font-size:11.5px; color:var(--muted); background:var(--chip); border-radius:999px; padding:2px 8px}
+
+  /* ── Summary front screen ── */
+  .sum-card{padding:18px 20px}
+  .sum-head{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:14px}
+  .sum-head h3{margin:0; font-size:17px}
+  .sum-head h3 .num{color:var(--ink-2); font-weight:500}
+  .sum-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px}
+  .sum-tile{display:flex; flex-direction:column; align-items:flex-start; gap:2px; text-align:left;
+    padding:14px 16px; border:1px solid var(--border); border-radius:12px; background:var(--surface);
+    cursor:pointer; font:inherit; color:inherit; position:relative; transition:border-color .15s, transform .15s}
+  .sum-tile:hover, .sum-tile:focus-visible{border-color:var(--accent,#38bdf8); transform:translateY(-1px); outline:none}
+  .st-ic{font-size:17px; line-height:1}
+  .st-lab{font-size:11px; letter-spacing:.07em; text-transform:uppercase; color:var(--muted)}
+  .st-val{font-size:24px; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums; line-height:1.15}
+  .st-sub{font-size:11.5px; color:var(--ink-2)}
+  .st-go{font-size:11px; color:var(--muted); margin-top:6px}
+  .sum-tile:hover .st-go{color:var(--accent,#38bdf8)}
+  .sum-split{display:grid; grid-template-columns:repeat(auto-fit, minmax(290px, 1fr)); gap:20px; margin-top:20px;
+    padding-top:16px; border-top:1px solid var(--grid)}
+  .sum-col h4{margin:0 0 2px; font-size:13px}
+  .sum-col > .hint{margin:0 0 10px}
+  .sum-bal{display:flex; flex-direction:column; gap:2px}
+  .sum-bal-row{display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%;
+    padding:7px 9px; border:none; border-radius:8px; background:transparent; cursor:pointer;
+    font:inherit; color:var(--ink-2); text-align:left; border-bottom:1px solid var(--grid)}
+  .sum-bal-row:hover{background:var(--chip); color:var(--ink)}
+  .sb-name{flex:1 1 auto; min-width:0; font-size:13px}
+  .sum-bal-row b{font-variant-numeric:tabular-nums; white-space:nowrap}
+  .sum-bal-tot{display:flex; justify-content:space-between; gap:10px; padding:9px; margin-top:4px;
+    border-top:2px solid var(--border-strong,#334155); font-size:13px; color:var(--ink-2)}
+  .sum-bal-tot b{color:var(--ink)}
+
+  /* ── donut charts (asset mix, liability mix, typical month) ── */
+  .mix-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:18px; margin-top:14px}
+  .mix-cell h4{margin:0 0 2px; font-size:13px}
+  .mix-cell > .hint{margin:0 0 10px}
+  .dn-wrap{display:flex; gap:18px; align-items:center; flex-wrap:wrap}
+  .dn-arc{transition:opacity .12s}
+  .dn-legend{flex:1 1 200px; min-width:190px; display:flex; flex-direction:column; gap:1px}
+  .dn-leg-row{display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--ink-2);
+    padding:3px 6px; border-radius:6px}
+  .dn-leg-row.on{background:var(--chip); color:var(--ink)}
+  .dn-leg-name{flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .dn-leg-row b{color:var(--ink); font-variant-numeric:tabular-nums; white-space:nowrap}
+  .dn-leg-pct{flex:0 0 34px; text-align:right; color:var(--muted)}
+
+  /* ── leak shape: one small multiple per leak ── */
+  .lk-row{padding:10px 0; border-bottom:1px solid var(--grid)}
+  .lk-row:last-of-type{border-bottom:none}
+  .lk-head{display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin-bottom:6px}
+  .lk-head b{font-size:13.5px}
+  .lk-nums{margin:0 0 0 auto}
+  .lk-strip{display:flex; align-items:flex-end; gap:2px; height:46px; padding-top:12px}
+  .lk-bar-wrap{flex:1 1 0; min-width:5px; height:100%; display:flex; align-items:flex-end; justify-content:center;
+    position:relative}
+  /* An ordinary month is recessive; a spike separates by LIGHTNESS (which every
+     colour-vision type keeps) rather than by hue — --spend and --critical are
+     nearly the same red, so hue alone showed nothing — and additionally carries
+     a ⚠ marker, because a status must never rest on colour alone. */
+  .lk-bar{width:100%; max-width:22px; border-radius:3px 3px 0 0; transition:filter .15s;
+    background:color-mix(in srgb, var(--spend) 38%, var(--surface))}
+  .lk-bar.spike{background:var(--critical)}
+  .lk-bar-wrap:has(.spike)::after{content:'⚠'; position:absolute; top:-13px; left:0; right:0; text-align:center;
+    font-size:10px; line-height:1; color:var(--critical)}
+  .lk-bar-wrap:hover .lk-bar{filter:brightness(.92) saturate(1.3)}
+  .lk-none{width:100%; max-width:22px; height:2px; background:var(--grid); border-radius:2px}
+  .lk-axis{display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-top:6px;
+    font-variant-numeric:tabular-nums}
+
+  /* categories legend — the frame the category bars are read against */
+  .cat-legend{display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:10px 18px;
+    margin:0 0 14px; padding-bottom:12px; border-bottom:1px solid var(--grid)}
+  .cl-item{display:flex; flex-direction:column; gap:2px}
+  .cl-key{display:flex; align-items:center; gap:6px; font-size:11px; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--muted)}
+  .cl-item b{font-size:18px; color:var(--ink); font-variant-numeric:tabular-nums; line-height:1.2}
+  .cl-item b small{font-size:11px; font-weight:500; color:var(--muted)}
+  .cl-sub{font-size:11.5px; color:var(--ink-2)}
+  .sw.cl-inc{background:var(--income)} .sw.cl-exp{background:var(--spend)}
+  .sw.cl-sav{background:var(--save,#34d399)} .sw.cl-net{background:var(--muted)}
   /* month stepper in the cashflow drill-down */
   .mo-nav{display:inline-flex; gap:4px; align-items:center; margin-left:6px}
   .mo-nav .btn[disabled]{opacity:.35; cursor:default}
@@ -1158,6 +1272,7 @@ So, when you change a stored shape:
   </header>
 
   <nav class="topnav" id="topnav" aria-label="Sections">
+    <a href="#sec-summary" data-sec="sec-summary">Summary</a>
     <a href="#goalHero" data-sec="goalHero">Goals</a>
     <a href="#sec-cashflow" data-sec="sec-cashflow">Cashflow</a>
     <a href="#sec-cats" data-sec="sec-cats">Categories</a>
@@ -1173,6 +1288,7 @@ So, when you change a stored shape:
     <a href="#sec-ready" data-sec="sec-ready">Readiness</a>
     <a href="#sec-wealth" data-sec="sec-wealth">Wealth</a>
     <a href="#sec-plan" data-sec="sec-plan">Plan</a>
+    <a href="#sec-notes" data-sec="sec-notes">Notes</a>
     <a href="#sec-alive" data-sec="sec-alive">Backup</a>
   </nav>
 
@@ -1234,6 +1350,33 @@ So, when you change a stored shape:
         <span class="hint num" id="ob-goal-done"></span></li>
     </ol>
     <div class="callout" style="margin-top:16px">Watch the map as you go — the <b>household</b> appears at step 1, <b>people</b> at step 2, an <b>account</b> at step 3, and your <b>money</b> lights it up at step 4. Manage people anytime from <b>Data → People</b>. Restoring instead? Use <b>Backup &amp; restore</b> in Settings. <button class="btn small" id="obClassic" type="button">🖥️ prefer the classic page?</button></div>
+  </div>
+
+  <!-- ═══ SUMMARY — the front screen: everything at a glance, every card a door ═══ -->
+  <div class="section" id="sec-summary">
+    <div class="section-head">
+      <h2>Summary</h2>
+      <p>The whole picture on one screen. <b>Every card here is a door</b> — click it to land in the section that shows the detail behind the number. Predictions come from the same forecast engine the Forecast section uses, so nothing here disagrees with anything there.</p>
+    </div>
+    <div class="card sum-card">
+      <div class="sum-head">
+        <h3>Next month <span class="num" id="sumMonth"></span></h3>
+        <span class="hint">projected from your own history — recurring bills, recent income, and the cautious buffer</span>
+      </div>
+      <div class="sum-grid" id="sumPredict"></div>
+      <div class="sum-split">
+        <div class="sum-col">
+          <h4>Account balances now</h4>
+          <p class="hint">Where each account stands today. Accounts without an opening balance show their movement instead — click through to set one.</p>
+          <div id="sumBalances"></div>
+        </div>
+        <div class="sum-col">
+          <h4>A typical month's spending</h4>
+          <p class="hint">Average monthly outgoings by category across the selected date range.</p>
+          <div id="sumExpenseMix"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ═══ GOALS ═══ -->
@@ -1371,7 +1514,11 @@ So, when you change a stored shape:
       <label class="ctl">to <input type="month" class="inp lr-to"></label>
       <span class="hint num lr-info" style="margin:0"></span>
     </div>
-    <div class="chart-card"><div id="catChart"></div><div id="catDetail"></div></div>
+    <div class="chart-card">
+      <div id="catLegend"></div>
+      <div id="catChart"></div>
+      <div id="catDetail"></div>
+    </div>
   </div>
 
   <!-- ═══ MONEY MAP ═══ -->
@@ -1604,6 +1751,16 @@ So, when you change a stored shape:
     <div class="section-head">
       <h2>The leak report</h2>
       <p>High-frequency, low-value spending — the money that disappears without a decision ever being made. Transaction counts tell the real story; figures reflect your category corrections and the selected date range.</p>
+    </div>
+    <div class="filter-row" id="leakRangeBar" style="margin:0 0 10px; flex-wrap:wrap; gap:10px; align-items:baseline">
+      <span class="filter-label">Covering</span>
+      <span class="num" id="leakRange" style="font-weight:700; color:var(--ink)"></span>
+      <span class="hint num" id="leakRangeSub" style="margin:0"></span>
+    </div>
+    <div class="card" style="margin-bottom:14px" id="leakShapeCard">
+      <h3 style="margin:0 0 4px">Where the leaks happened</h3>
+      <p class="hint" style="margin:0 0 12px">One strip per leak, a bar per month across the range above. A <b>steady monthly habit</b> and a <b>one-off blowout</b> need completely different responses, so each strip is flagged with which it is. Months far above the leak's own norm are marked <b>⚠ spike</b> — measured against the median, so a single big month can't hide inside its own average.</p>
+      <div id="leakShape"></div>
     </div>
     <div class="card" style="padding:6px 8px; overflow-x:auto">
       <table id="leakTable">
@@ -1846,6 +2003,19 @@ So, when you change a stored shape:
     <div class="kpis" id="nwStrip" style="margin:0 0 12px"></div>
       <div id="nwComp"></div>
       <div id="nwNotes"></div>
+      <div class="mix-grid">
+        <div class="mix-cell">
+          <h4>Assets by category</h4>
+          <p class="hint">What you own, split by where it sits. Every layer is counted once.</p>
+          <div id="assetMix"></div>
+        </div>
+        <div class="mix-cell">
+          <h4>Liabilities by category</h4>
+          <p class="hint">What you owe: tracked loans by kind, plus outstanding card balances.</p>
+          <div id="liabMix"></div>
+        </div>
+      </div>
+      <div id="nwGraph" style="margin-top:14px"></div>
       <div id="nwTrend" style="margin-top:10px"></div>
       <div style="overflow-x:auto; margin-top:12px"><table id="asTable" style="display:none"><tbody></tbody></table></div>
       <div class="gf-editbar" id="asEditBar"><span id="asEditMsg"></span><button class="btn small" id="asCancel" type="button">Cancel</button></div>
@@ -1959,6 +2129,45 @@ So, when you change a stored shape:
       <div id="planCaveat" style="color:var(--critical); font-size:13px"></div>
     </div>
     <div class="plan" id="planCards"></div>
+  </div>
+
+  <!-- ═══ NOTES — the context no statement carries ═══ -->
+  <div class="section" id="sec-notes">
+    <div class="section-head">
+      <h2>Notes &amp; context</h2>
+      <p>What the numbers cannot tell anyone: plans, circumstances, intentions. <b>“Ben's hours drop every January.” “This is the joint account the house runs from.” “The savings are for a wedding in 2028, not a car.”</b> Link a note to the people and accounts it concerns and it appears on their <b>money-map</b> nodes — and when you connect a local AI, this context goes with the numbers, so its advice is about <i>your</i> situation rather than a generic spreadsheet. Everything stays in this browser like the rest of your data.</p>
+    </div>
+    <div class="card">
+      <div class="filter-row" style="margin:0 0 10px; flex-wrap:wrap; gap:8px; align-items:center">
+        <span class="filter-label">Filter</span>
+        <select id="ndFilter" class="inp" style="max-width:260px" aria-label="Filter notes by what they are linked to">
+          <option value="">All notes</option>
+        </select>
+        <input id="ndSearch" class="inp" placeholder="Search notes…" style="max-width:220px" aria-label="Search notes">
+        <button class="btn primary small" id="ndNew" type="button">＋ New note</button>
+        <span class="hint num" id="ndCount"></span>
+      </div>
+      <div id="ndList"></div>
+      <div class="gf-editbar" id="ndEditBar"><span id="ndEditMsg"></span><button class="btn small" id="ndCancel" type="button">Cancel</button></div>
+      <div id="ndForm" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid var(--grid)">
+        <div class="wiz-field"><label for="nd-title">Title</label>
+          <input id="nd-title" class="inp" placeholder="e.g. Ben's January hours"></div>
+        <div class="wiz-field"><label for="nd-body">The context</label>
+          <textarea id="nd-body" class="inp" style="width:100%; min-height:110px"
+            placeholder="What someone advising you would need to know, and would never find in a bank statement."></textarea></div>
+        <div class="wiz-field"><label for="nd-tags">Tags (optional, comma-separated)</label>
+          <input id="nd-tags" class="inp" placeholder="income, plan, childcare"></div>
+        <div class="wiz-field">
+          <label>Linked to <span class="hint">— tick every person and account this is about</span></label>
+          <div id="nd-links" class="nd-links"></div>
+        </div>
+        <div class="rule-actions">
+          <button class="btn primary" id="nd-save" type="button">Save note</button>
+          <span class="copied" id="ndStatus"></span>
+        </div>
+      </div>
+      <p class="rule-hint" style="margin-top:12px">Notes are included in <b>Copy re-assess prompt</b> and in the local-AI categoriser's context, and they travel in your backup. <button class="btn small" id="ndCopy" type="button">Copy notes for an AI</button></p>
+    </div>
   </div>
 
   <!-- P6: settings card — only meaningful inside the space Settings panel -->
@@ -2315,6 +2524,15 @@ rewrite the static advice cards if the picture has changed.</div>
   const MASK = '€ •••';
   const eurRaw = n => '€' + Math.round(n).toLocaleString('en-IE');
   const eur = n => PRIV.global ? MASK : eurRaw(n);
+  // compact form for the middle of a donut, where a six-figure sum will not fit;
+  // honours privacy mode exactly like eur()
+  const eurK = n => {
+    if (PRIV.global) return MASK;
+    const a = Math.abs(n);
+    if (a >= 1000000) return (n < 0 ? '−€' : '€') + (a / 1000000).toFixed(a >= 10000000 ? 0 : 1).replace(/\.0$/, '') + 'm';
+    if (a >= 10000) return (n < 0 ? '−€' : '€') + Math.round(a / 1000) + 'k';
+    return eurRaw(n);
+  };
   const tip = document.getElementById('tip');
   const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -2323,7 +2541,7 @@ rewrite the static advice cards if the picture has changed.</div>
   const MAP_LEGEND = false;
 
   // ══ persistent stores (all in this browser — self-hosted) ══
-  const LS = {rules:'dd-rules-v2', cats:'dd-cats-v2', goals:'dd-goals-v1', org:'dd-org-v1', recur:'dd-recur-v1', uploads:'dd-uploads-v1', xfers:'dd-xfers-v1', manrec:'dd-manrec-v1', fcast:'dd-fcast-v1', cuts:'dd-cuts-v1', visit:'dd-visit-v1', budget:'dd-budget-v1', priv:'dd-privacy-v1', debts:'dd-debts-v1', holds:'dd-holdings-v1', assets:'dd-assets-v1', nwlog:'dd-nwlog-v1', merch:'dd-merch-v1', notes:'dd-notes-v1', lm:'dd-lm-v1', cash:'dd-cash-v1', alerts:'dd-alerts-v1', txcat:'dd-txcat-v1'};
+  const LS = {rules:'dd-rules-v2', cats:'dd-cats-v2', goals:'dd-goals-v1', org:'dd-org-v1', recur:'dd-recur-v1', uploads:'dd-uploads-v1', xfers:'dd-xfers-v1', manrec:'dd-manrec-v1', fcast:'dd-fcast-v1', cuts:'dd-cuts-v1', visit:'dd-visit-v1', budget:'dd-budget-v1', priv:'dd-privacy-v1', debts:'dd-debts-v1', holds:'dd-holdings-v1', assets:'dd-assets-v1', nwlog:'dd-nwlog-v1', merch:'dd-merch-v1', notes:'dd-notes-v1', lm:'dd-lm-v1', cash:'dd-cash-v1', alerts:'dd-alerts-v1', txcat:'dd-txcat-v1', docs:'dd-docs-v1'};
   // demo build (raw.demo:true in the data block): every store gets its own
   // namespace — the sample household shares an origin with the real app, and
   // playing with sample data must never be able to touch someone's real data
@@ -2730,6 +2948,12 @@ rewrite the static advice cards if the picture has changed.</div>
   // every rule for that row — see Engine.txKey / Engine.effCat.
   let txCatStore = load(LS.txcat, {overrides:{}});
   if (!txCatStore.overrides || typeof txCatStore.overrides !== 'object') txCatStore = {overrides:{}};
+  // Linked concept notes: the household's own context — ideas, plans and
+  // circumstances no statement carries — each note linked to any number of
+  // people and accounts. Separate from dd-notes-v1 (one-line notes pinned to a
+  // single map node), which keeps working untouched.
+  let docStore = load(LS.docs, {items:[]});   // {id, title, body, links:[userId|acctId], tags:[], created, updated}
+  if (!Array.isArray(docStore.items)) docStore = {items:[]};
   const merchCanon = new Map();                   // raw → canonical cache; cleared on merchStore change
   function canonOf(m){
     let v = merchCanon.get(m);
@@ -2771,6 +2995,195 @@ rewrite the static advice cards if the picture has changed.</div>
     // function so both can share it, and it is an Engine kernel in every other
     // sense — pure, parameterised, covered by the self-test as E.upgradePlan.
     upgradePlan,
+    // ── linked concept notes ──
+    // Statements say WHAT happened; they never say why. "Ben's hours drop in
+    // January", "this account is the joint one we run the house from", "we are
+    // saving for a wedding in 2028, not a car" — that context changes what good
+    // advice looks like, and no CSV carries it. These notes hold it, linked to
+    // the people and accounts they concern, and are handed to a connected model
+    // alongside the numbers.
+    //
+    // Resolution is by id, and a link to something since deleted is reported as
+    // a broken link rather than dropped: the note's text is the user's work, and
+    // deleting an account must never quietly delete their thinking about it.
+    noteLinks({note, users, accounts}){
+      const uById = new Map((users || []).map(u => [u.id, u]));
+      const aById = new Map((accounts || []).map(a => [a.id, a]));
+      const links = [], broken = [];
+      for (const id of ((note && note.links) || [])){
+        if (uById.has(id)) links.push({id, kind:'user', name: uById.get(id).name});
+        else if (aById.has(id)) links.push({id, kind:'account', name: aById.get(id).name});
+        else broken.push(id);
+      }
+      return {links, broken};
+    },
+    // Everything a model needs about the household that the numbers do not say.
+    // Notes are grouped under what they are attached to so a model can answer
+    // "what should I know about this account" without re-deriving the links.
+    noteContext({notes, users, accounts}){
+      const out = {general: [], byUser: {}, byAccount: {}, broken: 0, count: 0};
+      for (const n of (notes || [])){
+        if (!n || !String(n.body || '').trim()) continue;
+        out.count++;
+        const {links, broken} = Engine.noteLinks({note: n, users, accounts});
+        out.broken += broken.length;
+        const entry = {id: n.id, title: n.title || '(untitled)', body: n.body,
+                       tags: n.tags || [], updated: n.updated || null,
+                       links: links.map(l => l.name)};
+        if (!links.length) out.general.push(entry);
+        for (const l of links){
+          const bag = l.kind === 'user' ? out.byUser : out.byAccount;
+          (bag[l.name] = bag[l.name] || []).push(entry);
+        }
+      }
+      return out;
+    },
+    // ── next month at a glance ──
+    // Deliberately thin: it reads the FORECAST engine's first month rather than
+    // predicting anything itself, so the Summary screen and the Forecast section
+    // can never disagree. Investments are the one addition — current value
+    // carried forward one month at the nominal growth rate, with NO assumed
+    // contribution, because the app has no evidence of one.
+    nextMonth({fc, holdings, growthNominal, saveAvg}){
+      const f = (fc || [])[0];
+      if (!f) return {month: null};
+      const h = Math.max(0, holdings || 0);
+      const g = growthNominal || 0;
+      return {
+        month: f.m,
+        income: f.inc, expenses: f.exp,
+        savedExpected: f.surplus, savedCautious: f.surplusC,
+        savedRecent: saveAvg == null ? null : saveAvg,
+        investStart: h > 0.5 ? h : null,
+        investEnd: h > 0.5 ? h * (1 + g / 12) : null,
+        investGain: h > 0.5 ? h * (g / 12) : null,
+        growthRate: g
+      };
+    },
+    // ── donut slices ──
+    // Shared by the asset mix, the liability mix and the typical-month expense
+    // mix. Sorted big-to-small, and anything past `max` folds into one "Other"
+    // slice — a categorical palette has a fixed number of distinguishable hues,
+    // so a 9th slice is folded rather than given a made-up colour.
+    donutSlices({items, max, otherLabel}){
+      const clean = (items || [])
+        .map(i => ({key: i.key, label: i.label || i.key, value: +i.value || 0, color: i.color || null}))
+        .filter(i => i.value > 0.005)
+        .sort((a, b) => b.value - a.value);
+      const cap = Math.max(1, max || 8);
+      let slices = clean;
+      if (clean.length > cap){
+        const keep = clean.slice(0, cap - 1);
+        const rest = clean.slice(cap - 1);
+        keep.push({key:'__other', label: otherLabel || 'Other', color: null,
+                   value: rest.reduce((s, r) => s + r.value, 0), folded: rest.length,
+                   foldedKeys: rest.map(r => r.key)});
+        slices = keep;
+      }
+      const total = slices.reduce((s, i) => s + i.value, 0);
+      let acc = 0;
+      for (const s of slices){
+        s.pct = total > 0 ? s.value / total : 0;
+        s.from = acc; acc += s.pct; s.to = acc;
+      }
+      return {slices, total, count: clean.length};
+    },
+    // ── liabilities by kind ──
+    // The liability side of net worth, split so it can be charted. Mirrors
+    // Engine.netWorth's liability arithmetic (tracked debts + what is owed on
+    // credit cards) so the chart and the net-worth figure can never disagree.
+    liabilityMix({debts, creditOwed, kindLabels}){
+      const by = new Map();
+      for (const d of (debts || [])){
+        if (d.done) continue;
+        const bal = Math.max(0, d.balance || 0);
+        if (bal <= 0.005) continue;
+        const k = d.kind || 'other';
+        const cur = by.get(k) || {key:k, label:(kindLabels || {})[k] || k, value:0, n:0};
+        cur.value += bal; cur.n++;
+        by.set(k, cur);
+      }
+      const owed = Math.max(0, creditOwed || 0);
+      if (owed > 0.005) by.set('__cards', {key:'__cards', label:'Credit cards', value: owed, n:0});
+      const items = [...by.values()];
+      return {items, total: items.reduce((s, i) => s + i.value, 0)};
+    },
+    // ── leak shape over time + anomaly flags ──
+    // A leak's monthly total tells you far more than its average: €40/mo of
+    // takeaway every month is a habit to shrink, whereas €480 in one month is
+    // an event that already happened. This separates the two.
+    //
+    // Spikes are found with MEDIAN + MAD, not mean + standard deviation: one
+    // huge month drags a mean up so far that it hides itself, and this app
+    // already uses MAD-robust stats for the forecast buffer, so the two agree.
+    // With MAD zero (a very regular leak) a proportional floor is used instead,
+    // otherwise every tiny wobble would read as an anomaly.
+    leakMonthly({txe, months, test, saveCat, intCat}){
+      const ms = (months || []).slice().sort();
+      const inRange = new Set(ms);
+      const by = new Map(ms.map(m => [m, {month:m, total:0, n:0}]));
+      let total = 0, count = 0;
+      for (const t of txe){
+        if (!inRange.has(t.mo) || t.ec === saveCat || t.ec === intCat || !(t.de > 0)) continue;
+        if (!test(t)) continue;
+        const b = by.get(t.mo);
+        b.total += t.de; b.n++; total += t.de; count++;
+      }
+      const rows = ms.map(m => by.get(m));
+      const vals = rows.map(r => r.total);
+      const active = rows.filter(r => r.n > 0);
+      const med = (arr) => {
+        if (!arr.length) return 0;
+        const s = arr.slice().sort((a, b) => a - b), k = s.length >> 1;
+        return s.length % 2 ? s[k] : (s[k-1] + s[k]) / 2;
+      };
+      const median = med(vals);
+      const mad = med(vals.map(v => Math.abs(v - median)));
+      const sigma = mad * 1.4826;
+      const floor = Math.max(median * 0.6, 25);        // don't cry anomaly over pocket change
+      const cut = sigma > 0.5 ? Math.max(median + 3 * sigma, median + floor) : median + floor;
+      const spikes = rows.filter(r => r.total > cut && r.total > 0)
+        .map(r => ({month: r.month, total: r.total,
+                    times: median > 0.5 ? r.total / median : null}))
+        .sort((a, b) => b.total - a.total);
+      const cover = ms.length ? active.length / ms.length : 0;
+      // a leak present in most months with little spread is a standing habit
+      const spread = median > 0.5 ? sigma / median : (active.length > 1 ? 1 : 0);
+      const pattern = !active.length ? 'none'
+        : cover >= 0.75 ? (spread <= 0.5 ? 'monthly' : 'monthly-erratic')
+        : active.length === 1 ? 'one-off'
+        : 'occasional';
+      const peak = rows.reduce((a, r) => (a && a.total >= r.total) ? a : r, null);
+      return {rows, total, txCount: count, months: ms.length, activeMonths: active.length,
+              avgMonth: ms.length ? total / ms.length : 0,
+              avgActive: active.length ? total / active.length : 0,
+              median, mad, cut, spikes, pattern, coverage: cover, spread, peak};
+    },
+    // ── categories legend: the two sides of the month, averaged ──
+    // The category bars show where money GOES. This gives the frame around
+    // them: what came in, what went out, what was saved, per month over the
+    // range — so a €2,400 bar can be read against a €3,000 income instead of
+    // in a vacuum. Same exclusions as catsFromTxe (internal transfers out,
+    // savings netted) or the two would not add up.
+    categoryLegend({txe, months, saveCat, intCat}){
+      const n = Math.max(1, (months || []).length);
+      const inRange = new Set(months || []);
+      let income = 0, spend = 0, save = 0, incomeN = 0, spendN = 0;
+      const catN = new Set();
+      for (const t of txe){
+        if (!inRange.has(t.mo) || t.ec === intCat) continue;
+        if (t.ec === saveCat){ save += t.de - t.cr; continue; }
+        if (t.cr > 0){ income += t.cr; incomeN++; }
+        if (t.de > 0){ spend += t.de; spendN++; catN.add(t.ec); }
+      }
+      const net = income - spend - save;
+      return {months: n,
+        income, spend, save, net,
+        incomeAvg: income / n, spendAvg: spend / n, saveAvg: save / n, netAvg: net / n,
+        savedRate: income > 0 ? save / income : null,
+        spentRate: income > 0 ? spend / income : null,
+        incomeN, spendN, catCount: catN.size};
+    },
     // ── one category, month by month ──
     // The category chart answers "how much per month on average"; this answers
     // "was that steady?" — pick Rent and see every month in the selected range,
@@ -4139,7 +4552,7 @@ rewrite the static advice cards if the picture has changed.</div>
           ${r.verdict === 'hot' && r.realisticMonth ? `<button class="btn small g-extend" data-i="${i}" data-m="${r.realisticMonth}" type="button">Extend to ${fmtMoLbl(r.realisticMonth)}</button>` : ''}
           <button class="btn small g-edit" data-i="${i}" type="button">Edit</button>
           ${i > 0 ? `<button class="btn small g-up" data-i="${i}" type="button" title="Raise priority">↑</button>` : ''}
-          ${goals.length > 1 ? `<button class="btn small danger g-del" data-i="${i}" type="button">Delete</button>` : ''}
+          <button class="btn small danger g-del" data-i="${i}" type="button">Delete</button>
         </div>
       </div>`;}).join('');
     grid.querySelectorAll('.g-extend').forEach(b => b.addEventListener('click', ()=>{
@@ -4166,6 +4579,12 @@ rewrite the static advice cards if the picture has changed.</div>
     }));
     grid.querySelectorAll('.g-del').forEach(b => b.addEventListener('click', ()=>{
       const i = +b.dataset.i, g = goals[i];
+      // The last goal is deletable now that no goal is a supported state — the
+      // hero invites the wizard instead. Any note pinned to the goal's map node
+      // is deliberately left in place: undo puts the goal back, and silently
+      // destroying the user's own text would not be undoable.
+      const last = goals.length === 1;
+      if (last && !window.confirm('Delete your only goal, “' + g.name + '”?\n\nThe goals card will go back to offering the guided setup. Everything else — cashflow, categories, budgets, wealth — keeps working. This can be undone straight afterwards.')) return;
       goals.splice(i, 1); save(LS.goals, goals); renderAll();
       undoToast('Deleted goal “' + g.name + '”', ()=>{ goals.splice(Math.min(i, goals.length), 0, g); save(LS.goals, goals); renderAll(); });
     }));
@@ -4219,7 +4638,10 @@ rewrite the static advice cards if the picture has changed.</div>
     const P = as[0];
     document.getElementById('simExtra').textContent = eur(cutsTotal());
     document.getElementById('simRate').textContent = eur(rPlan);
-    document.getElementById('simWhen').textContent = P.gap === 0 ? 'already there' : (P.projMonth ? fmtMoLbl(P.projMonth) : 'out of reach');
+    // no goals: the simulator still reports the rate it frees up, it just has no
+    // date to move
+    document.getElementById('simWhen').textContent = !P ? 'no goal set'
+      : P.gap === 0 ? 'already there' : (P.projMonth ? fmtMoLbl(P.projMonth) : 'out of reach');
     renderProjection(P);
   }
 
@@ -4837,6 +5259,483 @@ rewrite the static advice cards if the picture has changed.</div>
   document.getElementById('db-wizard').addEventListener('click', openDebtWizard);
   document.getElementById('ob-goal-wiz').addEventListener('click', openGoalWizard);
 
+  // ══ NOTES & CONTEXT ═══════════════════════════════════════════════════
+  // Free-text notes linked to any number of people and accounts. The point is
+  // the LLM handoff: a model given only transactions can tell you that dining is
+  // 12% of spending; a model that also knows "Ben's hours drop in January" and
+  // "this is the joint house account" can tell you something useful. Notes are
+  // included in the copy-out prompt, the local-AI context, and backups.
+  let ndEditing = null, ndFilter = '', ndQuery = '';
+  function onDocsChanged(){ save(LS.docs, docStore); renderNotes(); if (graph) graph.draw(); }
+  function linkableTargets(){
+    return [...allUsers().map(u => ({id: u.id, kind:'user', name: u.name})),
+            ...allAccounts().map(a => ({id: a.id, kind:'account', name: a.name}))];
+  }
+  function ndFormReset(){
+    ndEditing = null;
+    ['nd-title','nd-body','nd-tags'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    document.getElementById('nd-save').textContent = 'Save note';
+    document.getElementById('ndEditBar').classList.remove('on');
+    document.getElementById('ndForm').style.display = 'none';
+    renderNdLinks([]);
+  }
+  function renderNdLinks(selected){
+    const box = document.getElementById('nd-links');
+    if (!box) return;
+    const sel = new Set(selected || []);
+    const t = linkableTargets();
+    box.innerHTML = t.length
+      ? t.map(x => `<label class="chk nd-link-chip"><input type="checkbox" class="nd-lk" value="${esc(x.id)}" ${sel.has(x.id) ? 'checked' : ''}>
+          <span>${x.kind === 'user' ? '👤' : '🏦'} ${esc(x.name)}</span></label>`).join('')
+      : '<span class="hint">Add people and accounts first and they become linkable here.</span>';
+  }
+  function ndSelectedLinks(){
+    return [...document.querySelectorAll('#nd-links .nd-lk:checked')].map(c => c.value);
+  }
+  function renderNotes(){
+    const list = document.getElementById('ndList');
+    if (!list) return;
+    const users = allUsers(), accounts = allAccounts();
+    // filter dropdown mirrors the linkable set
+    const fsel = document.getElementById('ndFilter');
+    if (fsel){
+      const cur = fsel.value;
+      fsel.innerHTML = '<option value="">All notes</option><option value="__none">Not linked to anything</option>' +
+        linkableTargets().map(x => `<option value="${esc(x.id)}">${x.kind === 'user' ? '👤' : '🏦'} ${esc(x.name)}</option>`).join('');
+      fsel.value = [...fsel.options].some(o => o.value === cur) ? cur : '';
+      ndFilter = fsel.value;
+    }
+    const q = (ndQuery || '').trim().toUpperCase();
+    let items = docStore.items.slice().sort((a, b) => String(b.updated || '').localeCompare(String(a.updated || '')));
+    if (ndFilter === '__none') items = items.filter(n => !(n.links || []).length);
+    else if (ndFilter) items = items.filter(n => (n.links || []).includes(ndFilter));
+    if (q) items = items.filter(n =>
+      String(n.title || '').toUpperCase().includes(q) || String(n.body || '').toUpperCase().includes(q) ||
+      (n.tags || []).some(t => String(t).toUpperCase().includes(q)));
+    const cnt = document.getElementById('ndCount');
+    if (cnt) cnt.textContent = docStore.items.length
+      ? items.length + ' of ' + docStore.items.length + ' note' + (docStore.items.length === 1 ? '' : 's')
+      : '';
+    if (!docStore.items.length){
+      list.innerHTML = `<div class="hint" style="padding:14px 2px">No notes yet. The first one is usually the most valuable:
+        <b>what changed recently, and what you are actually planning</b>. Press <b>＋ New note</b>.</div>`;
+      return;
+    }
+    if (!items.length){ list.innerHTML = '<div class="hint" style="padding:12px 2px">No notes match that filter.</div>'; return; }
+    list.innerHTML = items.map(n => {
+      const {links, broken} = Engine.noteLinks({note: n, users, accounts});
+      return `<div class="nd-item">
+          <div class="nd-top">
+            <b>${esc(n.title || '(untitled)')}</b>
+            <span class="nd-when hint num">${n.updated ? esc(String(n.updated).slice(0, 10)) : ''}</span>
+            <button class="btn small nd-edit" data-id="${esc(n.id)}" type="button">Edit</button>
+            <button class="btn small danger nd-del" data-id="${esc(n.id)}" type="button">Delete</button>
+          </div>
+          <div class="nd-body">${esc(n.body || '').replace(/\n/g, '<br>')}</div>
+          <div class="nd-meta">
+            ${links.map(l => `<span class="flag ok nd-chip" title="Linked ${esc(l.kind)}">${l.kind === 'user' ? '👤' : '🏦'} ${esc(l.name)}</span>`).join('')}
+            ${broken.length ? `<span class="flag warm" title="Linked to something that has since been deleted — the note is kept, and the link is shown so you can repoint or clear it">⚠ ${broken.length} link${broken.length === 1 ? '' : 's'} to deleted items</span>` : ''}
+            ${(n.tags || []).map(t => `<span class="nd-tag">#${esc(t)}</span>`).join('')}
+            ${!links.length && !broken.length ? '<span class="hint">not linked — general household context</span>' : ''}
+          </div>
+        </div>`;
+    }).join('');
+    list.querySelectorAll('.nd-edit').forEach(b => b.addEventListener('click', ()=>{
+      const n = docStore.items.find(x => x.id === b.dataset.id);
+      if (!n) return;
+      ndEditing = n.id;
+      document.getElementById('nd-title').value = n.title || '';
+      document.getElementById('nd-body').value = n.body || '';
+      document.getElementById('nd-tags').value = (n.tags || []).join(', ');
+      renderNdLinks(n.links || []);
+      document.getElementById('nd-save').textContent = 'Save changes';
+      document.getElementById('ndEditMsg').textContent = 'Editing: ' + (n.title || '(untitled)');
+      document.getElementById('ndEditBar').classList.add('on');
+      document.getElementById('ndForm').style.display = '';
+      document.getElementById('nd-title').focus({preventScroll:true});
+    }));
+    list.querySelectorAll('.nd-del').forEach(b => b.addEventListener('click', ()=>{
+      const i = docStore.items.findIndex(x => x.id === b.dataset.id);
+      if (i < 0) return;
+      const n = docStore.items[i];
+      docStore.items.splice(i, 1);
+      onDocsChanged();
+      undoToast('Deleted note “' + (n.title || 'untitled') + '”', ()=>{
+        docStore.items.splice(Math.min(i, docStore.items.length), 0, n); onDocsChanged();
+      });
+    }));
+  }
+  function noteContextModel(){
+    return Engine.noteContext({notes: docStore.items, users: allUsers(), accounts: allAccounts()});
+  }
+  // the text handed to an AI: grouped by who and what it concerns
+  function notesForPrompt(){
+    const C = noteContextModel();
+    if (!C.count) return '';
+    const block = (label, entries) => entries.map(e =>
+      '- ' + (label ? '[' + label + '] ' : '') + (e.title ? e.title + ': ' : '') + e.body.replace(/\s+/g, ' ').trim() +
+      (e.tags.length ? ' (tags: ' + e.tags.join(', ') + ')' : '')).join('\n');
+    const parts = [];
+    if (C.general.length) parts.push('Household context:\n' + block('', C.general));
+    for (const [name, entries] of Object.entries(C.byUser)) parts.push('About ' + name + ':\n' + block('person', entries));
+    for (const [name, entries] of Object.entries(C.byAccount)) parts.push('About the ' + name + ' account:\n' + block('account', entries));
+    return parts.join('\n\n');
+  }
+  {
+    const nn = document.getElementById('ndNew');
+    if (nn) nn.addEventListener('click', ()=>{
+      ndFormReset();
+      document.getElementById('ndForm').style.display = '';
+      document.getElementById('nd-title').focus({preventScroll:true});
+    });
+    const nc = document.getElementById('ndCancel');
+    if (nc) nc.addEventListener('click', ndFormReset);
+    const ns = document.getElementById('nd-save');
+    if (ns) ns.addEventListener('click', ()=>{
+      const title = document.getElementById('nd-title').value.trim();
+      const body = document.getElementById('nd-body').value.trim();
+      const st = document.getElementById('ndStatus');
+      if (!body){ st.textContent = 'A note needs something in it.'; return; }
+      const tags = document.getElementById('nd-tags').value.split(',').map(t => t.trim()).filter(Boolean);
+      const links = ndSelectedLinks();
+      const now = new Date().toISOString();
+      if (ndEditing){
+        const n = docStore.items.find(x => x.id === ndEditing);
+        if (n) Object.assign(n, {title, body, tags, links, updated: now});
+      } else {
+        docStore.items.push({id: uid('n'), title, body, tags, links, created: now, updated: now});
+      }
+      st.textContent = '✓ saved';
+      setTimeout(()=>{ if (st.textContent === '✓ saved') st.textContent = ''; }, 2500);
+      ndFormReset();
+      onDocsChanged();
+    });
+    const nf = document.getElementById('ndFilter');
+    if (nf) nf.addEventListener('change', ()=>{ ndFilter = nf.value; renderNotes(); });
+    const nq = document.getElementById('ndSearch');
+    if (nq) nq.addEventListener('input', ()=>{ ndQuery = nq.value; renderNotes(); });
+    const ncp = document.getElementById('ndCopy');
+    if (ncp) ncp.addEventListener('click', ()=>{
+      const t = notesForPrompt();
+      if (!t){ feedback('No notes to copy yet'); return; }
+      copyText('Context about this household that the transaction data does not contain:\n\n' + t,
+        'Notes copied ✓ — paste alongside your data');
+    });
+  }
+
+  // ══ SUMMARY — the front screen ════════════════════════════════════════
+  // Nothing here computes its own version of anything: the predictions are the
+  // forecast engine's first month, the balances are Engine.balanceRuns, the
+  // expense ring is the same category aggregation the Categories bars use. A
+  // front screen that disagreed with the section behind it would be worse than
+  // no front screen.
+  function summaryModel(){
+    return Engine.nextMonth({fc: FC, holdings: HV ? HV.total : 0,
+      growthNominal: FISCAL.growthNominal, saveAvg: A ? A.saveAvg12 : null});
+  }
+  function renderSummary(){
+    const host = document.getElementById('sumPredict');
+    if (!host) return;
+    const O = summaryModel();
+    const mEl = document.getElementById('sumMonth');
+    if (mEl) mEl.textContent = O && O.month ? '· ' + fmtMoLbl(O.month) : '';
+    if (!O || !O.month){
+      host.innerHTML = '<div class="hint">Upload a statement and the next-month outlook appears here.</div>';
+      return;
+    }
+    // each tile is a door: dock key + section id for goSection
+    const tile = (o) => `<button type="button" class="sum-tile" data-k="${esc(o.dock)}" data-sec="${esc(o.sec)}"
+        title="${esc(o.title)}">
+        <span class="st-ic" aria-hidden="true">${o.ic}</span>
+        <span class="st-lab">${esc(o.label)}</span>
+        <b class="st-val num"${o.color ? ` style="color:${o.color}"` : ''}>${o.value}</b>
+        <span class="st-sub num">${o.sub}</span>
+        <span class="st-go" aria-hidden="true">${esc(o.go)} →</span>
+      </button>`;
+    const cards = [
+      // The forecast reads the LAST FOUR MONTHS; the typical-month ring below
+      // averages the whole selected range. Both are right and they will differ —
+      // so each says which window it used rather than looking like a discrepancy.
+      {ic:'💶', label:'Income', value: eur(O.income), dock:'cash', sec:'sec-cashflow', go:'Cashflow',
+       sub:'from the last 4 months of credits',
+       title:'Predicted income next month — the average of your income credits over the last four months'},
+      {ic:'🧾', label:'Expenses', value: eur(O.expenses), dock:'cats', sec:'sec-cats', go:'Categories',
+       sub:'recurring bills + last 4 months',
+       title:'Predicted spending next month — detected recurring bills plus typical spending over the last four months. The ring below averages the whole selected range instead, so the two figures differ when your recent months differ from the year.'},
+      {ic:'🌱', label:'Saved', value: eur(O.savedCautious), dock:'fcast', sec:'sec-forecast', go:'Forecast',
+       color: O.savedCautious >= 0 ? 'var(--good-text)' : 'var(--critical)',
+       sub: O.savedExpected !== O.savedCautious ? eur(O.savedExpected) + ' if trends hold' : 'after all spending',
+       title:'What should be left over next month, on the cautious path that holds back a buffer for spending swings'},
+      O.investEnd != null
+        ? {ic:'📈', label:'Investments', value: eur(O.investEnd), dock:'invest', sec:'sec-wealth', go:'Wealth',
+           sub: (O.investGain >= 0 ? '+' : '−') + eur(Math.abs(O.investGain)) + ' at ' + Math.round(O.growthRate * 100) + '%/yr nominal',
+           title:'Current holdings carried forward one month at the nominal growth rate — no contribution is assumed'}
+        : {ic:'📈', label:'Investments', value:'—', dock:'invest', sec:'sec-wealth', go:'Wealth',
+           sub:'nothing tracked yet',
+           title:'Add holdings in the Wealth section and a projection appears here'}
+    ];
+    host.innerHTML = cards.map(tile).join('');
+    host.querySelectorAll('.sum-tile').forEach(b => b.addEventListener('click', ()=>
+      goSection(b.dataset.k, b.dataset.sec)));
+    guard('summary balances', renderSummaryBalances);
+    guard('summary expense mix', renderSummaryExpenseMix);
+  }
+  function renderSummaryBalances(){
+    const el = document.getElementById('sumBalances');
+    if (!el) return;
+    const runs = Engine.balanceRuns({accounts: allAccounts(), balances: org.balances, tx: TX,
+                                     months: [...RANGE].sort()});
+    if (!runs.length){ el.innerHTML = '<div class="hint">No accounts yet.</div>'; return; }
+    const known = runs.filter(r => !r.relative);
+    const total = known.reduce((s, r) => s + r.endBal, 0);
+    el.innerHTML = `<div class="sum-bal">
+        ${runs.map(r => `<button type="button" class="sum-bal-row" data-k="people" data-sec="sec-people"
+            title="${r.relative ? 'No opening balance set — this is movement over the range, not a real balance. Click to set one.' : 'Opening balance ' + eur(r.opening) + ' on ' + esc(r.asOf) + ', rolled forward'}">
+            <span class="sb-name">${esc(r.name)}<span class="rule-meta"> ${esc(r.kind)}${r.relative ? ' · movement only' : ''}</span></span>
+            <b class="num" style="color:${r.endBal < -0.005 ? 'var(--critical)' : 'var(--ink)'}">${r.endBal < -0.005 ? '−' : ''}${eur(Math.abs(r.endBal))}</b>
+          </button>`).join('')}
+        ${known.length > 1 ? `<div class="sum-bal-tot num"><span>Total of ${known.length} reconciled account${known.length === 1 ? '' : 's'}</span><b style="color:${total < -0.005 ? 'var(--critical)' : 'var(--ink)'}">${total < -0.005 ? '−' : ''}${eur(Math.abs(total))}</b></div>` : ''}
+      </div>`;
+    el.querySelectorAll('.sum-bal-row').forEach(b => b.addEventListener('click', ()=>
+      goSection(b.dataset.k, b.dataset.sec)));
+  }
+  function renderSummaryExpenseMix(){
+    const el = document.getElementById('sumExpenseMix');
+    if (!el) return;
+    const C = catsFromTxe(scopedTxe()).filter(c => c.category !== SAVE_CAT && c.avgMonth > 0);
+    // categories keep catColor here: the same category must not be one colour on
+    // the bars and another in this ring
+    const M = Engine.donutSlices({
+      items: C.map(c => ({key: c.category, label: c.category, value: c.avgMonth, color: catColor(c.category)})),
+      max: 8, otherLabel: 'Other categories'});
+    if (!M.total){ el.innerHTML = '<div class="hint">No spending in the selected date range.</div>'; return; }
+    el.innerHTML = drawDonut(M, {centerLabel:'PER MONTH', size:180,
+                                 aria:'Typical monthly spending by category'});
+    hookDonut(el, M, 'Per month');
+    const box = document.createElement('div');
+    box.innerHTML = `<button type="button" class="btn small" id="sumMixGo" style="margin-top:8px">Open Categories →</button>`;
+    el.appendChild(box.firstChild);
+    document.getElementById('sumMixGo').addEventListener('click', ()=>goSection('cats', 'sec-cats'));
+  }
+
+  // ══ shared donut chart ═══════════════════════════════════════════════
+  // One renderer for every circle chart (asset mix, liability mix, typical
+  // month). Rules it follows, so all three read as one system:
+  //  · Palette: the two step-sets below are the SAME eight hues chosen for the
+  //    light and the dark surface, validated for adjacent-pair colour-vision
+  //    separation on both — not one set auto-flipped. Slots are used in fixed
+  //    order; a 9th category folds into "Other" (Engine.donutSlices) instead of
+  //    inventing a hue.
+  //  · Callers that chart CATEGORIES pass catColor instead, because a category
+  //    must wear the same colour here as on the bars and the map. Those hues sit
+  //    under 3:1 against the light surface, which is exactly why the slice gaps,
+  //    the direct labels and the value legend below are not optional.
+  //  · A 2px surface-coloured gap separates neighbouring slices, so two similar
+  //    hues never touch.
+  //  · Selective direct labels: only slices with room get one; everything else
+  //    is named in the legend with its value and share.
+  const VIZ_CAT = {
+    light: ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948'],
+    dark:  ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9', '#e66767']
+  };
+  const vizDark = () => {
+    try{ return matchMedia('(prefers-color-scheme: dark)').matches; }catch(e){ return false; }
+  };
+  const vizPalette = () => vizDark() ? VIZ_CAT.dark : VIZ_CAT.light;
+  const vizSlot = i => { const p = vizPalette(); return p[i % p.length]; };
+  const VIZ_OTHER = () => vizDark() ? '#8a8a84' : '#9c9c95';
+
+  function drawDonut(model, opts){
+    const o = opts || {};
+    const size = o.size || 190, thick = o.thickness || 26;
+    const r = (size - thick) / 2, cx = size / 2, cy = size / 2;
+    const C = 2 * Math.PI * r;
+    const gap = model.slices.length > 1 ? 2 : 0;          // 2px surface gap between slices
+    let s = `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img"
+      aria-label="${esc(o.aria || 'Composition chart')}" style="display:block; flex:0 0 auto">
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--grid)" stroke-width="${thick}"/>`;
+    model.slices.forEach((sl, i) => {
+      const len = Math.max(0, sl.pct * C - gap);
+      if (len <= 0) return;
+      const col = sl.key === '__other' ? VIZ_OTHER() : (sl.color || vizSlot(i));
+      s += `<circle class="dn-arc" data-i="${i}" cx="${cx}" cy="${cy}" r="${r}" fill="none"
+        stroke="${col}" stroke-width="${thick}" stroke-linecap="butt"
+        stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}"
+        stroke-dashoffset="${(-sl.from * C).toFixed(2)}"
+        transform="rotate(-90 ${cx} ${cy})" style="cursor:pointer"/>`;
+    });
+    // centre: the total, which is the number the ring is a breakdown of
+    s += `<text x="${cx}" y="${cy - 2}" text-anchor="middle" style="font-size:16px; font-weight:700; fill:var(--ink)">${esc(o.centerValue || eurK(model.total))}</text>`;
+    if (o.centerLabel)
+      s += `<text x="${cx}" y="${cy + 14}" text-anchor="middle" style="font-size:10px; letter-spacing:.06em; fill:var(--muted)">${esc(o.centerLabel)}</text>`;
+    s += '</svg>';
+    // legend carries identity for every slice — never colour alone
+    const legend = model.slices.map((sl, i) => {
+      const col = sl.key === '__other' ? VIZ_OTHER() : (sl.color || vizSlot(i));
+      return `<div class="dn-leg-row" data-i="${i}">
+          <i class="sw" style="background:${col}"></i>
+          <span class="dn-leg-name">${esc(sl.label)}${sl.folded ? ` <span class="hint">(${sl.folded} smaller)</span>` : ''}</span>
+          <b class="num">${eur(sl.value)}</b>
+          <span class="dn-leg-pct num">${Math.round(sl.pct * 100)}%</span>
+        </div>`;
+    }).join('');
+    return `<div class="dn-wrap">${s}<div class="dn-legend">${legend}</div></div>`;
+  }
+  // hover: highlight the arc and its legend row together, and report the slice
+  function hookDonut(host, model, label){
+    if (!host) return;
+    const arcs = [...host.querySelectorAll('.dn-arc')];
+    const rows = [...host.querySelectorAll('.dn-leg-row')];
+    const focus = i => {
+      arcs.forEach(a => { a.style.opacity = (i == null || +a.dataset.i === i) ? '1' : '0.35'; });
+      rows.forEach(rw => rw.classList.toggle('on', i != null && +rw.dataset.i === i));
+    };
+    const show = (i, e) => {
+      const sl = model.slices[i];
+      if (!sl) return;
+      showTip(`<div class="t-title">${esc(sl.label)}</div>
+        <div class="t-row"><span>${esc(label || 'Amount')}</span><b>${eur(sl.value)}</b></div>
+        <div class="t-row"><span>Share</span><b>${(sl.pct * 100).toFixed(1)}%</b></div>
+        ${sl.folded ? `<div class="t-row"><span style="color:var(--muted)">${sl.folded} smaller items folded in</span></div>` : ''}`,
+        e.clientX, e.clientY);
+    };
+    arcs.forEach(a => {
+      const i = +a.dataset.i;
+      a.addEventListener('mousemove', e => { focus(i); show(i, e); });
+      a.addEventListener('mouseleave', ()=>{ hideTip(); focus(null); });
+    });
+    rows.forEach(rw => {
+      const i = +rw.dataset.i;
+      rw.addEventListener('mouseenter', ()=>focus(i));
+      rw.addEventListener('mouseleave', ()=>focus(null));
+    });
+  }
+
+  // ══ asset & liability mix ══
+  const ASSET_LABELS = {cash:'Cash in accounts', pots:'Goal pots held elsewhere', invest:'Investments',
+    property:'Property', vehicle:'Vehicle', pension:'Pension', valuables:'Valuables',
+    business:'Business', 'cash-elsewhere':'Cash elsewhere', other:'Other assets'};
+  const DEBT_LABELS = {personal:'Personal loan', car:'Car loan', mortgage:'Mortgage',
+    'credit-card':'Credit card', student:'Student loan', other:'Other debt'};
+  function assetMixModel(){
+    const comp = (NW && NW.comp) ? NW.comp : [];
+    return Engine.donutSlices({
+      items: comp.map(c => ({key: c.k, label: ASSET_LABELS[c.k] || c.k, value: c.v})),
+      max: 8, otherLabel: 'Other assets'});
+  }
+  function liabMixModel(){
+    const mix = Engine.liabilityMix({debts: debtStore.items,
+      creditOwed: NW ? NW.creditOwed : 0, kindLabels: DEBT_LABELS});
+    return Engine.donutSlices({items: mix.items, max: 8, otherLabel: 'Other debt'});
+  }
+  function renderMixCharts(){
+    const aHost = document.getElementById('assetMix');
+    const lHost = document.getElementById('liabMix');
+    if (aHost){
+      const M = assetMixModel();
+      aHost.innerHTML = M.total > 0
+        ? drawDonut(M, {centerLabel:'ASSETS', aria:'Current assets by category'})
+        : '<div class="hint">Nothing on the asset side yet — set an opening balance, add an investment, or add an asset below.</div>';
+      if (M.total > 0) hookDonut(aHost, M, 'Value');
+    }
+    if (lHost){
+      const M = liabMixModel();
+      lHost.innerHTML = M.total > 0
+        ? drawDonut(M, {centerLabel:'OWED', aria:'Current liabilities by category'})
+        : '<div class="hint">No tracked liabilities — add a loan or card balance in <b>Loans &amp; debt</b> and it appears here.</div>';
+      if (M.total > 0) hookDonut(lHost, M, 'Owed');
+    }
+  }
+
+  // ══ net worth over time ═══════════════════════════════════════════════
+  // Three series on ONE € axis — net worth, and the two sides that produce it —
+  // so a rise can be read as "assets grew" or "debt fell". Never two axes.
+  // Assets and liabilities are drawn only across the stretch of the log that
+  // recorded them; older points hold the net figure alone and the chart says so
+  // rather than back-filling a guess.
+  function renderNwGraph(){
+    const host = document.getElementById('nwGraph');
+    if (!host) return;
+    if (nwLog.length < 2){
+      host.innerHTML = '';
+      return;
+    }
+    const W = 780, H = 230, padL = 58, padR = 14, padT = 14, padB = 30;
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+    const pts = nwLog;
+    const hasSides = pts.filter(e => typeof e.a === 'number' && typeof e.l === 'number');
+    const sideFrom = hasSides.length ? pts.indexOf(hasSides[0]) : -1;
+    const all = pts.map(e => e.t)
+      .concat(hasSides.map(e => e.a)).concat(hasSides.map(e => -Math.abs(e.l)));
+    // round the axis to a 1/2/5×10^n step so the labels read €50k, €100k … and
+    // not €113k, €288k — arbitrary tick values make a chart hard to read off
+    let lo = Math.min(0, ...all), hi = Math.max(0, ...all);
+    const rawStep = Math.max(1, (hi - lo)) / 4;
+    const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+    const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= rawStep) || mag * 10;
+    const mn = Math.floor(lo / step) * step;
+    const mx = Math.ceil(hi / step) * step;
+    const tickVals = [];
+    for (let v = mn; v <= mx + step * 0.001; v += step) tickVals.push(v);
+    const x = i => padL + (pts.length === 1 ? plotW / 2 : i / (pts.length - 1) * plotW);
+    const y = v => padT + plotH - (v - mn) / (mx - mn) * plotH;
+    const path = (vals, from) => vals.map((v, k) => (k ? 'L' : 'M') + x(from + k).toFixed(1) + ',' + y(v).toFixed(1)).join(' ');
+    // recessive grid: a line at zero plus a few horizontal guides
+    let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:520px; display:block" role="img"
+      aria-label="Net worth over time with the asset and liability sides">`;
+    for (const v of tickVals){
+      s += `<line x1="${padL}" x2="${W - padR}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="var(--grid)" stroke-width="1"/>`;
+      s += `<text x="${padL - 8}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end" style="font-size:10.5px; fill:var(--muted)">${esc(eurK(v))}</text>`;
+    }
+    if (mn < 0 && mx > 0)
+      s += `<line x1="${padL}" x2="${W - padR}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}" stroke="var(--baseline)" stroke-width="1.5"/>`;
+    if (sideFrom >= 0){
+      s += `<path d="${path(hasSides.map(e => e.a), sideFrom)}" fill="none" stroke="${vizSlot(2)}" stroke-width="2" stroke-linejoin="round"/>`;
+      s += `<path d="${path(hasSides.map(e => -Math.abs(e.l)), sideFrom)}" fill="none" stroke="${vizSlot(7)}" stroke-width="2" stroke-linejoin="round"/>`;
+    }
+    s += `<path d="${path(pts.map(e => e.t), 0)}" fill="none" stroke="${vizSlot(0)}" stroke-width="2.5" stroke-linejoin="round"/>`;
+    // hover layer: one hit column per point, crosshair + tooltip
+    s += `<line id="nwCross" x1="0" x2="0" y1="${padT}" y2="${padT + plotH}" stroke="var(--ink-2)" stroke-width="1" stroke-dasharray="3 3" style="display:none"/>`;
+    pts.forEach((e, i) => {
+      const w = plotW / Math.max(1, pts.length);
+      s += `<rect class="nw-hit" data-i="${i}" x="${(x(i) - w / 2).toFixed(1)}" y="${padT}" width="${w.toFixed(1)}" height="${plotH}"
+        fill="rgba(0,0,0,0)" style="cursor:crosshair" pointer-events="all"/>`;
+    });
+    s += `<text x="${padL}" y="${H - 10}" style="font-size:10.5px; fill:var(--muted)">${esc(pts[0].d)}</text>`;
+    s += `<text x="${W - padR}" y="${H - 10}" text-anchor="end" style="font-size:10.5px; fill:var(--muted)">${esc(pts[pts.length-1].d)}</text>`;
+    s += '</svg>';
+    const legend = `<div class="legend" style="margin-bottom:6px">
+        <span><i class="sw" style="background:${vizSlot(0)}"></i>Net worth</span>
+        ${sideFrom >= 0 ? `<span><i class="sw" style="background:${vizSlot(2)}"></i>Assets</span>
+        <span><i class="sw" style="background:${vizSlot(7)}"></i>Liabilities (shown below zero)</span>` : ''}
+      </div>`;
+    const note = sideFrom > 0
+      ? `<p class="hint" style="margin:6px 0 0">The asset and liability lines start ${esc(pts[sideFrom].d)}, when this build began recording both sides; earlier points hold the net figure only.</p>`
+      : (sideFrom < 0 ? '<p class="hint" style="margin:6px 0 0">Asset and liability lines appear once a day or two of history has been recorded.</p>' : '');
+    host.innerHTML = `<h4 style="margin:0 0 2px; font-size:13px">Net worth over time</h4>
+      <p class="hint" style="margin:0 0 8px">One point per day the dashboard is opened — history cannot be backfilled, so the line grows from when tracking began.</p>
+      ${legend}<div style="overflow-x:auto">${s}</div>${note}`;
+    const svg = host.querySelector('svg');
+    const cross = host.querySelector('#nwCross');
+    host.querySelectorAll('.nw-hit').forEach(r => {
+      r.addEventListener('mousemove', ev => {
+        const i = +r.dataset.i, e = pts[i];
+        cross.setAttribute('x1', x(i).toFixed(1));
+        cross.setAttribute('x2', x(i).toFixed(1));
+        cross.style.display = '';
+        const prev = i > 0 ? pts[i-1].t : null;
+        const dv = prev == null ? null : e.t - prev;
+        showTip(`<div class="t-title">${esc(e.d)}</div>
+          <div class="t-row"><span>Net worth</span><b>${eur(e.t)}</b></div>
+          ${typeof e.a === 'number' ? `<div class="t-row"><span>Assets</span><b>${eur(e.a)}</b></div>` : ''}
+          ${typeof e.l === 'number' ? `<div class="t-row"><span>Owed</span><b>${eur(e.l)}</b></div>` : ''}
+          ${dv != null ? `<div class="t-row"><span>Change on previous point</span><b style="color:${dv >= 0 ? 'var(--good-text)' : 'var(--critical)'}">${dv >= 0 ? '+' : '−'}${eur(Math.abs(dv))}</b></div>` : ''}`,
+          ev.clientX, ev.clientY);
+      });
+      r.addEventListener('mouseleave', ()=>{ hideTip(); cross.style.display = 'none'; });
+    });
+  }
+
   // ══ balances carried forward ══
   function balanceRunsModel(){
     const months = [...RANGE].sort();
@@ -4985,11 +5884,36 @@ rewrite the static advice cards if the picture has changed.</div>
   document.getElementById('skOverlay').addEventListener('click', e => { if (e.target.id === 'skOverlay') skClose(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.getElementById('skOverlay').hidden) skClose(); });
 
+  // income / spending / saved, averaged per month over the selected range —
+  // the frame the category bars below are read against
+  function renderCatLegend(){
+    const el = document.getElementById('catLegend');
+    if (!el) return;
+    const L = Engine.categoryLegend({txe: scopedTxe(), months: [...RANGE].sort(),
+                                     saveCat: SAVE_CAT, intCat: INT_CAT});
+    const pct = v => v == null ? '' : Math.round(v * 100) + '% of income';
+    const cell = (cls, label, avg, total, sub) => `<div class="cl-item">
+        <span class="cl-key"><i class="sw ${cls}"></i>${esc(label)}</span>
+        <b class="num">${eur(avg)}<small> /mo</small></b>
+        <span class="cl-sub num">${eur(total)} over ${L.months} month${L.months === 1 ? '' : 's'}${sub ? ' · ' + esc(sub) : ''}</span>
+      </div>`;
+    el.innerHTML = `<div class="cat-legend">
+        ${cell('cl-inc', 'Income', L.incomeAvg, L.income, L.incomeN + ' credits')}
+        ${cell('cl-exp', 'Expenses', L.spendAvg, L.spend, (L.spentRate != null ? pct(L.spentRate) : '') || (L.catCount + ' categories'))}
+        ${cell('cl-sav', 'Saved', L.saveAvg, L.save, L.savedRate != null ? pct(L.savedRate) : '')}
+        <div class="cl-item">
+          <span class="cl-key"><i class="sw cl-net"></i>Left over</span>
+          <b class="num" style="color:${L.netAvg >= 0 ? 'var(--good-text)' : 'var(--critical)'}">${L.netAvg < 0 ? '−' : ''}${eur(Math.abs(L.netAvg))}<small> /mo</small></b>
+          <span class="cl-sub num">income − expenses − saved</span>
+        </div>
+      </div>`;
+  }
   function renderCats(){
     fillAcctScopeSelects();
     bindAcctScopeSelects();
     bindLocalRanges();
     syncLocalRanges();
+    guard('categories legend', renderCatLegend);
     const C = catsFromTxe(scopedTxe());
     const W = 860, rowH = 30, padL = 200, padR = 74, padT = 4;
     const H = padT + Math.max(1, C.length)*rowH + 8;
@@ -5038,6 +5962,7 @@ rewrite the static advice cards if the picture has changed.</div>
   }
   let catSel = null;
   let catView = 'months';                 // 'months' | 'tx' — remembered across renders
+  let catMoSel = null;                    // month drilled into inside the month chart
   function catMonthlyModel(name){
     return Engine.catMonthly({txe: scopedTxe(), months: [...RANGE].sort(), category: name, saveCat: SAVE_CAT});
   }
@@ -5050,7 +5975,9 @@ rewrite the static advice cards if the picture has changed.</div>
     const bars = M.rows.map(r => {
       const h = Math.round(Math.abs(r.total) / maxV * 100);
       const empty = r.n === 0;
-      return `<div class="cm-col" title="${esc(fmtMoLbl(r.month))} — ${empty ? 'nothing in this month' : eur(r.total) + ' across ' + r.n + ' transaction' + (r.n === 1 ? '' : 's')}">
+      const on = catMoSel === r.month;
+      return `<div class="cm-col${empty ? '' : ' cm-live'}${on ? ' on' : ''}" ${empty ? '' : `role="button" tabindex="0" data-mo="${esc(r.month)}"`}
+          title="${esc(fmtMoLbl(r.month))} — ${empty ? 'nothing in this month' : eur(r.total) + ' across ' + r.n + ' transaction' + (r.n === 1 ? '' : 's') + ' · click for the breakdown'}">
           <div class="cm-bar-wrap"><div class="cm-bar" style="height:${empty ? 2 : Math.max(3, h)}%; background:${empty ? 'var(--border-strong,#334155)' : col}"></div></div>
           <div class="cm-val num">${empty ? '—' : eur(r.total)}</div>
           <div class="cm-mo num">${esc(r.month.slice(2))}</div>
@@ -5069,7 +5996,42 @@ rewrite the static advice cards if the picture has changed.</div>
           ${trendBit}
         </div>
         <div class="cm-chart">${bars}</div>
-        ${M.emptyMonths ? `<p class="hint" style="margin:6px 0 0">${M.emptyMonths} month${M.emptyMonths === 1 ? '' : 's'} in this range had nothing in ${esc(name)} — shown as a flat stub.</p>` : ''}
+        <p class="hint" style="margin:6px 0 0">Click a month to see the transactions behind it${M.emptyMonths ? ` · ${M.emptyMonths} month${M.emptyMonths === 1 ? '' : 's'} in this range had nothing in ${esc(name)}, shown as a flat stub` : ''}.</p>
+        ${catMoSel ? catMonthDrillHtml(name, catMoSel) : ''}
+      </div>`;
+  }
+  // the transactions behind one month of one category — the answer to "Bills was
+  // €481 in January, what was that?" — with a route to fix a wrong category
+  function catMonthDrillHtml(name, mo){
+    const isSave = name === SAVE_CAT;
+    const txs = scopedTxe()
+      .filter(t => t.mo === mo && t.ec === name && (isSave ? (t.de > 0 || t.cr > 0) : t.de > 0))
+      .sort((a, b) => (isSave ? Math.abs(b.de - b.cr) - Math.abs(a.de - a.cr) : b.de - a.de));
+    const tot = txs.reduce((s, t) => s + (isSave ? t.de - t.cr : t.de), 0);
+    if (!txs.length) return '';
+    const rows = txs.map(t => {
+      const ov = txOverride(t);
+      const rr = !ov && rules.find(r => Engine.ruleMatches(r, t));
+      const why = ov ? 'you moved this one here'
+                : rr ? 'rule “' + rr.merchantContains + '”'
+                : t.c === name ? 'as the statement had it'
+                : '';
+      return `<div class="drill-row cm-tx">
+          <span class="dr-date">${esc(t.d.slice(5))}</span>
+          <span style="flex:1">${esc(t.m)}${why ? ` <span class="rule-meta">(${esc(why)})</span>` : ''}</span>
+          <b>${isSave && t.cr > t.de ? '+' + eur(t.cr - t.de) : '−' + eur(t.de)}</b>
+          <button class="btn small cm-fix" data-m="${esc(t.m)}" data-key="${esc(Engine.txKey(t))}" type="button"
+            title="Wrong category? Move just this one, or write a rule for the name">↪ Recategorise</button>
+        </div>`;
+    }).join('');
+    return `<div class="cm-drill">
+        <div class="drill-head" style="margin:12px 0 6px">
+          <span>🧾 ${esc(fmtMoLbl(mo))} · ${esc(name)}</span>
+          <span class="hint num">${eur(tot)} across ${txs.length} transaction${txs.length === 1 ? '' : 's'}</span>
+          <button class="btn small" id="cmDrillClose" type="button">✕</button>
+        </div>
+        ${rows}
+        <p class="hint" style="margin:6px 0 0">↪ opens the move-or-rule choice: fix this one transaction, or teach a rule so every future one lands right.</p>
       </div>`;
   }
   function renderCatDetail(){
@@ -5095,11 +6057,151 @@ rewrite the static advice cards if the picture has changed.</div>
            <b style="color:${t.de > 0 ? 'var(--ink)' : 'var(--good-text)'}">${t.de > 0 ? '−' + eur(t.de) : '+' + eur(t.cr)}</b></div>`).join('') +
           (txs.length > 60 ? `<div class="hint" style="padding:4px 0">showing the latest 60 of ${txs.length}</div>` : '')) || '<div class="hint">No transactions in this range.</div>'}</div>
       </div></div>`;
-    document.getElementById('catDetailClose').addEventListener('click', ()=>{ catSel = null; renderCats(); syncScopeMapHighlight(); });
+    document.getElementById('catDetailClose').addEventListener('click', ()=>{ catSel = null; catMoSel = null; renderCats(); syncScopeMapHighlight(); });
     el.querySelectorAll('.cat-view').forEach(b => b.addEventListener('click', ()=>{ catView = b.dataset.v; renderCatDetail(); }));
+    // month bar → the transactions behind that month
+    el.querySelectorAll('.cm-col.cm-live').forEach(c => {
+      const open = () => {
+        catMoSel = catMoSel === c.dataset.mo ? null : c.dataset.mo;
+        renderCatDetail();
+        const d = document.querySelector('.cm-drill');
+        if (d) d.scrollIntoView({behavior:'smooth', block:'nearest'});
+      };
+      c.addEventListener('click', open);
+      c.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(); } });
+    });
+    const dc = document.getElementById('cmDrillClose');
+    if (dc) dc.addEventListener('click', ()=>{ catMoSel = null; renderCatDetail(); });
+    el.querySelectorAll('.cm-fix').forEach(b => b.addEventListener('click', ()=>
+      openRecategorise({merchant: b.dataset.m, txKey: b.dataset.key, from: catSel})));
   }
 
+  // ── recategorise one transaction ──
+  // Offered wherever a wrongly-categorised row is visible. Two honest choices,
+  // because they mean different things: move THIS transaction (a per-row
+  // override, right when the row is a one-off) or write a rule for the name
+  // (right when every future one belongs elsewhere too). The rule route hands
+  // off to the rules form, which is where rules are explained and ordered.
+  function openRecategorise({merchant, txKey, from}){
+    const cats = (A && A.allCats ? A.allCats : []).filter(c => c !== from);
+    Wiz.open({
+      kicker: 'Recategorise',
+      state: {merchant, txKey, from},
+      steps: [
+        {title: 'Where does this belong?',
+         sub: '<b>' + esc(merchant) + '</b>' + (from ? ' — currently in ' + esc(from) : ''),
+         body: st => `<div class="wiz-field"><label for="wz-rc-cat">Correct category</label>
+             <input id="wz-rc-cat" class="inp" list="catList" placeholder="pick or type" value="${esc(st.cat || '')}"></div>
+           <div class="wiz-chips">${cats.slice(0, 8).map(c =>
+             `<button type="button" class="wiz-chip" data-for="wz-rc-cat" data-val="${esc(c)}">${esc(c)}</button>`).join('')}</div>`,
+         read: st => {
+           st.cat = (document.getElementById('wz-rc-cat').value || '').trim();
+           if (!st.cat) return 'Pick the category it should be in.';
+           if (st.cat === from) return 'That is the category it is already in.';
+           return true;
+         }},
+        {title: 'Just this one, or all of them?', cta: 'Apply',
+         sub: 'A rule also catches future statements; a move touches only this transaction.',
+         body: st => {
+           const n = TX.filter(t => t.m === merchant).length;
+           return `<div class="wiz-field">
+             <label>What should change</label>
+             <select id="wz-rc-scope" class="inp">
+               <option value="one">Move only this transaction</option>
+               <option value="rule">Write a rule — every “${esc(merchant)}” lands in ${esc(st.cat)} (${n} now, and future ones)</option>
+             </select></div>
+             <p class="hint" style="margin:0">The rule route opens the rules form with this prefilled, so you can narrow it by amount or switch to a pattern first.</p>`;
+         },
+         read: st => { st.scope = document.getElementById('wz-rc-scope').value; return true; }}
+      ],
+      done: st => {
+        ensureCategoryExists(st.cat);
+        if (st.scope === 'rule'){
+          // hand off to the rules form rather than writing silently: rules are
+          // ordered and first-match-wins, and that is the user's call
+          const mode = document.getElementById('rf-match');
+          if (mode) mode.value = 'contains';
+          document.getElementById('rf-merchant').value = st.merchant;
+          document.getElementById('rf-cat').value = st.cat;
+          const note = document.getElementById('rf-note');
+          if (note && !note.value) note.value = 'recategorised from ' + (st.from || 'the statement');
+          if (typeof rfSyncMatchMode === 'function') rfSyncMatchMode();
+          goSection('rules', 'sec-rules');
+          document.getElementById('rulesCard').scrollIntoView({behavior:'smooth', block:'center'});
+          setTimeout(()=>document.getElementById('rf-add').focus({preventScroll:true}), 450);
+          feedback('Rule prefilled — press “Add rule” to apply it');
+          return;
+        }
+        const prev = txCatStore.overrides[st.txKey];
+        txCatStore.overrides[st.txKey] = st.cat;
+        onTxCatChanged();
+        undoToast(st.merchant + ' → ' + st.cat, ()=>{
+          if (prev === undefined) delete txCatStore.overrides[st.txKey];
+          else txCatStore.overrides[st.txKey] = prev;
+          onTxCatChanged();
+        });
+      }
+    });
+  }
+
+  // leak shape over time: one small multiple per leak. Small multiples rather
+  // than one stacked chart — seven leaks in one plot would need seven cycled
+  // hues and the individual shape, which is the whole point here, would be lost.
+  // Each strip is a single series, so it needs no legend; the row label names it.
+  const LEAK_PATTERN = {
+    'monthly':          {ic:'🔁', label:'Steady monthly habit',  cls:'hot',  why:'present nearly every month at a similar size — this is the one worth shrinking'},
+    'monthly-erratic':  {ic:'🔁', label:'Monthly but uneven',    cls:'warm', why:'present most months, but the amount swings a lot'},
+    'occasional':       {ic:'◽', label:'Occasional',             cls:'ok',   why:'only some months — check the spikes rather than the average'},
+    'one-off':          {ic:'❗', label:'One-off',                cls:'ok',   why:'a single month; the per-month average understates what it cost when it happened'},
+    'none':             {ic:'·',  label:'Nothing in range',      cls:'ok',   why:''}
+  };
+  function leakModel(def){
+    return Engine.leakMonthly({txe: A.txe, months: [...RANGE].sort(), test: def.test,
+                               saveCat: SAVE_CAT, intCat: INT_CAT});
+  }
+  function renderLeakShape(){
+    const el = document.getElementById('leakShape');
+    if (!el) return;
+    const models = LEAK_DEFS.map(d => ({def: d, m: leakModel(d)}))
+      .filter(x => x.m.txCount > 0)
+      .sort((a, b) => b.m.total - a.m.total);
+    if (!models.length){ el.innerHTML = '<div class="hint">No leaks in the selected date range.</div>'; return; }
+    const months = [...RANGE].sort();
+    el.innerHTML = models.map(({def, m}) => {
+      const maxV = Math.max(1, ...m.rows.map(r => r.total));
+      const pat = LEAK_PATTERN[m.pattern] || LEAK_PATTERN.none;
+      const spikeMonths = new Set(m.spikes.map(s => s.month));
+      const bars = m.rows.map(r => {
+        const spike = spikeMonths.has(r.month);
+        const h = r.total > 0 ? Math.max(4, Math.round(r.total / maxV * 100)) : 0;
+        const times = (spike && m.spikes.find(s => s.month === r.month) || {}).times;
+        return `<span class="lk-bar-wrap" title="${esc(fmtMoLbl(r.month))} — ${r.n ? eur(r.total) + ' across ' + r.n + ' transaction' + (r.n === 1 ? '' : 's') + (spike ? ' · SPIKE' + (times ? ', ' + times.toFixed(1) + '× the usual month' : '') : '') : 'nothing'}">
+            ${r.total > 0 ? `<span class="lk-bar${spike ? ' spike' : ''}" style="height:${h}%"></span>` : '<span class="lk-none"></span>'}
+          </span>`;
+      }).join('');
+      return `<div class="lk-row">
+          <div class="lk-head">
+            <b>${def.name}</b>
+            <span class="flag ${pat.cls}" title="${esc(pat.why)}">${pat.ic} ${esc(pat.label)}</span>
+            ${m.spikes.length ? `<span class="flag hot" title="Months more than the leak's own median plus 3×MAD: ${m.spikes.map(s => fmtMoLbl(s.month) + ' ' + eur(s.total)).join(', ')}">⚠ ${m.spikes.length} spike${m.spikes.length === 1 ? '' : 's'}</span>` : ''}
+            <span class="hint num lk-nums">${eur(m.avgMonth)}/mo · ${eur(m.total)} total${m.activeMonths < m.months ? ' · in ' + m.activeMonths + ' of ' + m.months + ' months' : ''}${m.peak && m.peak.total > 0 ? ' · worst ' + fmtMoLbl(m.peak.month) + ' ' + eur(m.peak.total) : ''}</span>
+          </div>
+          <div class="lk-strip">${bars}</div>
+        </div>`;
+    }).join('') +
+    `<div class="lk-axis"><span>${esc(fmtMoLbl(months[0]))}</span><span>${esc(fmtMoLbl(months[months.length-1]))}</span></div>
+     <p class="hint" style="margin:8px 0 0">⚠ spike = a month above that leak's own median + 3×MAD (a robust spread measure), so a leak that is always large is not flagged and a genuine one-off is.</p>`;
+  }
   function renderLeaks(){
+    const rEl = document.getElementById('leakRange');
+    if (rEl){
+      rEl.textContent = MONTHS.length ? fmtMoLbl(rangeFrom) + ' – ' + fmtMoLbl(rangeTo) : 'no data yet';
+      const sub = document.getElementById('leakRangeSub');
+      if (sub) sub.textContent = MONTHS.length
+        ? RN + ' month' + (RN === 1 ? '' : 's') + ' · ' + esc(acctLabel(viewAcct)) + ' · change it with 📅 at the top'
+        : '';
+    }
+    guard('leak shape', renderLeakShape);
     const tb = document.querySelector('#leakTable tbody');
     const verdictLabel = {hot:'Cut hard', warm:'Trim', ok:'Healthy'};
     tb.innerHTML = A.leaks.map(l=>`<tr>
@@ -5381,7 +6483,11 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
     if (!cands.length){ lmStatus('Nothing needs categorising right now — everything is covered by the feed, your rules, or was dismissed. 🎉'); return; }
     lmStatus('Asking your model about ' + cands.length + ' merchant group' + (cands.length === 1 ? '' : 's') + '… (local models can take a minute)');
     const allowed = A.allCats.filter(c => c !== INT_CAT);
+    // the household's own context goes with the numbers — it is exactly what a
+    // categoriser working from merchant strings alone cannot know
+    const ctx = notesForPrompt();
     const user = 'Allowed categories (use EXACTLY these strings): ' + JSON.stringify(allowed) + '\n' +
+      (ctx ? 'Context about this household from the user\'s own notes (use it when it bears on a category, ignore it otherwise):\n' + ctx + '\n' : '') +
       'Merchant groups to categorise:\n' + JSON.stringify(cands.map(c => ({merchant: c.merchant,
         currentCategory: c.cat, totalEUR: c.total, transactions: c.n, monthsSeen: c.months,
         mostlyCredits: c.credit, statementNames: c.raws})), null, 1) +
@@ -6256,7 +7362,12 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
 "accounts": ${JSON.stringify(allAccounts(), null, 1)}
 "recurring": ${JSON.stringify(recur, null, 1)}
 "transfers": ${JSON.stringify(Object.entries(xferStore).map(([key, decision]) => ({key, decision})), null, 1)}
-"manualRecurring": ${JSON.stringify(manrec, null, 1)}${Object.keys(txCatStore.overrides).length ? `
+"manualRecurring": ${JSON.stringify(manrec, null, 1)}${notesForPrompt() ? `
+
+IMPORTANT CONTEXT — things about this household that the transaction data does
+not contain, and that should shape your advice (from my own notes):
+${notesForPrompt()}
+` : ''}${Object.keys(txCatStore.overrides).length ? `
 Also keep my per-transaction category moves (browser-only store dd-txcat-v1 —
 keys are accountId|date|merchant|debit|credit and they override rules for those
 exact rows): ${JSON.stringify(txCatStore.overrides, null, 1)}` : ''}${debtStore.items.length ? `
@@ -6413,6 +7524,14 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   }
 
   function renderProjection(P){
+    // Nothing to project without a goal: the chart is a path TO a target, so it
+    // steps aside and points at the guided setup instead of drawing an empty axis.
+    if (!P){
+      const host = document.getElementById('projChart');
+      if (host) host.innerHTML = '<div class="hint" style="padding:24px 8px">No goal set, so there is no target to project towards. ' +
+        'Set one in the goals card above and the cautious and best-case paths appear here.</div>';
+      return;
+    }
     const gap = Math.max(0, P.g.target - P.pot);
     const rNow = Math.max(0, baseRate()), rPlan = Math.max(0, baseRate() + cutsTotal());
     const mBest = rPlan > 0 ? gap/rPlan : Infinity;
@@ -6456,8 +7575,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     const n = Math.min(fc.length, 36);
     const W = 860, H = 260, padL = 52, padR = 120, padT = 12, padB = 32;
     const plotW = W-padL-padR, plotH = H-padT-padB;
-    const potStart = as[0].pot;
-    const maxTarget = Math.max(...goals.map(g=>g.target));
+    // With no goals the forecast still means something — it is the surplus
+    // projection — so it plots from a zero pot with no target line rather than
+    // refusing to draw.
+    const potStart = as.length ? as[0].pot : 0;
+    const maxTarget = goals.length ? Math.max(...goals.map(g=>g.target)) : 0;
     const yTop = Math.max(potStart + fc[n-1].cum, potStart + fc[n-1].cumC, maxTarget, 1000) * 1.1;
     // buffer control state
     const buf = fc.meta ? fc.meta.buffer : 0;
@@ -6520,8 +7642,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           <div class="t-row"><span>Forecast income</span><b>${eur(f.inc)}</b></div>
           <div class="t-row"><span>Forecast spending</span><b>${eur(f.exp)}</b></div>
           <div class="t-row"><span>Saved (cautious)</span><b>${eur(f.surplusC)}</b></div>
-          <div class="t-row"><span>Pot by then</span><b>${eur(as[0].pot + f.cumC)}</b></div>
-          <div class="t-row"><span>…if trends hold</span><b>${eur(as[0].pot + f.cum)}</b></div>`, e.clientX, e.clientY);
+          <div class="t-row"><span>${as.length ? 'Pot by then' : 'Saved by then'}</span><b>${eur(potStart + f.cumC)}</b></div>
+          <div class="t-row"><span>…if trends hold</span><b>${eur(potStart + f.cum)}</b></div>`, e.clientX, e.clientY);
       });
       r.addEventListener('mouseleave', ()=>{ hideTip(); guide.setAttribute('opacity', '0'); });
     });
@@ -7895,7 +9017,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     // ── schemes ──
     const tax = estimateTax();
     const htb = Math.min(FISCAL.htbCap, tax.taxYr * FISCAL.htbYears);
-    const pot = as[0].pot;
+    const pot = as.length ? as[0].pot : 0;      // no goals: the scheme rows still stand, the pot line just reads €0
     document.querySelector('#schemeTable tbody').innerHTML = `
       <tr><td style="width:70px"><span class="flag ${htb >= 29999 ? 'ok' : 'warm'}">Claim</span></td>
         <td><b>Help to Buy (new builds, first-time buyers)</b><div class="rule-meta">Estimated income tax paid over ${FISCAL.htbYears} years ≈ ${eur(tax.taxYr*FISCAL.htbYears)} (from ${eur(tax.netYr)} net salary observed → ~${eur(tax.grossYr)} gross) — ${htb >= FISCAL.htbCap - 1 ? 'comfortably above the ' + eur(FISCAL.htbCap) + ' cap, so the full refund is likely available' : 'your estimated refund ceiling'}. Also capped at 10% of the purchase price. Verify on revenue.ie before relying on it.</div></td>
@@ -7918,7 +9040,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     const netCost = pn.avc * (1 - FISCAL.pensionReliefRate);
     const fv = pn.avc > 0 ? fvMonthly(pn.avc, FISCAL.growthNominal, yrs) : 0;
     let delay = '';
-    if (as[0].gap > 0 && pn.avc > 0){
+    if (as.length && as[0].gap > 0 && pn.avc > 0){
+      // the goal trade-off line only exists when there is a goal to trade off
       const m0 = machine, m1 = machine - netCost;
       const now = m0 > 0 ? as[0].gap / m0 : Infinity;
       const withAvc = m1 > 0 ? as[0].gap / m1 : Infinity;
@@ -8318,15 +9441,23 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     if (NW.flags.includes('ccDup')) notes.push('⚠ a credit-card debt AND a reconciled credit account are both counted — if they are the same card, drop one');
     document.getElementById('nwNotes').innerHTML = notes.length ? '<div class="hint" style="margin-top:6px">' + notes.join('<br>') + '</div>' : '';
     // trend log: one point per day the dashboard opens (updated within the day)
+    // Entries also carry the two sides (a = assets, l = liabilities) so the net
+    // worth graph can show what drove a move, not just the net line. Additive:
+    // points logged by older builds have only `t`, and the graph draws the
+    // breakdown only across the stretch that has it rather than inventing it.
     const today = new Date().toISOString().slice(0, 10);
     const lastEntry = nwLog[nwLog.length - 1];
     if (lastEntry && lastEntry.d === today){
-      if (lastEntry.t !== NW.total){ lastEntry.t = NW.total; save(LS.nwlog, nwLog); }
+      if (lastEntry.t !== NW.total || lastEntry.a !== NW.gross || lastEntry.l !== NW.liab){
+        lastEntry.t = NW.total; lastEntry.a = NW.gross; lastEntry.l = NW.liab;
+        save(LS.nwlog, nwLog);
+      }
     } else {
-      nwLog.push({d: today, t: NW.total});
+      nwLog.push({d: today, t: NW.total, a: NW.gross, l: NW.liab});
       if (nwLog.length > 730) nwLog = nwLog.slice(-730);
       save(LS.nwlog, nwLog);
     }
+    guard('net worth graph', renderNwGraph);
     const tr = document.getElementById('nwTrend');
     if (nwLog.length >= 2){
       const vals = nwLog.map(e => e.t);
@@ -9358,6 +10489,233 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       return true;
     });
 
+    // ── linked concept notes ──
+    const ND_U = [{id:'u1', name:'Ava'}, {id:'u2', name:'Ben'}];
+    const ND_A = [{id:'a1', name:'Joint current'}, {id:'a2', name:'Savings'}];
+    T('noteLinks: resolves people and accounts by id', () => {
+      const r = E.noteLinks({note:{links:['u2','a1']}, users:ND_U, accounts:ND_A});
+      return (r.links.length === 2 && r.links[0].kind === 'user' && r.links[0].name === 'Ben' &&
+              r.links[1].kind === 'account' && r.links[1].name === 'Joint current' && !r.broken.length)
+             || JSON.stringify(r);
+    });
+    T('noteLinks: a link to a deleted account is reported, never silently dropped', () => {
+      const r = E.noteLinks({note:{links:['u1','gone']}, users:ND_U, accounts:ND_A});
+      return (r.links.length === 1 && r.broken.length === 1 && r.broken[0] === 'gone') || JSON.stringify(r);
+    });
+    T('noteContext: groups notes under each person and account they concern', () => {
+      const C = E.noteContext({notes:[
+        {id:'n1', title:'Hours', body:'Ben loses overtime in January', links:['u2']},
+        {id:'n2', title:'House account', body:'Bills run from here', links:['a1','u1']},
+        {id:'n3', title:'Plan', body:'Wedding 2028, not a car', links:[]}
+      ], users:ND_U, accounts:ND_A});
+      return (C.count === 3 && C.general.length === 1 &&
+              C.byUser['Ben'].length === 1 && C.byUser['Ava'].length === 1 &&
+              C.byAccount['Joint current'].length === 1 &&
+              C.byUser['Ava'][0].id === 'n2') || JSON.stringify(C);
+    });
+    T('noteContext: an empty note contributes nothing', () => {
+      const C = E.noteContext({notes:[{id:'n1', body:'   ', links:['u1']}, {id:'n2', body:'real', links:[]}],
+                               users:ND_U, accounts:ND_A});
+      return (C.count === 1 && C.general.length === 1) || JSON.stringify(C);
+    });
+    T('noteContext: a note linked to two things appears under both, once each', () => {
+      const C = E.noteContext({notes:[{id:'n1', body:'x', links:['u1','u2']}], users:ND_U, accounts:ND_A});
+      return (C.byUser['Ava'].length === 1 && C.byUser['Ben'].length === 1 && C.count === 1) || JSON.stringify(C);
+    });
+    T('live: notes reach the AI prompt and the backup', () => {
+      const t = notesForPrompt();
+      const inBackup = buildBackup().stores.docs;
+      if (!inBackup || !Array.isArray(inBackup.items)) return 'notes missing from backups';
+      if (!docStore.items.length) return t === '' || 'prompt text invented with no notes';
+      const first = docStore.items.find(n => String(n.body || '').trim());
+      return (!first || t.includes(first.body.replace(/\s+/g, ' ').trim().slice(0, 30)))
+             || 'a note did not make it into the prompt';
+    });
+
+    // ── next-month outlook ──
+    T('nextMonth: reads the forecast engine rather than inventing its own maths', () => {
+      const fc = [{m:'2026-08', inc:3000, exp:2200, surplus:800, surplusC:650}];
+      const o = E.nextMonth({fc, holdings: 10000, growthNominal: 0.06, saveAvg: 400});
+      return (o.month === '2026-08' && o.income === 3000 && o.expenses === 2200 &&
+              o.savedCautious === 650 && o.savedExpected === 800) || JSON.stringify(o);
+    });
+    T('nextMonth: investments grow by one month of nominal growth, no contribution invented', () => {
+      const o = E.nextMonth({fc:[{m:'2026-08', inc:0, exp:0, surplus:0, surplusC:0}],
+                             holdings: 12000, growthNominal: 0.06});
+      return (approx(o.investEnd, 12000 * (1 + 0.06/12), 0.01) && approx(o.investGain, 60, 0.01) &&
+              o.investStart === 12000) || JSON.stringify(o);
+    });
+    T('nextMonth: no holdings means no investment projection, not a zero', () => {
+      const o = E.nextMonth({fc:[{m:'2026-08', inc:1, exp:1, surplus:0, surplusC:0}], holdings: 0, growthNominal: 0.05});
+      return (o.investEnd === null && o.investGain === null) || JSON.stringify(o);
+    });
+    T('nextMonth: an empty forecast yields nothing rather than throwing', () => {
+      const o = E.nextMonth({fc:[], holdings: 100, growthNominal: 0.05});
+      return (o == null || o.month === null) || JSON.stringify(o);
+    });
+
+    // ── donut slices + liability mix ──
+    T('donutSlices: sorted big-to-small with shares that sum to 1', () => {
+      const d = E.donutSlices({items:[{key:'a', value:10}, {key:'b', value:30}, {key:'c', value:60}]});
+      const sum = d.slices.reduce((s, x) => s + x.pct, 0);
+      return (d.slices[0].key === 'c' && d.slices[2].key === 'a' && approx(sum, 1, 0.0001) &&
+              d.total === 100 && approx(d.slices[0].pct, 0.6, 0.0001)) || JSON.stringify(d.slices);
+    });
+    T('donutSlices: arcs tile the ring without gaps or overlap', () => {
+      const d = E.donutSlices({items:[{key:'a', value:1}, {key:'b', value:2}, {key:'c', value:7}]});
+      if (Math.abs(d.slices[0].from) > 1e-9) return 'first slice does not start at 0';
+      for (let i = 1; i < d.slices.length; i++)
+        if (Math.abs(d.slices[i].from - d.slices[i-1].to) > 1e-9) return 'gap between slice ' + i;
+      return approx(d.slices[d.slices.length-1].to, 1, 1e-9) || 'ring does not close';
+    });
+    T('donutSlices: a 9th category folds into Other, never a new colour', () => {
+      const items = Array.from({length: 12}, (_, i) => ({key:'k'+i, value: 12 - i}));
+      const d = E.donutSlices({items, max: 8, otherLabel:'Other'});
+      const other = d.slices[d.slices.length-1];
+      return (d.slices.length === 8 && other.key === '__other' && other.folded === 5 &&
+              approx(other.value, [4,3,2,1].reduce((s,v)=>s+v,0) + 5, 0.001) &&
+              approx(d.slices.reduce((s,x)=>s+x.value,0), items.reduce((s,x)=>s+x.value,0), 0.001))
+             || JSON.stringify({n:d.slices.length, other});
+    });
+    T('donutSlices: zero and negative values are dropped, not drawn', () => {
+      const d = E.donutSlices({items:[{key:'a', value:5}, {key:'b', value:0}, {key:'c', value:-3}]});
+      return (d.slices.length === 1 && d.total === 5) || JSON.stringify(d.slices);
+    });
+    T('donutSlices: nothing to chart returns an empty ring, not a crash', () => {
+      const d = E.donutSlices({items:[]});
+      return (d.slices.length === 0 && d.total === 0) || JSON.stringify(d);
+    });
+    T('liabilityMix: groups debts by kind and adds cards', () => {
+      const m = E.liabilityMix({debts:[{kind:'car', balance:8000}, {kind:'car', balance:2000},
+                                       {kind:'mortgage', balance:200000}, {kind:'car', balance:0}],
+                                creditOwed: 1500, kindLabels:{car:'Car loan'}});
+      const car = m.items.find(i => i.key === 'car');
+      return (car.value === 10000 && car.n === 2 && car.label === 'Car loan' &&
+              m.items.find(i => i.key === '__cards').value === 1500 &&
+              m.total === 211500) || JSON.stringify(m);
+    });
+    T('liabilityMix: cleared and done debts are excluded', () => {
+      const m = E.liabilityMix({debts:[{kind:'car', balance:0}, {kind:'personal', balance:500, done:true}],
+                                creditOwed: 0});
+      return (m.items.length === 0 && m.total === 0) || JSON.stringify(m);
+    });
+    T('live: the mix charts reconcile with the net worth figures', () => {
+      if (!NW) return true;
+      const am = assetMixModel(), lm = liabMixModel();
+      if (Math.abs(am.total - NW.gross) > 1.5)
+        return 'asset ring ' + am.total.toFixed(0) + ' vs net worth gross ' + NW.gross;
+      if (Math.abs(lm.total - NW.liab) > 1.5)
+        return 'liability ring ' + lm.total.toFixed(0) + ' vs net worth liabilities ' + NW.liab;
+      return true;
+    });
+    T('live: net worth log entries carry both sides for the graph', () => {
+      const last = nwLog[nwLog.length - 1];
+      if (!last) return true;
+      return (typeof last.a === 'number' && typeof last.l === 'number' &&
+              Math.abs(last.t - (last.a - last.l)) < 1.5)
+             || ('log point does not reconcile: ' + JSON.stringify(last));
+    });
+
+    // ── leak shape + anomaly flags ──
+    const LK = (mos, test) => E.leakMonthly({txe: mos, months:['2026-01','2026-02','2026-03','2026-04'],
+                                             test: test || (() => true), saveCat:'S', intCat:'I'});
+    T('leakMonthly: a steady presence every month reads as a monthly habit', () => {
+      const txe = ['2026-01','2026-02','2026-03','2026-04'].flatMap(mo =>
+        [{mo, ec:'Dining', de:40, cr:0}, {mo, ec:'Dining', de:42, cr:0}]);
+      const m = LK(txe);
+      return (m.pattern === 'monthly' && !m.spikes.length && m.activeMonths === 4) || JSON.stringify(m.pattern) + ' ' + m.spikes.length;
+    });
+    T('leakMonthly: one huge month is flagged as a spike', () => {
+      const txe = [{mo:'2026-01', ec:'D', de:40, cr:0}, {mo:'2026-02', ec:'D', de:45, cr:0},
+                   {mo:'2026-03', ec:'D', de:600, cr:0}, {mo:'2026-04', ec:'D', de:38, cr:0}];
+      const m = LK(txe);
+      return (m.spikes.length === 1 && m.spikes[0].month === '2026-03' && m.spikes[0].times > 5)
+             || JSON.stringify(m.spikes);
+    });
+    T('leakMonthly: a consistently large leak is NOT called an anomaly', () => {
+      const txe = ['2026-01','2026-02','2026-03','2026-04'].map(mo => ({mo, ec:'D', de:500, cr:0}));
+      const m = LK(txe);
+      return (!m.spikes.length && m.pattern === 'monthly') || JSON.stringify({s:m.spikes, p:m.pattern});
+    });
+    T('leakMonthly: a single month of activity reads as one-off', () => {
+      const m = LK([{mo:'2026-02', ec:'D', de:300, cr:0}]);
+      return (m.pattern === 'one-off' && m.activeMonths === 1 &&
+              approx(m.avgMonth, 75, 0.01) && approx(m.avgActive, 300, 0.01)) || JSON.stringify(m.pattern);
+    });
+    T('leakMonthly: pocket-change wobble is not an anomaly', () => {
+      const txe = [{mo:'2026-01', ec:'D', de:3, cr:0}, {mo:'2026-02', ec:'D', de:4, cr:0},
+                   {mo:'2026-03', ec:'D', de:9, cr:0}, {mo:'2026-04', ec:'D', de:3, cr:0}];
+      return !LK(txe).spikes.length || 'flagged a €9 month as a spike';
+    });
+    T('leakMonthly: savings and internal transfers never count as a leak', () => {
+      const txe = [{mo:'2026-01', ec:'S', de:900, cr:0}, {mo:'2026-02', ec:'I', de:900, cr:0},
+                   {mo:'2026-03', ec:'D', de:20, cr:0}];
+      const m = LK(txe);
+      return (m.total === 20 && m.txCount === 1) || JSON.stringify(m);
+    });
+    T('leakMonthly: the test predicate decides what belongs to the leak', () => {
+      const txe = [{mo:'2026-01', ec:'Dining', de:50, cr:0}, {mo:'2026-01', ec:'Rent', de:1200, cr:0}];
+      const m = LK(txe, t => t.ec === 'Dining');
+      return (m.total === 50 && m.txCount === 1) || JSON.stringify(m);
+    });
+    T('leakMonthly: every month in range gets a row, and rows sum to the total', () => {
+      const txe = [{mo:'2026-01', ec:'D', de:10, cr:0}, {mo:'2026-03', ec:'D', de:30, cr:0}];
+      const m = LK(txe);
+      return (m.rows.length === 4 && approx(m.rows.reduce((s,r)=>s+r.total,0), m.total, 0.005) &&
+              m.rows[1].total === 0) || JSON.stringify(m.rows);
+    });
+    T('live: leak strips reconcile with the leak table', () => {
+      if (!TX.length || !A.leaks.length) return true;
+      for (const def of LEAK_DEFS){
+        const row = A.leaks.find(l => l.name === def.name);
+        if (!row) continue;
+        const m = leakModel(def);
+        if (Math.abs(m.total - row.total12) > 0.02)
+          return def.name + ': strip ' + m.total.toFixed(2) + ' vs table ' + row.total12.toFixed(2);
+        if (m.txCount !== row.txCount)
+          return def.name + ': strip counted ' + m.txCount + ' vs table ' + row.txCount;
+      }
+      return true;
+    });
+
+    // ── categories legend ──
+    T('categoryLegend: averages over the months in range, not the months with data', () => {
+      const txe = [{mo:'2026-01', ec:'Pay', de:0, cr:3000}, {mo:'2026-01', ec:'Rent', de:1200, cr:0}];
+      const L = E.categoryLegend({txe, months:['2026-01','2026-02'], saveCat:'Deposit savings', intCat:'Internal transfer'});
+      return (L.months === 2 && L.income === 3000 && approx(L.incomeAvg, 1500, 0.01) &&
+              approx(L.spendAvg, 600, 0.01)) || JSON.stringify(L);
+    });
+    T('categoryLegend: savings netted, internal transfers excluded', () => {
+      const txe = [{mo:'2026-01', ec:'Pay', de:0, cr:2000},
+                   {mo:'2026-01', ec:'Deposit savings', de:500, cr:0},
+                   {mo:'2026-01', ec:'Deposit savings', de:0, cr:100},
+                   {mo:'2026-01', ec:'Internal transfer', de:900, cr:0}];
+      const L = E.categoryLegend({txe, months:['2026-01'], saveCat:'Deposit savings', intCat:'Internal transfer'});
+      return (L.save === 400 && L.spend === 0 && L.income === 2000 && L.net === 1600) || JSON.stringify(L);
+    });
+    T('categoryLegend: left over is income minus spending minus saved', () => {
+      const txe = [{mo:'2026-01', ec:'Pay', de:0, cr:3000}, {mo:'2026-01', ec:'Rent', de:1200, cr:0},
+                   {mo:'2026-01', ec:'Deposit savings', de:800, cr:0}];
+      const L = E.categoryLegend({txe, months:['2026-01'], saveCat:'Deposit savings', intCat:'Internal transfer'});
+      return (L.net === 1000 && approx(L.savedRate, 800/3000, 0.001) && approx(L.spentRate, 0.4, 0.001))
+             || JSON.stringify(L);
+    });
+    T('categoryLegend: no income means no rate rather than a divide by zero', () => {
+      const L = E.categoryLegend({txe:[{mo:'2026-01', ec:'Rent', de:100, cr:0}], months:['2026-01'],
+                                  saveCat:'S', intCat:'I'});
+      return (L.savedRate === null && L.spentRate === null && isFinite(L.spendAvg)) || JSON.stringify(L);
+    });
+    T('live: legend expenses reconcile with the category bars', () => {
+      if (!TX.length) return true;
+      const L = Engine.categoryLegend({txe: scopedTxe(), months:[...RANGE].sort(), saveCat: SAVE_CAT, intCat: INT_CAT});
+      const bars = catsFromTxe(scopedTxe()).filter(c => c.category !== SAVE_CAT)
+        .reduce((s, c) => s + c.total12, 0);
+      // the bar chart drops categories averaging under 50c, so the legend is the
+      // same or a shade higher — never lower, and never by more than the dropped tail
+      return (L.spend >= bars - 0.02 && L.spend - bars < Math.max(1, RN * 0.5 * A.allCats.length))
+             || ('legend ' + L.spend.toFixed(2) + ' vs bars ' + bars.toFixed(2));
+    });
+
     // ── one category, month by month ──
     T('catMonthly: every month in the range appears, empty ones included', () => {
       const txe = [{mo:'2026-01', ec:'Rent', de:1000, cr:0}, {mo:'2026-03', ec:'Rent', de:1200, cr:0}];
@@ -9565,7 +10923,33 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       return approx(FC[5].cum, cum, 0.05);
     });
     T('live: primary pot consistent with goals engine', () =>
-      !TX.length || (lastAs && lastAs[0] && lastAs[0].pot === goalPot(goals[0])) || 'pot drift');
+      !TX.length || !goals.length || (lastAs && lastAs[0] && lastAs[0].pot === goalPot(goals[0])) || 'pot drift');
+    T('live: the whole render pipeline survives having no goals', () => {
+      // Deleting the last goal is allowed, so NO renderer may assume one. This
+      // drives the real pipeline rather than checking a few kernels: three
+      // renderers (hero strip, forecast, wealth schemes) read as[0] blindly and
+      // only a full render caught them.
+      if (!TX.length) return true;
+      const saved = goals.slice();
+      const savedErrs = renderErrors.slice();
+      try{
+        goals.length = 0;
+        renderAll();
+        const broke = renderErrors.slice();
+        if (broke.length) return 'with no goals: ' + broke.join('; ');
+        const as = assessGoals(FC, 'surplusC');
+        if (!Array.isArray(as) || as.length) return 'assessGoals invented a goal';
+        if (wealthNodeData().some(n => n.type === 'goal')) return 'a goal node survived with no goals';
+        if (runIntegrity().issues.length) return 'no goals reported as an integrity issue';
+        return true;
+      } finally {
+        goals.length = 0;
+        for (const g of saved) goals.push(g);
+        renderAll();
+        renderErrors.length = 0;
+        renderErrors.push(...savedErrs);
+      }
+    });
     T('live: plan cards computed from data', () => {
       if (!TX.length) return true;
       const el = document.getElementById('planCards');
@@ -9819,6 +11203,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     guard('debt tracker', ()=>renderDebts());
     guard('holdings', ()=>renderHoldings());
     guard('net worth', ()=>renderNetWorth(FC));
+    guard('asset & liability mix', renderMixCharts);
     guard('pulse', ()=>renderPulse());
     guard('HUD', ()=>renderHud(FC, as));
     guard('cash widget', ()=>renderCash());
@@ -11274,6 +12659,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     guard('aggregation', aggregate);
     renderDerived();
     guard('rules', renderRules);
+    guard('summary', renderSummary);
+    guard('notes & context', renderNotes);
     guard('cashflow', renderCashflow);
     guard('balances carried forward', renderBalances);
     guard('money flow', renderSankey);
@@ -11315,7 +12702,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       base: {txCount: raw.transactions.length, checksum: BASE_SUM,
              from: raw.transactions.length ? raw.transactions[0][0] : null,
              to: raw.transactions.length ? raw.transactions[raw.transactions.length-1][0] : null},
-      stores: {rules, cats: catStore, goals, org, recur: recurStore, uploads, xfers: xferStore, manrec, fcast: FCONF, budget: budgetStore, debts: debtStore, holdings: holdStore, assets: assetStore, nwlog: nwLog, merch: merchStore, notes: noteStore, lm: lmStore, cash: cashStore, alerts: alertStore, txcat: txCatStore},
+      stores: {rules, cats: catStore, goals, org, recur: recurStore, uploads, xfers: xferStore, manrec, fcast: FCONF, budget: budgetStore, debts: debtStore, holdings: holdStore, assets: assetStore, nwlog: nwLog, merch: merchStore, notes: noteStore, lm: lmStore, cash: cashStore, alerts: alertStore, txcat: txCatStore, docs: docStore},
       ui: {cuts: {...cutStore}, rangeFrom, rangeTo, privacy: {...PRIV}}
     };
   }
@@ -11560,11 +12947,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     if (Array.isArray(st.manrec)) manrec = st.manrec;
     if (st.fcast && typeof st.fcast.bufferPct === 'number') FCONF = st.fcast;
     if (st.txcat && st.txcat.overrides && typeof st.txcat.overrides === 'object') txCatStore = {overrides: st.txcat.overrides};
+    if (st.docs && Array.isArray(st.docs.items)) docStore = {items: st.docs.items};
     save(LS.rules, rules); save(LS.cats, catStore); save(LS.goals, goals);
     save(LS.org, org); save(LS.recur, recurStore); save(LS.uploads, uploads);
     save(LS.xfers, xferStore); save(LS.manrec, manrec); save(LS.fcast, FCONF);
     save(LS.debts, debtStore); save(LS.holds, holdStore);
-    save(LS.assets, assetStore); save(LS.nwlog, nwLog); save(LS.merch, merchStore); save(LS.notes, noteStore); save(LS.lm, lmStore); save(LS.alerts, alertStore); save(LS.txcat, txCatStore);
+    save(LS.assets, assetStore); save(LS.nwlog, nwLog); save(LS.merch, merchStore); save(LS.notes, noteStore); save(LS.lm, lmStore); save(LS.alerts, alertStore); save(LS.txcat, txCatStore); save(LS.docs, docStore);
     if (budgetStore) save(LS.budget, budgetStore);
     if (b.ui && b.ui.cuts){
       const legacy = {groc:'Groceries', dine:'Dining', shop:'Shopping', bills:'Bills & Utilities', ent:'Entertainment', misc:'Uncategorized'};
@@ -11596,12 +12984,26 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   window.__ddTxCat = () => txCatStore;
   window.__ddRange = () => ({from: rangeFrom, to: rangeTo, n: RN});
   window.__ddCatSel = () => catSel;
+  window.__ddCatMoSel = () => catMoSel;
+  window.__ddRulesCount = () => rules.length;
   window.__ddCatMonthly = name => catMonthlyModel(name);
+  window.__ddCatLegend = () => Engine.categoryLegend({txe: scopedTxe(), months: [...RANGE].sort(),
+                                                      saveCat: SAVE_CAT, intCat: INT_CAT});
   window.__ddCashSel = () => cashSel;
   window.__ddCashMonths = () => cashMonthList();
   window.__ddBalRuns = () => balanceRunsModel();
   window.__ddGoals = () => goals;
   window.__ddDebts = () => debtStore.items;
+  window.__ddNW = () => NW;
+  window.__ddSummary = () => summaryModel();
+  window.__ddDocs = () => docStore.items;
+  window.__ddNoteCtx = () => noteContextModel();
+  window.__ddNotesPrompt = () => notesForPrompt();
+  window.__ddShowNodeCard = info => showNodeCard(info);
+  window.__ddFC = () => FC;
+  window.__ddAssetMix = () => assetMixModel();
+  window.__ddLiabMix = () => liabMixModel();
+  window.__ddNwLog = () => nwLog;
   window.__ddOrg = () => org;
   window.__ddSaveOrg = () => save(LS.org, org);
   window.__ddMonths = () => MONTHS.slice();
@@ -11675,6 +13077,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     // mini cards. People is its own Data tab (centered popup); Settings keeps
     // view/tutorial + backup/integrity.
     const items = [
+      {k:'summary', ic:'🧭', label:'Summary',   sel:['#sec-summary']},
       {k:'goals',  ic:'🎯', label:'Goals',      sel:['#goalHero', '.kpis']},
       {k:'alerts', ic:'🔔', label:'Alerts',     sel:['#sec-alerts']},
       {k:'cash',   ic:'📈', label:'Cashflow',   sel:['#sec-cashflow']},
@@ -11684,6 +13087,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       {k:'sim',    ic:'🎚️', label:'Simulate',   sel:['#sec-sim']},
       {k:'fcast',  ic:'🔮', label:'Forecast',   sel:['#sec-forecast']},
       {k:'plan',   ic:'🗺️', label:'Plan',       sel:['#sec-plan']},
+      {k:'notes',  ic:'📝', label:'Notes',      sel:['#sec-notes']},
       {k:'pulse',  ic:'🫀', label:'Pulse',      sel:['#pulseCard']},
       {k:'wealth', ic:'🌱', label:'Net worth',  sel:['#nwCard', '#schemeCard', '#pensionCard', '#reallocCard']},
       {k:'invest', ic:'📊', label:'Invest',     sel:['#holdCard']},
@@ -11695,8 +13099,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       {k:'settings', ic:'🛠️', label:'Settings', sel:['#settingsCard', '#sec-alive']}
     ];
     const groups = [
-      ['Overview', ['goals', 'alerts', 'cash', 'cats', 'leaks']],
-      ['Planning', ['budget', 'sim', 'fcast', 'plan']],
+      ['Overview', ['summary', 'goals', 'alerts', 'cash', 'cats', 'leaks']],
+      ['Planning', ['budget', 'sim', 'fcast', 'plan', 'notes']],
       ['Wealth',   ['pulse', 'wealth', 'invest', 'debts', 'ready']],
       ['Data',     ['audit', 'rules', 'people', 'settings']]
     ];
@@ -12655,6 +14059,20 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         html += `<div class="rule-meta" style="margin-top:8px; white-space:pre-wrap">📝 ${esc(noteStore[info.id])}</div>`;
       act += ` <button class="btn small" data-act="note" data-key="${esc(info.id)}" type="button">${noteStore[info.id] ? '✎ Edit note' : '＋ Note'}</button>`;
     }
+    // Linked concept notes surface on the person and account nodes they were
+    // linked to — the whole point of linking them is that they show up where the
+    // money they are about actually sits.
+    if (info.type === 'user' || info.type === 'acct'){
+      const targetId = String(info.id || '').replace(/^(user|acct):/, '');
+      const mine = docStore.items.filter(n => (n.links || []).includes(targetId));
+      if (mine.length){
+        html += `<div style="margin-top:8px; border-top:1px solid rgba(255,255,255,.12); padding-top:6px">` +
+          mine.slice(0, 3).map(n => `<div class="rule-meta" style="white-space:pre-wrap; margin-bottom:4px">📝 <b>${esc(n.title || 'Note')}</b><br>${esc(String(n.body || '').slice(0, 180))}${String(n.body || '').length > 180 ? '…' : ''}</div>`).join('') +
+          (mine.length > 3 ? `<div class="rule-meta">+${mine.length - 3} more in Notes &amp; context</div>` : '') +
+          `</div>`;
+      }
+      act += ` <button class="btn small" data-act="notesec" type="button">${mine.length ? '📝 ' + mine.length + ' note' + (mine.length === 1 ? '' : 's') : '＋ Add context'}</button>`;
+    }
     const dot = document.getElementById('ncDot');
     dot.style.background = color; dot.style.color = color;
     document.getElementById('ncTitle').textContent = title;
@@ -12691,6 +14109,22 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         document.getElementById('txSearch').value = btn.dataset.m;
         renderTxSearch();
         goSection('search', 'sec-search');
+      } else if (k === 'notesec'){
+        // open Notes filtered to this node, and start a note already linked to it
+        const targetId = String(info.id || '').replace(/^(user|acct):/, '');
+        goSection('notes', 'sec-notes');
+        const f = document.getElementById('ndFilter');
+        if (f){
+          const has = [...f.options].some(o => o.value === targetId);
+          if (has){ f.value = targetId; ndFilter = targetId; }
+        }
+        renderNotes();
+        if (!docStore.items.some(n => (n.links || []).includes(targetId))){
+          ndFormReset();
+          document.getElementById('ndForm').style.display = '';
+          renderNdLinks([targetId]);
+          document.getElementById('nd-title').focus({preventScroll:true});
+        }
       } else if (k === 'cashnew'){
         openCashTxModal(btn.dataset.acct, null);
         return; // keep card? hide
