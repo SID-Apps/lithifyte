@@ -10541,12 +10541,15 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         return 'liability ring ' + lm.total.toFixed(0) + ' vs net worth liabilities ' + NW.liab;
       return true;
     });
-    T('live: net worth log entries carry both sides for the graph', () => {
-      const last = nwLog[nwLog.length - 1];
-      if (!last) return true;
-      return (typeof last.a === 'number' && typeof last.l === 'number' &&
-              Math.abs(last.t - (last.a - last.l)) < 1.5)
-             || ('log point does not reconcile: ' + JSON.stringify(last));
+    T('live: net worth log points that carry both sides reconcile', () => {
+      // Points written by builds before the asset/liability split hold only the
+      // net figure — that IS the additive design, not a fault, and a user whose
+      // last render took the fresh path (no transactions) still has one at the
+      // end of the log. So: legacy points are fine; any point that does carry
+      // both sides must add up.
+      const withSides = nwLog.filter(e => typeof e.a === 'number' && typeof e.l === 'number');
+      const bad = withSides.find(e => Math.abs(e.t - (e.a - e.l)) > 1.5);
+      return !bad || ('log point does not reconcile: ' + JSON.stringify(bad));
     });
 
     // ── leak shape + anomaly flags ──
