@@ -4200,12 +4200,52 @@ rewrite the static advice cards if the picture has changed.</div>
   const fmtMoLbl = m => new Date(+m.slice(0,4), +m.slice(5)-1, 1).toLocaleDateString('en-IE',{month:'short',year:'numeric'});
 
   // ══ category colours — one palette everywhere (bespoke overrides win) ══
-  const NEON = ['#38bdf8','#f472b6','#facc15','#34d399','#a78bfa','#fb923c','#22d3ee','#f87171','#a3e635','#e879f9','#60a5fa','#2dd4bf'];
-  function hashCat(name){ let h = 0; for (let i=0;i<name.length;i++) h = (h*31 + name.charCodeAt(i)) >>> 0; return h % NEON.length; }
+  // ══ THE CATEGORICAL PALETTE ═══════════════════════════════════════════
+  // ONE palette for every categorical colour in the app: category bars, the
+  // money map, the Sankey, the donut rings, the net-worth graph. Two step-sets
+  // — the same nine hues chosen for the light surface (#fcfcfb) and for the dark
+  // one (#1a1a19), each stepped for its own surface rather than one set flipped.
+  //
+  // Chosen by SEARCH, not by eye, and checked with the dataviz validator. Both
+  // sets clear every hard gate in their own mode:
+  //   lightness band · chroma floor · adjacent CVD ΔE 14.0 light / 14.9 dark
+  //   (target 8) · adjacent normal-vision ΔE 22.6 / 23.3 (floor 15) ·
+  //   contrast ≥ 3:1 against the surface, with no relief needed.
+  //
+  // What it replaced: the old 12-hue NEON set failed two hard gates in BOTH
+  // modes — 5 of 12 hues outside the light lightness band and all 12 outside the
+  // dark one (it was a single set used for both), adjacent CVD ΔE 5.0, and a
+  // minimum contrast of 1.47:1 on the light surface.
+  //
+  // Honest limit, and why the labels matter: catColor is an ENTITY hash over an
+  // unbounded set of category names, so any two categories can end up side by
+  // side and "fold the 9th into Other" is not available the way it is for a
+  // series. No palette of this size can make every PAIR colour-vision-safe
+  // (worst all-pairs CVD ΔE ~2 here, up from 0.3) — which is why every surface
+  // that shows these colours also names the category: bars are direct-labelled,
+  // rings carry a value legend, map nodes are labelled. Colour is the mnemonic;
+  // the label is the identity. Never remove one and lean on the other.
+  const CAT_PAL = {
+    light: ['#c64a9a', '#10861f', '#864bc2', '#8d8311', '#4779ea', '#d74748', '#1691b5', '#9d5d0d', '#19a496'],
+    dark:  ['#d558a8', '#10841f', '#854ac0', '#9b9115', '#5487fa', '#e75655', '#1694b7', '#9b5c0c', '#1aa799']
+  };
+  // slot roles for the few places that need a FIXED colour rather than a hashed
+  // one (the net-worth graph's three series). blue/teal/red scores ΔE 11.0
+  // all-pairs under colour-vision simulation, clear of the 8 target, and keeps
+  // red for what is owed.
+  const CAT_SLOT = {net: 4, assets: 6, liabilities: 5, savings: 1};
+  const prefersDark = () => {
+    try{ return matchMedia('(prefers-color-scheme: dark)').matches; }catch(e){ return false; }
+  };
+  const catPalette = () => prefersDark() ? CAT_PAL.dark : CAT_PAL.light;
+  const catSlot = i => { const p = catPalette(); return p[((i % p.length) + p.length) % p.length]; };
+  function hashCat(name){ let h = 0; for (let i=0;i<name.length;i++) h = (h*31 + name.charCodeAt(i)) >>> 0; return h % CAT_PAL.light.length; }
   function catColor(name){
-    if (catStore.colors[name]) return catStore.colors[name];
-    if (name === SAVE_CAT) return '#34d399';
-    return NEON[hashCat(name)];
+    if (catStore.colors[name]) return catStore.colors[name];   // a bespoke colour always wins
+    // savings is the one semantic category: it keeps the green the rest of the
+    // savings UI uses, rather than whatever the hash lands on
+    if (name === SAVE_CAT) return catSlot(CAT_SLOT.savings);
+    return catSlot(hashCat(name));
   }
 
   // ══ rule engine (thin wrappers over Engine) ══
@@ -5521,29 +5561,18 @@ rewrite the static advice cards if the picture has changed.</div>
   // ══ shared donut chart ═══════════════════════════════════════════════
   // One renderer for every circle chart (asset mix, liability mix, typical
   // month). Rules it follows, so all three read as one system:
-  //  · Palette: the two step-sets below are the SAME eight hues chosen for the
-  //    light and the dark surface, validated for adjacent-pair colour-vision
-  //    separation on both — not one set auto-flipped. Slots are used in fixed
-  //    order; a 9th category folds into "Other" (Engine.donutSlices) instead of
-  //    inventing a hue.
+  //  · Palette: THE SAME `CAT_PAL` the whole app uses (see it for the validator
+  //    numbers). Slots are used in fixed order; a 10th category folds into
+  //    "Other" (Engine.donutSlices) instead of inventing a hue.
   //  · Callers that chart CATEGORIES pass catColor instead, because a category
-  //    must wear the same colour here as on the bars and the map. Those hues sit
-  //    under 3:1 against the light surface, which is exactly why the slice gaps,
-  //    the direct labels and the value legend below are not optional.
+  //    must wear the same colour here as on the bars and the map.
   //  · A 2px surface-coloured gap separates neighbouring slices, so two similar
   //    hues never touch.
   //  · Selective direct labels: only slices with room get one; everything else
-  //    is named in the legend with its value and share.
-  const VIZ_CAT = {
-    light: ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948'],
-    dark:  ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9', '#e66767']
-  };
-  const vizDark = () => {
-    try{ return matchMedia('(prefers-color-scheme: dark)').matches; }catch(e){ return false; }
-  };
-  const vizPalette = () => vizDark() ? VIZ_CAT.dark : VIZ_CAT.light;
-  const vizSlot = i => { const p = vizPalette(); return p[i % p.length]; };
-  const VIZ_OTHER = () => vizDark() ? '#8a8a84' : '#9c9c95';
+  //    is named in the legend with its value and share — colour is never the
+  //    only thing carrying identity.
+  const vizSlot = i => catSlot(i);
+  const VIZ_OTHER = () => prefersDark() ? '#8a8a84' : '#9c9c95';
 
   function drawDonut(model, opts){
     const o = opts || {};
@@ -5690,10 +5719,10 @@ rewrite the static advice cards if the picture has changed.</div>
     if (mn < 0 && mx > 0)
       s += `<line x1="${padL}" x2="${W - padR}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}" stroke="var(--baseline)" stroke-width="1.5"/>`;
     if (sideFrom >= 0){
-      s += `<path d="${path(hasSides.map(e => e.a), sideFrom)}" fill="none" stroke="${vizSlot(2)}" stroke-width="2" stroke-linejoin="round"/>`;
-      s += `<path d="${path(hasSides.map(e => -Math.abs(e.l)), sideFrom)}" fill="none" stroke="${vizSlot(7)}" stroke-width="2" stroke-linejoin="round"/>`;
+      s += `<path d="${path(hasSides.map(e => e.a), sideFrom)}" fill="none" stroke="${catSlot(CAT_SLOT.assets)}" stroke-width="2" stroke-linejoin="round"/>`;
+      s += `<path d="${path(hasSides.map(e => -Math.abs(e.l)), sideFrom)}" fill="none" stroke="${catSlot(CAT_SLOT.liabilities)}" stroke-width="2" stroke-linejoin="round"/>`;
     }
-    s += `<path d="${path(pts.map(e => e.t), 0)}" fill="none" stroke="${vizSlot(0)}" stroke-width="2.5" stroke-linejoin="round"/>`;
+    s += `<path d="${path(pts.map(e => e.t), 0)}" fill="none" stroke="${catSlot(CAT_SLOT.net)}" stroke-width="2.5" stroke-linejoin="round"/>`;
     // hover layer: one hit column per point, crosshair + tooltip
     s += `<line id="nwCross" x1="0" x2="0" y1="${padT}" y2="${padT + plotH}" stroke="var(--ink-2)" stroke-width="1" stroke-dasharray="3 3" style="display:none"/>`;
     pts.forEach((e, i) => {
@@ -5705,9 +5734,9 @@ rewrite the static advice cards if the picture has changed.</div>
     s += `<text x="${W - padR}" y="${H - 10}" text-anchor="end" style="font-size:10.5px; fill:var(--muted)">${esc(pts[pts.length-1].d)}</text>`;
     s += '</svg>';
     const legend = `<div class="legend" style="margin-bottom:6px">
-        <span><i class="sw" style="background:${vizSlot(0)}"></i>Net worth</span>
-        ${sideFrom >= 0 ? `<span><i class="sw" style="background:${vizSlot(2)}"></i>Assets</span>
-        <span><i class="sw" style="background:${vizSlot(7)}"></i>Liabilities (shown below zero)</span>` : ''}
+        <span><i class="sw" style="background:${catSlot(CAT_SLOT.net)}"></i>Net worth</span>
+        ${sideFrom >= 0 ? `<span><i class="sw" style="background:${catSlot(CAT_SLOT.assets)}"></i>Assets</span>
+        <span><i class="sw" style="background:${catSlot(CAT_SLOT.liabilities)}"></i>Liabilities (shown below zero)</span>` : ''}
       </div>`;
     const note = sideFrom > 0
       ? `<p class="hint" style="margin:6px 0 0">The asset and liability lines start ${esc(pts[sideFrom].d)}, when this build began recording both sides; earlier points hold the net figure only.</p>`
@@ -8237,7 +8266,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       let sd = 12345;
       const rnd = () => (sd = (sd*1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
       for (let i = 0; i < 12; i++)
-        bokeh.push({fx:rnd(), fy:rnd(), r:40 + rnd()*110, c:NEON[i % NEON.length], a:0.05 + rnd()*0.05, ph:rnd()*6.28});
+        // ambient background wash only — encodes nothing, so it just borrows the
+        // palette's hues at 5% alpha
+        bokeh.push({fx:rnd(), fy:rnd(), r:40 + rnd()*110, c:catSlot(i), a:0.05 + rnd()*0.05, ph:rnd()*6.28});
       for (let i = 0; i < 42; i++)
         particles.push({fx:rnd(), fy:rnd(), r:0.6 + rnd()*1.5, sp:6 + rnd()*14, ph:rnd()*6.28});
     }
@@ -10552,6 +10583,67 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     T('nextMonth: an empty forecast yields nothing rather than throwing', () => {
       const o = E.nextMonth({fc:[], holdings: 100, growthNominal: 0.05});
       return (o == null || o.month === null) || JSON.stringify(o);
+    });
+
+    // ── the categorical palette ──
+    // The colour-vision separation numbers were established offline with the
+    // dataviz validator (see CAT_PAL). These are the invariants that a future
+    // edit could break without noticing, so they are checked on every load.
+    const wcagLum = hex => {
+      const ch = [1,3,5].map(i => parseInt(hex.slice(i, i+2), 16) / 255)
+        .map(c => c <= 0.03928 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4));
+      return 0.2126*ch[0] + 0.7152*ch[1] + 0.0722*ch[2];
+    };
+    const wcagRatio = (a, b) => {
+      const [hi, lo] = [wcagLum(a), wcagLum(b)].sort((x, y) => y - x);
+      return (hi + 0.05) / (lo + 0.05);
+    };
+    T('palette: light and dark are the same number of slots', () =>
+      (CAT_PAL.light.length === CAT_PAL.dark.length && CAT_PAL.light.length === 9)
+      || (CAT_PAL.light.length + ' vs ' + CAT_PAL.dark.length));
+    T('palette: every entry is a valid 6-digit hex', () => {
+      const bad = [...CAT_PAL.light, ...CAT_PAL.dark].filter(c => !/^#[0-9a-f]{6}$/i.test(c));
+      return !bad.length || bad.join(', ');
+    });
+    T('palette: no duplicate slots within a mode', () => {
+      for (const [mode, pal] of Object.entries(CAT_PAL))
+        if (new Set(pal).size !== pal.length) return 'duplicate hue in ' + mode;
+      return true;
+    });
+    T('palette: every slot clears 3:1 against its own surface', () => {
+      // the whole point of separate step-sets — one set flipped between themes
+      // is what put the old palette at 1.47:1 on the light surface
+      const fails = [];
+      CAT_PAL.light.forEach(c => { const r = wcagRatio(c, '#fcfcfb'); if (r < 3) fails.push('light ' + c + ' ' + r.toFixed(2)); });
+      CAT_PAL.dark.forEach(c => { const r = wcagRatio(c, '#1a1a19'); if (r < 3) fails.push('dark ' + c + ' ' + r.toFixed(2)); });
+      return !fails.length || fails.join(' · ');
+    });
+    T('palette: the net-worth graph\'s three series are distinct slots', () => {
+      const {net, assets, liabilities} = CAT_SLOT;
+      return (new Set([net, assets, liabilities]).size === 3 &&
+              [net, assets, liabilities].every(i => i >= 0 && i < CAT_PAL.light.length))
+             || JSON.stringify(CAT_SLOT);
+    });
+    T('catColor: stable for the same name, and a slot in the active palette', () => {
+      const a = catColor('Groceries'), b = catColor('Groceries');
+      return (a === b && catPalette().includes(a)) || (a + ' / ' + b);
+    });
+    T('catColor: a bespoke colour always beats the hash', () => {
+      const name = '__paltest', prev = catStore.colors[name];
+      try{
+        catStore.colors[name] = '#123456';
+        return catColor(name) === '#123456' || 'override ignored';
+      } finally {
+        if (prev === undefined) delete catStore.colors[name]; else catStore.colors[name] = prev;
+      }
+    });
+    T('catColor: savings keeps its own slot rather than a hashed one', () =>
+      catColor(SAVE_CAT) === catSlot(CAT_SLOT.savings) || 'savings colour drifted');
+    T('catColor: a category keeps the same SLOT in both themes', () => {
+      // the hash must not depend on the theme, or a category would change
+      // identity when the user's system flips to dark
+      const i = hashCat('Groceries');
+      return (CAT_PAL.light[i] && CAT_PAL.dark[i] && i < CAT_PAL.light.length) || 'slot ' + i + ' out of range';
     });
 
     // ── donut slices + liability mix ──
@@ -13000,6 +13092,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   window.__ddNW = () => NW;
   window.__ddSummary = () => summaryModel();
   window.__ddDocs = () => docStore.items;
+  window.__ddPalette = () => ({light: CAT_PAL.light.slice(), dark: CAT_PAL.dark.slice(),
+                               active: catPalette().slice(), slots: {...CAT_SLOT}});
+  window.__ddCatStore = () => catStore;
+  window.__ddCatColor = name => catColor(name);
   window.__ddNoteCtx = () => noteContextModel();
   window.__ddNotesPrompt = () => notesForPrompt();
   window.__ddShowNodeCard = info => showNodeCard(info);
@@ -13021,7 +13117,13 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   });
   buildRangePresets();
   syncRangeUI();
-  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{ renderCats(); renderCatManager(); });
+  // Every categorical colour comes from CAT_PAL, which has its own steps per
+  // surface — so a theme flip has to redraw everything, including the canvas map
+  // (canvas cannot resolve a CSS variable, it holds the literal hex).
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{
+    try{ renderAll(); }catch(e){ renderCats(); renderCatManager(); }
+    if (graph){ graph.rebuild(); graph.draw(); }
+  });
   new MutationObserver(()=>{ renderCats(); renderCatManager(); }).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
   // sticky-nav active highlight
   (function(){
