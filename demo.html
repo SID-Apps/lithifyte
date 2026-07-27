@@ -10558,7 +10558,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
              || JSON.stringify(CAT_SLOT);
     });
     T('catColor: stable for the same name, and a slot in the active palette', () => {
-      const a = catColor('Groceries'), b = catColor('Groceries');
+      // Probe a name the USER cannot have customised. Probing a real category
+      // fails the moment someone sets their own colour for it — which is the
+      // feature working, not a fault.
+      const probe = '__palette probe ' + CAT_PAL.light.length;
+      const a = catColor(probe), b = catColor(probe);
       return (a === b && catPalette().includes(a)) || (a + ' / ' + b);
     });
     T('catColor: a bespoke colour always beats the hash', () => {
@@ -10570,8 +10574,29 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         if (prev === undefined) delete catStore.colors[name]; else catStore.colors[name] = prev;
       }
     });
-    T('catColor: savings keeps its own slot rather than a hashed one', () =>
-      catColor(SAVE_CAT) === catSlot(CAT_SLOT.savings) || 'savings colour drifted');
+    T('catColor: savings keeps its own slot rather than a hashed one', () => {
+      // ...unless the user has chosen a colour for it, which outranks everything
+      if (catStore.colors[SAVE_CAT]) return catColor(SAVE_CAT) === catStore.colors[SAVE_CAT] || 'override ignored';
+      return catColor(SAVE_CAT) === catSlot(CAT_SLOT.savings) || 'savings colour drifted';
+    });
+    T('palette: the checks above still hold for a user who customised colours', () => {
+      // Twice now a self-test has gone red on a real user whose data was
+      // perfectly fine, because the assertion probed something the user is
+      // allowed to change. This drives the palette checks with overrides set on
+      // the very categories they probe.
+      const saved = {...catStore.colors};
+      try{
+        catStore.colors['Groceries'] = '#0088ff';
+        catStore.colors[SAVE_CAT] = '#ff00aa';
+        if (catColor('Groceries') !== '#0088ff') return 'override lost for a normal category';
+        if (catColor(SAVE_CAT) !== '#ff00aa') return 'override lost for savings';
+        const probe = '__palette probe ' + CAT_PAL.light.length;
+        if (!catPalette().includes(catColor(probe))) return 'uncustomised category left the palette';
+        return true;
+      } finally {
+        catStore.colors = saved;
+      }
+    });
     T('catColor: a category keeps the same SLOT in both themes', () => {
       // the hash must not depend on the theme, or a category would change
       // identity when the user's system flips to dark
