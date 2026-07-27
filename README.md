@@ -22,7 +22,7 @@ Lithifyte turns your bank statements into a **full financial neural map** of you
 4. Re-uploading is always safe: duplicates are detected and skipped.
 5. **Export a backup** (Settings → Backup) once you have real data in. That file is your durability story — optionally encrypted with a passphrase.
 
-The self-test in the footer runs ~180 behavioural checks on every load. If it is ever red, don't trust the numbers — something changed.
+The self-test in the footer runs ~190 behavioural checks on every load. If it is ever red, don't trust the numbers — something changed.
 
 ## What's inside
 
@@ -42,6 +42,12 @@ The self-test in the footer runs ~180 behavioural checks on every load. If it is
 - **Guided setup** for your first goal and your first debt: a few questions at a time instead of a nine-field grid, with the arithmetic checked as you go (it will tell you when a monthly payment can never clear a balance). Nothing is seeded — a new install starts with no invented goal.
 - **Your data survives updates**: before a new version changes how anything is stored it snapshots every store, and it refuses to write at all rather than risk data it cannot read (see *Data safety* below).
 - **AI categoriser (optional, local)**: point it at an OpenAI-compatible model on your own machine (Ollama, LM Studio) and it suggests categories for the leftovers. Nothing auto-applies; every acceptance becomes an ordinary rule. Savings, rent and gambling-shaped calls are flagged for your judgement, never trusted.
+
+## Colour
+
+Every categorical colour in the app — category bars, the money map, the money-flow diagram, the rings, the net-worth graph — comes from one nine-hue palette with separate steps for the light and the dark surface. It was chosen by search and checked with a validator, not picked by eye: both sets clear the lightness band, the chroma floor, adjacent colour-vision separation (ΔE 14.0 light / 14.9 dark against a target of 8), adjacent normal-vision separation (22.6 / 23.3 against a floor of 15) and 3:1 contrast against their own surface.
+
+The honest limit: a category's colour comes from a hash of its name, so any two categories can end up side by side, and no palette this size can make *every pair* colour-vision-safe. That is why every surface showing these colours also names the category — bars are direct-labelled, rings carry a value legend, map nodes are labelled. **Colour is the mnemonic; the label is the identity.** Any colour you set yourself always wins over the palette.
 
 ## Data safety
 

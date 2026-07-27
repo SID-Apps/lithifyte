@@ -140,7 +140,10 @@ const data = {
     {id: 'd-sav', name: 'House savings — Credit Union', kind: 'savings', userId: 'u-ava'},
     {id: 'd-cc', name: 'Ava — Visa credit card', kind: 'credit', userId: 'u-ava'},
   ],
-  categories: [{name: 'Travel', color: '#4dc9f0'}],
+  // Travel exists as a user-created category in the sample, but with NO bespoke
+  // colour: it should demonstrate the app's own validated palette rather than a
+  // hand-picked pastel that sits outside it.
+  categories: [{name: 'Travel'}],
   recurring: [], manualRecurring: [], transfers: [],
   rules: [
     {label: 'Streaming is entertainment', merchantContains: 'NETFLIX', amountEquals: null, setCategory: 'Entertainment', note: 'sample rule — first match wins', enabled: true},
