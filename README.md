@@ -22,7 +22,7 @@ Lithifyte turns your bank statements into a **full financial neural map** of you
 4. Re-uploading is always safe: duplicates are detected and skipped.
 5. **Export a backup** (Settings → Backup) once you have real data in. That file is your durability story — optionally encrypted with a passphrase.
 
-The self-test in the footer runs ~190 behavioural checks on every load. If it is ever red, don't trust the numbers — something changed.
+The self-test in the footer runs ~210 behavioural checks on every load. If it is ever red, don't trust the numbers — something changed.
 
 ## What's inside
 
@@ -36,12 +36,17 @@ The self-test in the footer runs ~190 behavioural checks on every load. If it is
 - **Categorisation you control**: the feed's guesses are auditable, one click writes a correction rule, rules always win, and statement-name variants (ALDI 23 873, ALDI51873…) are grouped under one merchant with merge/split controls. Rules can match a **pattern** where the name varies (`C***GB` catches C123GB and C481GB), and the app suggests the pattern from your own statement names. **Tick several transactions** in Search to move a batch to one category in a single action — that moves exactly those rows, and optionally writes a rule so future statements follow.
 - **One category, month by month**: pick Rent and see every month in the range, its average with and without the empty months, its peak, and whether it is trending up. Date adjusters sit in Cashflow and Categories, not just at the top.
 - **A Summary front screen** above everything else: next month's predicted income, spending, savings and investments (from the same forecast engine the Forecast section uses, so the two never disagree), current account balances, and a ring of a typical month's spending. Every card is a door into the section behind the number.
-- **Notes & context** — the part no statement carries. Write down that hours drop every January, or that the savings are for a wedding and not a car, and link it to the people and accounts it concerns. Linked notes appear on those money-map nodes, and go to a connected AI along with the numbers, so its advice is about your situation rather than a generic spreadsheet.
+- **Notes & context** — the part no statement carries. Write down that hours drop every January, or that the savings are for a wedding and not a car, and link it to the people, accounts, **categories and months** it concerns. Linked notes appear on those money-map nodes, and go to a connected AI along with the numbers, so its advice is about your situation rather than a generic spreadsheet.
+- **Explain an anomaly where you see it.** Groceries oddly low last January? Open that month, press **＋ Note why**, and record that you spent a voucher. The note is then attached to that category *and* that month, and shows up every time you look at either — so next year you are not re-deriving it from nothing, and neither is an AI reading your data.
 - **Leak shapes**: one strip per leak across the range, flagged as a steady monthly habit or a one-off, with months far above that leak's own median marked as spikes (median + 3×MAD, so a leak that is always big is not flagged and a genuine blowout is).
 - **Assets and liabilities by category** as circle charts that reconcile with the net-worth figure, plus **net worth over time** with both sides on one axis.
 - **Guided setup** for your first goal and your first debt: a few questions at a time instead of a nine-field grid, with the arithmetic checked as you go (it will tell you when a monthly payment can never clear a balance). Nothing is seeded — a new install starts with no invented goal.
 - **Your data survives updates**: before a new version changes how anything is stored it snapshots every store, and it refuses to write at all rather than risk data it cannot read (see *Data safety* below).
 - **AI categoriser (optional, local)**: point it at an OpenAI-compatible model on your own machine (Ollama, LM Studio) and it suggests categories for the leftovers. Nothing auto-applies; every acceptance becomes an ordinary rule. Savings, rent and gambling-shaped calls are flagged for your judgement, never trusted.
+
+## Reading your CSV
+
+Column names vary by bank, so the importer matches on synonyms: *debit / money out / paid out / withdrawals* for money out, *credit / money in / paid in / lodgement / deposits* for money in, or a single signed *amount* column. **After every upload it tells you which columns it used**, how many rows it could not read, and warns you if everything imported in one direction — because a statement whose money-in column was not recognised imports as outgoings only, and then looks exactly like an account that just drains. If your headers are unusual, rename them to any of the names above and upload again; duplicate rows are skipped, so re-uploading a corrected file is safe.
 
 ## Colour
 

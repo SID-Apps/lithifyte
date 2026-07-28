@@ -167,6 +167,13 @@ shows a visible "Data integrity" warning when they fail):
      rewrite the integrity block whenever transactions change.
   3. Every transaction row: [valid "YYYY-MM-DD", non-empty merchant, cat, sub,
      debit ≥ 0, credit ≥ 0, confidence] (+ optional accountId that exists).
+     CSV IMPORT: mapStatement returns rows PLUS rows.meta {columns, noDate,
+     noAmount, noAmountEg, debits, credits} and importReport() renders it after
+     every upload. A row that has a date but no readable amount is COUNTED and
+     reported, never dropped in silence — a statement whose money-in column was
+     not recognised imports as outgoings only, which then reads as an account
+     that merely drains. If you add a column synonym, keep short tokens
+     (cr/dr/in/out) whole-word: "interest" contains "in".
   4. Every account.userId exists in users; every rule has merchantContains +
      setCategory; every goal PRESENT has a name and target > 0 (an empty goals
      array is valid — see below); no duplicate ids.
@@ -304,15 +311,27 @@ specific thing the user has said about it. Two byte-identical rows on one
 account share a key and move together — they are indistinguishable in the
 data. Bulk assign moves only the ticked rows; "also make a rule" additionally
 creates ordinary merchant rules so future statements sort themselves.
-stores.docs = {items:[{id, title, body, links:[userId|acctId],
-tags:[], created, updated}]} — LINKED CONCEPT NOTES (browser store
+stores.docs = {items:[{id, title, body, links:[…], tags:[],
+created, updated}]} — LINKED CONCEPT NOTES (browser store
 dd-docs-v1, "Notes &amp; context" section + Planning dock tab). The household's
 own context: plans, circumstances and intentions that transactions cannot
 carry ("hours drop every January", "this is the joint house account"). Each
-note links to any number of users and accounts BY ID; Engine.noteLinks
-resolves them and reports links to deleted items as broken rather than
-dropping them — the note text is the user's own work. Linked notes surface on
-that person's or account's money-map node. Engine.noteContext groups them for
+note links to any number of PEOPLE, ACCOUNTS, CATEGORIES and MONTHS.
+Link id format: a BARE id is a user or account (that is how the first version
+wrote them and those notes must keep working); "cat:Groceries" is a category
+and "mo:2026-01" is a month. Engine.noteLinks resolves them; a bare id that
+matches nothing is reported BROKEN (an orphan id means nothing to anyone),
+while an unknown category or month name is kept as-is (a name still reads
+fine). Never drop a link — the note text is the user's own work.
+CATEGORY + MONTH links are how a user explains an anomaly the accounts cannot
+show — "groceries were low in January because we spent a voucher".
+Engine.notesFor({notes, category, month}) fetches them for a view and ranks an
+exact category+month match first; noteBoxHtml renders that box in the category
+drill-down, the per-category month drill-down and the cashflow month
+breakdown, each with a "＋ Note why" button that opens the editor with those
+links pre-ticked. Linked notes also surface on the matching money-map node
+(people, accounts, categories) and mark it with 📝 — nodeLinkId() is the ONE
+place that maps a map-node id to a link id. Engine.noteContext groups them for
 the LLM handoff: notesForPrompt() feeds both "Copy re-assess prompt" and the
 local-AI categoriser's context, which is the whole point of the feature — a
 model that knows WHY beats one that only sees WHAT. Distinct from
@@ -776,6 +795,24 @@ So, when you change a stored shape:
   .cm-drill{border-top:1px solid var(--grid); margin-top:10px; padding-top:4px}
   .cm-tx{align-items:center}
   .cm-tx .cm-fix{flex:0 0 auto; margin-left:8px}
+
+  /* the explain-the-anomaly note box */
+  .note-box{display:flex; flex-direction:column; gap:6px; margin:0 0 10px; padding:9px 11px;
+    border-left:3px solid var(--accent,#38bdf8); background:var(--chip); border-radius:0 8px 8px 0}
+  .note-box.empty{flex-direction:row; align-items:center; justify-content:space-between; gap:10px;
+    border-left-color:var(--grid); background:transparent; padding:4px 0 6px}
+  .note-line{display:flex; gap:8px; align-items:flex-start; font-size:12.5px; color:var(--ink-2); line-height:1.5}
+  .note-ic{flex:0 0 auto}
+  .note-txt b{color:var(--ink)}
+  .note-box .btn{align-self:flex-start}
+  .nd-lk-group{display:flex; gap:8px; align-items:baseline; margin-bottom:6px; flex-wrap:wrap}
+  .nd-lk-label{flex:0 0 78px; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
+  .nd-lk-chips{display:flex; flex-wrap:wrap; gap:6px; flex:1 1 auto; max-height:132px; overflow-y:auto}
+
+  /* import report: what the CSV reader used, and anything it could not read */
+  .imp-note, .imp-warn{display:block; margin-top:6px; font-size:12px; line-height:1.5}
+  .imp-note{color:var(--muted)}
+  .imp-warn{color:var(--critical); font-weight:600}
 
   /* ── notes & context ── */
   .nd-links{display:flex; flex-wrap:wrap; gap:6px}
@@ -2939,22 +2976,51 @@ rewrite the static advice cards if the picture has changed.</div>
     // Resolution is by id, and a link to something since deleted is reported as
     // a broken link rather than dropped: the note's text is the user's work, and
     // deleting an account must never quietly delete their thinking about it.
+    // Link ids: a bare id is a user or an account (that is how the first version
+    // stored them, and those notes must keep working); prefixed ids name a
+    // category or a month. The prefixes exist because a category is identified by
+    // its NAME, which can collide with nothing else, while a user id is opaque.
+    //   cat:Groceries   mo:2026-01
+    // That distinction also decides what counts as broken: a deleted account
+    // leaves an id that means nothing to anyone, so it is reported; a category or
+    // month name still reads perfectly even if no transaction uses it now.
     noteLinks({note, users, accounts}){
       const uById = new Map((users || []).map(u => [u.id, u]));
       const aById = new Map((accounts || []).map(a => [a.id, a]));
       const links = [], broken = [];
       for (const id of ((note && note.links) || [])){
-        if (uById.has(id)) links.push({id, kind:'user', name: uById.get(id).name});
+        if (id.slice(0, 4) === 'cat:') links.push({id, kind:'category', name: id.slice(4)});
+        else if (id.slice(0, 3) === 'mo:') links.push({id, kind:'month', name: id.slice(3)});
+        else if (uById.has(id)) links.push({id, kind:'user', name: uById.get(id).name});
         else if (aById.has(id)) links.push({id, kind:'account', name: aById.get(id).name});
         else broken.push(id);
       }
       return {links, broken};
     },
+    // Notes attached to a category and/or a month explain the numbers that the
+    // account data cannot: "groceries were low in January because we spent a
+    // voucher". noteFor finds the ones that apply to a given category/month view,
+    // scoring an exact both-match above a match on either alone, so the drill-down
+    // for January groceries shows the January groceries note first.
+    notesFor({notes, category, month}){
+      const out = [];
+      for (const n of (notes || [])){
+        if (!n || !String(n.body || '').trim()) continue;
+        const links = n.links || [];
+        const hasCat = category != null && links.includes('cat:' + category);
+        const hasMo = month != null && links.includes('mo:' + month);
+        if (!hasCat && !hasMo) continue;
+        out.push({note: n, both: hasCat && hasMo, category: hasCat, month: hasMo});
+      }
+      return out.sort((a, b) => (b.both ? 1 : 0) - (a.both ? 1 : 0));
+    },
     // Everything a model needs about the household that the numbers do not say.
     // Notes are grouped under what they are attached to so a model can answer
     // "what should I know about this account" without re-deriving the links.
     noteContext({notes, users, accounts}){
-      const out = {general: [], byUser: {}, byAccount: {}, broken: 0, count: 0};
+      const out = {general: [], byUser: {}, byAccount: {}, byCategory: {}, byMonth: {},
+                   broken: 0, count: 0};
+      const BAG = {user: 'byUser', account: 'byAccount', category: 'byCategory', month: 'byMonth'};
       for (const n of (notes || [])){
         if (!n || !String(n.body || '').trim()) continue;
         out.count++;
@@ -2965,8 +3031,8 @@ rewrite the static advice cards if the picture has changed.</div>
                        links: links.map(l => l.name)};
         if (!links.length) out.general.push(entry);
         for (const l of links){
-          const bag = l.kind === 'user' ? out.byUser : out.byAccount;
-          (bag[l.name] = bag[l.name] || []).push(entry);
+          const bag = out[BAG[l.kind]];
+          if (bag) (bag[l.name] = bag[l.name] || []).push(entry);
         }
       }
       return out;
@@ -4923,6 +4989,7 @@ rewrite the static advice cards if the picture has changed.</div>
           return ` · ${label} <b style="color:${close < -0.005 ? 'var(--critical)' : 'var(--ink)'}">${close < -0.005 ? '−' : ''}${eur(Math.abs(close))}</b>`;
         })()}</span>
         <button class="btn small" id="cashDetailClose" type="button">✕</button></div>
+      ${noteBoxHtml({month: mo, empty: 'Anything unusual about this month? Note it and it will be here whenever you look back.'})}
       <div class="drill-cols">
         <div class="drill-col"><h4 class="dr-h dr-inc">Income <b>+${eur(iTot)}</b></h4>${rows(incomes, '+') || '<div class="hint">none</div>'}</div>
         <div class="drill-col"><h4 class="dr-h dr-exp">Expenses <b>−${eur(eTot)}</b></h4>${expRows || '<div class="hint">none</div>'}${expRows ? '<div class="hint" style="margin-top:4px">click a category to unfold its transactions</div>' : ''}</div>
@@ -4930,6 +4997,7 @@ rewrite the static advice cards if the picture has changed.</div>
           `<div class="drill-row"><span class="dr-date">${s2.d}</span><span>${esc(s2.m)}</span><b>${s2.v >= 0 ? '' : '−'}${eur(Math.abs(s2.v))}</b></div>`).join('') || '<div class="hint">no savings movement this month</div>'}</div>
       </div></div>`;
     document.getElementById('cashDetailClose').addEventListener('click', ()=>{ cashSel = null; cashCatSel = null; renderCashflow(); renderSankey(); });
+    hookNoteBoxes(el);
     const prevBtn = document.getElementById('cashPrevMo'), nextBtn = document.getElementById('cashNextMo');
     if (prevMo) prevBtn.addEventListener('click', ()=>stepCashMonth(-1));
     if (nextMo) nextBtn.addEventListener('click', ()=>stepCashMonth(1));
@@ -5240,9 +5308,35 @@ rewrite the static advice cards if the picture has changed.</div>
   // included in the copy-out prompt, the local-AI context, and backups.
   let ndEditing = null, ndFilter = '', ndQuery = '';
   function onDocsChanged(){ save(LS.docs, docStore); renderNotes(); if (graph) graph.draw(); }
+  const NOTE_KIND_IC = {user:'👤', account:'🏦', category:'🏷️', month:'📅'};
+  // Map node id -> the link id a note would use. Node ids are namespaced by the
+  // graph builder: user:<id>, acct:<id>, cat:<acctId>:<name>. Keep this the ONLY
+  // place that knows the mapping.
+  function nodeLinkId(node){
+    const id = String((node && node.id) || '');
+    if (id.slice(0, 5) === 'user:') return id.slice(5);
+    if (id.slice(0, 5) === 'acct:') return id.slice(5);
+    if (id.slice(0, 4) === 'cat:'){
+      const rest = id.slice(4), cut = rest.indexOf(':');
+      return 'cat:' + (cut >= 0 ? rest.slice(cut + 1) : rest);
+    }
+    return null;
+  }
+  function docNotesForNode(node){
+    const key = nodeLinkId(node);
+    if (!key) return [];
+    return docStore.items.filter(n => (n.links || []).includes(key) && String(n.body || '').trim());
+  }
+  const docNoteCount = node => docNotesForNode(node).length;
   function linkableTargets(){
+    const cats = (A && A.allCats ? A.allCats : []).filter(c => c !== INT_CAT);
+    // months newest first, and only ones with data — a note about a month the
+    // user has no statements for is not a thing anyone needs to write
+    const months = MONTHS.slice().sort().reverse().slice(0, 36);
     return [...allUsers().map(u => ({id: u.id, kind:'user', name: u.name})),
-            ...allAccounts().map(a => ({id: a.id, kind:'account', name: a.name}))];
+            ...allAccounts().map(a => ({id: a.id, kind:'account', name: a.name})),
+            ...cats.map(c => ({id: 'cat:' + c, kind:'category', name: c})),
+            ...months.map(m => ({id: 'mo:' + m, kind:'month', name: fmtMoLbl(m)}))];
   }
   function ndFormReset(){
     ndEditing = null;
@@ -5257,10 +5351,22 @@ rewrite the static advice cards if the picture has changed.</div>
     if (!box) return;
     const sel = new Set(selected || []);
     const t = linkableTargets();
-    box.innerHTML = t.length
-      ? t.map(x => `<label class="chk nd-link-chip"><input type="checkbox" class="nd-lk" value="${esc(x.id)}" ${sel.has(x.id) ? 'checked' : ''}>
-          <span>${x.kind === 'user' ? '👤' : '🏦'} ${esc(x.name)}</span></label>`).join('')
-      : '<span class="hint">Add people and accounts first and they become linkable here.</span>';
+    if (!t.length){
+      box.innerHTML = '<span class="hint">Add people and accounts first and they become linkable here.</span>';
+      return;
+    }
+    const groups = [['user','People'], ['account','Accounts'], ['category','Categories'], ['month','Months']];
+    box.innerHTML = groups.map(([kind, label]) => {
+      const items = t.filter(x => x.kind === kind);
+      if (!items.length) return '';
+      return `<div class="nd-lk-group"><span class="nd-lk-label">${esc(label)}</span>
+        <div class="nd-lk-chips">${items.map(x =>
+          `<label class="chk nd-link-chip"><input type="checkbox" class="nd-lk" value="${esc(x.id)}" ${sel.has(x.id) ? 'checked' : ''}>
+            <span>${NOTE_KIND_IC[x.kind]} ${esc(x.name)}</span></label>`).join('')}</div></div>`;
+    }).join('') +
+    `<p class="hint" style="margin:6px 0 0">Linking a <b>category</b> and a <b>month</b> together is how you explain a one-off:
+      tick <i>Groceries</i> and <i>January</i>, write “used a €50 voucher”, and that note appears on January's groceries
+      wherever you look at it later.</p>`;
   }
   function ndSelectedLinks(){
     return [...document.querySelectorAll('#nd-links .nd-lk:checked')].map(c => c.value);
@@ -5341,6 +5447,42 @@ rewrite the static advice cards if the picture has changed.</div>
   function noteContextModel(){
     return Engine.noteContext({notes: docStore.items, users: allUsers(), accounts: allAccounts()});
   }
+  // The explain-the-anomaly box. Shown wherever a category and/or a month is on
+  // screen, because that is the moment the user is asking "why is that number
+  // like that" — and it is the moment they are willing to write the answer down.
+  function noteBoxHtml({category, month, empty}){
+    const hits = Engine.notesFor({notes: docStore.items, category, month});
+    const seed = JSON.stringify([category != null ? 'cat:' + category : null,
+                                 month != null ? 'mo:' + month : null].filter(Boolean));
+    const add = `<button class="btn small nd-add-ctx" data-seed="${esc(seed)}" type="button">＋ Note why</button>`;
+    if (!hits.length)
+      return `<div class="note-box empty"><span class="hint">${esc(empty || 'Nothing noted for this.')}</span>${add}</div>`;
+    return `<div class="note-box">
+        ${hits.map(h => `<div class="note-line">
+            <span class="note-ic" title="${h.both ? 'noted for this category in this month' : (h.category ? 'noted for this category' : 'noted for this month')}">${h.both ? '🎯' : (h.category ? '🏷️' : '📅')}</span>
+            <span class="note-txt">${h.note.title ? '<b>' + esc(h.note.title) + '</b> — ' : ''}${esc(h.note.body)}</span>
+          </div>`).join('')}
+        ${add}
+      </div>`;
+  }
+  // one shared handler: any "＋ Note why" button opens the notes editor with the
+  // category/month it was pressed next to already linked
+  function hookNoteBoxes(scope){
+    (scope || document).querySelectorAll('.nd-add-ctx').forEach(b => {
+      if (b.dataset.bound) return;
+      b.dataset.bound = '1';
+      b.addEventListener('click', ()=>{
+        let seed = [];
+        try{ seed = JSON.parse(b.dataset.seed || '[]'); }catch(e){}
+        goSection('notes', 'sec-notes');
+        ndFormReset();
+        document.getElementById('ndForm').style.display = '';
+        renderNdLinks(seed);
+        const t = document.getElementById('nd-title');
+        if (t){ t.focus({preventScroll:true}); }
+      });
+    });
+  }
   // the text handed to an AI: grouped by who and what it concerns
   function notesForPrompt(){
     const C = noteContextModel();
@@ -5352,6 +5494,13 @@ rewrite the static advice cards if the picture has changed.</div>
     if (C.general.length) parts.push('Household context:\n' + block('', C.general));
     for (const [name, entries] of Object.entries(C.byUser)) parts.push('About ' + name + ':\n' + block('person', entries));
     for (const [name, entries] of Object.entries(C.byAccount)) parts.push('About the ' + name + ' account:\n' + block('account', entries));
+    // category and month notes usually EXPLAIN AN ANOMALY, so they are labelled
+    // as such: a model comparing months needs to know a dip was a voucher and
+    // not a change in habit
+    for (const [name, entries] of Object.entries(C.byCategory))
+      parts.push('About the “' + name + '” category (this may explain figures that look unusual):\n' + block('category', entries));
+    for (const [name, entries] of Object.entries(C.byMonth))
+      parts.push('About ' + name + ' specifically (one-offs, so do not read it as a trend):\n' + block('month', entries));
     return parts.join('\n\n');
   }
   {
@@ -5992,6 +6141,8 @@ rewrite the static advice cards if the picture has changed.</div>
           <span class="hint num">${eur(tot)} across ${txs.length} transaction${txs.length === 1 ? '' : 's'}</span>
           <button class="btn small" id="cmDrillClose" type="button">✕</button>
         </div>
+        ${noteBoxHtml({category: name, month: mo,
+          empty: 'Was this month unusual? Add a note — a voucher, cash, a one-off — and it will be here next time you wonder.'})}
         ${rows}
         <p class="hint" style="margin:6px 0 0">↪ opens the move-or-rule choice: fix this one transaction, or teach a rule so every future one lands right.</p>
       </div>`;
@@ -6013,12 +6164,14 @@ rewrite the static advice cards if the picture has changed.</div>
           <button class="btn small cat-view ${catView === 'tx' ? 'primary' : ''}" data-v="tx" type="button">🧾 Transactions</button>
         </span>
         <button class="btn small" id="catDetailClose" type="button">✕</button></div>
+      ${noteBoxHtml({category: name, empty: 'Anything worth remembering about this category? A note here explains it to future you — and to a connected AI.'})}
       <div class="drill-cols" style="grid-template-columns:1fr">
         <div class="drill-col">${catView === 'months' ? catMonthsHtml(name, M) : (shown.map(t =>
           `<div class="drill-row"><span class="dr-date">${t.d}</span><span style="flex:1">${esc(t.m)}</span>
            <b style="color:${t.de > 0 ? 'var(--ink)' : 'var(--good-text)'}">${t.de > 0 ? '−' + eur(t.de) : '+' + eur(t.cr)}</b></div>`).join('') +
           (txs.length > 60 ? `<div class="hint" style="padding:4px 0">showing the latest 60 of ${txs.length}</div>` : '')) || '<div class="hint">No transactions in this range.</div>'}</div>
       </div></div>`;
+    hookNoteBoxes(el);
     document.getElementById('catDetailClose').addEventListener('click', ()=>{ catSel = null; catMoSel = null; renderCats(); syncScopeMapHighlight(); });
     el.querySelectorAll('.cat-view').forEach(b => b.addEventListener('click', ()=>{ catView = b.dataset.v; renderCatDetail(); }));
     // month bar → the transactions behind that month
@@ -7747,36 +7900,96 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     if (m) return m[3] + '-' + m[2].padStart(2,'0') + '-' + m[1].padStart(2,'0');
     return null;
   }
+  // Column synonyms. Long names are matched as substrings; SHORT ones (cr, dr,
+  // in, out) only as whole words, because "interest" contains "in" and would
+  // otherwise be mistaken for the money-in column.
+  const COLS = {
+    date:   ['date_str', 'date', 'posted', 'transaction date', 'value date'],
+    mer:    ['merchant', 'description', 'details', 'narrative', 'payee', 'reference', 'particulars'],
+    debit:  ['debit', 'money out', 'paid out', 'withdrawal', 'withdrawals', 'payments out',
+             'amount out', 'outgoing', 'spent', 'charge'],
+    credit: ['credit', 'money in', 'paid in', 'lodgement', 'lodgment', 'deposit', 'deposits',
+             'payments in', 'amount in', 'incoming', 'received', 'receipts'],
+    amount: ['amount', 'value', 'transaction amount']
+  };
+  const SHORT = {debit: ['dr', 'out'], credit: ['cr', 'in']};
+  function findCol(hdr, key){
+    const names = COLS[key] || [];
+    // exact match first, then substring, then whole-word short forms
+    let i = hdr.findIndex(h => names.includes(h));
+    if (i >= 0) return i;
+    i = hdr.findIndex(h => names.some(n => n.length >= 4 && h.includes(n)));
+    if (i >= 0) return i;
+    const shorts = SHORT[key];
+    if (shorts) return hdr.findIndex(h => shorts.some(s => new RegExp('(^|[^a-z])' + s + '([^a-z]|$)').test(h)));
+    return -1;
+  }
+  // mapStatement returns the rows AND what it did: which columns it used and how
+  // many rows it could not read. Callers must surface both — a statement that
+  // quietly loses every "money in" row looks exactly like an account that only
+  // ever loses money, which is the worst kind of wrong number.
   function mapStatement(rows){
     if (!rows.length) throw 'Empty file';
     const hdr = rows[0].map(h => h.trim().toLowerCase());
+    const iDate = findCol(hdr, 'date');
+    const iMer = findCol(hdr, 'mer');
+    let iDe = findCol(hdr, 'debit');
+    let iCr = findCol(hdr, 'credit');
+    const iAmt = findCol(hdr, 'amount');
     const find = names => hdr.findIndex(h => names.some(n => h === n || h.includes(n)));
-    const iDate = find(['date_str','date','posted']);
-    const iMer = find(['merchant','description','details','narrative','payee']);
-    const iDe = find(['debit','money out','paid out','withdrawal']);
-    const iCr = find(['credit','money in','paid in','lodgement']);
-    const iAmt = find(['amount','value']);
     const iCat = find(['category']);
     const iSub = find(['subcategory','sub-category']);
     const iConf = find(['confidence']);
-    if (iDate < 0 || iMer < 0 || (iDe < 0 && iAmt < 0)) throw 'Could not find date/merchant/amount columns. Expected headers like: date, merchant/description, debit/credit or amount.';
+    // one column matched BOTH directions (e.g. a single "debit/credit" flag) —
+    // it cannot be both, so trust neither and fall back to the amount column
+    if (iDe >= 0 && iDe === iCr){ iDe = -1; iCr = -1; }
+    if (iDate < 0 || iMer < 0 || (iDe < 0 && iCr < 0 && iAmt < 0))
+      throw 'Could not find date/merchant/amount columns. Expected headers like: date, merchant/description, and either debit/credit (money out/money in) or a single amount column.';
     const num = v => { const n = parseFloat(String(v).replace(/[€£,\s]/g,'')); return isNaN(n) ? 0 : n; };
     const out = [];
+    let noDate = 0, noAmount = 0;
+    const noAmountEg = [];
     for (let i = 1; i < rows.length; i++){
       const r = rows[i];
       if (!r || r.length < 2) continue;
+      if (r.every(c => String(c).trim() === '')) continue;      // blank line, not a loss
       const d = normDate(r[iDate] || '');
-      if (!d) continue;
+      if (!d){ noDate++; continue; }
       const mer = (r[iMer] || '').trim().slice(0, 40) || 'UNKNOWN';
       let de = 0, cr = 0;
-      if (iDe >= 0){ de = Math.abs(num(r[iDe])); cr = iCr >= 0 ? Math.abs(num(r[iCr])) : 0; }
-      else { const a = num(r[iAmt]); if (a < 0) de = -a; else cr = a; }
-      if (de === 0 && cr === 0) continue;
+      if (iDe >= 0 || iCr >= 0){
+        de = iDe >= 0 ? Math.abs(num(r[iDe])) : 0;
+        cr = iCr >= 0 ? Math.abs(num(r[iCr])) : 0;
+        // a debit/credit pair was found but this row has neither: fall back to a
+        // single amount column if the file also has one
+        if (de === 0 && cr === 0 && iAmt >= 0){
+          const a = num(r[iAmt]);
+          if (a < 0) de = -a; else cr = a;
+        }
+      } else { const a = num(r[iAmt]); if (a < 0) de = -a; else cr = a; }
+      if (de === 0 && cr === 0){
+        noAmount++;
+        if (noAmountEg.length < 3) noAmountEg.push(mer + ' on ' + d);
+        continue;
+      }
       out.push([d, mer, iCat >= 0 && r[iCat] ? r[iCat].trim() : 'Uncategorized',
         iSub >= 0 && r[iSub] ? r[iSub].trim() : 'Uncategorized', de, cr,
         iConf >= 0 && r[iConf] !== '' ? num(r[iConf]) : (iCat >= 0 && r[iCat] ? 0.85 : 0.1)]);
     }
-    if (!out.length) throw 'No parseable transaction rows found.';
+    if (!out.length)
+      throw 'No parseable transaction rows found' +
+        (noAmount ? ' — ' + noAmount + ' row(s) had a date but no amount in the columns found (' +
+          (iDe >= 0 ? '“' + hdr[iDe] + '”' : 'no money-out column') + ' / ' +
+          (iCr >= 0 ? '“' + hdr[iCr] + '”' : 'no money-in column') +
+          '). Rename your amount columns to debit/credit, or money out/money in.' : '.');
+    out.meta = {
+      columns: {date: hdr[iDate], merchant: hdr[iMer],
+                debit: iDe >= 0 ? hdr[iDe] : null, credit: iCr >= 0 ? hdr[iCr] : null,
+                amount: iAmt >= 0 ? hdr[iAmt] : null},
+      header: hdr, noDate, noAmount, noAmountEg,
+      debits: out.filter(r => r[4] > 0).length,
+      credits: out.filter(r => r[5] > 0).length
+    };
     return out;
   }
   function addStatement(filename, text){
@@ -7805,12 +8018,39 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     // row-level dedupe (multiset, Engine kernel): two real €3.35 bus fares on
     // one day survive, a re-uploaded overlapping export does not
     const {fresh, skipped} = Engine.dedupeRows(TX.filter(t => t.acct === acctId), rows);
-    if (!fresh.length) return {added: 0, skipped};
+    if (!fresh.length) return {added: 0, skipped, meta: rows.meta};
     const dates = fresh.map(r=>r[0]).sort();
     uploads.statements.push({id:uid('s'), filename, at:new Date().toISOString().slice(0,10),
       accountId:acctId, rows:fresh, rowsHash, dupSkipped:skipped, from:dates[0], to:dates[dates.length-1]});
     save(LS.uploads, uploads);
-    return {added: fresh.length, skipped};
+    return {added: fresh.length, skipped, meta: rows.meta};
+  }
+  // What the importer read, and anything it could not — shown after every upload.
+  // A statement whose money-in column was not recognised imports as outgoings
+  // only, which then reads as an account that just drains; saying so at import
+  // time is the only place that is cheap to notice.
+  function importReport(res){
+    const m = res && res.meta;
+    if (!m) return '';
+    const bits = [];
+    const cols = m.columns;
+    bits.push('Read: date “' + cols.date + '”, name “' + cols.merchant + '”, ' +
+      (cols.debit ? 'money out “' + cols.debit + '”' : 'no money-out column') + ', ' +
+      (cols.credit ? 'money in “' + cols.credit + '”' : 'no money-in column') +
+      (cols.amount ? ', amount “' + cols.amount + '”' : ''));
+    const warn = [];
+    if (m.noAmount)
+      warn.push('⚠ ' + m.noAmount + ' row' + (m.noAmount === 1 ? '' : 's') + ' had a date but no amount in those columns and ' +
+        (m.noAmount === 1 ? 'was' : 'were') + ' NOT imported' +
+        (m.noAmountEg.length ? ' (e.g. ' + m.noAmountEg.join('; ') + ')' : '') + '.');
+    if (m.noDate) warn.push(m.noDate + ' row' + (m.noDate === 1 ? '' : 's') + ' had no readable date.');
+    if (res.added && !m.credits)
+      warn.push('⚠ Every imported row is money OUT. If this account also receives money, its money-in column was not recognised — ' +
+        'rename it to “Credit”, “Money in”, “Paid in” or “Deposits” and upload again (duplicates are skipped).');
+    if (res.added && !m.debits)
+      warn.push('⚠ Every imported row is money IN. If this account also spends, its money-out column was not recognised — ' +
+        'rename it to “Debit”, “Money out”, “Paid out” or “Withdrawals” and upload again.');
+    return bits.join('') + (warn.length ? ' — ' + warn.join(' ') : '');
   }
   document.getElementById('upGo').addEventListener('click', ()=>{
     const f = document.getElementById('upFile').files[0];
@@ -7821,10 +8061,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     rd.onload = () => {
       try{
         const res = addStatement(f.name, rd.result);
-        status.textContent = res.added
+        const head = res.added
           ? '✓ ' + f.name + ' — ' + res.added + ' new transaction' + (res.added === 1 ? '' : 's') + ' added' +
             (res.skipped ? ', ' + res.skipped + ' duplicate' + (res.skipped === 1 ? '' : 's') + ' skipped' : '') + '.'
           : '• ' + f.name + ' — nothing new: all ' + res.skipped + ' rows already exist in this account.';
+        const rep = importReport(res);
+        status.innerHTML = esc(head) + (rep ? '<span class="' + (/⚠/.test(rep) ? 'imp-warn' : 'imp-note') + '">' + esc(rep) + '</span>' : '');
         document.getElementById('upFile').value = '';
         if (res.added) {
           try { if (window.__lfTrack) window.__lfTrack('action', { action: 'csv_upload' }); } catch (e) {}
@@ -8577,9 +8819,15 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
                      : n.type === 'debt' ? '−' + eurShort(n.val) : eurShort(n.val);
           ctx.fillText(vtxt, n.x, n.y + n.r + 6 + fs1 + fs2);
         }
-        if (noteStore[n.id]){   // P7-36: a pencil marks a node carrying a note
+        // A marker means "there is context here". Two sources: the one-line note
+        // pinned to this node (P7-36) and any linked concept note that names this
+        // person, account or category — the map is where you notice a shape you
+        // want explained, so the explanation has to be visible from here.
+        const nDocs = docNoteCount(n);
+        if (noteStore[n.id] || nDocs){
           ctx.font = fs2 + 'px system-ui,sans-serif'; ctx.fillStyle = '#ffd9a8';
-          ctx.fillText('✎', n.x + n.r*0.85 + 5/k, n.y - n.r*0.85);
+          ctx.fillText(nDocs > 1 ? '📝' + nDocs : (nDocs ? '📝' : '✎'),
+            n.x + n.r*0.85 + 5/k, n.y - n.r*0.85);
         }
         // "+N" hidden-merchant badge on expanded hubs
         if ((n.type === 'cat' || n.type === 'save') && expanded.has(n.id) && n.merchRanked){
@@ -10462,6 +10710,72 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
               r.links[1].kind === 'account' && r.links[1].name === 'Joint current' && !r.broken.length)
              || JSON.stringify(r);
     });
+    T('noteLinks: category and month links resolve by their prefix', () => {
+      const r = E.noteLinks({note:{links:['cat:Groceries','mo:2026-01','u1']}, users:ND_U, accounts:ND_A});
+      const kinds = r.links.map(l => l.kind + ':' + l.name);
+      return (JSON.stringify(kinds) === JSON.stringify(['category:Groceries','month:2026-01','user:Ava']) &&
+              !r.broken.length) || JSON.stringify(r);
+    });
+    T('noteLinks: bare ids still mean user/account, so old notes keep working', () => {
+      // the first version of the store wrote bare ids; those notes must not break
+      const r = E.noteLinks({note:{links:['a1','u2']}, users:ND_U, accounts:ND_A});
+      return (r.links.length === 2 && r.links[0].kind === 'account' && r.links[1].kind === 'user')
+             || JSON.stringify(r);
+    });
+    T('noteLinks: a category name that no longer exists is NOT called broken', () => {
+      // a name reads fine on its own; an orphaned account id does not
+      const r = E.noteLinks({note:{links:['cat:Skydiving','zzz']}, users:ND_U, accounts:ND_A});
+      return (r.links.length === 1 && r.links[0].kind === 'category' && r.broken.length === 1)
+             || JSON.stringify(r);
+    });
+    T('notesFor: finds notes for a category, a month, or both', () => {
+      const notes = [
+        {id:'n1', body:'voucher', links:['cat:Groceries','mo:2026-01']},
+        {id:'n2', body:'always high', links:['cat:Groceries']},
+        {id:'n3', body:'holiday month', links:['mo:2026-01']},
+        {id:'n4', body:'unrelated', links:['cat:Rent']}
+      ];
+      const hits = E.notesFor({notes, category:'Groceries', month:'2026-01'});
+      return (hits.length === 3 && hits[0].note.id === 'n1' && hits[0].both === true &&
+              !hits.some(h => h.note.id === 'n4')) || JSON.stringify(hits.map(h => h.note.id));
+    });
+    T('notesFor: a category-only view does not pull in unrelated month notes', () => {
+      const notes = [{id:'n1', body:'x', links:['mo:2026-01']}, {id:'n2', body:'y', links:['cat:Rent']}];
+      const hits = E.notesFor({notes, category:'Rent'});
+      return (hits.length === 1 && hits[0].note.id === 'n2') || JSON.stringify(hits);
+    });
+    T('notesFor: an empty note body is never surfaced as context', () => {
+      const hits = E.notesFor({notes:[{id:'n1', body:'   ', links:['cat:Rent']}], category:'Rent'});
+      return hits.length === 0 || JSON.stringify(hits);
+    });
+    T('noteContext: groups category and month notes for the AI handoff', () => {
+      const C = E.noteContext({notes:[
+        {id:'n1', title:'Voucher', body:'used a 50 euro voucher', links:['cat:Groceries','mo:2026-01']}
+      ], users:ND_U, accounts:ND_A});
+      return (C.byCategory['Groceries'] && C.byCategory['Groceries'].length === 1 &&
+              C.byMonth['2026-01'] && C.byMonth['2026-01'].length === 1 && C.count === 1)
+             || JSON.stringify(C);
+    });
+    T('live: a category/month note reaches the AI prompt labelled as an explanation', () => {
+      const saved = docStore.items.slice();
+      try{
+        docStore.items.push({id:'__t', title:'Voucher', body:'used a 50 euro voucher',
+                             links:['cat:Groceries','mo:2026-01'], tags:[], updated:'2026-01-31'});
+        const t = notesForPrompt();
+        return (/voucher/i.test(t) && /category/i.test(t) && /unusual|trend/i.test(t))
+               || t.slice(0, 200);
+      } finally { docStore.items = saved; }
+    });
+    T('live: map nodes resolve to the right note link id', () => {
+      // the marker and the node card both depend on this mapping
+      const cases = [['user:u1', 'u1'], ['acct:a1', 'a1'], ['cat:a1:Groceries', 'cat:Groceries'],
+                     ['m:ALDI', null], ['goal:g1', null]];
+      for (const [id, want] of cases){
+        const got = nodeLinkId({id});
+        if (got !== want) return id + ' → ' + got + ', wanted ' + want;
+      }
+      return true;
+    });
     T('noteLinks: a link to a deleted account is reported, never silently dropped', () => {
       const r = E.noteLinks({note:{links:['u1','gone']}, users:ND_U, accounts:ND_A});
       return (r.links.length === 1 && r.broken.length === 1 && r.broken[0] === 'gone') || JSON.stringify(r);
@@ -10516,6 +10830,76 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     T('nextMonth: an empty forecast yields nothing rather than throwing', () => {
       const o = E.nextMonth({fc:[], holdings: 100, growthNominal: 0.05});
       return (o == null || o.month === null) || JSON.stringify(o);
+    });
+
+    // ── CSV import: never lose a row in silence ──
+    const csv = h => h + '2026-01-05,SALARY,500.00,\n2026-01-25,FEE,,1.50\n';
+    T('import: deposits/withdrawals headers are understood', () => {
+      const r = mapStatement(parseCSV('Date,Description,Deposits,Withdrawals\n' +
+        '2026-01-05,SALARY,500.00,\n2026-01-25,FEE,,1.50\n'));
+      // "Deposits" used to match no credit synonym, so every deposit row was
+      // dropped and the account looked like it only ever lost money
+      return (r.length === 2 && r.meta.credits === 1 && r.meta.debits === 1 &&
+              r.meta.noAmount === 0 && r[0][5] === 500) || JSON.stringify({n:r.length, meta:r.meta});
+    });
+    T('import: the classic debit/credit and money out/in headers still work', () => {
+      for (const h of ['Date,Description,Credit,Debit\n', 'Date,Description,Money In,Money Out\n',
+                       'Date,Description,Paid In,Paid Out\n', 'Date,Description,Lodgement,Withdrawal\n']){
+        const r = mapStatement(parseCSV(csv(h)));
+        if (r.length !== 2) return h.trim() + ' → ' + r.length + ' rows';
+        if (!r.meta.credits || !r.meta.debits) return h.trim() + ' → ' + JSON.stringify(r.meta);
+      }
+      return true;
+    });
+    T('import: a single signed amount column still works', () => {
+      const r = mapStatement(parseCSV('Date,Description,Amount\n2026-01-05,SALARY,500\n2026-01-25,FEE,-1.50\n'));
+      return (r.length === 2 && r[0][5] === 500 && r[1][4] === 1.5) || JSON.stringify(r);
+    });
+    T('import: rows with a date but no readable amount are COUNTED, not dropped quietly', () => {
+      const r = mapStatement(parseCSV('Date,Description,Debit,Credit\n' +
+        '2026-01-05,GOOD,10,\n2026-01-06,MYSTERY,,\n2026-01-07,ALSO MYSTERY,,\n'));
+      return (r.length === 1 && r.meta.noAmount === 2 && r.meta.noAmountEg.length === 2)
+             || JSON.stringify({n:r.length, meta:r.meta});
+    });
+    T('import: reports which columns it actually used', () => {
+      const r = mapStatement(parseCSV('Date,Narrative,Withdrawals,Deposits\n2026-01-05,X,,5\n'));
+      const c = r.meta.columns;
+      return (c.date === 'date' && c.merchant === 'narrative' && c.debit === 'withdrawals' &&
+              c.credit === 'deposits') || JSON.stringify(c);
+    });
+    T('import: a short column name is not matched inside a longer word', () => {
+      // "Interest" must not be taken for the money-IN column
+      const r = mapStatement(parseCSV('Date,Description,Interest,Amount\n2026-01-05,X,0,25\n'));
+      return (r.meta.columns.credit !== 'interest' && r[0][5] === 25) || JSON.stringify(r.meta.columns);
+    });
+    T('import: one column matching both directions is trusted for neither', () => {
+      const r = mapStatement(parseCSV('Date,Description,Debit/Credit,Amount\n2026-01-05,X,DR,-30\n'));
+      return (r.length === 1 && r[0][4] === 30 && r.meta.columns.debit === null &&
+              r.meta.columns.credit === null) || JSON.stringify({r0:r[0], c:r.meta.columns});
+    });
+    T('import: an all-outgoings import is flagged, since that is usually a mapping slip', () => {
+      const rows = mapStatement(parseCSV('Date,Description,Debit\n2026-01-05,FEE,1.50\n'));
+      const rep = importReport({added: rows.length, skipped: 0, meta: rows.meta});
+      return (/money OUT/.test(rep) && /⚠/.test(rep)) || rep;
+    });
+    T('import: an all-incoming import is flagged too', () => {
+      const rows = mapStatement(parseCSV('Date,Description,Credit\n2026-01-05,PAY,500\n'));
+      const rep = importReport({added: rows.length, skipped: 0, meta: rows.meta});
+      return (/money IN/.test(rep) && /⚠/.test(rep)) || rep;
+    });
+    T('import: a healthy two-sided import reports columns without crying wolf', () => {
+      const rows = mapStatement(parseCSV(csv('Date,Description,Credit,Debit\n')));
+      const rep = importReport({added: rows.length, skipped: 0, meta: rows.meta});
+      return (!/⚠/.test(rep) && /money in/.test(rep)) || rep;
+    });
+    T('import: a file whose amounts cannot be read explains itself instead of "no rows"', () => {
+      try{
+        mapStatement(parseCSV('Date,Description,Deposit Slip Ref\n2026-01-05,X,ABC\n'));
+        return 'should have thrown';
+      }catch(e){
+        const msg = String(e);
+        return /no amount|date\/merchant\/amount/i.test(msg) || msg;
+      }
     });
 
     // ── the categorical palette ──
@@ -11160,7 +11544,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         const acct = allAccounts()[0];
         document.getElementById('upAccount').value = acct.id;   // route through the normal pipeline
         const res = addStatement(f.name, rd.result);
-        status.textContent = res.added ? '' : 'Nothing new in that file.';
+        // the same import report as the main upload path — a first-time user is
+        // the LEAST likely to notice half a statement going missing
+        const rep = importReport(res);
+        status.innerHTML = (res.added ? '' : esc('Nothing new in that file.')) +
+          (rep ? '<span class="' + (/⚠/.test(rep) ? 'imp-warn' : 'imp-note') + '">' + esc(rep) + '</span>' : '');
         if (res.added){
           try {
             if (window.__lfTrack) {
@@ -11198,6 +11586,14 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     const acct = allAccounts()[0];
     document.getElementById('upAccount').value = acct.id;
     const r = addStatement(name, text);
+    // mirror what the real handler shows, so automation exercises the reporting
+    // path too rather than a shortcut that always looks fine
+    try{
+      const rep = importReport(r);
+      const el = document.getElementById('ob-file-status');
+      if (el) el.innerHTML = (r.added ? '' : esc('Nothing new in that file.')) +
+        (rep ? '<span class="' + (/⚠/.test(rep) ? 'imp-warn' : 'imp-note') + '">' + esc(rep) + '</span>' : '');
+    }catch(e){}
     if (r.added){
       onDataChanged();
       if (graph) setTimeout(()=>graph.fit(), 300);   // mirror the real upload handler
@@ -13057,6 +13453,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   window.__ddNoteCtx = () => noteContextModel();
   window.__ddNotesPrompt = () => notesForPrompt();
   window.__ddShowNodeCard = info => showNodeCard(info);
+  window.__ddNodeNoteCount = node => docNoteCount(node);
+  window.__ddNotesFor = (category, month) => Engine.notesFor({notes: docStore.items, category, month});
   window.__ddFC = () => FC;
   window.__ddAssetMix = () => assetMixModel();
   window.__ddLiabMix = () => liabMixModel();
@@ -14122,12 +14520,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         html += `<div class="rule-meta" style="margin-top:8px; white-space:pre-wrap">📝 ${esc(noteStore[info.id])}</div>`;
       act += ` <button class="btn small" data-act="note" data-key="${esc(info.id)}" type="button">${noteStore[info.id] ? '✎ Edit note' : '＋ Note'}</button>`;
     }
-    // Linked concept notes surface on the person and account nodes they were
-    // linked to — the whole point of linking them is that they show up where the
-    // money they are about actually sits.
-    if (info.type === 'user' || info.type === 'acct'){
-      const targetId = String(info.id || '').replace(/^(user|acct):/, '');
-      const mine = docStore.items.filter(n => (n.links || []).includes(targetId));
+    // Linked concept notes surface on the node they were linked to — people,
+    // accounts and now categories. The whole point of linking is that context
+    // shows up where the money it explains actually sits.
+    if (nodeLinkId(info)){
+      const targetId = nodeLinkId(info);
+      const mine = docNotesForNode(info);
       if (mine.length){
         html += `<div style="margin-top:8px; border-top:1px solid rgba(255,255,255,.12); padding-top:6px">` +
           mine.slice(0, 3).map(n => `<div class="rule-meta" style="white-space:pre-wrap; margin-bottom:4px">📝 <b>${esc(n.title || 'Note')}</b><br>${esc(String(n.body || '').slice(0, 180))}${String(n.body || '').length > 180 ? '…' : ''}</div>`).join('') +
@@ -14174,7 +14572,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         goSection('search', 'sec-search');
       } else if (k === 'notesec'){
         // open Notes filtered to this node, and start a note already linked to it
-        const targetId = String(info.id || '').replace(/^(user|acct):/, '');
+        const targetId = nodeLinkId(info);
         goSection('notes', 'sec-notes');
         const f = document.getElementById('ndFilter');
         if (f){
