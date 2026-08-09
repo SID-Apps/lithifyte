@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frequently asked questions — Lithifyte</title>
+<meta name="description" content="Direct answers about Lithifyte — what it costs, where your data lives, which banks work, whether it can see your money, and how it compares to a spreadsheet or a bank-linked app.">
+<link rel="canonical" href="https://lithifyte.com/faq">
+<meta name="theme-color" content="#020b1a">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+<meta name="keywords" content="Lithifyte FAQ, private budgeting app questions, is my bank data safe, free budgeting software">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Lithifyte">
+<meta property="og:url" content="https://lithifyte.com/faq">
+<meta property="og:title" content="Frequently asked questions">
+<meta property="og:description" content="Direct answers about Lithifyte — what it costs, where your data lives, which banks work, whether it can see your money, and how it compares to a spreadsheet or a bank-linked app.">
+<meta property="og:image" content="https://lithifyte.com/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Frequently asked questions">
+<meta name="twitter:description" content="Direct answers about Lithifyte — what it costs, where your data lives, which banks work, whether it can see your money, and how it compares to a spreadsheet or a bank-linked app.">
+<meta name="twitter:image" content="https://lithifyte.com/og.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/page.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://lithifyte.com/faq#breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://lithifyte.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "FAQ",
+          "item": "https://lithifyte.com/faq"
+        }
+      ]
+    },
+    {
+      "@id": "https://lithifyte.com/faq#page",
+      "url": "https://lithifyte.com/faq",
+      "name": "Frequently asked questions",
+      "description": "Direct answers about Lithifyte — what it costs, where your data lives, which banks work, whether it can see your money, and how it compares to a spreadsheet or a bank-linked app.",
+      "inLanguage": "en",
+      "isPartOf": {
+        "@id": "https://lithifyte.com/#website"
+      },
+      "breadcrumb": {
+        "@id": "https://lithifyte.com/faq#breadcrumb"
+      },
+      "publisher": {
+        "@id": "https://lithifyte.com/#organization"
+      },
+      "dateModified": "2026-08-09",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is Lithifyte free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. The core application is free forever under the AGPL-3.0-or-later licence. There is no trial, no card, no feature held back behind a payment. Optional hosted conveniences may be sold later — things like scheduled email digests or backup sync — but the application that analyses your money is the free part and stays that way."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is the catch?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "There is no advertising, no data sale and no lock-in, because there is no data on our side to sell and every store can be exported. The honest trade-off is different: Lithifyte does not connect to your bank for you by default, so you export a statement yourself. That is the price of nobody else holding your credentials."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I use it commercially or modify it?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, under the terms of the AGPL-3.0-or-later. You can read it, change it, run it and redistribute it. If you run a modified version as a network service, the licence requires you to offer that modified source to its users. See open source."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Lithifyte see my bank data?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Financial data is parsed and stored in your browser and never transmitted. There is no finance backend to receive it — not an encrypted one, not a temporary one. The only personal datum any Lithifyte server holds is the email address you use for the magic-link sign-in on the hosted app."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What happens if Lithifyte disappears tomorrow?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Your data is unaffected, because it was never on our infrastructure. Keep the index.html file and it keeps working offline, indefinitely, with no licence check to fail. This is the main practical argument for a single-file application."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is my data encrypted?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "You can lock the app with a passphrase, which encrypts the stored data at rest using AES-GCM with a PBKDF2-derived key. Exported backups can be encrypted the same way. Without the lock, data sits in ordinary browser storage — protected by your device's own security, which is exactly as safe as your device is."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can someone else using my computer see my finances?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Anyone with access to your unlocked user account and browser profile can open the app, unless you have set a passphrase lock. Set one if the device is shared. Read security and privacy for the full threat model, including the parts we cannot solve for you."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do you track me?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The hosted app records privacy-safe product events — that a section was opened, that an import happened — never amounts, merchants or any financial content. Self-hosted copies report nothing at all and have no code path that could. The details are in the privacy policy."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which banks does it support?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Any bank that lets you export a statement, which is effectively all of them. Lithifyte reads CSV files and works out which columns hold dates, descriptions and amounts. If your bank's layout is unusual, the importer tells you which columns it used and counts every row it could not read, so a misread is visible immediately rather than showing up months later as a balance that makes no sense."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can it connect to my bank automatically?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "There is a separate open-banking feeder tool in the repository, built against the GoCardless Bank Account Data API, but new signups for that API have been unavailable since July 2026, so statement import is the supported path. It is also the more private one: no third party ever holds a credential."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Will it work with a joint account, or two people?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Households, people and accounts are first-class in the model. You can see a category's spending split by person, and money moving between two people's accounts is recognised as a transfer rather than counted as income for one and spending for the other."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does it handle more than one currency?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Balances and reporting are single-currency per household. Investments and crypto holdings are converted into that currency for the net-worth figure. A statement carrying multiple currencies can be filtered to one during import."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I get my data out?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, at any time, in several formats: a full JSON backup of every store, scoped CSV and Excel exports, and encrypted backup files. No export is gated."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How long does setup take?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "About fifteen minutes for a useful picture: name the household, add an account, drop in a statement, and glance through the categories. The forecast gets meaningfully better once you have roughly six months of history, because that is when recurring bills and seasonal patterns become visible."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How much history should I import?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Twelve months if you can, so a full year of annual bills — insurance, motor tax, subscriptions that renew yearly — appears in the data. Anything shorter and the forecast will be blind to them."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "It categorised something wrong. What now?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Fix it once, then write a rule from the merchant name so it stays fixed. Rules support wildcards and amount ranges. There is also an optional local AI categoriser that suggests categories using a model you run yourself; it only ever suggests, and you approve."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do I need to be good with spreadsheets?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No, and that is rather the point. A spreadsheet makes you build the model; Lithifyte builds it and lets you interrogate it. If you like spreadsheets, everything exports to one."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does it work on a phone?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It runs in a mobile browser, and the pages adapt, but the map and the denser planning views are designed for a larger screen. A dedicated mobile build is an open question rather than a promise."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is there an app for iPhone or Android?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No native app. It is a web page, which is what allows it to be auditable and to run offline from a file you keep."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How is this different from a bank-linked budgeting app?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Those apps hold a copy of your transactions on their servers, which is what makes automatic syncing and shared features possible. It also makes them a target, gives them a commercial interest in your data, and means your access depends on their continued existence. Lithifyte gives up automatic syncing and gets independence in return. Both are legitimate trades — this one is simply rarely offered."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How is it different from a spreadsheet?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A spreadsheet is only as good as the model you build in it, and most people's models quietly rot. Lithifyte brings the model — transfer matching, merchant normalisation, recurring detection, amortisation, pace-based budgeting — and applies it consistently. You still own the numbers, and you can still export them to a spreadsheet."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is it suitable for a business?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It is built for a household. Sole traders sometimes use it for a simple picture of a single account, but it has no invoicing, VAT handling or double-entry bookkeeping, and it is not intended as accounting software."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Lithifyte giving me financial advice?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. It describes what your money did and computes what follows arithmetically from that. It does not recommend products, providers or courses of action, and the learn library is written as education rather than advice."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="site">
+  <a class="brand" href="/"><img src="/icon-192.png" alt="" width="28" height="28"> LITHIFYTE</a>
+  <nav class="site" aria-label="Site">
+    <a href="/how-it-works">How it works</a>
+    <a href="/learn">Learn</a>
+    <a href="/guide">Guide</a>
+    <a href="/faq" aria-current="page">FAQ</a>
+    <a href="https://app.lithifyte.com/demo">Sample</a>
+  </nav>
+</header>
+
+<main class="page">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span class="sep">/</span> <span aria-current="page">FAQ</span></nav>
+  <h1>Frequently asked questions</h1>
+  <p class="updated">Updated 9 August 2026</p>
+  <p class="lede">Short, direct answers. If a question you have is not here, the <a href="/guide">guide</a> goes deeper and the <a href="https://github.com/SID-Apps/lithifyte" rel="noopener">source code</a> settles any argument about what the software actually does.</p>
+
+<h2 id="cost-and-licensing">Cost and licensing</h2>
+<h3 id="is-lithifyte-free">Is Lithifyte free?</h3>
+<p>Yes. The core application is free forever under the AGPL-3.0-or-later licence. There is no trial, no card, no feature held back behind a payment. Optional hosted conveniences may be sold later — things like scheduled email digests or backup sync — but the application that analyses your money is the free part and stays that way.</p>
+<h3 id="what-is-the-catch">What is the catch?</h3>
+<p>There is no advertising, no data sale and no lock-in, because there is no data on our side to sell and every store can be exported. The honest trade-off is different: Lithifyte does not connect to your bank for you by default, so you export a statement yourself. That is the price of nobody else holding your credentials.</p>
+<h3 id="can-i-use-it-commercially-or-modify-it">Can I use it commercially or modify it?</h3>
+<p>Yes, under the terms of the AGPL-3.0-or-later. You can read it, change it, run it and redistribute it. If you run a modified version as a network service, the licence requires you to offer that modified source to its users. See <a href="/open-source">open source</a>.</p>
+<h2 id="privacy-and-security">Privacy and security</h2>
+<h3 id="does-lithifyte-see-my-bank-data">Does Lithifyte see my bank data?</h3>
+<p>No. Financial data is parsed and stored in your browser and never transmitted. There is no finance backend to receive it — not an encrypted one, not a temporary one. The only personal datum any Lithifyte server holds is the email address you use for the magic-link sign-in on the hosted app.</p>
+<h3 id="what-happens-if-lithifyte-disappears-tomorrow">What happens if Lithifyte disappears tomorrow?</h3>
+<p>Your data is unaffected, because it was never on our infrastructure. Keep the <code>index.html</code> file and it keeps working offline, indefinitely, with no licence check to fail. This is the main practical argument for a single-file application.</p>
+<h3 id="is-my-data-encrypted">Is my data encrypted?</h3>
+<p>You can lock the app with a passphrase, which encrypts the stored data at rest using AES-GCM with a PBKDF2-derived key. Exported backups can be encrypted the same way. Without the lock, data sits in ordinary browser storage — protected by your device's own security, which is exactly as safe as your device is.</p>
+<h3 id="can-someone-else-using-my-computer-see-my-finances">Can someone else using my computer see my finances?</h3>
+<p>Anyone with access to your unlocked user account and browser profile can open the app, unless you have set a passphrase lock. Set one if the device is shared. Read <a href="/security-and-privacy">security and privacy</a> for the full threat model, including the parts we cannot solve for you.</p>
+<h3 id="do-you-track-me">Do you track me?</h3>
+<p>The hosted app records privacy-safe product events — that a section was opened, that an import happened — never amounts, merchants or any financial content. Self-hosted copies report nothing at all and have no code path that could. The details are in the <a href="/privacy">privacy policy</a>.</p>
+<h2 id="data-and-compatibility">Data and compatibility</h2>
+<h3 id="which-banks-does-it-support">Which banks does it support?</h3>
+<p>Any bank that lets you export a statement, which is effectively all of them. Lithifyte reads CSV files and works out which columns hold dates, descriptions and amounts. If your bank's layout is unusual, the importer tells you which columns it used and counts every row it could not read, so a misread is visible immediately rather than showing up months later as a balance that makes no sense.</p>
+<h3 id="can-it-connect-to-my-bank-automatically">Can it connect to my bank automatically?</h3>
+<p>There is a separate open-banking feeder tool in the repository, built against the GoCardless Bank Account Data API, but new signups for that API have been unavailable since July 2026, so statement import is the supported path. It is also the more private one: no third party ever holds a credential.</p>
+<h3 id="will-it-work-with-a-joint-account-or-two-people">Will it work with a joint account, or two people?</h3>
+<p>Yes. Households, people and accounts are first-class in the model. You can see a category's spending split by person, and money moving between two people's accounts is recognised as a transfer rather than counted as income for one and spending for the other.</p>
+<h3 id="does-it-handle-more-than-one-currency">Does it handle more than one currency?</h3>
+<p>Balances and reporting are single-currency per household. Investments and crypto holdings are converted into that currency for the net-worth figure. A statement carrying multiple currencies can be filtered to one during import.</p>
+<h3 id="can-i-get-my-data-out">Can I get my data out?</h3>
+<p>Yes, at any time, in several formats: a full JSON backup of every store, scoped CSV and Excel exports, and encrypted backup files. No export is gated.</p>
+<h2 id="using-it">Using it</h2>
+<h3 id="how-long-does-setup-take">How long does setup take?</h3>
+<p>About fifteen minutes for a useful picture: name the household, add an account, drop in a statement, and glance through the categories. The forecast gets meaningfully better once you have roughly six months of history, because that is when recurring bills and seasonal patterns become visible.</p>
+<h3 id="how-much-history-should-i-import">How much history should I import?</h3>
+<p>Twelve months if you can, so a full year of annual bills — insurance, motor tax, subscriptions that renew yearly — appears in the data. Anything shorter and the forecast will be blind to them.</p>
+<h3 id="it-categorised-something-wrong-what-now">It categorised something wrong. What now?</h3>
+<p>Fix it once, then write a rule from the merchant name so it stays fixed. Rules support wildcards and amount ranges. There is also an optional local AI categoriser that suggests categories using a model you run yourself; it only ever suggests, and you approve.</p>
+<h3 id="do-i-need-to-be-good-with-spreadsheets">Do I need to be good with spreadsheets?</h3>
+<p>No, and that is rather the point. A spreadsheet makes you build the model; Lithifyte builds it and lets you interrogate it. If you like spreadsheets, everything exports to one.</p>
+<h3 id="does-it-work-on-a-phone">Does it work on a phone?</h3>
+<p>It runs in a mobile browser, and the pages adapt, but the map and the denser planning views are designed for a larger screen. A dedicated mobile build is an open question rather than a promise.</p>
+<h3 id="is-there-an-app-for-iphone-or-android">Is there an app for iPhone or Android?</h3>
+<p>No native app. It is a web page, which is what allows it to be auditable and to run offline from a file you keep.</p>
+<h2 id="comparisons">Comparisons</h2>
+<h3 id="how-is-this-different-from-a-bank-linked-budgeting-app">How is this different from a bank-linked budgeting app?</h3>
+<p>Those apps hold a copy of your transactions on their servers, which is what makes automatic syncing and shared features possible. It also makes them a target, gives them a commercial interest in your data, and means your access depends on their continued existence. Lithifyte gives up automatic syncing and gets independence in return. Both are legitimate trades — this one is simply rarely offered.</p>
+<h3 id="how-is-it-different-from-a-spreadsheet">How is it different from a spreadsheet?</h3>
+<p>A spreadsheet is only as good as the model you build in it, and most people's models quietly rot. Lithifyte brings the model — transfer matching, merchant normalisation, recurring detection, amortisation, pace-based budgeting — and applies it consistently. You still own the numbers, and you can still export them to a spreadsheet.</p>
+<h3 id="is-it-suitable-for-a-business">Is it suitable for a business?</h3>
+<p>It is built for a household. Sole traders sometimes use it for a simple picture of a single account, but it has no invoicing, VAT handling or double-entry bookkeeping, and it is not intended as accounting software.</p>
+<h3 id="is-lithifyte-giving-me-financial-advice">Is Lithifyte giving me financial advice?</h3>
+<p>No. It describes what your money did and computes what follows arithmetically from that. It does not recommend products, providers or courses of action, and the <a href="/learn">learn library</a> is written as education rather than advice.</p>
+
+<aside class="related"><h2>Keep reading</h2><ul><li><a href="/how-it-works">How Lithifyte works</a> <span class="rel-d">You upload a bank statement to a web page. The page reads it in your browser, works out who spent what and where it went, and draws the result as a living map. No file is transmitted, because there is no server on the other end to receive it.</span></li><li><a href="/security-and-privacy">Security and privacy, in technical terms</a> <span class="rel-d">The claim is narrow and testable: your financial data is never transmitted, because there is no server that receives it. This page states exactly what that does and does not protect you from, including the parts we cannot fix.</span></li><li><a href="/open-source">Open source, and why it matters here</a> <span class="rel-d">A privacy promise you cannot verify is marketing. Lithifyte is published under the AGPL-3.0-or-later as a single readable file, so the claim that your data never leaves your browser is something you can check rather than something you have to believe.</span></li></ul></aside>
+</main>
+
+<footer class="site">
+  <span>© 2026 Lithifyte · <a href="https://www.sid-labs.com">SID Labs</a></span>
+  <a href="/how-it-works">How it works</a>
+  <a href="/learn">Learn</a>
+  <a href="/faq">FAQ</a>
+  <a href="/security-and-privacy">Security</a>
+  <a href="/open-source">Open source</a>
+  <a href="/privacy">Privacy</a>
+  <a href="/terms">Terms</a>
+  <a href="https://github.com/SID-Apps/lithifyte">Source (AGPL-3.0)</a>
+</footer>
+</body>
+</html>

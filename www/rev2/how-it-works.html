@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How Lithifyte works — Lithifyte</title>
+<meta name="description" content="Lithifyte reads your bank statements in the browser, builds a live map of your money, and computes budgets, forecasts, debt plans and net worth on your device. Nothing is uploaded.">
+<link rel="canonical" href="https://lithifyte.com/how-it-works">
+<meta name="theme-color" content="#020b1a">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+<meta name="keywords" content="household finance software, private budgeting app, bank statement analysis, offline finance app, open source money manager">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Lithifyte">
+<meta property="og:url" content="https://lithifyte.com/how-it-works">
+<meta property="og:title" content="How Lithifyte works">
+<meta property="og:description" content="Lithifyte reads your bank statements in the browser, builds a live map of your money, and computes budgets, forecasts, debt plans and net worth on your device. Nothing is uploaded.">
+<meta property="og:image" content="https://lithifyte.com/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="How Lithifyte works">
+<meta name="twitter:description" content="Lithifyte reads your bank statements in the browser, builds a live map of your money, and computes budgets, forecasts, debt plans and net worth on your device. Nothing is uploaded.">
+<meta name="twitter:image" content="https://lithifyte.com/og.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/page.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://lithifyte.com/how-it-works#breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://lithifyte.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "How it works",
+          "item": "https://lithifyte.com/how-it-works"
+        }
+      ]
+    },
+    {
+      "@id": "https://lithifyte.com/how-it-works#page",
+      "url": "https://lithifyte.com/how-it-works",
+      "name": "How Lithifyte works",
+      "description": "Lithifyte reads your bank statements in the browser, builds a live map of your money, and computes budgets, forecasts, debt plans and net worth on your device. Nothing is uploaded.",
+      "inLanguage": "en",
+      "isPartOf": {
+        "@id": "https://lithifyte.com/#website"
+      },
+      "breadcrumb": {
+        "@id": "https://lithifyte.com/how-it-works#breadcrumb"
+      },
+      "publisher": {
+        "@id": "https://lithifyte.com/#organization"
+      },
+      "dateModified": "2026-08-09",
+      "@type": "WebPage"
+    },
+    {
+      "@type": "HowTo",
+      "@id": "https://lithifyte.com/how-it-works#howto",
+      "name": "Set up Lithifyte with your own bank statements",
+      "description": "Lithifyte reads your bank statements in the browser, builds a live map of your money, and computes budgets, forecasts, debt plans and net worth on your device. Nothing is uploaded.",
+      "totalTime": "PT15M",
+      "step": [
+        {
+          "@type": "HowToStep",
+          "position": 1,
+          "name": "Open the app",
+          "text": "Go to app.lithifyte.com or download index.html and open it from your own disk. There is no account step."
+        },
+        {
+          "@type": "HowToStep",
+          "position": 2,
+          "name": "Add the people and accounts",
+          "text": "Name the people in your household and the accounts they hold. This is the skeleton the map hangs on."
+        },
+        {
+          "@type": "HowToStep",
+          "position": 3,
+          "name": "Import a statement",
+          "text": "Download a CSV from your bank and drop it in. The import report names the columns it used and counts any row it could not read."
+        },
+        {
+          "@type": "HowToStep",
+          "position": 4,
+          "name": "Check the categories",
+          "text": "Fix anything miscategorised once and write a rule so it stays fixed. Transfers between your own accounts are matched and excluded from spending."
+        },
+        {
+          "@type": "HowToStep",
+          "position": 5,
+          "name": "Set a goal or a budget",
+          "text": "Give it something to aim at. The forecast and the pace-based budget both build on your real history rather than a round number."
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="site">
+  <a class="brand" href="/"><img src="/icon-192.png" alt="" width="28" height="28"> LITHIFYTE</a>
+  <nav class="site" aria-label="Site">
+    <a href="/how-it-works" aria-current="page">How it works</a>
+    <a href="/learn">Learn</a>
+    <a href="/guide">Guide</a>
+    <a href="/faq">FAQ</a>
+    <a href="https://app.lithifyte.com/demo">Sample</a>
+  </nav>
+</header>
+
+<main class="page">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span class="sep">/</span> <span aria-current="page">How it works</span></nav>
+  <h1>How Lithifyte works</h1>
+  <p class="updated">Updated 9 August 2026</p>
+  <p class="lede">You upload a bank statement to a web page. The page reads it in your browser, works out who spent what and where it went, and draws the result as a living map. No file is transmitted, because there is no server on the other end to receive it.</p>
+
+<h2 id="the-short-version">The short version</h2>
+<p>Most finance apps work by connecting to your bank, copying your transactions onto their servers, and showing you a view of that copy. Lithifyte inverts it. The analysis engine is delivered to you as a web page, and your data stays where it already is: on your device.</p>
+<p>That single decision explains nearly everything else about the product — why there is no sign-up wall, why it costs nothing, why it is one file you can download and keep, and why nobody at Lithifyte can look at your spending even if asked to.</p>
+<h2 id="what-actually-happens-when-you-use-it">What actually happens when you use it</h2>
+<ol><li><strong>The page loads.</strong> It is a single self-contained HTML file — the interface, the charts and the entire calculation engine, delivered in one request.</li><li><strong>You add a statement.</strong> Your browser reads the file from your disk. It is parsed in memory by JavaScript running on your machine. No upload happens at any point.</li><li><strong>The engine enriches it.</strong> Every transaction is matched against your categorisation rules, merchant names are normalised so that <code>TESCO STORES 3184</code> and <code>TESCO EXPRESS</code> become one merchant, transfers between your own accounts are detected and paired so they do not read as income and spending, and recurring payments are identified by their cadence.</li><li><strong>The results are stored locally.</strong> In your browser's localStorage and IndexedDB, on that device, optionally encrypted at rest behind a passphrase you choose.</li><li><strong>Everything you see is computed from that.</strong> Budgets, forecasts, the debt planner, net worth and the money map are all functions of the same enriched data, recalculated as it changes.</li></ol>
+<h2 id="the-map-is-the-point">The map is the point</h2>
+<p>Every other view in the app is a report. The map is the model.</p>
+<p>Your household sits at the centre. People branch from it, accounts branch from people, categories and merchants branch from accounts, and money flows along the edges. Because it is one connected structure rather than a series of separate screens, you can see the things that separate screens hide: that two people are quietly funding the same subscription, that one account is doing all the work, that a category you think of as small has more merchant nodes hanging off it than your grocery spend.</p>
+<p>You can search it, drag it, isolate a person, and watch it redraw as you change the date range. It is the fastest way to answer questions that begin with <em>"where is it all actually going?"</em></p>
+<h2 id="what-it-computes">What it computes</h2>
+<div class="tablewrap"><table><thead><tr><th>Area</th><th>What the engine does</th></tr></thead><tbody><tr><td><strong>Budgets</strong></td><td>Suggests amounts from your own medians rather than round numbers, then paces them against the calendar — a safe-to-spend figure per remaining day, not a bar that turns red on the 20th.</td></tr><tr><td><strong>Forecasting</strong></td><td>Detects recurring bills and their cadence, allows for seasonal uplift, and sizes a buffer from how irregular your spending genuinely is.</td></tr><tr><td><strong>Debt</strong></td><td>Real amortisation for avalanche and snowball orders, with payoff dates and an honest flag when a payment does not even cover the interest.</td></tr><tr><td><strong>Net worth</strong></td><td>Accounts, manual assets, investments and debts in one layered figure, with staleness flags rather than silently pretending an old valuation is current.</td></tr><tr><td><strong>Leaks</strong></td><td>Small multiples per category with median and MAD spike flags, so a genuine anomaly separates from ordinary variation.</td></tr><tr><td><strong>Health</strong></td><td>A seven-measure dial scored against absolute benchmarks, so the number means something outside your own history.</td></tr></tbody></table></div>
+<h2 id="what-it-does-not-do">What it does not do</h2>
+<p>It does not connect to your bank by default. It does not give financial advice, recommend products, or take a commission from anyone. It does not have a premium tier that unlocks your own numbers. And it cannot show your data to Lithifyte, because your data never arrives.</p>
+<p>Statement import is the supported path in, and it is deliberate rather than a limitation to apologise for: a file you exported yourself is a file no third party had to be trusted with.</p>
+<h2 id="two-ways-to-run-it">Two ways to run it</h2>
+<p><strong>Hosted</strong> — open <a href="https://app.lithifyte.com" rel="noopener">app.lithifyte.com</a>. Sign-in is a magic link to your email address, which exists so the app can recognise you across devices; it holds no financial data. The hosted build records privacy-safe product events (which sections get used, never amounts) so the project can tell what is worth building next.</p>
+<p><strong>Self-hosted</strong> — download <code>index.html</code> from <a href="https://github.com/SID-Apps/lithifyte" rel="noopener">the repository</a> and open it from your own disk, a USB stick, or a server you control. It works offline. It reports nothing to anyone, and there is no mechanism by which it could. This is the same file, not a cut-down version.</p>
+<h2 id="getting-your-data-back-out">Getting your data back out</h2>
+<p>Everything exports. Encrypted backups, plain CSV and Excel packs, and a full JSON backup containing every store the app holds. If you stop using Lithifyte tomorrow, you leave with all of it — which is the only real test of whether software respects you.</p>
+
+<aside class="related"><h2>Keep reading</h2><ul><li><a href="/guide">The Lithifyte guide</a> <span class="rel-d">A complete feature reference, ordered the way you actually encounter things: get data in, make it trustworthy, understand it, then plan with it. There is also an interactive version inside the app with an Ask box.</span></li><li><a href="/security-and-privacy">Security and privacy, in technical terms</a> <span class="rel-d">The claim is narrow and testable: your financial data is never transmitted, because there is no server that receives it. This page states exactly what that does and does not protect you from, including the parts we cannot fix.</span></li><li><a href="/faq">Frequently asked questions</a> <span class="rel-d">Short, direct answers. If a question you have is not here, the [guide](/guide) goes deeper and the [source code](https://github.com/SID-Apps/lithifyte) settles any argument about what the software actually does.</span></li></ul></aside>
+</main>
+
+<footer class="site">
+  <span>© 2026 Lithifyte · <a href="https://www.sid-labs.com">SID Labs</a></span>
+  <a href="/how-it-works">How it works</a>
+  <a href="/learn">Learn</a>
+  <a href="/faq">FAQ</a>
+  <a href="/security-and-privacy">Security</a>
+  <a href="/open-source">Open source</a>
+  <a href="/privacy">Privacy</a>
+  <a href="/terms">Terms</a>
+  <a href="https://github.com/SID-Apps/lithifyte">Source (AGPL-3.0)</a>
+</footer>
+</body>
+</html>

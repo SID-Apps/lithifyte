@@ -1,4 +1,121 @@
+# lithifyte.com — crawler policy
+#
+# Position, stated once: search engines and AI answer engines are welcome to
+# read this site and quote it. Training crawlers are not. Being findable and
+# being training data are different things, and this file separates them.
+#
+# ⚠ Cloudflare's "Managed robots.txt" feature PREPENDS its own block list to
+# this file at the edge, including Disallow rules for the answer engines we
+# explicitly allow below. If the live file at https://lithifyte.com/robots.txt
+# does not match this one, that setting is still on. Turn it off under
+# Cloudflare → the lithifyte.com zone → AI Crawl Control → Managed robots.txt.
+
+# ── Content signals (spec: contentsignals.org) ─────────────────────────────
+# search   — building a search index and returning links and short excerpts
+# ai-input — using content to ground a generative answer, with attribution
+# ai-train — training or fine-tuning a model
+#
+# ANY RESTRICTION EXPRESSED HERE IS AN EXPRESS RESERVATION OF RIGHTS UNDER
+# ARTICLE 4 OF EU DIRECTIVE 2019/790 ON COPYRIGHT IN THE DIGITAL SINGLE MARKET.
+
 User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=no
 Allow: /
+
+# ── Search engines ─────────────────────────────────────────────────────────
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: Yandex
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+# ── AI answer engines: allowed, because they cite ──────────────────────────
+# These fetch a page to answer a question and link back to it. That is the
+# modern equivalent of a search result and we want to be in it.
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: DuckAssistBot
+Allow: /
+
+User-agent: MistralAI-User
+Allow: /
+
+User-agent: Google-CloudVertexBot
+Allow: /
+
+# ── Model training crawlers: not allowed ───────────────────────────────────
+# No objection to being read and quoted. The objection is to a corpus that
+# absorbs the work and returns nothing — no link, no attribution, no reader.
+
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: Applebot-Extended
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: meta-externalagent
+Disallow: /
+
+User-agent: Meta-ExternalAgent
+Disallow: /
+
+User-agent: Amazonbot
+Disallow: /
+
+User-agent: cohere-ai
+Disallow: /
+
+User-agent: Diffbot
+Disallow: /
+
+User-agent: Omgilibot
+Disallow: /
+
+User-agent: ImagesiftBot
+Disallow: /
+
+# ── Maps ───────────────────────────────────────────────────────────────────
 
 Sitemap: https://lithifyte.com/sitemap.xml

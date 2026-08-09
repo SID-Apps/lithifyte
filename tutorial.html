@@ -2,7 +2,47 @@
 <title>Lithifyte — Tutorial & Ask</title>
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMGVhNWU5Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzFkNGVkOCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iaGwiIGN4PSIwLjM1IiBjeT0iMC4zNSIgcj0iMC41NSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzdkZDNmYyIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3ZGQzZmMiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICA8L2RlZnM+CiAgPHJlY3QgeD0iMTAiIHk9IjEwIiB3aWR0aD0iNDkyIiBoZWlnaHQ9IjQ5MiIgcng9IjE0MCIgZmlsbD0idXJsKCNiZykiLz4KICA8cmVjdCB4PSIxMCIgeT0iMTAiIHdpZHRoPSI0OTIiIGhlaWdodD0iNDkyIiByeD0iMTQwIiBmaWxsPSJ1cmwoI2hsKSIvPgogIDxyZWN0IHg9IjEwIiB5PSIxMCIgd2lkdGg9IjQ5MiIgaGVpZ2h0PSI0OTIiIHJ4PSIxNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzM4YmRmOCIgc3Ryb2tlLXdpZHRoPSIyMCIvPgogIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjI1NiIgcj0iMTIyIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS1vcGFjaXR5PSIwLjkiIHN0cm9rZS13aWR0aD0iMjciLz4KPC9zdmc+Cg==">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Complete Lithifyte tutorial: every feature in order of use, plus Ask (RAG help).">
+<meta name="description" content="Complete Lithifyte tutorial: every feature in order of use — importing statements, categorising, budgets, forecasts, debt, net worth and backups — plus an Ask box for questions about the product.">
+<link rel="canonical" href="https://app.lithifyte.com/tutorial">
+<meta name="robots" content="index, follow, max-snippet:-1">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Lithifyte">
+<meta property="og:url" content="https://app.lithifyte.com/tutorial">
+<meta property="og:title" content="Learn Lithifyte, feature by feature">
+<meta property="og:description" content="Every feature in the order you actually meet it, with an Ask box backed by the product documentation corpus.">
+<meta property="og:image" content="https://lithifyte.com/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "TechArticle",
+      "@id": "https://app.lithifyte.com/tutorial#article",
+      "url": "https://app.lithifyte.com/tutorial",
+      "headline": "Learn Lithifyte, feature by feature",
+      "description": "The complete written tutorial for Lithifyte, ordered by real use: first data in, cleaning it, understanding it, planning with it, and keeping it safe.",
+      "inLanguage": "en",
+      "isAccessibleForFree": true,
+      "proficiencyLevel": "Beginner",
+      "dateModified": "2026-08-09",
+      "author": { "@id": "https://lithifyte.com/#organization" },
+      "publisher": { "@id": "https://lithifyte.com/#organization" },
+      "about": { "@id": "https://lithifyte.com/#software" },
+      "mainEntityOfPage": "https://app.lithifyte.com/tutorial"
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://app.lithifyte.com/tutorial#breadcrumb",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://lithifyte.com/" },
+        { "@type": "ListItem", "position": 2, "name": "Guide", "item": "https://lithifyte.com/guide" },
+        { "@type": "ListItem", "position": 3, "name": "Tutorial", "item": "https://app.lithifyte.com/tutorial" }
+      ]
+    }
+  ]
+}
+</script>
 <style>
   :root{
     --bg:#070b14; --panel:#0d1524; --line:rgba(56,189,248,.18); --ink:#e8f1ff; --muted:#8aa0bd;
@@ -90,7 +130,7 @@
       <h1>Learn Lithifyte, feature by feature</h1>
       <p>This is the webhosted tutorial for new users. It follows the real order of use — from your name and first CSV through budgets, wealth, and backups — and shows <b>where</b> each control lives in Space view (and Classic). Opt in anytime; it never blocks onboarding.</p>
       <div class="pills">
-        <span class="pill"><b>Host</b> lithifyte.sid-labs.com</span>
+        <span class="pill"><b>Host</b> app.lithifyte.com</span>
         <span class="pill"><b>Privacy</b> your bank data stays in the browser</span>
         <span class="pill"><b>Ask</b> RAG help (local LM optional)</span>
         <span class="pill"><b>Corpus</b> docs/rag/chunks.json</span>

@@ -35,7 +35,7 @@ You can audit this by reading the single HTML file, `www/workers/access.js`, and
 | **Modified / supply-chain HTML** | The file is fully readable source. Prefer official releases from this repository or your own verified copy. Hosting a modified fork is allowed under AGPL but you should trust the host. Integrity self-test (~100 checks) fails closed on behavioural regressions after edits. |
 | **XSS in the page context** | Any script injection in the same origin as the app can read localStorage/IndexedDB while unlocked. We treat XSS in stock Lithifyte as a **security vulnerability**. Keep third-party script out of the file; do not inject untrusted HTML into the document. |
 | **Feeder credentials** | `feeder/config.json` and `feeder/state.json` grant bank-data API access and are **gitignored**. Treat them like a bank-statement drawer. The HTML app never holds bank login credentials. |
-| **Sample vs real data on the same origin** | Hosted sample sets `demo: true`, which namespaces all storage keys with a `-demo` suffix so sample play cannot overwrite real data on `lithifyte.sid-labs.com`. |
+| **Sample vs real data on the same origin** | Hosted sample sets `demo: true`, which namespaces all storage keys with a `-demo` suffix so sample play cannot overwrite real data on `app.lithifyte.com`. |
 
 ### Out of scope / residual risk (honest limitations)
 

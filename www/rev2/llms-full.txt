@@ -1,0 +1,1680 @@
+# Lithifyte — full content library
+
+Every page on lithifyte.com as plain markdown, generated 2026-08-09. Canonical HTML lives at https://lithifyte.com. Licence: content CC-BY-4.0, software AGPL-3.0-or-later.
+
+
+
+---
+
+# Frequently asked questions
+
+URL: https://lithifyte.com/faq
+Updated: 2026-08-09
+
+Short, direct answers. If a question you have is not here, the [guide](/guide) goes deeper and the [source code](https://github.com/SID-Apps/lithifyte) settles any argument about what the software actually does.
+
+## Cost and licensing
+
+### Is Lithifyte free?
+
+Yes. The core application is free forever under the AGPL-3.0-or-later licence. There is no trial, no card, no feature held back behind a payment. Optional hosted conveniences may be sold later — things like scheduled email digests or backup sync — but the application that analyses your money is the free part and stays that way.
+
+### What is the catch?
+
+There is no advertising, no data sale and no lock-in, because there is no data on our side to sell and every store can be exported. The honest trade-off is different: Lithifyte does not connect to your bank for you by default, so you export a statement yourself. That is the price of nobody else holding your credentials.
+
+### Can I use it commercially or modify it?
+
+Yes, under the terms of the AGPL-3.0-or-later. You can read it, change it, run it and redistribute it. If you run a modified version as a network service, the licence requires you to offer that modified source to its users. See [open source](/open-source).
+
+## Privacy and security
+
+### Does Lithifyte see my bank data?
+
+No. Financial data is parsed and stored in your browser and never transmitted. There is no finance backend to receive it — not an encrypted one, not a temporary one. The only personal datum any Lithifyte server holds is the email address you use for the magic-link sign-in on the hosted app.
+
+### What happens if Lithifyte disappears tomorrow?
+
+Your data is unaffected, because it was never on our infrastructure. Keep the `index.html` file and it keeps working offline, indefinitely, with no licence check to fail. This is the main practical argument for a single-file application.
+
+### Is my data encrypted?
+
+You can lock the app with a passphrase, which encrypts the stored data at rest using AES-GCM with a PBKDF2-derived key. Exported backups can be encrypted the same way. Without the lock, data sits in ordinary browser storage — protected by your device's own security, which is exactly as safe as your device is.
+
+### Can someone else using my computer see my finances?
+
+Anyone with access to your unlocked user account and browser profile can open the app, unless you have set a passphrase lock. Set one if the device is shared. Read [security and privacy](/security-and-privacy) for the full threat model, including the parts we cannot solve for you.
+
+### Do you track me?
+
+The hosted app records privacy-safe product events — that a section was opened, that an import happened — never amounts, merchants or any financial content. Self-hosted copies report nothing at all and have no code path that could. The details are in the [privacy policy](/privacy).
+
+## Data and compatibility
+
+### Which banks does it support?
+
+Any bank that lets you export a statement, which is effectively all of them. Lithifyte reads CSV files and works out which columns hold dates, descriptions and amounts. If your bank's layout is unusual, the importer tells you which columns it used and counts every row it could not read, so a misread is visible immediately rather than showing up months later as a balance that makes no sense.
+
+### Can it connect to my bank automatically?
+
+There is a separate open-banking feeder tool in the repository, built against the GoCardless Bank Account Data API, but new signups for that API have been unavailable since July 2026, so statement import is the supported path. It is also the more private one: no third party ever holds a credential.
+
+### Will it work with a joint account, or two people?
+
+Yes. Households, people and accounts are first-class in the model. You can see a category's spending split by person, and money moving between two people's accounts is recognised as a transfer rather than counted as income for one and spending for the other.
+
+### Does it handle more than one currency?
+
+Balances and reporting are single-currency per household. Investments and crypto holdings are converted into that currency for the net-worth figure. A statement carrying multiple currencies can be filtered to one during import.
+
+### Can I get my data out?
+
+Yes, at any time, in several formats: a full JSON backup of every store, scoped CSV and Excel exports, and encrypted backup files. No export is gated.
+
+## Using it
+
+### How long does setup take?
+
+About fifteen minutes for a useful picture: name the household, add an account, drop in a statement, and glance through the categories. The forecast gets meaningfully better once you have roughly six months of history, because that is when recurring bills and seasonal patterns become visible.
+
+### How much history should I import?
+
+Twelve months if you can, so a full year of annual bills — insurance, motor tax, subscriptions that renew yearly — appears in the data. Anything shorter and the forecast will be blind to them.
+
+### It categorised something wrong. What now?
+
+Fix it once, then write a rule from the merchant name so it stays fixed. Rules support wildcards and amount ranges. There is also an optional local AI categoriser that suggests categories using a model you run yourself; it only ever suggests, and you approve.
+
+### Do I need to be good with spreadsheets?
+
+No, and that is rather the point. A spreadsheet makes you build the model; Lithifyte builds it and lets you interrogate it. If you like spreadsheets, everything exports to one.
+
+### Does it work on a phone?
+
+It runs in a mobile browser, and the pages adapt, but the map and the denser planning views are designed for a larger screen. A dedicated mobile build is an open question rather than a promise.
+
+### Is there an app for iPhone or Android?
+
+No native app. It is a web page, which is what allows it to be auditable and to run offline from a file you keep.
+
+## Comparisons
+
+### How is this different from a bank-linked budgeting app?
+
+Those apps hold a copy of your transactions on their servers, which is what makes automatic syncing and shared features possible. It also makes them a target, gives them a commercial interest in your data, and means your access depends on their continued existence. Lithifyte gives up automatic syncing and gets independence in return. Both are legitimate trades — this one is simply rarely offered.
+
+### How is it different from a spreadsheet?
+
+A spreadsheet is only as good as the model you build in it, and most people's models quietly rot. Lithifyte brings the model — transfer matching, merchant normalisation, recurring detection, amortisation, pace-based budgeting — and applies it consistently. You still own the numbers, and you can still export them to a spreadsheet.
+
+### Is it suitable for a business?
+
+It is built for a household. Sole traders sometimes use it for a simple picture of a single account, but it has no invoicing, VAT handling or double-entry bookkeeping, and it is not intended as accounting software.
+
+### Is Lithifyte giving me financial advice?
+
+No. It describes what your money did and computes what follows arithmetically from that. It does not recommend products, providers or courses of action, and the [learn library](/learn) is written as education rather than advice.
+
+
+---
+
+# The Lithifyte guide
+
+URL: https://lithifyte.com/guide
+Updated: 2026-08-09
+
+A complete feature reference, ordered the way you actually encounter things: get data in, make it trustworthy, understand it, then plan with it. There is also an interactive version inside the app with an Ask box.
+
+## Before you start
+
+There is no account to create. Open [app.lithifyte.com](https://app.lithifyte.com), or download `index.html` and open it from your own disk — the file works offline and behaves identically.
+
+If you would rather look before you type anything, the [sample household](https://app.lithifyte.com/demo) is a fully populated invented family: two earners, four accounts, two years of transactions, with the messy bits (merchant name variants, standing orders, an annual insurance renewal, a holiday spike) deliberately left in. Its storage is separate, so exploring it can never touch real data you add later.
+
+## 1 · Getting data in
+
+**Set up the skeleton first.** Name the people in your household and the accounts they hold. Everything else hangs off this, and getting it right early saves re-work.
+
+**Then import a statement.** Export a CSV from your online banking and drop it in. The importer works out which columns hold the date, the description and the money, and it tells you what it decided:
+
+- The columns it used, named back to you.
+- How many rows were added, and how many were skipped as duplicates.
+- How many rows it could not read, with examples.
+
+Read that report. A misread column is the single most common cause of numbers that look wrong later, and it is nearly invisible if the importer stays silent about it. Nothing is ever dropped without being counted.
+
+**Re-uploading is safe.** Transactions are fingerprinted, so importing an overlapping statement adds only what is new. If a previous import went wrong, fixing it is usually just uploading the file again.
+
+**How much history?** Twelve months if you can get it. A full year is what makes annual bills and seasonal patterns visible to the forecast; six months is workable; three months will produce a confident-looking forecast that is blind to your car insurance.
+
+## 2 · Making the data trustworthy
+
+This is the step people skip, and it is the one that determines whether anything downstream means anything.
+
+**Transfers.** Money moving between your own accounts is not income and not spending. Lithifyte matches the two sides by amount, date proximity and direction, scores the match, and excludes the pair from spending totals. Check the matches once; an unmatched transfer inflates both your income and your outgoings.
+
+**Merchant names.** Banks emit `TESCO STORES 3184`, `TESCO EXPRESS DUBLIN` and `TESCO-STORES` for one shop. The canonicaliser folds these into a single merchant so your map and your category totals stop being fragmented by till numbers.
+
+**Categories and rules.** Fix a miscategorised transaction once, then write a rule from the merchant name so it stays fixed. Rules support wildcards and amount ranges — useful when the same merchant is groceries at €80 and a birthday present at €200. A per-transaction override always beats a rule, so you can make an exception without weakening the rule.
+
+**Optional local AI.** You can point the categoriser at a language model you run yourself — Ollama, LM Studio, anything speaking the OpenAI-compatible protocol. It only ever suggests; you approve, and the approval becomes an ordinary rule you can read and edit. Nothing is sent to a remote model by default, and the feature is entirely optional.
+
+## 3 · Understanding what you see
+
+**The money map.** Household → people → accounts → categories → merchants, drawn as a live graph with money flowing along the edges. Drag it, search it, isolate one person, change the date range and watch it redraw. Nodes carry markers for recurring payments and for notes you have written.
+
+**Cashflow.** In versus out by month, with a stepper to walk through months and a drill-down that expands a month into categories and then into individual transactions.
+
+**The Sankey.** Where income actually went, balanced to the cent — including the legs people usually leave out: money drawn from savings, money added to them, and the surplus or shortfall.
+
+**Categories.** A legend of every category with its share, a per-category monthly view for spotting drift, and recategorisation from wherever you happen to be looking.
+
+**Leaks.** Small multiples per category with spike flags based on the median and the median absolute deviation, so an unusual month separates from ordinary noise instead of every category looking dramatic.
+
+**Notes.** You can attach a note to a person, an account, a category or a specific month. This sounds minor and turns out to matter: in eight months you will not remember why January's groceries were low, and *"used a €50 voucher"* attached to that month is the difference between a real insight and a wrong conclusion.
+
+## 4 · Planning with it
+
+**Budgets** are pace-based. Rather than a fixed monthly bar that turns red on the 20th of every month, the engine seeds amounts from your own medians, commits your recurring bills from day one so they cannot register as an overspend, and reports a safe-to-spend figure for each remaining day.
+
+**The forecast** detects recurring bills and their cadence, allows for seasonal uplift, and sizes a buffer from how irregular your spending genuinely is rather than assuming an average month. The simulator lets you cut a category and watch the effect on the projection.
+
+**Goals** carry an honest feasibility date computed from your actual surplus, not from the number you wish were true. A goal can be linked to a real account so its progress reconciles against a real balance.
+
+**Debts** are modelled with real amortisation. Compare avalanche against snowball, see genuine payoff dates, model an overpayment, and get an explicit flag when a payment does not even cover the interest — the situation that quietly keeps a balance alive for years.
+
+**Net worth** layers accounts, manual assets, investments and debts into one figure, with a trend line and staleness flags. A valuation that has not been updated in a year is marked as such rather than silently treated as current.
+
+**Financial health** is a seven-measure dial scored against absolute benchmarks rather than only against your own past, so the score carries meaning outside your own history.
+
+## 5 · Keeping it alive
+
+**Export a backup.** This is the single most important habit. Your data lives in your browser, and browsers can be cleared, corrupted or replaced. A backup file is a full JSON export of every store, optionally encrypted with a passphrase.
+
+**Lock it** if the device is shared. AES-GCM encryption at rest with a PBKDF2-derived key. There is no recovery link — nobody holds a copy of your passphrase to reset it against.
+
+**Alerts and reminders** cover upcoming bills detected from your recurring patterns, plus reminders you set yourself. You can also send yourself an email digest: your browser composes it, the server relays it, and the body is never stored.
+
+**Run the self-tests** whenever you want reassurance. They execute in your browser against your own data and report every check. Green means the engine's arithmetic is behaving on your actual dataset — not on a demo somewhere.
+
+## Where to go next
+
+The [learn library](/learn) covers the money side rather than the software side — how budgets, forecasts, debt payoff and net worth actually work, in plain language. Inside the app, the tutorial walks the same ground interactively and includes an Ask box for questions about the product.
+
+
+---
+
+# How Lithifyte works
+
+URL: https://lithifyte.com/how-it-works
+Updated: 2026-08-09
+
+You upload a bank statement to a web page. The page reads it in your browser, works out who spent what and where it went, and draws the result as a living map. No file is transmitted, because there is no server on the other end to receive it.
+
+## The short version
+
+Most finance apps work by connecting to your bank, copying your transactions onto their servers, and showing you a view of that copy. Lithifyte inverts it. The analysis engine is delivered to you as a web page, and your data stays where it already is: on your device.
+
+That single decision explains nearly everything else about the product — why there is no sign-up wall, why it costs nothing, why it is one file you can download and keep, and why nobody at Lithifyte can look at your spending even if asked to.
+
+## What actually happens when you use it
+
+1. **The page loads.** It is a single self-contained HTML file — the interface, the charts and the entire calculation engine, delivered in one request.
+2. **You add a statement.** Your browser reads the file from your disk. It is parsed in memory by JavaScript running on your machine. No upload happens at any point.
+3. **The engine enriches it.** Every transaction is matched against your categorisation rules, merchant names are normalised so that `TESCO STORES 3184` and `TESCO EXPRESS` become one merchant, transfers between your own accounts are detected and paired so they do not read as income and spending, and recurring payments are identified by their cadence.
+4. **The results are stored locally.** In your browser's localStorage and IndexedDB, on that device, optionally encrypted at rest behind a passphrase you choose.
+5. **Everything you see is computed from that.** Budgets, forecasts, the debt planner, net worth and the money map are all functions of the same enriched data, recalculated as it changes.
+
+## The map is the point
+
+Every other view in the app is a report. The map is the model.
+
+Your household sits at the centre. People branch from it, accounts branch from people, categories and merchants branch from accounts, and money flows along the edges. Because it is one connected structure rather than a series of separate screens, you can see the things that separate screens hide: that two people are quietly funding the same subscription, that one account is doing all the work, that a category you think of as small has more merchant nodes hanging off it than your grocery spend.
+
+You can search it, drag it, isolate a person, and watch it redraw as you change the date range. It is the fastest way to answer questions that begin with *"where is it all actually going?"*
+
+## What it computes
+
+| Area | What the engine does |
+|---|---|
+| **Budgets** | Suggests amounts from your own medians rather than round numbers, then paces them against the calendar — a safe-to-spend figure per remaining day, not a bar that turns red on the 20th. |
+| **Forecasting** | Detects recurring bills and their cadence, allows for seasonal uplift, and sizes a buffer from how irregular your spending genuinely is. |
+| **Debt** | Real amortisation for avalanche and snowball orders, with payoff dates and an honest flag when a payment does not even cover the interest. |
+| **Net worth** | Accounts, manual assets, investments and debts in one layered figure, with staleness flags rather than silently pretending an old valuation is current. |
+| **Leaks** | Small multiples per category with median and MAD spike flags, so a genuine anomaly separates from ordinary variation. |
+| **Health** | A seven-measure dial scored against absolute benchmarks, so the number means something outside your own history. |
+
+## What it does not do
+
+It does not connect to your bank by default. It does not give financial advice, recommend products, or take a commission from anyone. It does not have a premium tier that unlocks your own numbers. And it cannot show your data to Lithifyte, because your data never arrives.
+
+Statement import is the supported path in, and it is deliberate rather than a limitation to apologise for: a file you exported yourself is a file no third party had to be trusted with.
+
+## Two ways to run it
+
+**Hosted** — open [app.lithifyte.com](https://app.lithifyte.com). Sign-in is a magic link to your email address, which exists so the app can recognise you across devices; it holds no financial data. The hosted build records privacy-safe product events (which sections get used, never amounts) so the project can tell what is worth building next.
+
+**Self-hosted** — download `index.html` from [the repository](https://github.com/SID-Apps/lithifyte) and open it from your own disk, a USB stick, or a server you control. It works offline. It reports nothing to anyone, and there is no mechanism by which it could. This is the same file, not a cut-down version.
+
+## Getting your data back out
+
+Everything exports. Encrypted backups, plain CSV and Excel packs, and a full JSON backup containing every store the app holds. If you stop using Lithifyte tomorrow, you leave with all of it — which is the only real test of whether software respects you.
+
+
+---
+
+# Open source, and why it matters here
+
+URL: https://lithifyte.com/open-source
+Updated: 2026-08-09
+
+A privacy promise you cannot verify is marketing. Lithifyte is published under the AGPL-3.0-or-later as a single readable file, so the claim that your data never leaves your browser is something you can check rather than something you have to believe.
+
+## The licence
+
+Lithifyte is licensed **AGPL-3.0-or-later**. In practical terms:
+
+- You may use it for anything, including commercially, at no cost.
+- You may read, modify and redistribute it.
+- If you distribute a modified version, your changes carry the same licence.
+- If you run a modified version **as a network service**, you must offer that modified source to the people using it.
+
+That last clause is the reason for choosing the AGPL over something more permissive. Anyone is free to host a fork; nobody is free to host a fork that quietly starts sending transactions somewhere while still looking like Lithifyte.
+
+## Why auditability is the product
+
+Every finance app claims to respect your privacy. The claims are indistinguishable from each other because they are all unverifiable — you cannot see what a server does with a payload after it arrives.
+
+Lithifyte's claim is different in kind, not in degree: the code that touches your money runs on your machine, in a file you can open in a text editor. You can search it for network calls. You can watch the network tab while you use it. You can compare the hosted file against the public repository byte for byte.
+
+This is also why the application is not minified or obfuscated. Every frontend ships readable code eventually; pretending otherwise would only make the honest reader's job harder.
+
+## Self-hosting
+
+There is no build step and no dependency tree.
+
+1. Download `index.html` from [the repository](https://github.com/SID-Apps/lithifyte).
+2. Open it — from your disk, a USB stick, a private server, whatever you like.
+3. That is the whole procedure.
+
+It runs offline. It reports nothing. It is the same file the hosted app serves, not a reduced version, and the hosted app has no features the file lacks. The only thing you give up is the magic-link sign-in that lets the hosted copy recognise you across devices — which is identity plumbing, not functionality.
+
+The project deliberately keeps no count of self-hosted installs. There is no telemetry to strip out because there is none to begin with.
+
+## What is in the repository
+
+| Path | What it is |
+|---|---|
+| `index.html` | The whole application: interface, engine, self-tests |
+| `demo.html` | The sample household — invented data, isolated storage |
+| `tutorial.html` | Long-form written guide with a retrieval-backed Ask box |
+| `feeder/` | Optional open-banking feeder CLI and price fetcher |
+| `tools/` | Release tooling — data swapping, sample generation, this site |
+| `www/` | The marketing site and the Cloudflare Workers behind sign-in |
+| `docs/` | Product analytics spec, email digest spec, tutorial corpus |
+| `SECURITY.md` | Threat model, scope, and how to report a vulnerability |
+
+## Self-tests as a trust mechanism
+
+The application ships hundreds of behavioural checks that you can run yourself, in your browser, against your own data. They exist for the usual engineering reasons, but they serve a second purpose here: they let a stranger confirm the engine's arithmetic without reading the whole file or trusting the author.
+
+An honest limitation, learned the hard way: a check that asserts on something a user is entitled to change will turn red on a perfectly healthy install, and a red self-test tells someone not to trust the numbers. Assertions are written against invariants, not preferences.
+
+## Contributing
+
+Issues and pull requests are welcome at [github.com/SID-Apps/lithifyte](https://github.com/SID-Apps/lithifyte). Two constraints shape what can be accepted, and they are not negotiable:
+
+- **No feature may require sending financial data to a server.** Not for convenience, not for AI, not for sync. If it needs a server, it needs a different product.
+- **A shipped update must never destroy a user's data.** There is no server-side copy to restore from, so the upgrade path — snapshot, migrate, or refuse to run — is the entire safety net.
+
+Security reports go through the process in `SECURITY.md` rather than a public issue.
+
+
+---
+
+# Security and privacy, in technical terms
+
+URL: https://lithifyte.com/security-and-privacy
+Updated: 2026-08-09
+
+The claim is narrow and testable: your financial data is never transmitted, because there is no server that receives it. This page states exactly what that does and does not protect you from, including the parts we cannot fix.
+
+## The architecture, stated plainly
+
+Lithifyte is delivered as a single HTML file containing the interface and the entire calculation engine. When you import a statement, your browser reads the file from your disk and parses it in memory on your machine. The results are written to that browser's own storage.
+
+There is no finance API. Not an encrypted one, not a temporary one, not one that "only processes and discards". The absence is the design: a service that never receives data cannot leak it, be subpoenaed for it, change its mind about it in a future privacy policy, or lose it in a breach.
+
+You do not have to take this on faith. Open your browser's network tab and use the app. Nothing carrying financial content goes out.
+
+## What is stored, and where
+
+| Data | Location | Leaves your device? |
+|---|---|---|
+| Transactions, accounts, people, categories, rules | `localStorage` in your browser | No |
+| Uploaded statement files, encrypted vault blob | IndexedDB in your browser | No |
+| Budgets, goals, debts, holdings, assets, notes | `localStorage` in your browser | No |
+| Backups you export | Wherever you save the file | Only if you move it |
+| Your email address (hosted sign-in only) | Cloudflare KV, on our side | It is already ours to hold |
+| Product events: section opened, import happened (hosted only) | Cloudflare KV, on our side | Names of features, never amounts |
+
+Self-hosted copies write nothing to the last two rows. The code that reports product events checks the hostname and does not run from a file or from a domain that is not ours.
+
+## Encryption at rest
+
+The app can be locked with a passphrase. Locking encrypts the stored data using AES-GCM, with the key derived from your passphrase by PBKDF2 at 310,000 iterations. Exported backups can be encrypted the same way.
+
+Two consequences worth being blunt about. First, the passphrase is not recoverable — there is no reset link, because there is nobody holding a copy to reset it against. Second, an unlocked app is plaintext in browser storage, protected only by your device's own security. If the device is shared, set a passphrase; if it is not, the lock mainly protects against someone who takes the machine.
+
+## The threat model, honestly
+
+**What this design defends against well.** A breach of our servers, because your finances are not on them. A change of ownership or business model, because there is no data asset to sell. Service shutdown, because the file keeps working offline. Silent scope creep, because the source is public and diffable.
+
+**What it does not defend against.** Malware on your own device, which can read browser storage exactly as the app can. Someone with access to your unlocked machine. A malicious browser extension with permission to read page content — extensions run in the same context the app does. Physical theft of an unlocked device.
+
+**The residual risk we treat as a bug.** Any script injection in the app's own origin could read your storage while unlocked, so cross-site scripting in stock Lithifyte is treated as a security vulnerability, not a cosmetic issue. Report one through [SECURITY.md](https://github.com/SID-Apps/lithifyte/blob/main/SECURITY.md).
+
+## What the servers actually do
+
+Three small Cloudflare Workers, all of them open source in the same repository:
+
+- **The site** serves static pages. No account, no cookie required to read anything.
+- **Sign-in** issues a magic link to your email address and sets a session cookie so the hosted app recognises you across devices. It handles identity, never finance. Rate-limited; tokens are single-purpose.
+- **Digest mail** takes an email that your *browser* has already composed and posts it to a mail provider. The body is not stored. Amounts are masked by default, and you can uncheck that if you would rather they were not.
+
+The endpoints exposed are sign-in, session, sign-out, product events, digest and health. There is deliberately no data endpoint, and adding one would be a design change requiring a rewrite of this page.
+
+## Verifying any of this yourself
+
+- **Read the file.** The application is one HTML file. Search it for `fetch(` and check every result.
+- **Watch the network.** DevTools → Network, then import a statement. Nothing with your data in it is sent.
+- **Pull the plug.** Turn off your network and keep using it. Everything except the optional sign-in check keeps working.
+- **Diff the deployment.** The hosted file is byte-comparable with the one in the public repository.
+- **Run the self-tests.** The app ships hundreds of behavioural checks that run in your browser, on your data, and show you the result.
+
+## Data protection
+
+Lithifyte is built in Ireland and the design is deliberately compatible with the GDPR principle of data minimisation: the lawful basis question is straightforward when the only personal data processed is an email address you volunteered for sign-in. You can request deletion of that address at any time, which removes everything we hold about you, because it is everything we hold about you.
+
+
+---
+
+# Learn — plain-language money guides
+
+URL: https://lithifyte.com/learn
+Updated: 2026-08-09
+
+Personal finance is mostly a small number of ideas explained badly. These guides explain them properly: what a budget really is, why most of them fail in the second month, how debt payoff maths works, and what your own spending is trying to tell you. Read one in five minutes.
+
+Every guide here follows three rules. **Plain words** — if a term is unavoidable it gets defined where it appears. **Real arithmetic** — worked with actual numbers, so you can check it rather than trust it. **No advice** — these pages explain how things work; what you do with your money is yours to decide, and nobody here earns a commission on the outcome.
+
+Start anywhere. If you are not sure where, start with [what a budget actually is](/learn/what-is-a-budget) — most of the others build on it.
+
+
+## Start here
+
+- [What a budget actually is](/learn/what-is-a-budget) — A budget is a **prediction**, not a permission slip. You are guessing where your money will go, then comparing the guess to what happened. Understanding it that way changes what a "failed" budget means — and stops you abandoning the whole thing in week three.
+- [How to build a budget that survives real life](/learn/make-a-budget-that-survives) — Most budgets fail for structural reasons, not moral ones: the numbers were invented, annual bills were ignored, and progress was measured against a monthly total rather than the calendar. Fix those three things and a budget stops being an act of willpower.
+- [How to read your bank statement properly](/learn/read-your-bank-statement) — Bank statements are written for banks, not for you. Once you know what the columns mean, why one shop appears under six names, and how to check a statement reconciles, the rest of personal finance gets considerably easier.
+- [How to categorise spending so the numbers mean something](/learn/categorise-spending) — Categories exist to support decisions, not to file things tidily. Use between eight and fifteen, name them after choices you could actually make, and automate the sorting with rules — otherwise you will be doing data entry forever and quit within two months.
+
+## Getting ahead
+
+- [How big should an emergency fund be?](/learn/emergency-fund) — The honest answer is: enough to cover your **essential** spending for as long as it would realistically take to replace your income. That is usually a smaller number than the standard advice implies, and it is calculable from your own statements rather than borrowed from a rule of thumb.
+- [Sinking funds — the fix for bills that ambush you](/learn/sinking-funds) — Car insurance is not a surprise. It arrives every year, on a date you know. A sinking fund converts every predictable-but-irregular bill into a flat monthly amount, which is the single highest-return change most people can make to how they handle money.
+- [How to find the money leaking out of your account](/learn/find-money-leaks) — Most wasted money is not spent, it is *leaked* — recurring charges nobody decided to keep paying. An hour with your statements and a systematic method will usually surface between €40 and €150 a month, permanently.
+- [Saving for a house deposit without guessing](/learn/save-house-deposit) — Two numbers matter: what you actually need, and what you actually save each month. Divide the first by the second and you have a date. Most people never do this calculation, which is why the goal stays permanently vague and permanently discouraging.
+
+## Getting out of debt
+
+- [What an interest rate actually costs you](/learn/what-interest-really-costs) — An interest rate is an abstraction; euro per month is not. Learn one piece of arithmetic — `balance × rate ÷ 12` — and every borrowing decision you ever make becomes concrete.
+- [Avalanche vs snowball — which pays off debt faster?](/learn/avalanche-vs-snowball) — Avalanche (highest interest rate first) always costs less. Snowball (smallest balance first) always finishes a debt sooner. The gap between them is usually smaller than people expect, which is why the one you will actually stick to is generally the right answer.
+
+## The bigger picture
+
+- [Your money has patterns — here is how to see them](/learn/money-patterns) — Spending feels random from inside it and is remarkably regular from outside. Once you can see the four common patterns — rhythm, cliff, season and drift — a year of transactions stops being a list and becomes something you can read.
+- [How to forecast next month's cashflow](/learn/cashflow-forecast) — Forecasting is not fortune telling. Most of next month is already determined by standing orders, direct debits and habits you have had for years. Add those up, use a median for the rest, and add a buffer based on how erratic you actually are.
+- [Net worth, explained without the jargon](/learn/net-worth) — Net worth is everything you own minus everything you owe. It is the only single number that captures your whole financial position — and its value lies almost entirely in watching it move, not in what it says today.
+- [Why 50/30/20 breaks, and what to do instead](/learn/why-50-30-20-breaks) — 50/30/20 is a useful teaching device and a poor operating budget. It assumes housing costs that many people do not have, splits needs from wants along a line that does not exist, and ignores the annual bills that actually break budgets.
+
+## Reference
+
+- [Plain-English money glossary](/learn/glossary) — Every term you are likely to meet on a statement, in a loan document or in a budgeting guide, defined plainly and without circularity. Definitions first, context second.
+
+
+---
+
+# What a budget actually is
+
+URL: https://lithifyte.com/learn/what-is-a-budget
+Updated: 2026-08-09
+
+A budget is a **prediction**, not a permission slip. You are guessing where your money will go, then comparing the guess to what happened. Understanding it that way changes what a "failed" budget means — and stops you abandoning the whole thing in week three.
+
+## The definition most people carry around
+
+Ask someone what a budget is and you will usually get something like *"a limit on what I'm allowed to spend"*. Under that definition, going over is a failure, a moral one, and the natural response to failing is to stop looking. Which is exactly what happens: most abandoned budgets are abandoned in the second or third month, shortly after the first overspend.
+
+## A more useful definition
+
+A budget is a **forecast of where your money will go**, written down in advance so that you can compare it against what actually happened.
+
+That is all. It is a hypothesis. And the value is not in obeying it — it is in the gap between the guess and the outcome, because that gap is information you cannot get any other way.
+
+You budget €400 for groceries and spend €530. Under the first definition you failed. Under the second you have learned that your grocery spending is €530, which you did not know, and now you get to ask the interesting question: is €400 the wrong number, or was this month unusual?
+
+Very often the answer is that €400 was never realistic. It was a wish dressed up as a plan.
+
+## Where the numbers should come from
+
+The single biggest improvement most people can make is to stop inventing budget figures and start deriving them.
+
+Take your last six months of spending in a category and find the **median** — the middle value when you line the months up in order. Not the average: one Christmas or one car repair drags an average upwards and leaves you budgeting for a month that never occurs.
+
+| Month | Groceries |
+|---|---|
+| February | €468 |
+| March | €502 |
+| April | €511 |
+| May | €530 |
+| June | €545 |
+| July | €780 (visitors for two weeks) |
+
+The average is €556. The median is €520. Budget €556 and you will underspend most months and feel vaguely as though the budget does nothing. Budget €520 and you have a number that describes a normal month honestly, with July correctly understood as an exception rather than folded into the baseline.
+
+## Fixed, variable, and the ones that ambush you
+
+Three different things get called "expenses" and they behave nothing alike.
+
+**Fixed** — rent, loan payments, insurance direct debits. Same amount, same time, every month. These are not really budget decisions at all; they are already committed. The only useful question is whether they are too big a share of your income.
+
+**Variable** — groceries, fuel, going out. These fluctuate with your behaviour, and they are the only part of a budget you can genuinely steer month to month.
+
+**Irregular** — car insurance annually, the boiler service, a birthday cluster in October, the dentist. These are the ones that break budgets, because they are entirely predictable in a *year* and completely invisible in a *month*. A budget that only looks at monthly averages will be ambushed by them roughly four times a year, and each ambush feels like personal failure when it is simply arithmetic. [Sinking funds](/learn/sinking-funds) are the fix.
+
+## Why the calendar matters more than the total
+
+A monthly total tells you almost nothing on the 12th of the month. You have spent €260 of your €520 grocery budget: is that fine, or a problem?
+
+It depends entirely on how far through the month you are. On the 15th, half of a monthly budget is exactly on pace. On the 8th, it is a warning. The useful figure is not *"how much is left"* but *"how much is left per remaining day, compared with what I normally spend per day"*.
+
+That framing also solves the biggest single failure mode of monthly budgets: a large fixed bill leaving on the 2nd makes the whole month look catastrophic for the following twenty-eight days. Commit fixed bills from day one and they stop distorting the picture.
+
+## What a budget is for
+
+Three things, in order of how much they actually matter:
+
+1. **Noticing.** Most overspending is not decided; it accumulates unobserved. Simply seeing the number changes behaviour before any rule does.
+2. **Deciding in advance.** Choosing at the start of the month is easier than choosing in the shop, because in the shop you are deciding one purchase and at the start of the month you are deciding a pattern.
+3. **Freeing up attention.** A working budget means you stop wondering whether you can afford things. That is the actual prize, and it is more valuable than any specific euro saved.
+
+## When you go over
+
+Ask which of these it was, because they call for different responses:
+
+- **The estimate was wrong.** Fix the estimate. This is the most common answer and needs no willpower whatsoever.
+- **It was a genuine one-off.** Note what it was, next to the month it happened in, and move on. Your future self will otherwise read the spike as a change in habit.
+- **The pattern has changed.** Something has genuinely shifted — a new commute, a price rise. The budget has just done its job by detecting it.
+- **You chose to.** Also fine. A budget you consciously override is still working; a budget you have stopped reading is not.
+
+
+---
+
+# How to build a budget that survives real life
+
+URL: https://lithifyte.com/learn/make-a-budget-that-survives
+Updated: 2026-08-09
+
+Most budgets fail for structural reasons, not moral ones: the numbers were invented, annual bills were ignored, and progress was measured against a monthly total rather than the calendar. Fix those three things and a budget stops being an act of willpower.
+
+## Step 1 — Get twelve months of history
+
+Not three. Twelve.
+
+Three months of data will produce a budget that is confident and wrong, because it cannot see your car insurance, your Christmas, your holiday, the dental bill or the annual subscription that renews in March. A year of history contains every one of those at least once.
+
+Download CSV statements for every account you use — current accounts, credit cards, the savings account you occasionally raid. If you have to do it one quarter at a time, do it; this is a one-off half hour that determines whether everything afterwards is based on reality.
+
+## Step 2 — Separate the transfers out
+
+Before you total anything, find the money that moved between your own accounts.
+
+If you move €600 to savings each month and count it as spending, and count the €600 arriving as income, you have invented €1,200 of activity that never happened. Your income looks inflated, your spending looks inflated, and your savings rate becomes meaningless.
+
+Every transfer has two sides. Match them and exclude the pair.
+
+## Step 3 — Group by what things are, not what they are called
+
+Bank descriptions are hostile. One shop appears as `TESCO STORES 3184`, `TESCO EXPRESS`, and `TESCO-STORES DUBLIN`; a subscription appears under a payment processor's name rather than the service you actually pay for.
+
+Fold those variants together, then group into categories that are **decision-shaped** — categories you could actually act on. "Groceries" is a decision. "Card payment" is not. Aim for somewhere between eight and fifteen; below that everything is a blur, above that you spend your life sorting instead of deciding. More on this in [categorising spending](/learn/categorise-spending).
+
+## Step 4 — Take the median, not the average
+
+For each category, line up the twelve monthly totals and take the middle one.
+
+An average is dragged upwards by your worst month, which means you budget for a month that essentially never happens, underspend continuously, and conclude the budget is pointless. The median describes a *normal* month — and the outliers you excluded are not lost, they are the thing you are about to handle properly in step 5.
+
+## Step 5 — Pull the irregular bills out into a sinking fund
+
+This is the structural fix that saves most budgets.
+
+Add up everything that arrives less often than monthly: insurance, motor tax, the boiler service, professional fees, Christmas, birthdays, holidays. Divide by twelve. That figure is a **monthly bill**, even in the eleven months nothing is due.
+
+Say it comes to €2,760 a year, so €230 a month. Move €230 into a separate account each month and treat it as spent. When the €640 insurance bill arrives, it is not an emergency, a credit card balance, or a sign you are bad with money. It is a withdrawal from the account that exists for it. See [sinking funds](/learn/sinking-funds).
+
+## Step 6 — Commit the fixed costs from day one
+
+Add up rent or mortgage, loan payments, utilities and everything else that leaves automatically. Subtract that from income immediately, along with the sinking-fund contribution and any savings you want treated as non-negotiable.
+
+What remains is the only money that any budget can genuinely steer. It is usually far smaller than people expect, and knowing the true figure is worth more than a dozen resolutions about coffee.
+
+## Step 7 — Measure against the calendar, not the total
+
+Here is where budgets are usually lost.
+
+You have €520 for groceries. On the 12th you have spent €260. Half the budget — but you are only 39% of the way through the month, so you are running about 28% hot. Left as *"€260 remaining"* that fact is invisible until it is too late to act on it.
+
+The useful number is what is left **per remaining day**:
+
+> €520 budget − €260 spent = €260 left, over 19 remaining days = **€13.70 a day**, against your normal €17.30. You are not in trouble. You are on a slightly tight run for two weeks, and you know it on the 12th rather than the 28th.
+
+Anything that gives you a running per-day figure will beat a monthly bar, because a monthly bar only tells you the truth on the last day of the month, by which point it is history rather than a decision.
+
+## Step 8 — Review monthly, adjust quarterly
+
+Once a month, spend ten minutes on three questions: what went over, was it a wrong estimate or a genuine one-off, and does anything need changing?
+
+Write the answer down next to the month it happened in. In six months you will be looking at a spike with no memory of what caused it, and *"visitors for two weeks"* is the difference between correctly ignoring it and wrongly concluding your grocery spending has permanently risen.
+
+Change the actual numbers about every three months. Monthly tinkering means you never find out whether a figure was realistic; annual review means you spend most of the year budgeting against a life you no longer lead.
+
+## The two-minute version
+
+1. Twelve months of statements from every account.
+2. Match and remove transfers between your own accounts.
+3. Fold merchant name variants together; use eight to fifteen decision-shaped categories.
+4. Median, not average.
+5. Annual bills ÷ 12 into a sinking fund, treated as a monthly bill.
+6. Subtract fixed costs and savings first.
+7. Track per remaining day, not per month.
+8. Review monthly, adjust quarterly, and write down why the odd months were odd.
+
+
+---
+
+# How to read your bank statement properly
+
+URL: https://lithifyte.com/learn/read-your-bank-statement
+Updated: 2026-08-09
+
+Bank statements are written for banks, not for you. Once you know what the columns mean, why one shop appears under six names, and how to check a statement reconciles, the rest of personal finance gets considerably easier.
+
+## Why they are so hard to read
+
+A bank statement is a legal record of account movements, designed to be complete and unambiguous for the bank. It is not designed to help you understand your own behaviour. That is why it lists a card terminal identifier instead of a shop name, why it splits one shopping trip across two lines, and why the same supermarket appears under six different strings.
+
+None of that is malice. It is just the wrong document being used for the wrong job — and knowing what each part means makes it a usable one.
+
+## The columns
+
+**Date.** Often there are two: the date you made the payment and the date it settled at the bank. They can differ by several days, and a purchase made on the 31st can land on the 2nd of the next month. If you are wondering why a month's total does not match your memory, this is usually the reason. When a file offers both, the completed or posted date is the one that matches your balance.
+
+**Description.** A concatenation of merchant name, location, terminal ID, and sometimes a scheme reference. This is the field that needs the most work, and it is where all the ambiguity lives.
+
+**Debit and credit.** Money out and money in. Statements express this in one of two ways: two separate columns, or one signed amount column where negatives are outgoings. Getting this backwards is the classic import error — a whole account reading as though you spend everything and earn nothing.
+
+**Balance.** The running balance after each transaction. Frequently ignored, and genuinely the most useful column on the page. See the reconciliation check below.
+
+**Reference or type.** Codes like `SEPA DD` (direct debit), `POS` (card payment in person), `ATM`, `SO` (standing order), `INT` (interest). These tell you the *mechanism*, which is often more informative than the description: a `SEPA DD` you do not recognise is a subscription you have forgotten about.
+
+## Direct debit versus standing order
+
+Worth being precise about, because the difference matters when something goes wrong.
+
+- A **standing order** is an instruction *you* give your bank: pay this fixed amount to this account on this date. You control it and you cancel it.
+- A **direct debit** is permission you give a *company* to pull money from your account, and they set the amount. Convenient for variable bills. It also means an incorrect bill leaves your account before you can argue about it, though direct debit schemes generally give you a right to an immediate refund of an incorrect payment.
+
+If you are trying to cut a recurring cost, this determines who you have to contact.
+
+## Why one shop appears as six merchants
+
+`TESCO STORES 3184`, `TESCO EXPRESS DUB`, `TESCO-STORES`, `TESCO STORES 4471` — four strings, one shop, and any total you compute per-string is wrong by three-quarters.
+
+The store number, the town and sometimes the terminal all end up in the description. The fix is to normalise: strip the trailing noise and treat everything beginning `TESCO` as one merchant. Do this before you total anything, or your grocery spending will be scattered across a dozen entries small enough to look unimportant individually.
+
+The reverse problem also exists. Payment processors — `SumUp`, `Stripe`, `PayPal`, `SQ *` — appear as themselves rather than the business you actually paid, so several unrelated purchases collapse into one meaningless line. Those have to be split apart by hand, usually by amount and date.
+
+## Transfers are not spending
+
+If you move €500 from your current account to savings, your statements record €500 out of one and €500 into the other. Counted naively, you have spent €500 and earned €500. Neither happened.
+
+Every internal transfer has two sides, and both must be excluded before any total means anything. This single error is responsible for more nonsensical personal finance numbers than any other, and it is invisible unless you look for it — the arithmetic is perfectly correct, it is just measuring something that did not occur.
+
+## The reconciliation check
+
+Here is the check almost nobody does, and it is the only way to *prove* you have read a statement correctly rather than assume it.
+
+Take the balance column. For each row: previous balance, plus credit, minus debit, should equal the new balance. Walk the whole file.
+
+If every step agrees, your columns are right, your signs are right, your decimal separator is right and nothing has been skipped. If a step disagrees, you have found the exact row where your reading of the file breaks. This turns "the numbers look about right" into an actual proof, and the statement hands you the answer key for free.
+
+There is a bonus. The balance *before* the first row is your opening balance, which is the number that turns a list of movements into an actual account balance.
+
+## Five things to check on every statement
+
+1. **Does the balance reconcile?** Walk it, as above.
+2. **Are both dates present, and which one are you using?** Consistency matters more than which you pick.
+3. **Do the debit and credit columns point the way you think?** A statement where everything is one direction is nearly always a misread, not a strange month.
+4. **Have transfers been paired?** Both sides, or your income and spending are both inflated.
+5. **Are annual and quarterly items visible?** If your history is too short to contain them, your picture of a normal month is wrong in a way that will surprise you later.
+
+## Getting a CSV out of your bank
+
+Almost every bank offers this, usually under "download", "export" or "statements" in online banking, with CSV, Excel and PDF options. Take CSV or Excel. A PDF is a picture of your data — it can be extracted, but you will lose fidelity and gain errors for no reason.
+
+Export the longest period the bank offers, one account at a time. If it caps you at three months, do it four times.
+
+
+---
+
+# How to categorise spending so the numbers mean something
+
+URL: https://lithifyte.com/learn/categorise-spending
+Updated: 2026-08-09
+
+Categories exist to support decisions, not to file things tidily. Use between eight and fifteen, name them after choices you could actually make, and automate the sorting with rules — otherwise you will be doing data entry forever and quit within two months.
+
+## The test a category has to pass
+
+A category is useful if knowing its total could change something you do.
+
+"Groceries" passes: if it is €700 a month you might shop differently. "Subscriptions" passes: you can cancel one this afternoon. "Card payments" fails — it describes the mechanism, not the choice, and no decision follows from knowing the number. "Miscellaneous" fails hardest of all, because it grows to absorb everything you did not want to think about, and by month four it is the second-largest category on the list.
+
+## How many
+
+Between eight and fifteen for most households.
+
+Fewer than eight and everything blurs — a single "Living" category tells you nothing you did not already know. More than about fifteen and two things go wrong: individual categories get too small to be worth acting on, and sorting becomes a chore, at which point you stop doing it and the whole exercise dies quietly.
+
+A workable starting set:
+
+| Category | What goes in it |
+|---|---|
+| Housing | Rent or mortgage, management fees, property tax |
+| Utilities | Electricity, gas, water, broadband, phone |
+| Groceries | Supermarket food and household basics |
+| Transport | Fuel, public transport, tax, insurance, servicing |
+| Eating out | Restaurants, takeaway, coffee, pub |
+| Health | Doctor, dentist, pharmacy, health insurance |
+| Subscriptions | Streaming, apps, gym, memberships |
+| Shopping | Clothes, homeware, gifts, electronics |
+| Family | Childcare, school, activities, pets |
+| Debt payments | Loan and credit card repayments |
+| Savings and investing | Money moved out of reach on purpose |
+| Irregular | Annual and occasional bills — see [sinking funds](/learn/sinking-funds) |
+
+Adjust it to your life. A category you never use is clutter; a category you find yourself constantly wanting to split is two categories.
+
+## Split by decision, not by shop
+
+The instinct is to categorise by merchant, which breaks the moment a shop sells several things. A supermarket sells groceries, wine, a phone charger and petrol. A department store sells clothes and a birthday present.
+
+The question to ask is not *where did I buy it* but *what decision does it belong to*. If cutting back on alcohol is a thing you might do, alcohol needs to be visible rather than buried inside groceries. If it is not, do not create the category — you would be doing bookkeeping for a decision you are never going to make.
+
+## Automate it or abandon it
+
+Nobody sorts transactions by hand for a year. Everybody intends to.
+
+The way out is rules: a pattern matched against the description, mapping to a category. `TESCO` → Groceries. `ESB` → Utilities. `NETFLIX` → Subscriptions. Do it once and every future transaction from that merchant sorts itself.
+
+Two refinements make rules considerably more useful:
+
+- **Wildcards**, so `AIB*` catches every variant a bank emits without you writing six rules.
+- **Amount ranges**, so the same merchant can be Groceries under €150 and Shopping above it — genuinely useful for shops where the weekly food run and the occasional appliance both happen.
+
+And you need an escape hatch: a per-transaction override that beats the rule, so a single exception does not force you to weaken a rule that is right 95% of the time.
+
+## The 80/20 of it
+
+Roughly 80% of your transactions come from roughly 20% of your merchants. Fifteen or twenty rules covering your regular shops, utilities and subscriptions will usually sort the large majority of your spending automatically.
+
+The remainder is a long tail of one-off purchases, and it is genuinely fine to leave much of that as "Uncategorised" — as long as you look at the total. If uncategorised is 4% of spending, ignore it. If it is 25%, your rules are not doing their job and every other number on the page is unreliable.
+
+## Two things to keep out of your spending totals
+
+**Transfers between your own accounts.** Moving €500 to savings is not spending. Counted as such it inflates your outgoings and, on the other side, your income. Pair both sides and exclude them.
+
+**Refunds and reversals.** A €120 refund is not €120 of income; it is a €120 purchase that unhappened. Netting it against the original category keeps the total honest. Left as income, it quietly flatters your month.
+
+## Categorise for your future self
+
+The most useful thing you can add is context, and it costs a sentence.
+
+When something unusual happens — a month where groceries collapse, a category that doubles — write down why, attached to that month. *"Two weeks away"*, *"used a voucher"*, *"bought a year of it upfront"*.
+
+In eight months you will be looking at that dip with no memory at all, and without the note you will draw a confident wrong conclusion about your habits. A number tells you what happened. Only you can record why, and only at the time.
+
+
+---
+
+# How big should an emergency fund be?
+
+URL: https://lithifyte.com/learn/emergency-fund
+Updated: 2026-08-09
+
+The honest answer is: enough to cover your **essential** spending for as long as it would realistically take to replace your income. That is usually a smaller number than the standard advice implies, and it is calculable from your own statements rather than borrowed from a rule of thumb.
+
+## What it is for
+
+An emergency fund exists to convert a disaster into an inconvenience.
+
+It is not a savings goal, not an investment, and not a pot for things you knew were coming. Its entire job is to absorb the events that would otherwise force you into expensive borrowing — a lost job, an illness, a car that dies, a boiler in February.
+
+The test of an emergency fund is not how large it is. It is whether an unwelcome surprise makes you rearrange a weekend or take on debt at 19%.
+
+## Why "three to six months" is a bad starting point
+
+You will hear this everywhere, and it is not wrong so much as unhelpfully vague. Three to six months of *what*, exactly?
+
+Most people hear "months of income" or "months of spending" — including holidays, restaurants and subscriptions. That produces an enormous target, which feels unreachable, which is a common reason people never start at all.
+
+An emergency fund only ever has to cover what you would **actually** spend in a bad month. In a genuine crisis you are not going out, not booking flights, and cancelling anything cancellable. The right base is your **essential** monthly spending.
+
+## Work out your own number
+
+**Step 1 — Find your essential monthly total.** Go through your categories and keep only what continues in a bad month: housing, utilities, groceries, transport to look for work, insurance, minimum debt payments, childcare, medication. Drop eating out, subscriptions you could pause, clothes, gifts, holidays.
+
+For many households the essential figure is 50–65% of normal spending. That alone makes the target dramatically less frightening.
+
+**Step 2 — Decide how many months.** Not a rule — a judgement about your own situation:
+
+| Your circumstances | Reasonable range |
+|---|---|
+| Two incomes, secure employment, no dependants | 3 months |
+| One income, or dependants, or a mortgage | 4–6 months |
+| Self-employed, contract work, irregular income | 6–9 months |
+| Specialised role where a job search takes longer | 9–12 months |
+
+The real question behind the multiplier is: *how long would it realistically take me to replace this income?* Someone in a common role in a city answers differently from someone in a niche role in a small town.
+
+**Step 3 — Multiply.** Essential monthly spend × months. That is your target.
+
+> Example: essentials of €2,100 a month, two incomes, secure work → 3 months → **€6,300**. Not €18,000, which is what "six months of spending" would have suggested from a €3,000 monthly outgoing.
+
+## Where to keep it
+
+Two properties matter and they are in tension with almost everything else you might do with money.
+
+**You must be able to reach it within a day or two.** An emergency fund locked in a 90-day notice account is not an emergency fund. Neither is one invested in the stock market, where the moment you are most likely to need it — a recession — is precisely when its value is most likely to be down.
+
+**It should be separate from your current account.** Money that sits alongside your everyday balance gets spent without a decision ever being made. A separate account, ideally at a different institution, adds a deliberate step, and that friction is the point.
+
+Beyond those two, take whatever interest you can get. Interest is a bonus here, not the objective.
+
+## Building it without heroics
+
+Start with **one month of essentials**. That single month covers the overwhelming majority of real-life surprises — the car, the appliance, the vet, the excess on a claim — and it converts the most common financial shocks from crises into annoyances. It is also reachable, which matters more than optimality.
+
+Then let it grow: automate a standing order the day after payday so the decision is made once rather than monthly, and put windfalls — a refund, a bonus, a rebate — straight in.
+
+If you are carrying high-interest debt, most people are better served by holding one month of essentials, clearing the expensive debt, and then building the rest. Paying 19% interest to hold cash earning 2% is an expensive kind of safety. That is arithmetic, not advice; your own tolerance for risk is yours to weigh.
+
+## When you use it, you have not failed
+
+Using an emergency fund is the fund working. That is the whole design.
+
+The only thing to do afterwards is start refilling it, at whatever rate is realistic, and to note what the emergency actually was. After a few years you will know your own pattern of surprises — and if the same category keeps appearing, it was never an emergency at all. It was an irregular cost that belongs in a [sinking fund](/learn/sinking-funds).
+
+
+---
+
+# Sinking funds — the fix for bills that ambush you
+
+URL: https://lithifyte.com/learn/sinking-funds
+Updated: 2026-08-09
+
+Car insurance is not a surprise. It arrives every year, on a date you know. A sinking fund converts every predictable-but-irregular bill into a flat monthly amount, which is the single highest-return change most people can make to how they handle money.
+
+## The problem, stated exactly
+
+Look at a year of spending and it usually shows eight or nine ordinary months and three or four that look catastrophic. The catastrophic ones contain car insurance, motor tax, a service, Christmas, a holiday deposit, the dentist.
+
+Every one of those was known about in advance. None of them was an emergency. Yet they get handled like emergencies — on a credit card, or by raiding savings — because the budget was built around a monthly rhythm and these costs do not have one.
+
+A sinking fund fixes this with division.
+
+## How it works
+
+1. List every cost that arrives less often than monthly.
+2. Estimate each one's annual total.
+3. Add them up and divide by twelve.
+4. Move that amount into a separate account every month, and treat it as spent.
+5. When a bill lands, pay it from that account.
+
+That is the entire method. It is not clever, and its effect is out of all proportion to its complexity.
+
+## A worked example
+
+| Cost | Per year |
+|---|---|
+| Car insurance | €640 |
+| Motor tax | €280 |
+| Car service and NCT | €420 |
+| Home insurance | €310 |
+| Christmas | €800 |
+| Birthdays | €300 |
+| Dentist and optician | €250 |
+| Annual subscriptions | €180 |
+| Holiday | €1,200 |
+| **Total** | **€4,380** |
+| **Per month** | **€365** |
+
+€365 a month is a real cost of running this household. It was always €365 a month. The only thing that changes is whether it is acknowledged in advance or discovered four times a year with a jolt.
+
+And notice what the exercise reveals on its own: many people have never added these up, and the total is frequently larger than their grocery bill. That is worth knowing regardless of what you do next.
+
+## Sinking fund versus emergency fund
+
+They are constantly confused, and they behave completely differently.
+
+| | Sinking fund | Emergency fund |
+|---|---|---|
+| Covers | Known costs, unknown-ish amounts | Unknown events |
+| Timing | You know roughly when | You cannot know |
+| Gets used | Several times a year, by design | Rarely, hopefully |
+| When empty | Expected — it just refilled and paid out | A problem to fix |
+| Target size | The next twelve months of irregular bills | Months of essential spending |
+
+If the same "emergency" happens every year, it is not an emergency. It is a sinking-fund item that has been misfiled, and refiling it removes it from the list of things that can frighten you.
+
+## Practical set-up
+
+**One account or several?** One account and a written list is enough for most people, and far more likely to survive contact with real life than a dozen sub-accounts. If your bank offers named pots or spaces at no cost, use them — the labels genuinely help — but do not let the tooling become the reason you never start.
+
+**When to move it.** The day after payday, by standing order. Money that requires a monthly decision is money that eventually does not move.
+
+**Starting mid-year.** If insurance is due in three months and costs €640, you need roughly €213 a month to get there, not €53. Fund the near-term items at their real rate and let the distant ones build slowly; after the first full cycle, everything settles into the flat monthly figure.
+
+**Reviewing it.** Once a year, or whenever a renewal quote changes materially. Insurance quotes drift, subscriptions creep, and a sinking fund built on last year's prices runs a little short.
+
+## The knock-on effects
+
+Three things happen once this is running, and the second and third are the ones people do not anticipate.
+
+**Your monthly budget becomes honest.** The remaining categories are genuinely monthly, so the median of a normal month actually describes a normal month.
+
+**Renewals stop being emotional.** When the insurance money is already sitting there, you can shop around calmly instead of accepting whatever renewal quote arrives while feeling ambushed. People who fund their renewals in advance tend to pay less for them, purely because they are negotiating from a position of not needing to.
+
+**Your emergency fund stops leaking.** Most emergency funds are drained by things that were never emergencies. Take the predictable costs out and the emergency fund can finally do its actual job.
+
+
+---
+
+# How to find the money leaking out of your account
+
+URL: https://lithifyte.com/learn/find-money-leaks
+Updated: 2026-08-09
+
+Most wasted money is not spent, it is *leaked* — recurring charges nobody decided to keep paying. An hour with your statements and a systematic method will usually surface between €40 and €150 a month, permanently.
+
+## Why leaks are different from spending
+
+Spending is a decision. A leak is the absence of one — a charge that continues because cancelling it requires action and continuing requires none.
+
+That asymmetry is deliberate on the seller's side, and it is why leaks are worth attacking first: fixing one takes ten minutes and never needs to be done again, whereas cutting discretionary spending requires a decision every week for the rest of your life. A €12 monthly subscription you no longer use is €144 a year, and the effort to stop it is a single afternoon.
+
+## The method
+
+**Step 1 — List every recurring payment.** Sort twelve months of transactions by merchant and look for anything appearing monthly, quarterly or annually. Do not rely on memory; the whole nature of a leak is that you have forgotten it.
+
+Check every account, including credit cards and any card attached to a wallet. Leaks hide on the account you look at least.
+
+**Step 2 — Score each one honestly.** For every recurring charge, ask: when did I last actually use this? Not *could* I use it. Did I.
+
+| Verdict | Action |
+|---|---|
+| Used weekly, glad to have it | Keep, and stop feeling guilty about it |
+| Used monthly-ish | Keep, but check the tier — you may be paying for more than you use |
+| Cannot remember the last time | Cancel. You can always resubscribe, and you almost never will |
+| Did not know it existed | Cancel today |
+
+**Step 3 — Look for the five specific patterns below.** These account for most of what people find.
+
+## The five common leaks
+
+**Forgotten trials.** A trial you signed up for and did not cancel. These are typically small enough to slip under the threshold at which you would notice a line on a statement, which is precisely the design.
+
+**Price creep.** The subscription you agreed to at €7.99 is now €13.99. Nobody ever gets a bill saying "this is 75% more than when you signed up" — you would notice that. It rises a euro at a time. Compare what you pay now against what you agreed to; a year-over-year comparison of the same merchant surfaces this instantly.
+
+**Duplicate capability.** Two cloud storage plans. Three music services across a household. A gym membership and a fitness app. Each was reasonable when bought; together they are one service being paid for several times.
+
+**Zombie insurance and warranties.** Cover for a phone you no longer own, an appliance long since replaced, travel insurance on a card you also hold as a standalone policy. Insurance is bought once and cancelled almost never.
+
+**Loyalty penalties.** Broadband, energy, car and home insurance and mobile plans are frequently priced so that existing customers pay more than new ones. This is the largest single leak for many households, and often the least examined, because nothing on the statement changed — that is the point. An annual renewal you accept without shopping around is a decision to pay the loyalty penalty.
+
+## The annual review that catches the big ones
+
+Monthly subscriptions are visible because they appear twelve times. Annual charges appear once, which makes them dramatically easier to miss and usually much larger.
+
+Once a year, list every charge that appeared exactly once in twelve months and is over €50. Domain names, professional memberships, insurance renewals, annual software, warranties, club fees. Ask the same question about each: did I use this?
+
+## Doing this in a tool rather than by hand
+
+If you have your transactions in something that can group by merchant, the whole exercise takes minutes instead of an hour:
+
+- **Group by merchant, sorted by count.** Anything appearing 12, 4 or 2 times a year is recurring by definition.
+- **Compare the same merchant year over year.** Price creep becomes obvious the moment you see the two figures side by side.
+- **Flag statistical spikes.** A category that is usually €40 and is suddenly €90 is either a price change or a duplicate, and both are worth ten seconds of attention.
+- **Watch for the disappearance of a charge you still want.** Leaks run both directions — a lapsed policy you meant to keep is worth catching too.
+
+## What to expect
+
+For a typical household, an hour of this surfaces somewhere between €40 and €150 a month of genuinely unwanted spending. At €80 a month that is €960 a year, recovered permanently, for one afternoon of work — a better hourly rate than almost anything else available in personal finance.
+
+Do it once a year. Put it in the calendar near a renewal date so it has an anchor, and it will keep paying.
+
+
+---
+
+# Saving for a house deposit without guessing
+
+URL: https://lithifyte.com/learn/save-house-deposit
+Updated: 2026-08-09
+
+Two numbers matter: what you actually need, and what you actually save each month. Divide the first by the second and you have a date. Most people never do this calculation, which is why the goal stays permanently vague and permanently discouraging.
+
+## Start with the real target
+
+The deposit is not the amount you need. It is the largest part of the amount you need, which is a different thing, and the gap between the two is where first-time buyers get caught.
+
+A realistic target is the deposit **plus** the costs of buying:
+
+| Cost | Typical shape |
+|---|---|
+| Deposit | A percentage of the purchase price — commonly 10% for a first home, more for a second or for an investment property |
+| Legal fees | A fixed fee plus outlays |
+| Valuation and survey | Modest but non-optional; a survey is worth far more than it costs |
+| Stamp duty | A percentage of the price, varying by country and price band |
+| Mortgage protection and home insurance | Required before drawdown |
+| Moving and immediate essentials | Consistently underestimated — furniture, appliances, the first bills |
+
+Percentages and duties change and differ by country, so take the current figures from your own lender or a current official source rather than from any article, including this one. The point is structural: **budget for the deposit plus roughly a further slice on top**, and find out what that slice actually is where you live before you set a target.
+
+## Then find your true monthly saving
+
+Not what you intend to save. What actually accumulated.
+
+Take the balance of your savings twelve months ago and the balance today, and divide the difference by twelve. That number includes the months you dipped into it, the months you did not get round to transferring, and the months something went wrong — which is precisely why it is the honest figure and your intended amount is not.
+
+> Intended: €1,000 a month. Actual over twelve months: €7,800, so **€650 a month**. Against a €40,000 target, that is the difference between a 40-month plan and a 62-month one — over eighteen months of difference, invisible until you measure it.
+
+## Divide, and get a date
+
+Target minus what you already have, divided by your true monthly saving, equals months to go.
+
+A date is worth far more than a target, for a reason that is entirely psychological: a target is a wish, and a date is a plan you can test. It also converts every decision into a comparison you can actually make. Spending €2,000 on a holiday is not "€2,000". It is "three months later", and only one of those two framings lets you decide honestly. Sometimes three months later is entirely worth it — but now it is a choice rather than a drift.
+
+## Closing the gap
+
+Four levers, in descending order of how much they usually move the date:
+
+1. **Housing costs now.** Rent is the largest single obstacle to saving for a home, and it is the one nobody wants to look at. A shared arrangement or a cheaper area for eighteen months moves the date more than every other change combined.
+2. **The gap between intended and actual.** Automate the transfer for the day after payday. Most of the shortfall is not overspending; it is money that stayed in the current account long enough to be absorbed.
+3. **Windfalls.** Bonuses, tax refunds, gifts. These are the largest lump sums most people ever handle, and they are the easiest to dissolve without noticing.
+4. **Category trimming.** Real, but usually smaller than expected. Cutting €150 a month from spending is genuinely hard work and moves a €40,000 target by about five months.
+
+## Two things not to do
+
+**Do not raid your emergency fund for the deposit.** Buying a house is precisely when you most need a buffer — the first year of ownership generates costs you cannot predict, and moving in with zero cushion means the first broken appliance goes on a credit card.
+
+**Do not invest a deposit you need within five years.** Markets do not care about your timeline. Money you will need on a known, near date belongs somewhere boring and accessible, and the interest you forgo is the price of not having your deposit fall 20% in the quarter you were going to bid.
+
+## Track it monthly, honestly
+
+Once a month, record what you have, what the target is, and what the implied date now says.
+
+The date will move. That is not failure; that is the plan responding to reality, which is the only thing a plan is good for. What matters is that it moves for reasons you can name — a bad month, a lender's requirements changing, a target revised because you looked at actual listings — rather than drifting silently for a year until you check and find you are nowhere near.
+
+
+---
+
+# What an interest rate actually costs you
+
+URL: https://lithifyte.com/learn/what-interest-really-costs
+Updated: 2026-08-09
+
+An interest rate is an abstraction; euro per month is not. Learn one piece of arithmetic — `balance × rate ÷ 12` — and every borrowing decision you ever make becomes concrete.
+
+## Turn the percentage into euro
+
+The one calculation worth memorising:
+
+> **monthly interest ≈ balance × annual rate ÷ 12**
+
+A €3,000 balance at 19.9%: `3000 × 0.199 ÷ 12` ≈ **€50 a month**.
+
+That is the rent on the money. It buys nothing, reduces nothing and recurs every month the balance exists. Fifty euro a month is a phone bill, and phrased that way most people react to it very differently than they do to "19.9%".
+
+Do this conversion for every debt you hold. It takes two minutes and it reorders priorities more reliably than any advice does.
+
+## What APR actually means
+
+**APR** — annual percentage rate — is the interest rate plus the compulsory fees, expressed as one annual figure. It exists so two products can be compared honestly, since a low rate with a large arrangement fee can cost more than a higher rate with none.
+
+Three cautions:
+
+- APR assumes the loan runs its stated term. Pay it off early and the effective cost differs.
+- Advertised rates are often "representative" — a proportion of successful applicants get that rate, and you may be offered another.
+- For credit cards, APR assumes a constant balance, which is not how anyone uses a credit card.
+
+For savings you will see **AER** instead, which does the equivalent job: the annual rate with compounding accounted for, so accounts paying monthly and annually can be compared.
+
+## Why minimum payments last for decades
+
+Minimum payments are typically a small percentage of the balance, often with a floor. As the balance falls, so does the payment — which is why the end never arrives.
+
+> €4,000 at 19.9%, minimum 2.5% (floor €5).
+> Month one: minimum ≈ €100, interest ≈ €66. About €34 comes off the balance.
+> Month two: the balance is €3,966, so the minimum drops to €99.
+> The payment shrinks alongside the debt, and the tail stretches out for years.
+
+Paying a **fixed** amount instead — even the same €100, held constant — changes the shape entirely, because every euro of reduced interest goes into the principal rather than into a smaller bill. This single change, with no extra money at all, typically removes years from a credit card balance.
+
+## Compounding, in both directions
+
+Compounding means interest is charged on interest already added. Left alone, a balance grows at an accelerating rate.
+
+The rough guide is the **rule of 72**: divide 72 by the rate to get the years for a balance to double.
+
+| Rate | Doubles in |
+|---|---|
+| 3% | ~24 years |
+| 7% | ~10 years |
+| 12% | ~6 years |
+| 20% | ~3.5 years |
+
+An untouched credit card balance at 20% roughly doubles in three and a half years. That is the same mathematics that makes long-term investing work, running against you instead of for you — which is precisely why clearing high-rate debt is often the highest-certainty return available to a household. You cannot reliably earn 20%; you can reliably stop paying it.
+
+## Fixed and variable
+
+A **fixed** rate is locked for a period — payments are predictable, and you are protected from rises and excluded from falls. A **variable** rate moves with the market or the lender's decisions.
+
+Two practical points. First, know your fixed period's *end date*: rates often revert to a materially higher variable rate, and the reversion arrives as an unwelcome surprise for people who did not diarise it. Second, breaking a fixed rate early usually costs a fee.
+
+## The number nobody calculates
+
+Add up the interest you paid across every debt last year.
+
+Most people have never seen this figure. It is available: for each debt, roughly `average balance × rate`. Total it.
+
+It is frequently between €800 and €3,000 for a household with a couple of cards and a loan, and it is the truest measure of what borrowing is costing you — far more informative than any individual rate, because it is denominated in the units your life actually runs on.
+
+## When borrowing is reasonable
+
+None of this makes debt wrong. It makes it a purchase with a price.
+
+Borrowing at 3% for something appreciating or essential is a different proposition from borrowing at 22% for something consumed in a weekend. The rate, the term and what you get in exchange are all part of one decision — and knowing the euro-per-month cost is what lets you make it deliberately rather than by default.
+
+
+---
+
+# Avalanche vs snowball — which pays off debt faster?
+
+URL: https://lithifyte.com/learn/avalanche-vs-snowball
+Updated: 2026-08-09
+
+Avalanche (highest interest rate first) always costs less. Snowball (smallest balance first) always finishes a debt sooner. The gap between them is usually smaller than people expect, which is why the one you will actually stick to is generally the right answer.
+
+## The setup
+
+Both methods assume the same two things: you pay the minimum on every debt, and you have some extra amount each month. The only question is where the extra goes.
+
+- **Avalanche** — extra goes to the debt with the **highest interest rate**.
+- **Snowball** — extra goes to the debt with the **smallest balance**.
+
+When a debt clears, its payment rolls into the next one. Payments grow as debts fall, which is where the momentum in both methods comes from.
+
+## Worked with real numbers
+
+Four debts, and €400 a month spare after minimums:
+
+| Debt | Balance | Rate | Minimum |
+|---|---|---|---|
+| Store card | €900 | 22.9% | €30 |
+| Credit card | €4,200 | 19.9% | €105 |
+| Car loan | €8,500 | 7.4% | €190 |
+| Credit union loan | €3,000 | 8.5% | €95 |
+
+**Avalanche order:** store card (22.9%), credit card (19.9%), credit union (8.5%), car loan (7.4%).
+
+**Snowball order:** store card (€900), credit union (€3,000), credit card (€4,200), car loan (€8,500).
+
+Both start with the store card, which is common — the smallest debt is frequently also the most expensive. After that they diverge, and the difference over the full payoff comes to roughly a few hundred euro in favour of avalanche, and around a month or two of time.
+
+That is the honest scale of it. Avalanche wins, and it wins by less than the internet arguments would suggest.
+
+## When the difference is genuinely large
+
+The gap widens when the rate spread is wide **and** the expensive debt has a large balance. A €12,000 credit card at 21% alongside a €900 loan at 4% is a case where paying the small one first is expensive — every month you delay costs about €210 in interest on the card while you clear a debt costing €3.
+
+Rule of thumb: if the highest-rate debt is also one of the largest, the arithmetic matters and avalanche is worth the discipline. If your debts are similar in rate, or the expensive one is small, pick whichever you will maintain.
+
+## Why snowball works for people anyway
+
+The snowball's advantage is not financial, and pretending otherwise is why people bounce off avalanche and stop paying anything extra at all.
+
+Clearing a debt entirely is a discrete, visible event. It removes a payment, a login, a statement and a small monthly reminder of the situation. Four debts becoming three feels like progress in a way that reducing a large balance by 4% does not — even though the second may be worth more money.
+
+A plan you follow for three years beats an optimal plan you abandon in month five. If you have started and stopped before, that is real evidence about which method suits you, and it should outweigh a few hundred euro of theoretical saving.
+
+## The hybrid most people actually want
+
+1. Clear anything **under about €500** first, regardless of rate. It is quick, it removes a payment, and the interest cost of the detour is negligible.
+2. Then go strictly by **interest rate**, highest first.
+3. Keep every cleared debt's payment in the pot. This is the part that does the heavy lifting in both methods, and it is the part people quietly skip.
+
+## The check that matters more than the order
+
+Before optimising the order, confirm each payment actually covers its interest.
+
+Monthly interest is roughly `balance × annual rate ÷ 12`. A €4,200 balance at 19.9% accrues about €70 a month. If the minimum is €105, only €35 is reducing the debt — and if you add €50 of new spending to that card, the balance is growing while you make every payment on time.
+
+That situation is invisible from a statement that says "payment received, thank you", and it is how balances survive for a decade. Check it for every debt before deciding on any strategy. If a payment does not clear the interest, the order of payoff is not your problem.
+
+## Two things that beat both methods
+
+**Lower the rate.** Moving a balance to a lower-rate product — a credit union loan, a genuine balance transfer offer — reduces the cost of every euro of the debt at once. Read the terms: an introductory rate that reverts, or a transfer fee that exceeds the interest saved, undoes the benefit. Whether any specific product suits you is a question for you and, if you want it, a regulated adviser.
+
+**Stop adding to it.** No payoff method survives continued borrowing on the same card. If the balance is not falling despite payments, the leak is upstream of the strategy, and a month of [tracking where the money goes](/learn/find-money-leaks) will be worth more than any reordering.
+
+
+---
+
+# Your money has patterns — here is how to see them
+
+URL: https://lithifyte.com/learn/money-patterns
+Updated: 2026-08-09
+
+Spending feels random from inside it and is remarkably regular from outside. Once you can see the four common patterns — rhythm, cliff, season and drift — a year of transactions stops being a list and becomes something you can read.
+
+## Why you cannot see them from inside
+
+Each individual purchase feels like a decision you made for a reason. Zoom out to a year and you see something else entirely: a system with a rhythm, running largely without your input.
+
+This is not a character flaw. Habits are what free your attention for other things. But it means the useful question is rarely *"why did I buy that?"* and almost always *"what shape does my spending have, and do I want that shape?"*
+
+Four patterns cover most of what you will find.
+
+## Pattern 1 — The weekly rhythm
+
+Group a few months of spending by day of the week and a shape appears immediately. Most households have a heavy day (a big shop) and a heavy pair (Friday and Saturday), and the weekend can easily carry twice a weekday's spending.
+
+**What to do with it.** Ignore the moralising interpretation; the useful part is practical. If your heavy day is Saturday, that is when a decision is actually being made and the only moment where changing anything is possible. And if a spending limit needs to survive, it has to accommodate the rhythm — a flat daily allowance will be broken every single weekend, which teaches you nothing except that limits do not work.
+
+## Pattern 2 — The monthly cliff
+
+Plot daily spending across the month. The overwhelmingly common shape: a large cliff in the first three days, a plateau, and a tail that either flattens or spikes in the last week.
+
+The cliff is rent, mortgage and direct debits. The tail depends on the person — some tighten as the month ends, some spend more once they can see payday coming.
+
+**What to do with it.** The cliff is why a naive monthly budget feels catastrophic for twenty-eight days a month. Fixed costs should be committed on day one and removed from the picture, so what you are watching is the part you can actually influence. And if the cliff lands before your salary does, that is a timing problem — often solved by moving one direct debit by a week.
+
+## Pattern 3 — The season
+
+Line up twelve months per category. Some are flat; some breathe.
+
+- Electricity and heating rise in winter.
+- Groceries spike around holidays and school breaks.
+- Clothing clusters in two or three months, not twelve.
+- Motor costs land in a lump — tax, insurance and testing frequently share a month.
+- December is usually the largest month of the year by a wide margin, and January the tightest.
+
+**What to do with it.** Stop comparing a month with the previous month, and compare it with the same month last year. December against November tells you nothing. December against last December tells you whether anything actually changed.
+
+## Pattern 4 — The drift
+
+The hardest to see and the most consequential.
+
+Drift is slow, one-directional movement: groceries at €480 two years ago, €520 last year, €580 now. No single month looks wrong. Each increase is individually justifiable. Over three years it is €1,200 a year, arrived at without a decision ever being made.
+
+Some drift is inflation and entirely outside your control. Some is lifestyle creep — the phenomenon where a rise in income is absorbed within a few months, leaving you no further ahead than before.
+
+**How to see it.** Take a twelve-month rolling total per category and watch that line rather than the monthly one. Rolling totals remove seasonality completely, so a rising line means a genuine change in level, not a busy month. This is the single most valuable view in personal finance analysis, and almost nobody looks at it.
+
+## Distinguishing a spike from a trend
+
+A category doubles in a month. Panic or ignore?
+
+Compare against the **median** and the **typical variation** of that category. If groceries usually run €500 and vary by about €40, a €700 month is unusual and worth explaining. If they usually run €500 and swing by €180 routinely, €700 is just Tuesday.
+
+Then answer the question a number cannot: **why**. And write it down, attached to that month. *"Two birthdays and a communion"*, *"stocked the freezer"*, *"bought a year of it upfront"*.
+
+Six months later that note is the difference between correctly ignoring a spike and wrongly concluding your habits have changed. This is the one piece of the analysis no software can do for you — the data records what, and only you were there for why.
+
+## The five-minute monthly review
+
+1. Total in, total out, difference. Is the difference the direction you expect?
+2. Any category more than about 30% off its median? Name the reason.
+3. Any new recurring payment? Was that deliberate?
+4. Rolling twelve-month total on your two largest categories — flat, or drifting?
+5. Write one sentence about anything odd, attached to the month.
+
+Five minutes, twelve times a year, and you will know more about your own money than almost anyone you know.
+
+
+---
+
+# How to forecast next month's cashflow
+
+URL: https://lithifyte.com/learn/cashflow-forecast
+Updated: 2026-08-09
+
+Forecasting is not fortune telling. Most of next month is already determined by standing orders, direct debits and habits you have had for years. Add those up, use a median for the rest, and add a buffer based on how erratic you actually are.
+
+## Most of next month is already decided
+
+People treat their finances as unpredictable, and then behave with impressive consistency. Rent leaves on the same day. The same four direct debits go out in the same week. Groceries land within a fairly narrow band, and the weekly shop happens on the same day it has for years.
+
+Genuinely unpredictable spending is usually a small minority of the total. Forecasting is mostly a matter of adding up the parts that are already known, and being honest about the variance in what remains.
+
+## The four ingredients
+
+**1 — Opening balance.** What is in the account today. Obvious, and routinely omitted; a forecast of movements without a starting point tells you about flow but not about whether you run out.
+
+**2 — Known income.** Salary dates and amounts. If your income is irregular, use a conservative figure — the lower end of your recent range, not the average, because a forecast that assumes a good month and gets a bad one fails in the direction that hurts.
+
+**3 — Recurring outgoings.** Every standing order and direct debit, with its date. Get these from twelve months of statements rather than memory: quarterly and annual items are exactly what memory omits.
+
+**4 — Variable spending.** The median of your recent months per category, not the average. Then convert to a daily rate, because timing matters as much as the total.
+
+## Work it as a running balance
+
+A single monthly total hides the problem. What matters is whether the balance stays above zero at every point in between, and the shape of a month is deeply uneven — rent on the 1st, salary on the 25th.
+
+Lay it out by date:
+
+| Date | Event | Amount | Balance |
+|---|---|---|---|
+| 1 Sep | Opening | | €1,840 |
+| 1 Sep | Rent | −€1,200 | €640 |
+| 3 Sep | Utilities | −€180 | €460 |
+| 4–24 Sep | Variable, ~€58/day × 21 | −€1,218 | −€758 |
+| 25 Sep | Salary | +€2,650 | €1,892 |
+
+That forecast has found something a monthly total never would: the account goes negative around the 19th, even though the month as a whole is comfortably positive. That is a real problem with a cheap solution — move a direct debit — and it is entirely invisible without a running balance.
+
+## Sizing the buffer honestly
+
+Your variable spending will not equal its median. The question is by how much, and the answer is in your own history.
+
+Take the last twelve months of variable spending, and find the typical distance of each month from the median. That typical distance is your volatility. Someone whose variable spending is €1,180, €1,220, €1,150, €1,240 needs a small buffer. Someone whose months run €700, €1,900, €1,100, €2,300 needs a large one, and no amount of averaging will make them predictable.
+
+Using the *median distance from the median*, rather than a simple average, keeps one extreme month from inflating the buffer permanently. One catastrophic August should not make every forecast pessimistic for a year.
+
+## Three mistakes that make forecasts useless
+
+**Forgetting the annual bills.** A forecast built on monthly averages is blind to the €640 insurance renewal, and it will be wrong by exactly that amount in exactly that month. Handle these with a [sinking fund](/learn/sinking-funds) so they leave the forecast as a smooth monthly cost.
+
+**Using averages that include outliers.** One holiday raises every subsequent month's projection, so the forecast is consistently pessimistic, so you stop believing it.
+
+**Forecasting only one account.** If you move money between accounts, a single-account forecast is a forecast of transfers as much as of spending. Include everything you actually pay from.
+
+## How far ahead is useful
+
+**Two to four weeks** is the actionable horizon: enough time to move a bill, delay a purchase or move money across, and short enough to be genuinely reliable.
+
+**Three months** is useful for planning — a large purchase, whether a goal date is realistic.
+
+**Beyond six months**, a cashflow forecast becomes a scenario rather than a prediction. Still useful for asking "what if", but do not make commitments on it.
+
+## Use it as a question machine
+
+The value of a forecast is not the number. It is the ability to ask *what if* and get an answer in seconds.
+
+What if I cut eating out by a third? What if the car insurance rises €150? What if I add €200 a month to the credit card? Each of these has a definite answer once the model exists, and each answer is a decision made with information instead of anxiety.
+
+That is the actual product of forecasting: not certainty, but the removal of the vague background worry that comes from not knowing.
+
+
+---
+
+# Net worth, explained without the jargon
+
+URL: https://lithifyte.com/learn/net-worth
+Updated: 2026-08-09
+
+Net worth is everything you own minus everything you owe. It is the only single number that captures your whole financial position — and its value lies almost entirely in watching it move, not in what it says today.
+
+## The definition
+
+**Net worth = everything you own − everything you owe.**
+
+That is the whole concept. It is a snapshot of your financial position at one moment, and it is the only figure that captures the whole picture — income tells you about flow, savings tell you about one pot, net worth tells you where you actually stand.
+
+## Calculating yours
+
+**What you own (assets)**
+
+| Asset | What value to use |
+|---|---|
+| Current and savings accounts | Today's balance |
+| Cash | Today's amount |
+| Pensions | Current statement value |
+| Investments, funds, shares | Current market value |
+| Crypto | Current market value |
+| Property | A realistic sale price, not what you hope for |
+| Vehicles | Trade-in value, not the price you paid |
+| Valuables | Only if genuinely saleable and material |
+
+**What you owe (liabilities)**
+
+| Liability | What value to use |
+|---|---|
+| Mortgage | Outstanding balance |
+| Loans | Outstanding balance |
+| Credit cards | Current balance, including this month's |
+| Overdraft | Amount currently used |
+| Family loans | The full amount, uncomfortable as it is |
+| Tax owed | If due and not yet paid |
+
+Subtract the second total from the first. Fifteen minutes, once a month.
+
+## Two valuation rules that keep it honest
+
+**Value assets at what you could actually get, not what you paid or hope for.** A car is worth its trade-in price. A house is worth what comparable properties nearby actually sold for. Sentimental value is real and belongs nowhere near this calculation.
+
+**Do not double-count.** If you hold €5,000 in a savings account and have earmarked it as your "house deposit fund", it is one €5,000, not two entries. This sounds obvious and is a very common error once people start keeping goal pots alongside account balances.
+
+## A negative net worth is normal, not a verdict
+
+A recent graduate with student debt, a new mortgage holder, someone early in a car loan — all frequently negative, and none of it says anything about how well they are managing money.
+
+Net worth is a position, not a grade. Someone at −€15,000 improving by €700 a month is in a considerably better place than someone at €40,000 sliding by €300 a month, and only the trend reveals which is which.
+
+## The trend is the whole point
+
+A single net worth figure is nearly useless. The same figure recorded monthly for a year is one of the most informative things you can have.
+
+It answers the question that individual accounts cannot: **am I actually getting anywhere?** You can save diligently into one account while a credit card grows faster elsewhere. Net worth catches that, and nothing else does, because it is the only measure that sees both sides at once.
+
+Record it on the same day each month — the 1st is easy to remember. Do not adjust it, smooth it, or skip bad months. A year of honest monthly figures will show you your real trajectory, and the shape of that line tends to be more motivating than any budget.
+
+## Reading the movement
+
+Your net worth changes for exactly four reasons, and they are worth separating:
+
+1. **You saved or spent.** The part you control directly.
+2. **You paid down debt.** Every principal payment increases net worth euro for euro — which is why debt repayment is a form of saving, even though it does not feel like one.
+3. **Asset values moved.** Markets and property prices, entirely outside your control.
+4. **You bought or sold something large.** Usually neutral at the moment of transaction — €20,000 of cash becomes a €20,000 car — and then negative as the car depreciates.
+
+When your net worth jumps, check which of these caused it. A rise driven entirely by a property revaluation is genuine but not repeatable, and mistaking it for progress you made is how people conclude they can afford more than they can.
+
+## Staleness, and the trap in it
+
+Property and vehicle valuations are estimates that decay. A house value entered two years ago and never revisited quietly makes every subsequent figure fiction.
+
+Either update the estimate at least annually, or mark it as stale so you know which part of the number you should not trust. The dangerous version is the one that looks precise and is not — a net worth carried by an optimistic property estimate from three years ago, mistaken for a measurement.
+
+## What it is not for
+
+It is not a comparison with other people. Ages, careers, countries, family situations and inheritances differ so completely that the exercise carries no information.
+
+The only useful comparison is with your own figure from last year. That one tells you something true.
+
+
+---
+
+# Why 50/30/20 breaks, and what to do instead
+
+URL: https://lithifyte.com/learn/why-50-30-20-breaks
+Updated: 2026-08-09
+
+50/30/20 is a useful teaching device and a poor operating budget. It assumes housing costs that many people do not have, splits needs from wants along a line that does not exist, and ignores the annual bills that actually break budgets.
+
+## The rule
+
+Take your after-tax income and split it: **50% needs, 30% wants, 20% savings and debt repayment.**
+
+Its appeal is obvious. It is memorable, requires no software, and gives an immediate answer to "how much should I be spending on things?" As a way of introducing the idea that money should be allocated deliberately, it is genuinely good.
+
+As the budget you actually run, it breaks. Here is exactly where.
+
+## Break 1 — The housing assumption
+
+The rule implicitly assumes housing costs roughly 25–30% of after-tax income, which is what allows needs to fit inside 50%.
+
+For a large number of households in expensive cities, rent alone is 40–50% of take-home pay. Add utilities, groceries and transport and "needs" reaches 70% before anything discretionary is considered.
+
+At that point the rule delivers a single message — *you are failing* — repeated monthly, about a situation that is a housing market outcome rather than a spending decision. That is not a useful budget. It is a source of guilt that displaces action.
+
+## Break 2 — Needs and wants are not two categories
+
+Try to sort real spending into needs and wants and the line dissolves within about five items.
+
+Food is a need; the good coffee is not; but where is the middle? A car is a want in a city with transport and an absolute need in a rural area with none. Broadband was a luxury and is now a requirement for employment. A gym membership is discretionary until a doctor says otherwise.
+
+In practice, people resolve this by classifying whatever they want to keep as a need, which makes the ratio meaningless while preserving the feeling of having budgeted. The categorisation carries no information because the boundary is decided by the answer you wanted.
+
+A more useful split is by **flexibility**: how quickly could you change this if you had to? Rent is slow, insurance is annual, groceries are immediate. That distinction tells you where your options actually are, which is the thing a budget should be revealing.
+
+## Break 3 — There is no room for irregular costs
+
+The rule has three buckets, and none of them is for a €640 insurance renewal.
+
+So it comes out of "wants", wrecking the month, or out of savings, defeating the 20%. Either way the ratio breaks — not because of overspending, but because the framework has no place to put a cost that everybody has.
+
+Any budget that does not explicitly handle annual and occasional bills will be broken by them three or four times a year. This is the most common structural failure in budgeting, and it is fixed by a [sinking fund](/learn/sinking-funds), which 50/30/20 has no concept of.
+
+## Break 4 — Percentages hide the actual problem
+
+Two households both spend 50% on needs. One earns €2,000 a month, the other €8,000. The first has €1,000 for everything else; the second has €4,000. The percentage is identical and the situations are not remotely comparable.
+
+Percentages compress exactly the information you need. What matters is euro remaining after committed costs — an absolute number — and whether that number covers a life. A ratio cannot tell you that.
+
+## What to use instead
+
+Not a different set of percentages. A different structure.
+
+**1 — Commit the fixed costs first.** Rent, loans, utilities, insurance. These are not decisions this month; they are the terrain.
+
+**2 — Take the sinking fund out next.** Annual and occasional costs divided by twelve, moved to a separate account, treated as spent. Now they cannot ambush you.
+
+**3 — Pay yourself before the flexible spending, not after.** Whatever savings figure is realistic, moved by standing order the day after payday. Savings left as "what remains at the end" is savings that does not happen.
+
+**4 — What is left is the only thing you actually budget.** Split it across your flexible categories using [medians from your own history](/learn/make-a-budget-that-survives), and track it against the calendar rather than as a monthly total.
+
+This has no memorable ratio, and that is its advantage: it is built from your numbers rather than someone else's assumptions about your rent.
+
+## Where the rule is still useful
+
+Two places, and it is genuinely good at both.
+
+**As a rough diagnostic.** If your fixed costs are 75% of income, that is worth knowing, and the rule's framing surfaces it quickly.
+
+**As a starting point when you have no history at all.** A first job, a first move — you have nothing to take a median from, and a rough allocation beats no allocation. Use it for three months while you accumulate real data, then replace it with what your own statements tell you.
+
+That is the correct role for every budgeting rule of thumb: scaffolding while you build the real thing, removed once it stands.
+
+
+---
+
+# Plain-English money glossary
+
+URL: https://lithifyte.com/learn/glossary
+Updated: 2026-08-09
+
+Every term you are likely to meet on a statement, in a loan document or in a budgeting guide, defined plainly and without circularity. Definitions first, context second.
+
+## Interest and borrowing
+
+### APR
+
+The annual percentage rate: the interest rate plus compulsory fees, expressed as one yearly figure so two credit products can be compared honestly. A low rate with a large arrangement fee can carry a higher APR than a higher rate with none.
+
+### AER
+
+The annual equivalent rate, used for savings. It states what you would earn over a year once compounding is accounted for, so an account paying monthly can be compared fairly with one paying annually.
+
+### Amortisation
+
+The process of paying off a debt through regular payments that cover both interest and principal. Early payments are mostly interest; later ones are mostly principal, which is why a mortgage balance falls slowly at first.
+
+### Principal
+
+The amount actually borrowed, as distinct from the interest charged on it. Only payments that reduce principal reduce the debt.
+
+### Compound interest
+
+Interest charged or earned on interest already added, rather than only on the original amount. It makes debts grow at an accelerating rate and long-term savings grow the same way.
+
+### Rule of 72
+
+A shortcut for compounding: divide 72 by an annual rate to estimate how many years a balance takes to double. At 12%, roughly six years.
+
+### Fixed rate
+
+An interest rate locked for an agreed period. Payments are predictable; you are protected from rises and excluded from falls, and breaking the arrangement early usually carries a fee.
+
+### Variable rate
+
+An interest rate that can change during the term, following market rates or the lender's decisions. Payments can rise or fall.
+
+### Minimum payment
+
+The smallest amount a lender will accept on a credit card in a given month, typically a small percentage of the balance. Because it shrinks as the balance falls, paying only the minimum extends a debt for years.
+
+### Balance transfer
+
+Moving a credit card balance to another card, usually to obtain a lower promotional rate. Worth checking the transfer fee and the rate the balance reverts to when the promotion ends.
+
+### Secured and unsecured debt
+
+Secured debt is backed by an asset the lender can take if you do not pay — a mortgage against a house, a loan against a car. Unsecured debt, such as a credit card, is not, which is why it usually carries a higher rate.
+
+### Overdraft
+
+A facility allowing an account to go below zero up to an agreed limit. Convenient and typically expensive, especially when used continuously rather than briefly.
+
+## Budgeting
+
+### Budget
+
+A prediction of where money will go over a period, recorded in advance so it can be compared against what actually happened. Useful because of the gap it reveals, not because of the limits it sets.
+
+### Fixed costs
+
+Spending that is the same each period and already committed — rent, loan payments, insurance direct debits. Not really budget decisions in the short term.
+
+### Variable costs
+
+Spending that changes with behaviour, such as groceries, fuel and eating out. The only part of a budget that can genuinely be steered month to month.
+
+### Irregular costs
+
+Predictable costs arriving less often than monthly — annual insurance, motor tax, Christmas. The most common cause of a budget collapsing, because they are invisible in a monthly view.
+
+### Sinking fund
+
+Money set aside monthly for a known future cost, so that when the bill arrives it is already paid for. Annual total divided by twelve, held separately.
+
+### Emergency fund
+
+Accessible savings held to cover unexpected events such as job loss or a major repair, sized against essential spending rather than total spending.
+
+### Median
+
+The middle value in a sorted list. Preferred to the average for budgeting because one extreme month does not distort it.
+
+### Pace
+
+How far through a budget period you are, compared with how much of the budget you have used. Spending half a monthly budget by the 8th is a warning; by the 15th it is exactly on pace.
+
+### Safe-to-spend
+
+The amount available per remaining day once committed costs and savings are taken out. More actionable than a remaining monthly total, because it can be acted on mid-month.
+
+### Zero-based budget
+
+A method where every unit of income is assigned a job — spending, saving or debt — until nothing is unallocated. Thorough, and demanding to maintain.
+
+### Lifestyle creep
+
+The tendency for spending to rise to absorb a rise in income, leaving no improvement in savings despite earning more.
+
+## Accounts and payments
+
+### Direct debit
+
+Permission for a company to collect varying amounts from your account on agreed dates. The company controls the amount, which is why an incorrect bill leaves before you can dispute it, though schemes generally provide a right to an immediate refund.
+
+### Standing order
+
+An instruction you give your bank to send a fixed amount to a named account on a schedule. You control it and you cancel it.
+
+### Available balance and cleared balance
+
+The available balance includes pending transactions and any overdraft; the cleared balance is money actually settled. They can differ by several days and several hundred euro.
+
+### Pending transaction
+
+A payment authorised but not yet settled. It reduces available funds and may still change in amount, which is common with fuel stations and hotels.
+
+### Reconciliation
+
+Checking that a set of recorded transactions agrees with an independent record — typically walking a statement's running balance to confirm every row was read correctly.
+
+### Transfer
+
+Money moved between accounts you own. It is neither income nor spending, and counting it as either inflates both sides of your finances.
+
+### Opening balance
+
+The balance of an account before the first transaction you have a record of. Without it, statement data shows movement but not position.
+
+### Chargeback
+
+A reversal of a card payment obtained through your card provider, typically where goods did not arrive or the transaction was not authorised. Distinct from a refund from the merchant.
+
+## Wealth
+
+### Net worth
+
+Everything you own minus everything you owe, at a single point in time. The trend over months matters considerably more than the figure itself.
+
+### Asset
+
+Something you own that has value — cash, savings, investments, a pension, property, a vehicle.
+
+### Liability
+
+Something you owe — a mortgage, loan, credit card balance or overdraft.
+
+### Liquidity
+
+How quickly an asset can be turned into spendable money without losing value. A current account is highly liquid; a house is not.
+
+### Depreciation
+
+The loss in value of an asset over time, most visibly with vehicles and electronics.
+
+### Capital gain
+
+The profit made when an asset is sold for more than it cost. Frequently taxable, with rules and rates varying by country and asset type.
+
+### Dividend
+
+A share of a company's profits paid to shareholders, usually periodically and usually taxable.
+
+### Diversification
+
+Spreading money across different assets so that a poor outcome in one does not determine the whole result.
+
+### Inflation
+
+A general rise in prices over time, which reduces what a fixed amount of money buys. Savings earning less than inflation lose purchasing power even as the balance grows.
+
+### Real and nominal
+
+Nominal figures are the plain numbers; real figures are adjusted for inflation. A 3% return with 4% inflation is a nominal gain and a real loss.

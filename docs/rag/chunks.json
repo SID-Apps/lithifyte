@@ -12,14 +12,14 @@
       "phase": "start",
       "feature": "welcome",
       "title": "What Lithifyte is",
-      "location": "https://lithifyte.sid-labs.com (or download index.html)",
+      "location": "https://app.lithifyte.com (or download index.html)",
       "selectors": [],
       "tags": [
         "intro",
         "privacy",
         "overview"
       ],
-      "body": "Lithifyte is household-finance mission control in a single HTML file. There is no account to create and no server that stores your bank data. You upload statements (CSV); everything is computed in your browser. Data lives in localStorage/IndexedDB on this device, and durability comes from backups you export yourself.\n\nPrivacy promise: the page does not phone home with your transactions. Optional network features (crypto price refresh, local AI categoriser) only run when you trigger them, and the public default for AI is a model on your own machine.\n\nTwo ways to start: (1) the live blank app at lithifyte.sid-labs.com for your real data, or (2) the demo at /demo.html — a fully loaded invented household so you can explore every feature without uploading anything. The demo namespaces its storage with a \"-demo\" suffix so it can never overwrite real data on the same origin.",
+      "body": "Lithifyte is household-finance mission control in a single HTML file. There is no account to create and no server that stores your bank data. You upload statements (CSV); everything is computed in your browser. Data lives in localStorage/IndexedDB on this device, and durability comes from backups you export yourself.\n\nPrivacy promise: the page does not phone home with your transactions. Optional network features (crypto price refresh, local AI categoriser) only run when you trigger them, and the public default for AI is a model on your own machine.\n\nTwo ways to start: (1) the live blank app at app.lithifyte.com for your real data, or (2) the demo at /demo.html — a fully loaded invented household so you can explore every feature without uploading anything. The demo namespaces its storage with a \"-demo\" suffix so it can never overwrite real data on the same origin.",
       "see_also": []
     },
     {
@@ -28,7 +28,7 @@
       "phase": "start",
       "feature": "sample",
       "title": "Optional: explore the sample first",
-      "location": "https://lithifyte.sid-labs.com/demo.html · also linked from first-run onboarding",
+      "location": "https://app.lithifyte.com/demo · also linked from first-run onboarding",
       "selectors": [
         "#obDemoLine"
       ],

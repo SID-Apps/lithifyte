@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security and privacy, in technical terms — Lithifyte</title>
+<meta name="description" content="The full technical privacy model behind Lithifyte — what is stored, where, how it is encrypted, what the servers hold, and the residual risks we cannot solve for you.">
+<link rel="canonical" href="https://lithifyte.com/security-and-privacy">
+<meta name="theme-color" content="#020b1a">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+<meta name="keywords" content="local first finance app, browser storage encryption, financial data privacy, AES-GCM PBKDF2, zero server finance">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Lithifyte">
+<meta property="og:url" content="https://lithifyte.com/security-and-privacy">
+<meta property="og:title" content="Security and privacy, in technical terms">
+<meta property="og:description" content="The full technical privacy model behind Lithifyte — what is stored, where, how it is encrypted, what the servers hold, and the residual risks we cannot solve for you.">
+<meta property="og:image" content="https://lithifyte.com/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Security and privacy, in technical terms">
+<meta name="twitter:description" content="The full technical privacy model behind Lithifyte — what is stored, where, how it is encrypted, what the servers hold, and the residual risks we cannot solve for you.">
+<meta name="twitter:image" content="https://lithifyte.com/og.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/page.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://lithifyte.com/security-and-privacy#breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://lithifyte.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Security",
+          "item": "https://lithifyte.com/security-and-privacy"
+        }
+      ]
+    },
+    {
+      "@id": "https://lithifyte.com/security-and-privacy#page",
+      "url": "https://lithifyte.com/security-and-privacy",
+      "name": "Security and privacy, in technical terms",
+      "description": "The full technical privacy model behind Lithifyte — what is stored, where, how it is encrypted, what the servers hold, and the residual risks we cannot solve for you.",
+      "inLanguage": "en",
+      "isPartOf": {
+        "@id": "https://lithifyte.com/#website"
+      },
+      "breadcrumb": {
+        "@id": "https://lithifyte.com/security-and-privacy#breadcrumb"
+      },
+      "publisher": {
+        "@id": "https://lithifyte.com/#organization"
+      },
+      "dateModified": "2026-08-09",
+      "@type": "WebPage"
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="site">
+  <a class="brand" href="/"><img src="/icon-192.png" alt="" width="28" height="28"> LITHIFYTE</a>
+  <nav class="site" aria-label="Site">
+    <a href="/how-it-works">How it works</a>
+    <a href="/learn">Learn</a>
+    <a href="/guide">Guide</a>
+    <a href="/faq">FAQ</a>
+    <a href="https://app.lithifyte.com/demo">Sample</a>
+  </nav>
+</header>
+
+<main class="page">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span class="sep">/</span> <span aria-current="page">Security</span></nav>
+  <h1>Security and privacy, in technical terms</h1>
+  <p class="updated">Updated 9 August 2026</p>
+  <p class="lede">The claim is narrow and testable: your financial data is never transmitted, because there is no server that receives it. This page states exactly what that does and does not protect you from, including the parts we cannot fix.</p>
+
+<h2 id="the-architecture-stated-plainly">The architecture, stated plainly</h2>
+<p>Lithifyte is delivered as a single HTML file containing the interface and the entire calculation engine. When you import a statement, your browser reads the file from your disk and parses it in memory on your machine. The results are written to that browser's own storage.</p>
+<p>There is no finance API. Not an encrypted one, not a temporary one, not one that "only processes and discards". The absence is the design: a service that never receives data cannot leak it, be subpoenaed for it, change its mind about it in a future privacy policy, or lose it in a breach.</p>
+<p>You do not have to take this on faith. Open your browser's network tab and use the app. Nothing carrying financial content goes out.</p>
+<h2 id="what-is-stored-and-where">What is stored, and where</h2>
+<div class="tablewrap"><table><thead><tr><th>Data</th><th>Location</th><th>Leaves your device?</th></tr></thead><tbody><tr><td>Transactions, accounts, people, categories, rules</td><td><code>localStorage</code> in your browser</td><td>No</td></tr><tr><td>Uploaded statement files, encrypted vault blob</td><td>IndexedDB in your browser</td><td>No</td></tr><tr><td>Budgets, goals, debts, holdings, assets, notes</td><td><code>localStorage</code> in your browser</td><td>No</td></tr><tr><td>Backups you export</td><td>Wherever you save the file</td><td>Only if you move it</td></tr><tr><td>Your email address (hosted sign-in only)</td><td>Cloudflare KV, on our side</td><td>It is already ours to hold</td></tr><tr><td>Product events: section opened, import happened (hosted only)</td><td>Cloudflare KV, on our side</td><td>Names of features, never amounts</td></tr></tbody></table></div>
+<p>Self-hosted copies write nothing to the last two rows. The code that reports product events checks the hostname and does not run from a file or from a domain that is not ours.</p>
+<h2 id="encryption-at-rest">Encryption at rest</h2>
+<p>The app can be locked with a passphrase. Locking encrypts the stored data using AES-GCM, with the key derived from your passphrase by PBKDF2 at 310,000 iterations. Exported backups can be encrypted the same way.</p>
+<p>Two consequences worth being blunt about. First, the passphrase is not recoverable — there is no reset link, because there is nobody holding a copy to reset it against. Second, an unlocked app is plaintext in browser storage, protected only by your device's own security. If the device is shared, set a passphrase; if it is not, the lock mainly protects against someone who takes the machine.</p>
+<h2 id="the-threat-model-honestly">The threat model, honestly</h2>
+<p><strong>What this design defends against well.</strong> A breach of our servers, because your finances are not on them. A change of ownership or business model, because there is no data asset to sell. Service shutdown, because the file keeps working offline. Silent scope creep, because the source is public and diffable.</p>
+<p><strong>What it does not defend against.</strong> Malware on your own device, which can read browser storage exactly as the app can. Someone with access to your unlocked machine. A malicious browser extension with permission to read page content — extensions run in the same context the app does. Physical theft of an unlocked device.</p>
+<p><strong>The residual risk we treat as a bug.</strong> Any script injection in the app's own origin could read your storage while unlocked, so cross-site scripting in stock Lithifyte is treated as a security vulnerability, not a cosmetic issue. Report one through <a href="https://github.com/SID-Apps/lithifyte/blob/main/SECURITY.md" rel="noopener">SECURITY.md</a>.</p>
+<h2 id="what-the-servers-actually-do">What the servers actually do</h2>
+<p>Three small Cloudflare Workers, all of them open source in the same repository:</p>
+<ul><li><strong>The site</strong> serves static pages. No account, no cookie required to read anything.</li><li><strong>Sign-in</strong> issues a magic link to your email address and sets a session cookie so the hosted app recognises you across devices. It handles identity, never finance. Rate-limited; tokens are single-purpose.</li><li><strong>Digest mail</strong> takes an email that your <em>browser</em> has already composed and posts it to a mail provider. The body is not stored. Amounts are masked by default, and you can uncheck that if you would rather they were not.</li></ul>
+<p>The endpoints exposed are sign-in, session, sign-out, product events, digest and health. There is deliberately no data endpoint, and adding one would be a design change requiring a rewrite of this page.</p>
+<h2 id="verifying-any-of-this-yourself">Verifying any of this yourself</h2>
+<ul><li><strong>Read the file.</strong> The application is one HTML file. Search it for <code>fetch(</code> and check every result.</li><li><strong>Watch the network.</strong> DevTools → Network, then import a statement. Nothing with your data in it is sent.</li><li><strong>Pull the plug.</strong> Turn off your network and keep using it. Everything except the optional sign-in check keeps working.</li><li><strong>Diff the deployment.</strong> The hosted file is byte-comparable with the one in the public repository.</li><li><strong>Run the self-tests.</strong> The app ships hundreds of behavioural checks that run in your browser, on your data, and show you the result.</li></ul>
+<h2 id="data-protection">Data protection</h2>
+<p>Lithifyte is built in Ireland and the design is deliberately compatible with the GDPR principle of data minimisation: the lawful basis question is straightforward when the only personal data processed is an email address you volunteered for sign-in. You can request deletion of that address at any time, which removes everything we hold about you, because it is everything we hold about you.</p>
+
+<aside class="related"><h2>Keep reading</h2><ul><li><a href="/open-source">Open source, and why it matters here</a> <span class="rel-d">A privacy promise you cannot verify is marketing. Lithifyte is published under the AGPL-3.0-or-later as a single readable file, so the claim that your data never leaves your browser is something you can check rather than something you have to believe.</span></li><li><a href="/how-it-works">How Lithifyte works</a> <span class="rel-d">You upload a bank statement to a web page. The page reads it in your browser, works out who spent what and where it went, and draws the result as a living map. No file is transmitted, because there is no server on the other end to receive it.</span></li><li><a href="/faq">Frequently asked questions</a> <span class="rel-d">Short, direct answers. If a question you have is not here, the [guide](/guide) goes deeper and the [source code](https://github.com/SID-Apps/lithifyte) settles any argument about what the software actually does.</span></li></ul></aside>
+</main>
+
+<footer class="site">
+  <span>© 2026 Lithifyte · <a href="https://www.sid-labs.com">SID Labs</a></span>
+  <a href="/how-it-works">How it works</a>
+  <a href="/learn">Learn</a>
+  <a href="/faq">FAQ</a>
+  <a href="/security-and-privacy">Security</a>
+  <a href="/open-source">Open source</a>
+  <a href="/privacy">Privacy</a>
+  <a href="/terms">Terms</a>
+  <a href="https://github.com/SID-Apps/lithifyte">Source (AGPL-3.0)</a>
+</footer>
+</body>
+</html>

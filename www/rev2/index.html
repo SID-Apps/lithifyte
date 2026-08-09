@@ -28,16 +28,66 @@
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  "name": "Lithifyte",
-  "url": "https://lithifyte.com/",
-  "applicationCategory": "FinanceApplication",
-  "operatingSystem": "Any (web browser)",
-  "description": "Full financial neural map for household money patterns — budgets, forecasts, debt and net worth in the browser. Financial data never leaves the device.",
-  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
-  "license": "https://www.gnu.org/licenses/agpl-3.0.html",
-  "screenshot": "https://lithifyte.com/og.png",
-  "publisher": { "@type": "Organization", "name": "SID Labs", "url": "https://www.sid-labs.com" }
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://lithifyte.com/#organization",
+      "name": "Lithifyte",
+      "url": "https://lithifyte.com/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://lithifyte.com/icon-512.png",
+        "width": 512,
+        "height": 512
+      },
+      "description": "Lithifyte builds open-source household finance software that computes entirely in the browser, so financial data never reaches a server.",
+      "sameAs": ["https://github.com/SID-Apps/lithifyte"]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://lithifyte.com/#website",
+      "url": "https://lithifyte.com/",
+      "name": "Lithifyte",
+      "inLanguage": "en",
+      "publisher": { "@id": "https://lithifyte.com/#organization" }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://lithifyte.com/#software",
+      "name": "Lithifyte",
+      "url": "https://lithifyte.com/",
+      "applicationCategory": "FinanceApplication",
+      "applicationSubCategory": "Personal budgeting and net worth tracking",
+      "operatingSystem": "Any modern web browser (Chrome, Firefox, Edge, Safari)",
+      "browserRequirements": "Requires JavaScript. Runs offline from a single HTML file.",
+      "description": "Lithifyte is a household finance application that runs as one self-contained HTML file. It imports bank statements, maps people, accounts, categories and merchants as a living graph, and computes budgets, cashflow forecasts, debt payoff plans and net worth locally. No financial data is transmitted to any server.",
+      "featureList": [
+        "Bank statement import from CSV with duplicate detection and a per-import report",
+        "Pace-based budgets with safe-to-spend per remaining day",
+        "Cashflow forecasting with recurring bill detection",
+        "Debt payoff planning (avalanche and snowball) with real amortisation",
+        "Net worth tracking across accounts, assets, holdings and debts",
+        "Spending leak detection with median and MAD spike flags",
+        "Interactive money map of households, people, accounts and merchants",
+        "Encrypted local backups and full data export",
+        "Optional local AI categorisation using a model you run yourself"
+      ],
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "EUR",
+        "availability": "https://schema.org/InStock",
+        "description": "The core application is free forever under the AGPL-3.0-or-later licence."
+      },
+      "isAccessibleForFree": true,
+      "license": "https://www.gnu.org/licenses/agpl-3.0.html",
+      "softwareHelp": { "@id": "https://lithifyte.com/guide" },
+      "screenshot": "https://lithifyte.com/og.png",
+      "publisher": { "@id": "https://lithifyte.com/#organization" },
+      "sameAs": ["https://github.com/SID-Apps/lithifyte"],
+      "privacyPolicy": "https://lithifyte.com/privacy"
+    }
+  ]
 }
 </script>
 <noscript><style>[data-copy]{opacity:1!important;transform:none!important}.hpanel{opacity:1!important}</style></noscript>
@@ -202,6 +252,9 @@
       <a href="#flow" style="color:#8fb0d0;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;border-radius:999px">Flow</a>
       <a href="#privacy" style="color:#8fb0d0;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;border-radius:999px">Privacy</a>
       <a href="#features" style="color:#8fb0d0;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;border-radius:999px">Inside</a>
+      <a href="/how-it-works" style="color:#8fb0d0;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;border-radius:999px">How it works</a>
+      <a href="/learn" style="color:#8fb0d0;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;border-radius:999px">Learn</a>
+      <a href="/faq" style="color:#8fb0d0;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;border-radius:999px">FAQ</a>
       <a href="https://app.lithifyte.com/demo" style="display:inline-flex;align-items:center;border-radius:999px;border:1px solid rgba(56,189,248,.28);padding:9px 15px;font:600 13px 'IBM Plex Mono',monospace;letter-spacing:.03em;color:#e8f1ff;background:transparent">Sample</a>
       <a href="https://access.lithifyte.com/" style="display:inline-flex;align-items:center;border-radius:999px;border:1px solid rgba(125,211,252,.6);padding:9px 15px;font:600 13px 'IBM Plex Mono',monospace;letter-spacing:.03em;color:#fff;background:linear-gradient(135deg, rgba(14,165,233,.95), rgba(29,78,216,.95))">Sign in</a>
     </nav>
@@ -452,7 +505,16 @@
           </div>
           <p style="margin:22px auto 0;max-width:34em;font:500 12.5px 'IBM Plex Mono',monospace;color:#8fb0d0;line-height:1.55">Magic-link sign-in — no password, no bank credentials.<br>Identity at access.lithifyte.com; map at app.lithifyte.com; finance stays in your browser.</p>
         </div>
-        <footer style="position:absolute;left:0;right:0;bottom:0;z-index:11;padding:20px 24px 28px;text-align:center;font:500 12px 'IBM Plex Mono',monospace;color:#6f8bab;letter-spacing:.04em">
+        <footer style="position:absolute;left:0;right:0;bottom:0;z-index:11;padding:16px 24px 22px;text-align:center;font:500 12px 'IBM Plex Mono',monospace;color:#6f8bab;letter-spacing:.04em">
+          <div style="margin:0 0 8px;display:flex;gap:6px 16px;flex-wrap:wrap;justify-content:center">
+            <a href="/how-it-works" style="color:#8fb0d0">How it works</a>
+            <a href="/guide" style="color:#8fb0d0">Guide</a>
+            <a href="/learn" style="color:#8fb0d0">Learn</a>
+            <a href="/faq" style="color:#8fb0d0">FAQ</a>
+            <a href="/security-and-privacy" style="color:#8fb0d0">Security</a>
+            <a href="/open-source" style="color:#8fb0d0">Open source</a>
+            <a href="/learn/glossary" style="color:#8fb0d0">Glossary</a>
+          </div>
           © 2026 Lithifyte · <a href="https://www.sid-labs.com" style="color:#6f8bab">SID Labs</a> · <a href="/privacy" style="color:#6f8bab">Privacy</a> · <a href="/terms" style="color:#6f8bab">Terms</a> · AGPL-3.0 · <a href="https://github.com/SID-Apps/lithifyte" style="color:#6f8bab">Source</a>
         </footer>
       </div>

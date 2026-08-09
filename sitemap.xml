@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  app.lithifyte.com sitemap.
+
+  Only the written tutorial is listed. The app shell and the sample household
+  are application surfaces rather than documents, and robots.txt keeps them out
+  of the index so that lithifyte.com answers content queries.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://app.lithifyte.com/tutorial</loc>
+    <lastmod>2026-08-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+</urlset>

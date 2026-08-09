@@ -1,0 +1,73 @@
+# app.lithifyte.com — crawler policy
+#
+# This host serves the application itself. The application is a 900KB
+# JavaScript surface behind a sign-in prompt: it is the product, but it is not
+# a document, and indexing it only puts a thin page in front of searchers who
+# wanted an answer. So the app shell and the sample are kept out of the index
+# and every content query is left to lithifyte.com, which has the prose.
+#
+# The written tutorial IS a document, so it stays crawlable.
+#
+# ⚠ Cloudflare's "Managed robots.txt" prepends its own AI block list to this
+# file at the edge. If the live file does not match this one, that setting is
+# still enabled for this zone — turn it off in AI Crawl Control.
+
+# ── Content signals (spec: contentsignals.org) ─────────────────────────────
+User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=no
+Allow: /tutorial
+Allow: /docs/
+Disallow: /$
+Disallow: /index.html
+Disallow: /demo
+Disallow: /demo.html
+
+# ── AI answer engines: allowed on the documentation ────────────────────────
+
+User-agent: OAI-SearchBot
+Allow: /tutorial
+Disallow: /$
+Disallow: /demo
+
+User-agent: Claude-SearchBot
+Allow: /tutorial
+Disallow: /$
+Disallow: /demo
+
+User-agent: PerplexityBot
+Allow: /tutorial
+Disallow: /$
+Disallow: /demo
+
+User-agent: DuckAssistBot
+Allow: /tutorial
+Disallow: /$
+Disallow: /demo
+
+# ── Model training crawlers: not allowed ───────────────────────────────────
+
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: Applebot-Extended
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: meta-externalagent
+Disallow: /
+
+User-agent: Amazonbot
+Disallow: /
+
+Sitemap: https://app.lithifyte.com/sitemap.xml

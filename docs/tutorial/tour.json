@@ -10,7 +10,7 @@
       "phase": "start",
       "title": "What Lithifyte is",
       "body": "Lithifyte is household-finance mission control in a single HTML file. There is no account to create and no server that stores your bank data. You upload statements (CSV); everything is computed in your browser. Data lives in localStorage/IndexedDB on this device, and durability comes from backups you export yourself.\n\nPrivacy promise: the page does not phone home with your transactions. Optional n…",
-      "location": "https://lithifyte.sid-labs.com (or download index.html)",
+      "location": "https://app.lithifyte.com (or download index.html)",
       "selectors": [],
       "rag_id": "welcome"
     },
@@ -20,12 +20,12 @@
       "phase": "start",
       "title": "Optional: explore the sample first",
       "body": "If you want to learn features before touching real statements, open the sample household. It is a deterministic sample household (two earners, four accounts, ~24 months of invented transactions) that exercises cashflow, budgets, wealth, the money map, and more.\n\nThe sample cannot touch data you later add to the real app. When you are ready for real data, open the main app (not /demo) and complete onboard…",
-      "location": "https://lithifyte.sid-labs.com/demo.html · also linked from first-run onboarding",
+      "location": "https://app.lithifyte.com/demo · also linked from first-run onboarding",
       "selectors": [
         "#obDemoLine"
       ],
       "rag_id": "sample-first",
-      "dock_hint": "https://lithifyte.sid-labs.com/demo.html · also linked from first-run onboarding"
+      "dock_hint": "https://app.lithifyte.com/demo · also linked from first-run onboarding"
     },
     {
       "id": "space-view",

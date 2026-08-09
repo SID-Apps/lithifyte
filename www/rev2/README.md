@@ -60,7 +60,7 @@ python3 -m http.server 8788 --directory www/rev2
 | Control | Target |
 |---------|--------|
 | Sample | `https://app.lithifyte.com/demo` (`demo.html`) |
-| Start account | `https://lithifyte.sid-labs.com/` |
+| Start account | `https://app.lithifyte.com/` |
 | Source | `https://github.com/SID-Apps/lithifyte` |
 
 Email waitlist / magic-link Worker is **not** wired in Rev 2 yet (Rev 1 has the form + `www/workers/` stub).

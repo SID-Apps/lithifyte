@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open source, and why it matters here — Lithifyte</title>
+<meta name="description" content="Lithifyte is AGPL-3.0-or-later. The whole application is one readable HTML file you can audit, fork, self-host and keep — which is what makes its privacy claim checkable rather than promised.">
+<link rel="canonical" href="https://lithifyte.com/open-source">
+<meta name="theme-color" content="#020b1a">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+<meta name="keywords" content="open source budgeting app, AGPL finance software, self-hosted personal finance, auditable financial software">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Lithifyte">
+<meta property="og:url" content="https://lithifyte.com/open-source">
+<meta property="og:title" content="Open source, and why it matters here">
+<meta property="og:description" content="Lithifyte is AGPL-3.0-or-later. The whole application is one readable HTML file you can audit, fork, self-host and keep — which is what makes its privacy claim checkable rather than promised.">
+<meta property="og:image" content="https://lithifyte.com/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Open source, and why it matters here">
+<meta name="twitter:description" content="Lithifyte is AGPL-3.0-or-later. The whole application is one readable HTML file you can audit, fork, self-host and keep — which is what makes its privacy claim checkable rather than promised.">
+<meta name="twitter:image" content="https://lithifyte.com/og.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/page.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://lithifyte.com/open-source#breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://lithifyte.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Open source",
+          "item": "https://lithifyte.com/open-source"
+        }
+      ]
+    },
+    {
+      "@id": "https://lithifyte.com/open-source#page",
+      "url": "https://lithifyte.com/open-source",
+      "name": "Open source, and why it matters here",
+      "description": "Lithifyte is AGPL-3.0-or-later. The whole application is one readable HTML file you can audit, fork, self-host and keep — which is what makes its privacy claim checkable rather than promised.",
+      "inLanguage": "en",
+      "isPartOf": {
+        "@id": "https://lithifyte.com/#website"
+      },
+      "breadcrumb": {
+        "@id": "https://lithifyte.com/open-source#breadcrumb"
+      },
+      "publisher": {
+        "@id": "https://lithifyte.com/#organization"
+      },
+      "dateModified": "2026-08-09",
+      "@type": "WebPage"
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="site">
+  <a class="brand" href="/"><img src="/icon-192.png" alt="" width="28" height="28"> LITHIFYTE</a>
+  <nav class="site" aria-label="Site">
+    <a href="/how-it-works">How it works</a>
+    <a href="/learn">Learn</a>
+    <a href="/guide">Guide</a>
+    <a href="/faq">FAQ</a>
+    <a href="https://app.lithifyte.com/demo">Sample</a>
+  </nav>
+</header>
+
+<main class="page">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span class="sep">/</span> <span aria-current="page">Open source</span></nav>
+  <h1>Open source, and why it matters here</h1>
+  <p class="updated">Updated 9 August 2026</p>
+  <p class="lede">A privacy promise you cannot verify is marketing. Lithifyte is published under the AGPL-3.0-or-later as a single readable file, so the claim that your data never leaves your browser is something you can check rather than something you have to believe.</p>
+
+<h2 id="the-licence">The licence</h2>
+<p>Lithifyte is licensed <strong>AGPL-3.0-or-later</strong>. In practical terms:</p>
+<ul><li>You may use it for anything, including commercially, at no cost.</li><li>You may read, modify and redistribute it.</li><li>If you distribute a modified version, your changes carry the same licence.</li><li>If you run a modified version <strong>as a network service</strong>, you must offer that modified source to the people using it.</li></ul>
+<p>That last clause is the reason for choosing the AGPL over something more permissive. Anyone is free to host a fork; nobody is free to host a fork that quietly starts sending transactions somewhere while still looking like Lithifyte.</p>
+<h2 id="why-auditability-is-the-product">Why auditability is the product</h2>
+<p>Every finance app claims to respect your privacy. The claims are indistinguishable from each other because they are all unverifiable — you cannot see what a server does with a payload after it arrives.</p>
+<p>Lithifyte's claim is different in kind, not in degree: the code that touches your money runs on your machine, in a file you can open in a text editor. You can search it for network calls. You can watch the network tab while you use it. You can compare the hosted file against the public repository byte for byte.</p>
+<p>This is also why the application is not minified or obfuscated. Every frontend ships readable code eventually; pretending otherwise would only make the honest reader's job harder.</p>
+<h2 id="self-hosting">Self-hosting</h2>
+<p>There is no build step and no dependency tree.</p>
+<ol><li>Download <code>index.html</code> from <a href="https://github.com/SID-Apps/lithifyte" rel="noopener">the repository</a>.</li><li>Open it — from your disk, a USB stick, a private server, whatever you like.</li><li>That is the whole procedure.</li></ol>
+<p>It runs offline. It reports nothing. It is the same file the hosted app serves, not a reduced version, and the hosted app has no features the file lacks. The only thing you give up is the magic-link sign-in that lets the hosted copy recognise you across devices — which is identity plumbing, not functionality.</p>
+<p>The project deliberately keeps no count of self-hosted installs. There is no telemetry to strip out because there is none to begin with.</p>
+<h2 id="what-is-in-the-repository">What is in the repository</h2>
+<div class="tablewrap"><table><thead><tr><th>Path</th><th>What it is</th></tr></thead><tbody><tr><td><code>index.html</code></td><td>The whole application: interface, engine, self-tests</td></tr><tr><td><code>demo.html</code></td><td>The sample household — invented data, isolated storage</td></tr><tr><td><code>tutorial.html</code></td><td>Long-form written guide with a retrieval-backed Ask box</td></tr><tr><td><code>feeder/</code></td><td>Optional open-banking feeder CLI and price fetcher</td></tr><tr><td><code>tools/</code></td><td>Release tooling — data swapping, sample generation, this site</td></tr><tr><td><code>www/</code></td><td>The marketing site and the Cloudflare Workers behind sign-in</td></tr><tr><td><code>docs/</code></td><td>Product analytics spec, email digest spec, tutorial corpus</td></tr><tr><td><code>SECURITY.md</code></td><td>Threat model, scope, and how to report a vulnerability</td></tr></tbody></table></div>
+<h2 id="self-tests-as-a-trust-mechanism">Self-tests as a trust mechanism</h2>
+<p>The application ships hundreds of behavioural checks that you can run yourself, in your browser, against your own data. They exist for the usual engineering reasons, but they serve a second purpose here: they let a stranger confirm the engine's arithmetic without reading the whole file or trusting the author.</p>
+<p>An honest limitation, learned the hard way: a check that asserts on something a user is entitled to change will turn red on a perfectly healthy install, and a red self-test tells someone not to trust the numbers. Assertions are written against invariants, not preferences.</p>
+<h2 id="contributing">Contributing</h2>
+<p>Issues and pull requests are welcome at <a href="https://github.com/SID-Apps/lithifyte" rel="noopener">github.com/SID-Apps/lithifyte</a>. Two constraints shape what can be accepted, and they are not negotiable:</p>
+<ul><li><strong>No feature may require sending financial data to a server.</strong> Not for convenience, not for AI, not for sync. If it needs a server, it needs a different product.</li><li><strong>A shipped update must never destroy a user's data.</strong> There is no server-side copy to restore from, so the upgrade path — snapshot, migrate, or refuse to run — is the entire safety net.</li></ul>
+<p>Security reports go through the process in <code>SECURITY.md</code> rather than a public issue.</p>
+
+<aside class="related"><h2>Keep reading</h2><ul><li><a href="/security-and-privacy">Security and privacy, in technical terms</a> <span class="rel-d">The claim is narrow and testable: your financial data is never transmitted, because there is no server that receives it. This page states exactly what that does and does not protect you from, including the parts we cannot fix.</span></li><li><a href="/how-it-works">How Lithifyte works</a> <span class="rel-d">You upload a bank statement to a web page. The page reads it in your browser, works out who spent what and where it went, and draws the result as a living map. No file is transmitted, because there is no server on the other end to receive it.</span></li><li><a href="/guide">The Lithifyte guide</a> <span class="rel-d">A complete feature reference, ordered the way you actually encounter things: get data in, make it trustworthy, understand it, then plan with it. There is also an interactive version inside the app with an Ask box.</span></li></ul></aside>
+</main>
+
+<footer class="site">
+  <span>© 2026 Lithifyte · <a href="https://www.sid-labs.com">SID Labs</a></span>
+  <a href="/how-it-works">How it works</a>
+  <a href="/learn">Learn</a>
+  <a href="/faq">FAQ</a>
+  <a href="/security-and-privacy">Security</a>
+  <a href="/open-source">Open source</a>
+  <a href="/privacy">Privacy</a>
+  <a href="/terms">Terms</a>
+  <a href="https://github.com/SID-Apps/lithifyte">Source (AGPL-3.0)</a>
+</footer>
+</body>
+</html>

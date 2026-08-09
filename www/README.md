@@ -10,7 +10,7 @@ Immersive first-person landing for **lithifyte.com** — Tron-grid / galaxy scro
 | **2** | [`rev2/`](rev2/) | Claude Design Canvas | Sticky scroll chapters, draggable force-directed map, canvas Sankey |
 
 **Production (live):** **https://lithifyte.com** (and `www`) serves **Rev 2** via Cloudflare Worker `lithifyte-landing` (routes `lithifyte.com/*` + `www.lithifyte.com/*`).  
-**App / demo:** still **https://lithifyte.sid-labs.com** (Worker `lithifyte`).  
+**App / sample:** **https://app.lithifyte.com** (Worker `lithifyte`, auto-deploys from `main`).  
 **Pages mirror:** project `lithifyte-com` → https://lithifyte-com.pages.dev
 
 ### Redeploy the landing (Rev 2.1+)
@@ -107,7 +107,7 @@ Browser
 
 **Stack that matches your ethics:**
 
-1. **Cloudflare Pages** — static landing + static app (already how sid-labs.com ships).
+1. **Cloudflare Pages** — static landing + static app (static assets served straight from the edge).
 2. **Cloudflare Worker + KV** — waitlist + magic-link tokens + sessions (`workers/access.js`).
 3. **Email delivery** — Resend, Postmark, or Mailchannels from the Worker (send only the magic link).
 4. Optional later: **Cloudflare Access** / Zero Trust if you want enterprise SSO in front of a private staging app — overkill for free consumer access.

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Lithifyte guide — Lithifyte</title>
+<meta name="description" content="Every part of Lithifyte in the order you meet it — importing statements, cleaning categories, reading the map, budgets, forecasts, debt payoff, net worth, backups and the self-tests.">
+<link rel="canonical" href="https://lithifyte.com/guide">
+<meta name="theme-color" content="#020b1a">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+<meta name="keywords" content="Lithifyte guide, how to import bank statement CSV, budgeting software tutorial, net worth tracker guide">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Lithifyte">
+<meta property="og:url" content="https://lithifyte.com/guide">
+<meta property="og:title" content="The Lithifyte guide">
+<meta property="og:description" content="Every part of Lithifyte in the order you meet it — importing statements, cleaning categories, reading the map, budgets, forecasts, debt payoff, net worth, backups and the self-tests.">
+<meta property="og:image" content="https://lithifyte.com/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The Lithifyte guide">
+<meta name="twitter:description" content="Every part of Lithifyte in the order you meet it — importing statements, cleaning categories, reading the map, budgets, forecasts, debt payoff, net worth, backups and the self-tests.">
+<meta name="twitter:image" content="https://lithifyte.com/og.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/page.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://lithifyte.com/guide#breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://lithifyte.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Guide",
+          "item": "https://lithifyte.com/guide"
+        }
+      ]
+    },
+    {
+      "@id": "https://lithifyte.com/guide#page",
+      "url": "https://lithifyte.com/guide",
+      "name": "The Lithifyte guide",
+      "description": "Every part of Lithifyte in the order you meet it — importing statements, cleaning categories, reading the map, budgets, forecasts, debt payoff, net worth, backups and the self-tests.",
+      "inLanguage": "en",
+      "isPartOf": {
+        "@id": "https://lithifyte.com/#website"
+      },
+      "breadcrumb": {
+        "@id": "https://lithifyte.com/guide#breadcrumb"
+      },
+      "publisher": {
+        "@id": "https://lithifyte.com/#organization"
+      },
+      "dateModified": "2026-08-09",
+      "@type": "WebPage"
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="site">
+  <a class="brand" href="/"><img src="/icon-192.png" alt="" width="28" height="28"> LITHIFYTE</a>
+  <nav class="site" aria-label="Site">
+    <a href="/how-it-works">How it works</a>
+    <a href="/learn">Learn</a>
+    <a href="/guide" aria-current="page">Guide</a>
+    <a href="/faq">FAQ</a>
+    <a href="https://app.lithifyte.com/demo">Sample</a>
+  </nav>
+</header>
+
+<main class="page">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span class="sep">/</span> <span aria-current="page">Guide</span></nav>
+  <h1>The Lithifyte guide</h1>
+  <p class="updated">Updated 9 August 2026</p>
+  <p class="lede">A complete feature reference, ordered the way you actually encounter things: get data in, make it trustworthy, understand it, then plan with it. There is also an interactive version inside the app with an Ask box.</p>
+
+<h2 id="before-you-start">Before you start</h2>
+<p>There is no account to create. Open <a href="https://app.lithifyte.com" rel="noopener">app.lithifyte.com</a>, or download <code>index.html</code> and open it from your own disk — the file works offline and behaves identically.</p>
+<p>If you would rather look before you type anything, the <a href="https://app.lithifyte.com/demo" rel="noopener">sample household</a> is a fully populated invented family: two earners, four accounts, two years of transactions, with the messy bits (merchant name variants, standing orders, an annual insurance renewal, a holiday spike) deliberately left in. Its storage is separate, so exploring it can never touch real data you add later.</p>
+<h2 id="1-getting-data-in">1 · Getting data in</h2>
+<p><strong>Set up the skeleton first.</strong> Name the people in your household and the accounts they hold. Everything else hangs off this, and getting it right early saves re-work.</p>
+<p><strong>Then import a statement.</strong> Export a CSV from your online banking and drop it in. The importer works out which columns hold the date, the description and the money, and it tells you what it decided:</p>
+<ul><li>The columns it used, named back to you.</li><li>How many rows were added, and how many were skipped as duplicates.</li><li>How many rows it could not read, with examples.</li></ul>
+<p>Read that report. A misread column is the single most common cause of numbers that look wrong later, and it is nearly invisible if the importer stays silent about it. Nothing is ever dropped without being counted.</p>
+<p><strong>Re-uploading is safe.</strong> Transactions are fingerprinted, so importing an overlapping statement adds only what is new. If a previous import went wrong, fixing it is usually just uploading the file again.</p>
+<p><strong>How much history?</strong> Twelve months if you can get it. A full year is what makes annual bills and seasonal patterns visible to the forecast; six months is workable; three months will produce a confident-looking forecast that is blind to your car insurance.</p>
+<h2 id="2-making-the-data-trustworthy">2 · Making the data trustworthy</h2>
+<p>This is the step people skip, and it is the one that determines whether anything downstream means anything.</p>
+<p><strong>Transfers.</strong> Money moving between your own accounts is not income and not spending. Lithifyte matches the two sides by amount, date proximity and direction, scores the match, and excludes the pair from spending totals. Check the matches once; an unmatched transfer inflates both your income and your outgoings.</p>
+<p><strong>Merchant names.</strong> Banks emit <code>TESCO STORES 3184</code>, <code>TESCO EXPRESS DUBLIN</code> and <code>TESCO-STORES</code> for one shop. The canonicaliser folds these into a single merchant so your map and your category totals stop being fragmented by till numbers.</p>
+<p><strong>Categories and rules.</strong> Fix a miscategorised transaction once, then write a rule from the merchant name so it stays fixed. Rules support wildcards and amount ranges — useful when the same merchant is groceries at €80 and a birthday present at €200. A per-transaction override always beats a rule, so you can make an exception without weakening the rule.</p>
+<p><strong>Optional local AI.</strong> You can point the categoriser at a language model you run yourself — Ollama, LM Studio, anything speaking the OpenAI-compatible protocol. It only ever suggests; you approve, and the approval becomes an ordinary rule you can read and edit. Nothing is sent to a remote model by default, and the feature is entirely optional.</p>
+<h2 id="3-understanding-what-you-see">3 · Understanding what you see</h2>
+<p><strong>The money map.</strong> Household → people → accounts → categories → merchants, drawn as a live graph with money flowing along the edges. Drag it, search it, isolate one person, change the date range and watch it redraw. Nodes carry markers for recurring payments and for notes you have written.</p>
+<p><strong>Cashflow.</strong> In versus out by month, with a stepper to walk through months and a drill-down that expands a month into categories and then into individual transactions.</p>
+<p><strong>The Sankey.</strong> Where income actually went, balanced to the cent — including the legs people usually leave out: money drawn from savings, money added to them, and the surplus or shortfall.</p>
+<p><strong>Categories.</strong> A legend of every category with its share, a per-category monthly view for spotting drift, and recategorisation from wherever you happen to be looking.</p>
+<p><strong>Leaks.</strong> Small multiples per category with spike flags based on the median and the median absolute deviation, so an unusual month separates from ordinary noise instead of every category looking dramatic.</p>
+<p><strong>Notes.</strong> You can attach a note to a person, an account, a category or a specific month. This sounds minor and turns out to matter: in eight months you will not remember why January's groceries were low, and <em>"used a €50 voucher"</em> attached to that month is the difference between a real insight and a wrong conclusion.</p>
+<h2 id="4-planning-with-it">4 · Planning with it</h2>
+<p><strong>Budgets</strong> are pace-based. Rather than a fixed monthly bar that turns red on the 20th of every month, the engine seeds amounts from your own medians, commits your recurring bills from day one so they cannot register as an overspend, and reports a safe-to-spend figure for each remaining day.</p>
+<p><strong>The forecast</strong> detects recurring bills and their cadence, allows for seasonal uplift, and sizes a buffer from how irregular your spending genuinely is rather than assuming an average month. The simulator lets you cut a category and watch the effect on the projection.</p>
+<p><strong>Goals</strong> carry an honest feasibility date computed from your actual surplus, not from the number you wish were true. A goal can be linked to a real account so its progress reconciles against a real balance.</p>
+<p><strong>Debts</strong> are modelled with real amortisation. Compare avalanche against snowball, see genuine payoff dates, model an overpayment, and get an explicit flag when a payment does not even cover the interest — the situation that quietly keeps a balance alive for years.</p>
+<p><strong>Net worth</strong> layers accounts, manual assets, investments and debts into one figure, with a trend line and staleness flags. A valuation that has not been updated in a year is marked as such rather than silently treated as current.</p>
+<p><strong>Financial health</strong> is a seven-measure dial scored against absolute benchmarks rather than only against your own past, so the score carries meaning outside your own history.</p>
+<h2 id="5-keeping-it-alive">5 · Keeping it alive</h2>
+<p><strong>Export a backup.</strong> This is the single most important habit. Your data lives in your browser, and browsers can be cleared, corrupted or replaced. A backup file is a full JSON export of every store, optionally encrypted with a passphrase.</p>
+<p><strong>Lock it</strong> if the device is shared. AES-GCM encryption at rest with a PBKDF2-derived key. There is no recovery link — nobody holds a copy of your passphrase to reset it against.</p>
+<p><strong>Alerts and reminders</strong> cover upcoming bills detected from your recurring patterns, plus reminders you set yourself. You can also send yourself an email digest: your browser composes it, the server relays it, and the body is never stored.</p>
+<p><strong>Run the self-tests</strong> whenever you want reassurance. They execute in your browser against your own data and report every check. Green means the engine's arithmetic is behaving on your actual dataset — not on a demo somewhere.</p>
+<h2 id="where-to-go-next">Where to go next</h2>
+<p>The <a href="/learn">learn library</a> covers the money side rather than the software side — how budgets, forecasts, debt payoff and net worth actually work, in plain language. Inside the app, the tutorial walks the same ground interactively and includes an Ask box for questions about the product.</p>
+
+<aside class="related"><h2>Keep reading</h2><ul><li><a href="/how-it-works">How Lithifyte works</a> <span class="rel-d">You upload a bank statement to a web page. The page reads it in your browser, works out who spent what and where it went, and draws the result as a living map. No file is transmitted, because there is no server on the other end to receive it.</span></li><li><a href="/learn">Learn — plain-language money guides</a> <span class="rel-d">Personal finance is mostly a small number of ideas explained badly. These guides explain them properly: what a budget really is, why most of them fail in the second month, how debt payoff maths works, and what your own spending is trying to tell you. Read one in five minutes.</span></li><li><a href="/faq">Frequently asked questions</a> <span class="rel-d">Short, direct answers. If a question you have is not here, the [guide](/guide) goes deeper and the [source code](https://github.com/SID-Apps/lithifyte) settles any argument about what the software actually does.</span></li></ul></aside>
+</main>
+
+<footer class="site">
+  <span>© 2026 Lithifyte · <a href="https://www.sid-labs.com">SID Labs</a></span>
+  <a href="/how-it-works">How it works</a>
+  <a href="/learn">Learn</a>
+  <a href="/faq">FAQ</a>
+  <a href="/security-and-privacy">Security</a>
+  <a href="/open-source">Open source</a>
+  <a href="/privacy">Privacy</a>
+  <a href="/terms">Terms</a>
+  <a href="https://github.com/SID-Apps/lithifyte">Source (AGPL-3.0)</a>
+</footer>
+</body>
+</html>

@@ -15,7 +15,7 @@ Anyone can request a magic link at `access.lithifyte.com`. There is **no admin �
 
 - Prefer verifying **lithifyte.com** in Resend (SPF + DKIM in Cloudflare DNS) and set  
   `MAIL_FROM=Lithifyte <signin@lithifyte.com>`  
-- Until then `signin@sid-labs.com` works but looks less aligned → more spam  
+- The from-address is `signin@lithifyte.com`. It only sends once **lithifyte.com is verified in Resend** (DKIM + SPF records in Cloudflare DNS) — until then Resend refuses the send and `/waitlist` returns 502  
 - Users: mark “Not spam” once; add the From address to contacts  
 
 ## “HTTP ERROR 403 / Access was denied”
