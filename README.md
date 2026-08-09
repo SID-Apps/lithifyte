@@ -6,11 +6,11 @@ Lithifyte turns your bank statements into a **full financial neural map** of you
 
 > **The privacy promise, bluntly:** everything is computed in your browser from statements you upload. Your data lives in your browser's local storage (optionally encrypted at rest with a passphrase) and in backup files you export yourself. The page makes zero network requests with your data. You can read this file's source and verify every word of that.
 
-**Try it first:** [the sample household](https://lithifyte.sid-labs.com/demo.html) is a fully loaded sample household — two earners, four accounts, two years of invented transactions — so you can explore everything without uploading a thing. The sample keeps its own separate storage and can never touch data you later add to the real app.
+**Try it first:** [the sample household](https://app.lithifyte.com/demo) is a fully loaded sample household — two earners, four accounts, two years of invented transactions — so you can explore everything without uploading a thing. The sample keeps its own separate storage and can never touch data you later add to the real app.
 
-**New here?** The [Tutorial & Ask guide](https://lithifyte.sid-labs.com/tutorial) walks every feature in order of use (name → CSV → goals → budgets → wealth → backup) and includes an **Ask** box backed by a local RAG corpus (`docs/rag/chunks.json`). Optional: point Ask at your own local model for prose answers.
+**New here?** The [Tutorial & Ask guide](https://app.lithifyte.com/tutorial) walks every feature in order of use (name → CSV → goals → budgets → wealth → backup) and includes an **Ask** box backed by a local RAG corpus (`docs/rag/chunks.json`). Optional: point Ask at your own local model for prose answers.
 
-**Hosted at** [lithifyte.sid-labs.com](https://lithifyte.sid-labs.com) on **Cloudflare Pages** (auto-deploys from `main`). That is the only public host for now — not GitHub Pages.
+**Home is [lithifyte.com](https://lithifyte.com)** — the product site, with the [guide](https://lithifyte.com/guide), the [FAQ](https://lithifyte.com/faq) and a plain-language [money library](https://lithifyte.com/learn). The app itself runs at **[app.lithifyte.com](https://app.lithifyte.com)** on a Cloudflare Worker that auto-deploys from `main`. Those two hosts are the only official ones.
 
 **Marketing site** for the product domain lives in [`www/`](www/) — immersive first-person / Tron-grid landing, email-only free access (Cloudflare Worker stub), CTAs into sample and app. **Rev 1** is `www/index.html`; **Rev 2** (Claude Design Canvas — interactive money map + Sankey) is [`www/rev2/`](www/rev2/). See [`www/README.md`](www/README.md) for deploy layout (`lithifyte.com` → landing, app/sample path (`demo.html`) on subpaths or subdomains).
 
@@ -18,7 +18,7 @@ Lithifyte turns your bank statements into a **full financial neural map** of you
 
 1. **Open the app** — either the hosted page, or download `index.html` and open it locally (the local file unlocks a couple of extras, see below).
 2. The four-step onboarding takes over: your name → your first account → upload a statement → set a goal. The money map is alive from step one.
-3. **Statements** are CSV files: `date,description,debit,credit` (a header row, dates as YYYY-MM-DD or common bank formats). Every Irish bank's export can be massaged into this in a spreadsheet in a minute — or automated, see the feeder below.
+3. **Statements** are your bank's own export — CSV, tab-separated or Excel `.xlsx`, whatever shape it comes in. Press **Prepare & preview**: the importer works out which column is which, you correct anything it got wrong, and it shows you every finished transaction beside your raw file *before* anything is saved. See [Reading your statement](#reading-your-statement).
 4. Re-uploading is always safe: duplicates are detected and skipped.
 5. **Export a backup** (Settings → Backup) once you have real data in. That file is your durability story — optionally encrypted with a passphrase.
 
@@ -44,9 +44,20 @@ The self-test in the footer runs ~210 behavioural checks on every load. If it is
 - **Your data survives updates**: before a new version changes how anything is stored it snapshots every store, and it refuses to write at all rather than risk data it cannot read (see *Data safety* below).
 - **AI categoriser (optional, local)**: point it at an OpenAI-compatible model on your own machine (Ollama, LM Studio) and it suggests categories for the leftovers. Nothing auto-applies; every acceptance becomes an ordinary rule. Savings, rent and gambling-shaped calls are flagged for your judgement, never trusted.
 
-## Reading your CSV
+## Reading your statement
 
-Column names vary by bank, so the importer matches on synonyms: *debit / money out / paid out / withdrawals* for money out, *credit / money in / paid in / lodgement / deposits* for money in, or a single signed *amount* column. **After every upload it tells you which columns it used**, how many rows it could not read, and warns you if everything imported in one direction — because a statement whose money-in column was not recognised imports as outgoings only, and then looks exactly like an account that just drains. If your headers are unusual, rename them to any of the names above and upload again; duplicate rows are skipped, so re-uploading a corrected file is safe.
+Upload the file your bank actually gives you. **CSV, tab- or semicolon-separated, or Excel `.xlsx`** — the spreadsheet is unzipped and read *in your browser*, with no library and nothing uploaded, so the privacy promise holds for it too.
+
+**Prepare & preview** is a two-step flow:
+
+1. **Columns.** Known bank exports are recognised outright — a **Revolut** statement is mapped in one click: it reads the *completed* date, folds each fee into its own transaction so the balance still adds up, and holds back anything not `COMPLETED`. Anything else is matched on synonyms (*debit / money out / paid out / withdrawals*; *credit / money in / paid in / lodgement / deposits*; or one signed *amount* column). **Every decision is yours to change**: pick what each column is, the date order (day-first vs month-first, decided from the whole column, not row by row), the decimal mark (`1,234.56` or `1.234,56`), whether to swap the two directions, and rules for holding rows back (*only import rows whose State is COMPLETED*). A preamble of bank blurb above the real header is skipped, and you can point at the header row yourself.
+2. **Preview.** Your raw file on the left, **exactly what will be stored on the right** — the preview is not a rehearsal, it is the import, simply not saved yet. With totals, the date range, and every row that will *not* be imported named with its reason. Nothing reaches your dashboard until you press the button.
+
+Then it is remembered: the mapping is saved against that file's column headers, so next month's export from the same bank comes back already mapped.
+
+**Where the statement carries a running balance, the importer walks it.** If every step agrees with the amounts it read, the mapping is *proven* right rather than assumed — and the balance implied before the first row is offered as that account's **opening balance**, which is the number the reconciled cash, net-worth and goal figures are built on. (It is never used to overwrite an opening balance you already set without saying so, and never by default.)
+
+**Nothing is ever dropped in silence.** A row held back by one of your rules is counted and named; a row with a date but no readable amount is counted and named; an import that is entirely one-directional is flagged, because that is nearly always a mapping slip.
 
 ## Colour
 
@@ -86,7 +97,8 @@ Releases use [`tools/swap-data.mjs`](tools/swap-data.mjs): one shared shell of c
 ## Honest limitations
 
 - Desktop-first. It works on a phone browser, but it isn't a phone app yet.
-- CSV in (or the feeder CLI) — there is no magical instant bank link, because that would require a server holding your credentials, and the whole point is that there isn't one.
+- Statement files in (or the feeder CLI) — there is no magical instant bank link, because that would require a server holding your credentials, and the whole point is that there isn't one.
+- One bank preset ships (Revolut), because it is the one that has been verified against a real export. Everything else goes through synonym matching plus the column mapper, which handles any file; adding a preset is a small, self-contained change (`Engine.IMP_PRESETS`).
 - Single-currency (EUR) and Irish-first: the tax layer, schemes and merchant knowledge are tuned for Ireland. The rest travels fine.
 - The at-rest encryption lock is opt-in. Turn it on if the machine is shared.
 

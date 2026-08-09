@@ -167,13 +167,32 @@ shows a visible "Data integrity" warning when they fail):
      rewrite the integrity block whenever transactions change.
   3. Every transaction row: [valid "YYYY-MM-DD", non-empty merchant, cat, sub,
      debit ≥ 0, credit ≥ 0, confidence] (+ optional accountId that exists).
-     CSV IMPORT: mapStatement returns rows PLUS rows.meta {columns, noDate,
-     noAmount, noAmountEg, debits, credits} and importReport() renders it after
-     every upload. A row that has a date but no readable amount is COUNTED and
-     reported, never dropped in silence — a statement whose money-in column was
-     not recognised imports as outgoings only, which then reads as an account
-     that merely drains. If you add a column synonym, keep short tokens
-     (cr/dr/in/out) whole-word: "interest" contains "in".
+     STATEMENT IMPORT: one SPEC describes how to read a file (which column is
+     which, date order, decimal mark, fee handling, row filters); ONE function
+     applies it — Engine.impApply. mapStatement(rows, spec?) uses the spec the
+     user approved, or auto-detects (Engine.impDetect: bank PRESET first, then
+     column synonyms). The preview overlay renders Engine.impApply's output and
+     the import saves the same call's rows, so what the user approved is what
+     lands — never add a second mapping path. To support another bank, add a
+     preset to Engine.IMP_PRESETS ({id, label, note, match(hdr), build(hdr,
+     rows, headerRow)}); nothing else changes.
+     impApply returns rows PLUS meta {columns, noDate, noDateEg, noAmount,
+     noAmountEg, blank, debits, credits, totalIn, totalOut, from, to, filtered,
+     fees, recon, preset, label, spec} and src (file row per transaction);
+     importReport() renders meta after every upload. A row that has a date but
+     no readable amount is COUNTED and reported, never dropped in silence — a
+     statement whose money-in column was not recognised imports as outgoings
+     only, which then reads as an account that merely drains. A row held back by
+     a FILTER is likewise counted and named. If you add a column synonym
+     (Engine.IMP_COLS), keep short tokens (cr/dr/in/out) whole-word: "interest"
+     contains "in".
+     .xlsx is read in-browser (unzip + DecompressionStream + DOMParser, no
+     library, nothing uploaded); where the browser cannot inflate, the user is
+     asked for a CSV as before. Excel date cells are resolved through
+     styles.xml, never guessed. meta.recon walks the statement's OWN running
+     balance: if every step agrees, the mapping is verified behaviourally, and
+     recon.opening is the balance before the first row (offered as the
+     account's opening balance).
   4. Every account.userId exists in users; every rule has merchantContains +
      setCategory; every goal PRESENT has a name and target > 0 (an empty goals
      array is valid — see below); no duplicate ids.
@@ -287,7 +306,11 @@ The JSON block contains:
 BACKUP FILES — the user can export a finance-backup-*.json holding their
 browser state: {schema, base:{checksum,...}, stores:{rules, cats, goals, org,
 recur, uploads, xfers, manrec, fcast, budget, debts, holdings, assets,
-nwlog, merch, notes, lm, cash, alerts}, ui}. stores.lm = {endpoint, model, dismissed} —
+nwlog, merch, notes, lm, cash, alerts, imports}, ui}.
+stores.imports = {maps: {headerHash: {spec, label, file, at}}} — column mappings
+the user has approved, keyed by a hash of the file's header row, so next month's
+export from the same bank is recognised (browser store dd-imports-v1).
+stores.lm = {endpoint, model, dismissed} —
 the local-LM categoriser config (browser store dd-lm-v1; assist-only: its
 suggestions become ordinary rules only when the user accepts them).
 stores.notes = {mapNodeId: "free text"} — user
@@ -1219,6 +1242,56 @@ So, when you change a stored shape:
   .wiz-review div{display:flex; justify-content:space-between; gap:10px; padding:4px 0; border-bottom:1px solid var(--grid)}
   .wiz-review div:last-child{border-bottom:none}
   .wiz-review b{color:var(--ink); font-variant-numeric:tabular-nums}
+  /* ── statement importer (map columns → preview → import) ── */
+  #impOverlay{position:fixed; inset:0; z-index:97; display:flex; align-items:center; justify-content:center; padding:18px;
+    background:color-mix(in srgb, var(--page) 58%, transparent); backdrop-filter:blur(14px) saturate(1.1); -webkit-backdrop-filter:blur(14px) saturate(1.1)}
+  #impOverlay[hidden]{display:none}
+  .imp-box{width:min(1080px, 97vw); max-height:93vh; display:flex; flex-direction:column;
+    background:var(--surface); border:1px solid var(--border-strong,#334155); border-radius:14px;
+    padding:16px 20px 18px; box-shadow:0 18px 60px rgba(0,0,0,.42)}
+  .imp-head{display:flex; align-items:flex-start; gap:14px}
+  .imp-head h3{margin:2px 0 0; font-size:19px}
+  .imp-head .panel-close{margin-left:auto; flex:0 0 auto}
+  .imp-steps{display:flex; gap:6px; align-items:center; margin:8px 0 0; flex-wrap:wrap}
+  .imp-steps span{font-size:11.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted);
+    padding:3px 9px; border-radius:999px; border:1px solid var(--grid)}
+  .imp-steps span.on{color:var(--ink); border-color:var(--accent,#38bdf8)}
+  .imp-steps span.done{color:var(--ink-2)}
+  .imp-sub{margin:8px 0 12px; font-size:13px; color:var(--ink-2)}
+  .imp-body{overflow:auto; flex:1 1 auto; min-height:120px}
+  .imp-nav{display:flex; gap:8px; align-items:center; margin-top:14px; flex-wrap:wrap}
+  .imp-nav .wiz-spacer{margin-left:auto}
+  .imp-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:10px}
+  .imp-col{border:1px solid var(--grid); border-radius:10px; padding:9px 11px; background:var(--chip)}
+  .imp-col.used{border-color:var(--accent,#38bdf8)}
+  .imp-col-name{font-size:12.5px; font-weight:700; color:var(--ink); overflow-wrap:anywhere}
+  .imp-sub-head{font-size:12.5px; font-weight:700; color:var(--ink); margin-bottom:7px}
+  .imp-col select{width:100%; margin:6px 0 5px}
+  .imp-eg{font-size:11.5px; color:var(--muted); line-height:1.5; overflow-wrap:anywhere}
+  .imp-opts{display:flex; flex-wrap:wrap; gap:10px 16px; align-items:end; margin:14px 0 4px;
+    padding-top:12px; border-top:1px solid var(--grid)}
+  .imp-opts label{display:block; font-size:12px; color:var(--muted)}
+  .imp-opts .inp{margin-top:3px}
+  .imp-filters{margin-top:12px; padding-top:12px; border-top:1px solid var(--grid)}
+  .imp-filter{display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:12.5px; margin-bottom:7px}
+  .imp-two{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+  @media (max-width:820px){ .imp-two{grid-template-columns:1fr} }
+  .imp-pane h4{margin:0 0 6px; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .imp-pane .imp-scroll{max-height:280px; overflow:auto; border:1px solid var(--grid); border-radius:9px}
+  .imp-pane table{width:100%; border-collapse:collapse; font-size:12px; white-space:nowrap}
+  .imp-pane th{position:sticky; top:0; background:var(--surface); text-align:left; font-weight:600;
+    color:var(--muted); padding:5px 8px; border-bottom:1px solid var(--grid)}
+  .imp-pane td{padding:4px 8px; border-bottom:1px solid var(--grid); color:var(--ink-2)}
+  .imp-pane td.r{text-align:right; font-variant-numeric:tabular-nums}
+  .imp-pane tr.imp-drop td{opacity:.5; text-decoration:line-through}
+  .imp-stats{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px}
+  .imp-stat{border:1px solid var(--grid); border-radius:10px; padding:7px 12px; min-width:104px; background:var(--chip)}
+  .imp-stat b{display:block; font-size:16px; color:var(--ink); font-variant-numeric:tabular-nums}
+  .imp-stat span{font-size:11px; color:var(--muted)}
+  .imp-note-line{font-size:12.5px; color:var(--ink-2); margin:4px 0}
+  .imp-note-line.warn{color:var(--critical)}
+  .imp-note-line.good{color:var(--ink-2)}
   .node-card{position:absolute; right:14px; bottom:44px; z-index:3; width:min(320px, 78vw);
     background:rgba(4,18,38,.9); border:1px solid rgba(56,189,248,.42); border-radius:12px;
     padding:12px 14px; color:#dbeafe; backdrop-filter:blur(8px);
@@ -1368,9 +1441,9 @@ So, when you change a stored shape:
         <button class="btn primary" id="ob-acct-go" type="button">Add account</button>
         <span class="hint num" id="ob-acct-done"></span></li>
       <li class="ob-step" id="obs4"><span class="ob-num">4</span><b>Your first statement</b>
-        <input type="file" id="ob-file" class="inp" accept=".csv,text/csv">
-        <button class="btn primary" id="ob-file-go" type="button">Upload</button>
-        <span class="hint">CSV with date, description, and debit/credit (or amount) columns — duplicates are skipped automatically</span>
+        <input type="file" id="ob-file" class="inp" accept=".csv,.tsv,.txt,.xlsx,text/csv">
+        <button class="btn primary" id="ob-file-go" type="button">Prepare &amp; preview →</button>
+        <span class="hint">Your bank's own CSV or Excel export is fine — you'll be shown the columns it found and every transaction before anything is saved</span>
         <span class="hint" id="ob-file-status"></span></li>
       <li class="ob-step" id="obs5"><span class="ob-num">5</span><b>Your first goal</b>
         <button class="btn primary" id="ob-goal-wiz" type="button">Set up my first goal</button>
@@ -1595,7 +1668,7 @@ So, when you change a stored shape:
   <div class="section" id="sec-people">
     <div class="section-head">
       <h2>People, accounts &amp; statements</h2>
-      <p>Structure matches the money map: a <b>household</b>, then the <b>people</b> in it, then each person's <b>accounts</b> and statements. Add current, credit, savings or cash accounts; upload bank CSVs under the right owner (duplicates are skipped). Set opening balances so cash and goals reconcile. Everything stays in this browser.</p>
+      <p>Structure matches the money map: a <b>household</b>, then the <b>people</b> in it, then each person's <b>accounts</b> and statements. Add current, credit, savings or cash accounts; upload your bank's own CSV or Excel export under the right owner \u2014 the importer maps the columns, you check them, and you see the whole statement before it lands (duplicates are skipped). Set opening balances so cash and goals reconcile. Everything stays in this browser.</p>
     </div>
     <div class="hh-banner" id="hhBanner">
       <h3>🏠 Household</h3>
@@ -1618,11 +1691,12 @@ So, when you change a stored shape:
       <h3>Upload a statement</h3>
       <p class="hint" id="uploadPrompt" style="margin:0 0 12px"></p>
       <div class="upload-form">
-        <div><label for="upFile">CSV file</label><input id="upFile" type="file" accept=".csv,text/csv" class="inp"></div>
+        <div><label for="upFile">Statement file</label><input id="upFile" type="file" accept=".csv,.tsv,.txt,.xlsx,text/csv" class="inp"></div>
         <div><label for="upAccount">Account</label><select id="upAccount" class="inp"></select></div>
         <div id="upNewWrap" style="display:none"><label for="upNewName">New account name</label><input id="upNewName" class="inp" placeholder="e.g. Sally · BOI credit card"></div>
-        <div><button class="btn primary" id="upGo" type="button">Upload</button></div>
+        <div><button class="btn primary" id="upGo" type="button">Prepare &amp; preview →</button></div>
       </div>
+      <p class="hint" style="margin:8px 0 0">CSV, tab-separated or Excel <code>.xlsx</code> — including a bank's own export. Your columns are matched for you (Revolut exports are recognised outright), you correct anything wrong, and <b>you see every transaction before it reaches your dashboard</b>. Nothing is saved until you say so, and the file never leaves this browser.</p>
       <div class="upload-form" id="upOwnerRow" style="display:none; margin-top:8px">
         <div><label for="upOwner">Who does this account belong to?</label><select id="upOwner" class="inp"></select></div>
         <div id="upNewOwnerWrap" style="display:none"><label for="upOwnerName">Name (person or business)</label><input id="upOwnerName" class="inp" placeholder="e.g. Sally, or Sally's Bakery Ltd"></div>
@@ -2445,6 +2519,29 @@ rewrite the static advice cards if the picture has changed.</div>
     </div>
   </div>
 </div>
+<!-- ═══ STATEMENT IMPORTER — map columns, then see it before it lands ═══ -->
+<div id="impOverlay" hidden>
+  <div class="imp-box" role="dialog" aria-modal="true" aria-labelledby="impTitle">
+    <div class="imp-head">
+      <div>
+        <div class="wiz-kicker">Prepare a statement</div>
+        <h3 id="impTitle">Reading your file…</h3>
+      </div>
+      <div class="imp-steps" id="impSteps" aria-hidden="true"></div>
+      <button class="btn small panel-close" id="impClose" type="button" aria-label="Close the importer">✕</button>
+    </div>
+    <p class="imp-sub" id="impSub"></p>
+    <div class="imp-body" id="impBody"></div>
+    <p class="wiz-err" id="impErr" role="alert"></p>
+    <div class="imp-nav">
+      <button class="btn" id="impBack" type="button">Back</button>
+      <span class="wiz-spacer"></span>
+      <label class="chk" id="impRememberWrap" style="display:none"><input type="checkbox" id="impRemember" checked> Remember this mapping</label>
+      <button class="btn" id="impCancel" type="button">Cancel</button>
+      <button class="btn primary" id="impNext" type="button">Next</button>
+    </div>
+  </div>
+</div>
 <div id="skOverlay" hidden>
   <div class="sk-box" role="dialog" aria-label="Money flow, full size">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
@@ -2563,6 +2660,10 @@ rewrite the static advice cards if the picture has changed.</div>
   const eur = n => PRIV.global ? MASK : eurRaw(n);
   // compact form for the middle of a donut, where a six-figure sum will not fit;
   // honours privacy mode exactly like eur()
+  // to the cent — used only where rounding would be a lie: the import preview
+  // claims to show exactly what will be stored, and the balance reconciliation
+  // claims to agree to the cent
+  const eurC = n => '€' + Number(n).toLocaleString('en-IE', {minimumFractionDigits: 2, maximumFractionDigits: 2});
   const eurK = n => {
     if (PRIV.global) return MASK;
     const a = Math.abs(n);
@@ -2578,7 +2679,7 @@ rewrite the static advice cards if the picture has changed.</div>
   const MAP_LEGEND = false;
 
   // ══ persistent stores (all in this browser — self-hosted) ══
-  const LS = {rules:'dd-rules-v2', cats:'dd-cats-v2', goals:'dd-goals-v1', org:'dd-org-v1', recur:'dd-recur-v1', uploads:'dd-uploads-v1', xfers:'dd-xfers-v1', manrec:'dd-manrec-v1', fcast:'dd-fcast-v1', cuts:'dd-cuts-v1', visit:'dd-visit-v1', budget:'dd-budget-v1', priv:'dd-privacy-v1', debts:'dd-debts-v1', holds:'dd-holdings-v1', assets:'dd-assets-v1', nwlog:'dd-nwlog-v1', merch:'dd-merch-v1', notes:'dd-notes-v1', lm:'dd-lm-v1', cash:'dd-cash-v1', alerts:'dd-alerts-v1', txcat:'dd-txcat-v1', docs:'dd-docs-v1'};
+  const LS = {rules:'dd-rules-v2', cats:'dd-cats-v2', goals:'dd-goals-v1', org:'dd-org-v1', recur:'dd-recur-v1', uploads:'dd-uploads-v1', xfers:'dd-xfers-v1', manrec:'dd-manrec-v1', fcast:'dd-fcast-v1', cuts:'dd-cuts-v1', visit:'dd-visit-v1', budget:'dd-budget-v1', priv:'dd-privacy-v1', debts:'dd-debts-v1', holds:'dd-holdings-v1', assets:'dd-assets-v1', nwlog:'dd-nwlog-v1', merch:'dd-merch-v1', notes:'dd-notes-v1', lm:'dd-lm-v1', cash:'dd-cash-v1', alerts:'dd-alerts-v1', txcat:'dd-txcat-v1', docs:'dd-docs-v1', imports:'dd-imports-v1'};
   // demo build (raw.demo:true in the data block): every store gets its own
   // namespace — the sample household shares an origin with the real app, and
   // playing with sample data must never be able to touch someone's real data
@@ -2991,6 +3092,11 @@ rewrite the static advice cards if the picture has changed.</div>
   // single map node), which keeps working untouched.
   let docStore = load(LS.docs, {items:[]});   // {id, title, body, links:[userId|acctId], tags:[], created, updated}
   if (!Array.isArray(docStore.items)) docStore = {items:[]};
+  // Column mappings the user has already approved, keyed by a hash of the
+  // file's header row: next month's export from the same bank comes back with
+  // the same headers, and the mapping is remembered rather than re-answered.
+  let impStore = load(LS.imports, {maps:{}});  // {maps: {headerHash: {spec, label, at, file}}}
+  if (!impStore || typeof impStore.maps !== 'object' || !impStore.maps) impStore = {maps:{}};
   const merchCanon = new Map();                   // raw → canonical cache; cleared on merchStore change
   function canonOf(m){
     let v = merchCanon.get(m);
@@ -4219,6 +4325,367 @@ rewrite the static advice cards if the picture has changed.</div>
         if (pts > 0 && (!best || pts > best.pts)) best = {k: c.k, pts};
       }
       return {score, zone, comps, active: act.length, best};
+    },
+
+    // ══ statement import: presets + explicit column mapping ══
+    // ONE spec describes how to read a file; ONE function applies it. The
+    // preview the user approves and the rows that land in the dashboard come
+    // from the same call — so what they saw is exactly what they get.
+    //
+    // A PRESET is a spec-builder that recognises a bank's own export from its
+    // header row (Revolut ships Type/Product/Started Date/…, needs its fee
+    // folded into the transaction and anything not COMPLETED held back).
+    // Anything unrecognised falls back to the synonym matcher, and every
+    // decision either makes is overridable by the user in the mapping UI.
+    // Rows the user chose NOT to import are counted and reported per reason —
+    // a filtered row is a decision, an unreadable row is a warning, and
+    // NEITHER is ever dropped in silence.
+    IMP_COLS: {
+      date:   ['date_str', 'date', 'posted', 'transaction date', 'value date'],
+      mer:    ['merchant', 'description', 'details', 'narrative', 'payee', 'reference', 'particulars'],
+      debit:  ['debit', 'money out', 'paid out', 'withdrawal', 'withdrawals', 'payments out',
+               'amount out', 'outgoing', 'spent', 'charge'],
+      credit: ['credit', 'money in', 'paid in', 'lodgement', 'lodgment', 'deposit', 'deposits',
+               'payments in', 'amount in', 'incoming', 'received', 'receipts'],
+      amount: ['amount', 'value', 'transaction amount']
+    },
+    // Long names match as substrings; SHORT ones only as whole words, because
+    // "interest" contains "in" and would otherwise be read as the money-in column.
+    IMP_SHORT: {debit: ['dr', 'out'], credit: ['cr', 'in']},
+    impFindCol(hdr, key){
+      const names = Engine.IMP_COLS[key] || [];
+      let i = hdr.findIndex(h => names.includes(h));                     // exact
+      if (i >= 0) return i;
+      i = hdr.findIndex(h => names.some(n => n.length >= 4 && h.includes(n)));   // substring
+      if (i >= 0) return i;
+      const shorts = Engine.IMP_SHORT[key];
+      if (shorts) return hdr.findIndex(h => shorts.some(s => new RegExp('(^|[^a-z])' + s + '([^a-z]|$)').test(h)));
+      return -1;
+    },
+    // roles a column can be given in the mapping UI, in the order they appear
+    IMP_ROLES: [
+      {k: 'skip',       label: '— not imported —'},
+      {k: 'date',       label: 'Date'},
+      {k: 'merchant',   label: 'Description / who'},
+      {k: 'amount',     label: 'Amount (one signed column)'},
+      {k: 'debit',      label: 'Money out'},
+      {k: 'credit',     label: 'Money in'},
+      {k: 'fee',        label: 'Fee'},
+      {k: 'balance',    label: 'Balance after'},
+      {k: 'category',   label: 'Category'},
+      {k: 'sub',        label: 'Subcategory'},
+      {k: 'confidence', label: 'Confidence'},
+      {k: 'dateAlt',    label: 'Date (fallback)'}
+    ],
+    IMP_SINGLE: ['date', 'dateAlt', 'merchant', 'amount', 'debit', 'credit', 'fee', 'balance', 'category', 'sub', 'confidence'],
+    impSpec(p){
+      const s = Object.assign({
+        headerRow: 0, date: -1, dateAlt: -1, merchant: -1, amount: -1, debit: -1, credit: -1,
+        fee: -1, balance: -1, category: -1, sub: -1, confidence: -1,
+        dateFormat: 'auto', decimal: 'auto', swap: false, feeMode: 'fold',
+        clean: 'none', filters: [], preset: 'custom', label: 'Custom mapping'
+      }, p || {});
+      Engine.IMP_SINGLE.forEach(k => { s[k] = Number.isInteger(s[k]) ? s[k] : -1; });
+      s.filters = (s.filters || []).filter(f => f && f.col >= 0 && Array.isArray(f.values) && f.values.length)
+        .map(f => ({col: f.col, mode: f.mode === 'drop' ? 'drop' : 'keep', values: f.values.slice(), label: f.label || ''}));
+      return s;
+    },
+    impRoleOf(spec, i){
+      for (const k of Engine.IMP_SINGLE) if (spec[k] === i) return k;
+      return 'skip';
+    },
+    // Assigning a role takes it off whatever column held it — two "Date"
+    // columns is not a state the importer can be in.
+    impSetRole(spec, i, role){
+      const s = Engine.impSpec(spec);
+      for (const k of Engine.IMP_SINGLE) if (s[k] === i) s[k] = -1;
+      if (role !== 'skip' && Engine.IMP_SINGLE.includes(role)) s[role] = i;
+      s.preset = 'custom'; s.label = 'Your own mapping';
+      return s;
+    },
+    impPad(n){ return String(n).padStart(2, '0'); },
+    // Money out of a bank export: strips the currency, tolerates 1.234,56 and
+    // (12.34) for negatives, and returns NaN — not 0 — for "nothing here", so
+    // a blank cell and a real zero stay distinguishable.
+    impNum(v, decimal){
+      let s = String(v == null ? '' : v).trim();
+      if (!s) return NaN;
+      let neg = false;
+      if (/^\(.*\)$/.test(s)){ neg = true; s = s.slice(1, -1); }
+      s = s.replace(/[−‒-―]/g, '-').replace(/[^\d.,+-]/g, '');
+      if (!s || !/\d/.test(s)) return NaN;
+      if (decimal === 'comma') s = s.replace(/\./g, '').replace(',', '.');
+      else if (decimal === 'dot') s = s.replace(/,/g, '');
+      else {
+        const lc = s.lastIndexOf(','), ld = s.lastIndexOf('.');
+        if (lc > ld) s = s.replace(/\./g, '').replace(',', '.');
+        else s = s.replace(/,/g, '');
+      }
+      const n = parseFloat(s);
+      if (isNaN(n)) return NaN;
+      return neg ? -n : n;
+    },
+    IMP_MONTHS: {jan:1, feb:2, mar:3, apr:4, may:5, jun:6, jul:7, aug:8, sep:9, oct:10, nov:11, dec:12},
+    impDate(v, fmt){
+      const s = String(v == null ? '' : v).trim();
+      if (!s) return null;
+      const P = Engine.impPad;
+      const ok = (y, m, d) => (+m >= 1 && +m <= 12 && +d >= 1 && +d <= 31) ? y + '-' + P(m) + '-' + P(d) : null;
+      let m = s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);
+      if (m) return ok(m[1], m[2], m[3]);
+      m = s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/);
+      if (m){
+        let y = m[3];
+        if (y.length === 2) y = (+y > 70 ? '19' : '20') + y;
+        // auto: day-first unless the numbers themselves say otherwise (EU default)
+        if (fmt === 'mdy') return ok(y, m[1], m[2]);
+        if (fmt === 'dmy') return ok(y, m[2], m[1]);
+        if (+m[1] > 12) return ok(y, m[2], m[1]);
+        if (+m[2] > 12) return ok(y, m[1], m[2]);
+        return ok(y, m[2], m[1]);
+      }
+      m = s.match(/^(\d{1,2})[\s-]*([A-Za-z]{3,})[\s-]*(\d{4})/);          // 05 Jan 2026
+      if (m && Engine.IMP_MONTHS[m[2].slice(0, 3).toLowerCase()])
+        return ok(m[3], Engine.IMP_MONTHS[m[2].slice(0, 3).toLowerCase()], m[1]);
+      m = s.match(/^([A-Za-z]{3,})[\s-]+(\d{1,2}),?[\s]+(\d{4})/);          // Jan 5, 2026
+      if (m && Engine.IMP_MONTHS[m[1].slice(0, 3).toLowerCase()])
+        return ok(m[3], Engine.IMP_MONTHS[m[1].slice(0, 3).toLowerCase()], m[2]);
+      return null;
+    },
+    // Read the whole date column before deciding: one row with a 13th "month"
+    // proves the file is month-first, and guessing per-row would import half a
+    // statement into the wrong months.
+    impSniffDateFormat(rows, col, headerRow){
+      if (!(col >= 0)) return 'auto';
+      let dmy = 0, mdy = 0;
+      for (let i = (headerRow || 0) + 1; i < rows.length; i++){
+        const s = String((rows[i] || [])[col] == null ? '' : (rows[i] || [])[col]).trim();
+        const m = s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/);
+        if (!m) continue;
+        if (+m[1] > 12) dmy++;
+        else if (+m[2] > 12) mdy++;
+      }
+      if (dmy && !mdy) return 'dmy';
+      if (mdy && !dmy) return 'mdy';
+      return 'auto';
+    },
+    impDayBefore(d){
+      const t = Date.parse(d + 'T00:00:00Z');
+      if (isNaN(t)) return d;
+      const x = new Date(t - 86400000);
+      return x.getUTCFullYear() + '-' + Engine.impPad(x.getUTCMonth() + 1) + '-' + Engine.impPad(x.getUTCDate());
+    },
+    // Statement names carry the shape of the transaction, not just the name:
+    // "Transfer to JOHN SMITH" and "Transfer from JOHN SMITH" are one person,
+    // and the direction is already in the debit/credit columns.
+    impClean(name, mode){
+      let s = String(name == null ? '' : name).replace(/\s+/g, ' ').trim();
+      if (mode !== 'revolut') return s;
+      s = s.replace(/^(transfer|payment|top-?up|refund)\s+(to|from)\s+/i, '')
+           .replace(/^(to|from)\s+/i, '').trim();
+      if (s && s === s.toUpperCase() && /[A-Z]{2}/.test(s))
+        s = s.replace(/[A-Za-zÀ-ɏ]+/g, w => w[0].toUpperCase() + w.slice(1).toLowerCase());
+      return s;
+    },
+    // A preset recognises a bank's own export and fills the mapping in one go.
+    // match() sees the lower-cased header row; build() also sees the rows, so a
+    // preset can react to what is actually in the file (a statement carrying two
+    // currencies gets a currency filter, because one account holds one currency).
+    IMP_PRESETS: [{
+      id: 'revolut',
+      label: 'Revolut',
+      note: 'Reads the completed date, folds each fee into its own transaction, and holds back anything not COMPLETED.',
+      match: h => h.includes('type') && h.includes('product') && h.includes('description') &&
+                  h.includes('amount') && h.includes('fee') && h.includes('state') &&
+                  (h.includes('completed date') || h.includes('started date')),
+      build(h, rows, hr){
+        const at = n => h.indexOf(n);
+        const filters = [];
+        if (at('state') >= 0) filters.push({col: at('state'), mode: 'keep', values: ['COMPLETED'], label: 'State'});
+        const cur = at('currency');
+        if (cur >= 0){
+          const tally = Engine.impTally(rows, cur, hr);
+          if (tally.length > 1) filters.push({col: cur, mode: 'keep', values: [tally[0].v], label: 'Currency'});
+        }
+        const prod = at('product');
+        if (prod >= 0){
+          const tally = Engine.impTally(rows, prod, hr);
+          if (tally.length > 1) filters.push({col: prod, mode: 'keep', values: [tally[0].v], label: 'Product'});
+        }
+        return {preset: 'revolut', label: 'Revolut', headerRow: hr,
+                date: at('completed date') >= 0 ? at('completed date') : at('started date'),
+                dateAlt: at('completed date') >= 0 ? at('started date') : -1,
+                merchant: at('description'), amount: at('amount'), fee: at('fee'), balance: at('balance'),
+                dateFormat: 'ymd', decimal: 'dot', feeMode: 'fold', clean: 'revolut', filters};
+      }
+    }],
+    // distinct values of a column, commonest first
+    impTally(rows, col, headerRow){
+      const seen = new Map();
+      for (let i = (headerRow || 0) + 1; i < rows.length; i++){
+        const r = rows[i];
+        if (!r || r.every(c => String(c).trim() === '')) continue;
+        const v = String(r[col] == null ? '' : r[col]).trim();
+        if (!v) continue;
+        seen.set(v, (seen.get(v) || 0) + 1);
+      }
+      return [...seen.entries()].sort((a, b) => b[1] - a[1]).map(([v, n]) => ({v, n}));
+    },
+    impPresetFor(rows, headerRow){
+      const hdr = (rows[headerRow || 0] || []).map(h => String(h).trim().toLowerCase());
+      return Engine.IMP_PRESETS.find(p => p.match(hdr)) || null;
+    },
+    // What the synonym matcher makes of a header it has never seen.
+    impAutoSpec(rows, headerRow){
+      const hr = headerRow || 0;
+      const hdr = (rows[hr] || []).map(h => String(h).trim().toLowerCase());
+      const iDate = Engine.impFindCol(hdr, 'date');
+      let iDe = Engine.impFindCol(hdr, 'debit');
+      let iCr = Engine.impFindCol(hdr, 'credit');
+      // one column matched BOTH directions (a single "debit/credit" flag) — it
+      // cannot be both, so trust neither and fall back to the amount column
+      if (iDe >= 0 && iDe === iCr){ iDe = -1; iCr = -1; }
+      const find = names => hdr.findIndex(h => names.some(n => h === n || h.includes(n)));
+      return Engine.impSpec({
+        headerRow: hr, date: iDate, merchant: Engine.impFindCol(hdr, 'mer'),
+        debit: iDe, credit: iCr, amount: Engine.impFindCol(hdr, 'amount'),
+        category: find(['category']), sub: find(['subcategory', 'sub-category']), confidence: find(['confidence']),
+        dateFormat: Engine.impSniffDateFormat(rows, iDate, hr), preset: 'auto', label: 'Column names'
+      });
+    },
+    // The one entry point: preset if one recognises the file, synonyms otherwise.
+    impDetect(rows, headerRow){
+      const hr = headerRow || 0;
+      const hdr = (rows[hr] || []).map(h => String(h).trim().toLowerCase());
+      const p = Engine.IMP_PRESETS.find(x => x.match(hdr));
+      return p ? Engine.impSpec(p.build(hdr, rows, hr)) : Engine.impAutoSpec(rows, hr);
+    },
+    // Blocking problems, in the words the UI shows. Empty array = ready to import.
+    impProblems(spec){
+      const s = Engine.impSpec(spec), out = [];
+      if (s.date < 0) out.push('No date column chosen — pick the column holding the transaction date.');
+      if (s.merchant < 0) out.push('No description column chosen — pick the column naming who the money went to or came from.');
+      if (s.debit < 0 && s.credit < 0 && s.amount < 0)
+        out.push('No amount chosen — pick either one signed Amount column, or a Money out and/or Money in pair.');
+      return out;
+    },
+    // Apply a spec. Returns the transaction rows, WHAT IT DID (meta) and which
+    // file row each transaction came from (src), so a preview can put the two
+    // side by side.
+    impApply(rows, spec){
+      const S = Engine.impSpec(spec);
+      const hdr = (rows[S.headerRow] || []).map(h => String(h).trim().toLowerCase());
+      const num = v => Engine.impNum(v, S.decimal);
+      const r2 = v => Math.round(v * 100) / 100;
+      const out = [], src = [], seq = [];
+      const filtered = S.filters.map(f => ({label: f.label || hdr[f.col] || ('column ' + (f.col + 1)),
+                                            mode: f.mode, values: f.values.slice(), count: 0, examples: []}));
+      let noDate = 0, noAmount = 0, blank = 0, feeRows = 0, feeTotal = 0;
+      const noDateEg = [], noAmountEg = [];
+      for (let i = S.headerRow + 1; i < rows.length; i++){
+        const r = rows[i];
+        if (!r || r.length < 2) continue;
+        if (r.every(c => String(c).trim() === '')){ blank++; continue; }   // blank line, not a loss
+        let dropped = false;
+        for (let fi = 0; fi < S.filters.length; fi++){
+          const f = S.filters[fi];
+          const v = String(r[f.col] == null ? '' : r[f.col]).trim();
+          const hit = f.values.some(x => String(x).toLowerCase() === v.toLowerCase());
+          if (f.mode === 'keep' ? !hit : hit){
+            const t = filtered[fi];
+            t.count++;
+            if (t.examples.length < 3)
+              t.examples.push((v || '(blank)') + (S.merchant >= 0 ? ' — ' + String(r[S.merchant] || '').trim().slice(0, 28) : ''));
+            dropped = true; break;
+          }
+        }
+        if (dropped) continue;
+        let d = Engine.impDate(r[S.date], S.dateFormat);
+        if (!d && S.dateAlt >= 0) d = Engine.impDate(r[S.dateAlt], S.dateFormat);
+        if (!d){
+          noDate++;
+          if (noDateEg.length < 3) noDateEg.push('“' + String(r[S.date] == null ? '' : r[S.date]).trim().slice(0, 24) + '”');
+          continue;
+        }
+        const mer = (Engine.impClean(r[S.merchant], S.clean).slice(0, 40)) || 'UNKNOWN';
+        let de = 0, cr = 0;
+        if (S.debit >= 0 || S.credit >= 0){
+          de = S.debit >= 0 ? Math.abs(num(r[S.debit]) || 0) : 0;
+          cr = S.credit >= 0 ? Math.abs(num(r[S.credit]) || 0) : 0;
+          // a debit/credit pair was found but this row has neither: fall back to
+          // a single amount column if the file also has one
+          if (de === 0 && cr === 0 && S.amount >= 0){
+            const a = num(r[S.amount]) || 0;
+            if (a < 0) de = -a; else cr = a;
+          }
+        } else {
+          const a = num(r[S.amount]) || 0;
+          if (a < 0) de = -a; else cr = a;
+        }
+        if (S.swap){ const t = de; de = cr; cr = t; }
+        if (S.fee >= 0 && S.feeMode === 'fold'){
+          const f = Math.abs(num(r[S.fee]) || 0);
+          if (f > 0){
+            feeRows++; feeTotal += f;
+            if (cr >= f) cr -= f; else { de += f - cr; cr = 0; }
+          }
+        }
+        de = r2(de); cr = r2(cr);
+        if (de === 0 && cr === 0){
+          noAmount++;
+          if (noAmountEg.length < 3) noAmountEg.push(mer + ' on ' + d);
+          continue;
+        }
+        out.push([d, mer,
+          S.category >= 0 && r[S.category] ? String(r[S.category]).trim() : 'Uncategorized',
+          S.sub >= 0 && r[S.sub] ? String(r[S.sub]).trim() : 'Uncategorized',
+          de, cr,
+          S.confidence >= 0 && r[S.confidence] !== '' && r[S.confidence] != null
+            ? (num(r[S.confidence]) || 0)
+            : (S.category >= 0 && r[S.category] ? 0.85 : 0.1)]);
+        src.push(i);
+        seq.push({d, net: r2(cr - de), bal: S.balance >= 0 ? num(r[S.balance]) : NaN});
+      }
+      const dates = out.map(r => r[0]).sort();
+      const meta = {
+        columns: {date: S.date >= 0 ? hdr[S.date] : null, merchant: S.merchant >= 0 ? hdr[S.merchant] : null,
+                  debit: S.debit >= 0 ? hdr[S.debit] : null, credit: S.credit >= 0 ? hdr[S.credit] : null,
+                  amount: S.amount >= 0 ? hdr[S.amount] : null, fee: S.fee >= 0 ? hdr[S.fee] : null,
+                  balance: S.balance >= 0 ? hdr[S.balance] : null},
+        header: hdr, noDate, noDateEg, noAmount, noAmountEg, blank,
+        debits: out.filter(r => r[4] > 0).length,
+        credits: out.filter(r => r[5] > 0).length,
+        totalOut: r2(out.reduce((s, r) => s + r[4], 0)),
+        totalIn: r2(out.reduce((s, r) => s + r[5], 0)),
+        from: dates[0] || null, to: dates[dates.length - 1] || null,
+        filtered: filtered.filter(f => f.count),
+        fees: feeRows ? {rows: feeRows, total: r2(feeTotal)} : null,
+        recon: Engine.impRecon(seq),
+        preset: S.preset, label: S.label, spec: S
+      };
+      return {rows: out, meta, src};
+    },
+    // Walk the statement's OWN running-balance column: if every step matches the
+    // amounts we read, the mapping is right — that is a behavioural check, not a
+    // structural one. It also yields the balance before the first row, which is
+    // exactly the opening balance the accounts screen asks for.
+    impRecon(seq){
+      if (!seq || seq.length < 3) return null;
+      if (seq.some(s => isNaN(s.bal))) return null;
+      const asc = seq[0].d <= seq[seq.length - 1].d;
+      const walk = asc ? seq : seq.slice().reverse();
+      const r2 = v => Math.round(v * 100) / 100;
+      let bad = 0, first = null;
+      for (let i = 1; i < walk.length; i++){
+        const want = r2(walk[i - 1].bal + walk[i].net);
+        if (Math.abs(want - walk[i].bal) > 0.011){
+          bad++;
+          if (!first) first = {at: walk[i].d, want, got: r2(walk[i].bal)};
+        }
+      }
+      return {steps: walk.length - 1, bad, ok: bad === 0, first, ascending: asc,
+              opening: r2(walk[0].bal - walk[0].net), openingAt: Engine.impDayBefore(walk[0].d),
+              closing: r2(walk[walk.length - 1].bal), closingAt: walk[walk.length - 1].d};
     }
   };
 
@@ -7912,8 +8379,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     ownSel.innerHTML = allUsers().map(u => `<option value="${esc(u.id)}">${esc(u.name)}${u.type==='business' ? ' (business)' : ''}</option>`).join('')
       + '<option value="__new">＋ Add a person / business…</option>';
     document.getElementById('uploadPrompt').textContent = uploads.statements.length === 0
-      ? 'First statement? Export a CSV from your bank (needs date, description/merchant, and debit/credit or amount columns), pick the account it belongs to — or create one and tell us whose it is (personal or business name is fine). Duplicates are skipped automatically, so overlapping exports are safe.'
-      : 'Statements are parsed in your browser and filed under their owner below.';
+      ? 'First statement? Download your bank\u2019s own export \u2014 CSV or Excel, whatever shape it comes in \u2014 and pick the account it belongs to, or create one and tell us whose it is (personal or business name is fine). We work out which column is which, you correct anything wrong, and you see every transaction before it reaches the dashboard. Duplicates are skipped automatically, so overlapping exports are safe.'
+      : 'Statements are read in your browser, previewed before they land, and filed under their owner below.';
     syncUploadVisibility();
   }
   function syncUploadVisibility(){
@@ -7942,13 +8409,16 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     if (graph && id) setTimeout(()=>graph.flyToNode('user:' + id, 1.4), 120);
   });
 
-  function parseCSV(text){
+  // Delimiter-aware CSV reader. parseCSV() is the comma form every existing
+  // caller uses; the importer sniffs ; \t and | for European and tab exports.
+  function parseDelim(text, delim){
+    const D = delim || ',';
     const rows = []; let row = [], field = '', q = false;
     for (let i = 0; i < text.length; i++){
       const ch = text[i];
       if (q){ if (ch === '"'){ if (text[i+1] === '"'){ field += '"'; i++; } else q = false; } else field += ch; }
       else if (ch === '"') q = true;
-      else if (ch === ','){ row.push(field); field = ''; }
+      else if (ch === D){ row.push(field); field = ''; }
       else if (ch === '\n' || ch === '\r'){
         if (ch === '\r' && text[i+1] === '\n') i++;
         row.push(field); field = '';
@@ -7959,138 +8429,235 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     if (field !== '' || row.length){ row.push(field); if (row.length > 1 || row[0] !== '') rows.push(row); }
     return rows;
   }
-  function normDate(s){
-    s = s.trim();
-    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-    if (m) return m[1] + '-' + m[2].padStart(2,'0') + '-' + m[3].padStart(2,'0');
-    m = s.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})/);
-    if (m) return m[3] + '-' + m[2].padStart(2,'0') + '-' + m[1].padStart(2,'0');
-    return null;
+  function parseCSV(text){ return parseDelim(text, ','); }
+  // Sniff the field separator from the header line. European exports ship
+  // semicolons, some banks ship tabs — reading those as one giant column is
+  // how a statement "has no date column".
+  function sniffDelim(text){
+    const line = String(text || '').split(/\r?\n/).find(l => l.trim()) || '';
+    let best = ',', bestN = 0;
+    for (const d of [',', ';', '\t', '|']){
+      const n = parseDelim(line, d)[0] ? parseDelim(line, d)[0].length : 0;
+      if (n > bestN){ bestN = n; best = d; }
+    }
+    return best;
   }
-  // Column synonyms. Long names are matched as substrings; SHORT ones (cr, dr,
-  // in, out) only as whole words, because "interest" contains "in" and would
-  // otherwise be mistaken for the money-in column.
-  const COLS = {
-    date:   ['date_str', 'date', 'posted', 'transaction date', 'value date'],
-    mer:    ['merchant', 'description', 'details', 'narrative', 'payee', 'reference', 'particulars'],
-    debit:  ['debit', 'money out', 'paid out', 'withdrawal', 'withdrawals', 'payments out',
-             'amount out', 'outgoing', 'spent', 'charge'],
-    credit: ['credit', 'money in', 'paid in', 'lodgement', 'lodgment', 'deposit', 'deposits',
-             'payments in', 'amount in', 'incoming', 'received', 'receipts'],
-    amount: ['amount', 'value', 'transaction amount']
-  };
-  const SHORT = {debit: ['dr', 'out'], credit: ['cr', 'in']};
-  function findCol(hdr, key){
-    const names = COLS[key] || [];
-    // exact match first, then substring, then whole-word short forms
-    let i = hdr.findIndex(h => names.includes(h));
-    if (i >= 0) return i;
-    i = hdr.findIndex(h => names.some(n => n.length >= 4 && h.includes(n)));
-    if (i >= 0) return i;
-    const shorts = SHORT[key];
-    if (shorts) return hdr.findIndex(h => shorts.some(s => new RegExp('(^|[^a-z])' + s + '([^a-z]|$)').test(h)));
-    return -1;
+  // ── .xlsx in the browser, with nothing loaded from anywhere ──
+  // An xlsx is a ZIP of XML. The browser can already inflate (DecompressionStream)
+  // and parse XML (DOMParser), so reading one needs no library and no upload —
+  // which matters here more than convenience: the privacy promise is that the
+  // file never leaves this tab. Where the browser is too old to inflate, the
+  // caller falls back to asking for a CSV, which is what it always did.
+  const XLSX_OK = typeof DecompressionStream === 'function';
+  async function unzip(buf){
+    const b = new Uint8Array(buf), dv = new DataView(buf);
+    let eo = -1;
+    for (let i = b.length - 22; i >= 0 && i > b.length - 65558; i--)
+      if (dv.getUint32(i, true) === 0x06054b50){ eo = i; break; }
+    if (eo < 0) throw 'not a zip file';
+    const n = dv.getUint16(eo + 10, true);
+    let p = dv.getUint32(eo + 16, true);
+    if (p === 0xffffffff) throw 'zip64 archives are not supported — save the sheet as CSV instead';
+    const files = {};
+    const dec = new TextDecoder();
+    for (let k = 0; k < n; k++){
+      if (dv.getUint32(p, true) !== 0x02014b50) break;
+      const method = dv.getUint16(p + 10, true);
+      const csize = dv.getUint32(p + 20, true);
+      const nlen = dv.getUint16(p + 28, true), elen = dv.getUint16(p + 30, true), clen = dv.getUint16(p + 32, true);
+      const lho = dv.getUint32(p + 42, true);
+      const name = dec.decode(b.subarray(p + 46, p + 46 + nlen));
+      files[name] = {method, csize, lho};
+      p += 46 + nlen + elen + clen;
+    }
+    const read = async name => {
+      const f = files[name];
+      if (!f) return null;
+      const lnlen = dv.getUint16(f.lho + 26, true), lelen = dv.getUint16(f.lho + 28, true);
+      const start = f.lho + 30 + lnlen + lelen;
+      const raw = b.subarray(start, start + f.csize);
+      if (f.method === 0) return dec.decode(raw);
+      if (f.method !== 8) throw 'unsupported compression in the workbook — save the sheet as CSV instead';
+      const s = new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+      return dec.decode(await new Response(s).arrayBuffer());
+    };
+    return {names: Object.keys(files), read};
   }
+  // Excel stores dates as a day count, so a date cell reads as 45841 unless the
+  // number format is consulted. Getting this wrong silently shifts a whole
+  // statement, so the styles table is parsed rather than guessed at.
+  const XL_DATE_FMT = new Set([14,15,16,17,18,19,20,21,22,27,30,36,45,46,47,50,57]);
+  function xlSerialDate(v, epoch1904){
+    const days = Math.floor(v);
+    const base = Date.UTC(epoch1904 ? 1904 : 1899, epoch1904 ? 0 : 11, epoch1904 ? 1 : 30);
+    const d = new Date(base + days * 86400000);
+    return d.getUTCFullYear() + '-' + Engine.impPad(d.getUTCMonth() + 1) + '-' + Engine.impPad(d.getUTCDate());
+  }
+  async function readXlsx(buf){
+    const zip = await unzip(buf);
+    const X = new DOMParser();
+    const doc = async name => { const t = await zip.read(name); return t ? X.parseFromString(t, 'application/xml') : null; };
+    const shared = [];
+    const ss = await doc('xl/sharedStrings.xml');
+    if (ss) ss.querySelectorAll('si').forEach(si =>
+      shared.push([...si.querySelectorAll('t')].map(t => t.textContent).join('')));
+    // which numeric styles mean "date"
+    const dateStyle = [];
+    const st = await doc('xl/styles.xml');
+    if (st){
+      const custom = new Map();
+      st.querySelectorAll('numFmt').forEach(f => custom.set(f.getAttribute('numFmtId'), f.getAttribute('formatCode') || ''));
+      const xfs = st.querySelector('cellXfs');
+      if (xfs) [...xfs.children].forEach((xf, i) => {
+        const id = xf.getAttribute('numFmtId') || '0';
+        const code = custom.get(id);
+        dateStyle[i] = XL_DATE_FMT.has(+id) || (code != null && /[yd]/.test(code.replace(/\[[^\]]*\]|"[^"]*"/g, '')));
+      });
+    }
+    const wb = await doc('xl/workbook.xml');
+    const epoch1904 = !!(wb && wb.querySelector('workbookPr') && wb.querySelector('workbookPr').getAttribute('date1904') === '1');
+    let sheetPath = zip.names.filter(n => /^xl\/worksheets\/sheet\d*\.xml$/.test(n)).sort()[0];
+    if (wb){
+      const first = wb.querySelector('sheets > sheet');
+      const rid = first && (first.getAttribute('r:id') || first.getAttribute('id'));
+      const rels = await doc('xl/_rels/workbook.xml.rels');
+      if (rid && rels){
+        const rel = [...rels.querySelectorAll('Relationship')].find(r => r.getAttribute('Id') === rid);
+        const tgt = rel && rel.getAttribute('Target');
+        if (tgt) sheetPath = 'xl/' + String(tgt).replace(/^\/?xl\//, '').replace(/^\//, '');
+      }
+    }
+    if (!sheetPath) throw 'no worksheet found in that workbook';
+    const sh = await doc(sheetPath);
+    if (!sh) throw 'no worksheet found in that workbook';
+    const colOf = ref => { let n = 0; for (const c of String(ref).replace(/\d+/g, '')) n = n * 26 + (c.charCodeAt(0) - 64); return n - 1; };
+    const grid = [];
+    sh.querySelectorAll('row').forEach(row => {
+      const out = [];
+      row.querySelectorAll('c').forEach(c => {
+        const i = colOf(c.getAttribute('r') || '');
+        const t = c.getAttribute('t');
+        let v = '';
+        if (t === 'inlineStr') v = [...c.querySelectorAll('t')].map(x => x.textContent).join('');
+        else {
+          const vn = c.querySelector('v');
+          const raw = vn ? vn.textContent : '';
+          if (t === 's') v = shared[+raw] != null ? shared[+raw] : '';
+          else if (t === 'b') v = raw === '1' ? 'TRUE' : 'FALSE';
+          else if (raw !== '' && !isNaN(+raw) && dateStyle[+(c.getAttribute('s') || 0)]) v = xlSerialDate(+raw, epoch1904);
+          else v = raw;
+        }
+        if (i >= 0) out[i] = v;
+      });
+      for (let i = 0; i < out.length; i++) if (out[i] == null) out[i] = '';
+      grid.push(out);
+    });
+    while (grid.length && grid[grid.length - 1].every(c => String(c).trim() === '')) grid.pop();
+    return grid;
+  }
+  // One row of cells per file row, whatever the file was. Two quirks are handled
+  // here because both turn up in real bank exports: a spreadsheet whose rows are
+  // whole CSV lines crammed into column A (Revolut's own .xlsx does this), and a
+  // preamble of bank blurb above the real header row.
+  async function gridFromFile(file){
+    if (/\.xlsx$/i.test(file.name)){
+      if (!XLSX_OK) throw 'This browser cannot open .xlsx files. Open it in Excel or LibreOffice and File → Save As → CSV, then upload that.';
+      let grid = await readXlsx(await file.arrayBuffer());
+      if (grid.length && grid.every(r => r.length <= 1)){
+        const text = grid.map(r => r[0] == null ? '' : r[0]).join('\n');
+        const d = sniffDelim(text);
+        const re = parseDelim(text, d);
+        if (re.length && re[0].length > 1) grid = re;
+      }
+      return grid;
+    }
+    const text = await file.text();
+    return parseDelim(text, sniffDelim(text));
+  }
+  // A bank that prints "Account: IE12…" above the table leaves the real header a
+  // few rows down. The header is the first row that looks like column names —
+  // several non-empty cells, no readable date in it.
+  function guessHeaderRow(grid){
+    const wide = Math.max(...grid.slice(0, 25).map(r => r.filter(c => String(c).trim() !== '').length), 0);
+    for (let i = 0; i < Math.min(grid.length, 25); i++){
+      const r = grid[i], filled = r.filter(c => String(c).trim() !== '').length;
+      if (filled < 2 || filled < wide) continue;
+      if (r.some(c => Engine.impDate(c, 'auto'))) continue;
+      return i;
+    }
+    return 0;
+  }
+  function normDate(s){ return Engine.impDate(s, 'auto'); }
+  function findCol(hdr, key){ return Engine.impFindCol(hdr, key); }
   // mapStatement returns the rows AND what it did: which columns it used and how
   // many rows it could not read. Callers must surface both — a statement that
   // quietly loses every "money in" row looks exactly like an account that only
   // ever loses money, which is the worst kind of wrong number.
-  function mapStatement(rows){
+  //
+  // With no spec it auto-detects (bank preset first, then column synonyms);
+  // with one, it applies exactly the mapping the user approved in the preview.
+  // Either way the work is done by Engine.impApply, so the preview and the
+  // import can never disagree.
+  function mapStatement(rows, spec){
     if (!rows.length) throw 'Empty file';
-    const hdr = rows[0].map(h => h.trim().toLowerCase());
-    const iDate = findCol(hdr, 'date');
-    const iMer = findCol(hdr, 'mer');
-    let iDe = findCol(hdr, 'debit');
-    let iCr = findCol(hdr, 'credit');
-    const iAmt = findCol(hdr, 'amount');
-    const find = names => hdr.findIndex(h => names.some(n => h === n || h.includes(n)));
-    const iCat = find(['category']);
-    const iSub = find(['subcategory','sub-category']);
-    const iConf = find(['confidence']);
-    // one column matched BOTH directions (e.g. a single "debit/credit" flag) —
-    // it cannot be both, so trust neither and fall back to the amount column
-    if (iDe >= 0 && iDe === iCr){ iDe = -1; iCr = -1; }
-    if (iDate < 0 || iMer < 0 || (iDe < 0 && iCr < 0 && iAmt < 0))
+    const S = Engine.impSpec(spec || Engine.impDetect(rows));
+    if (Engine.impProblems(S).length)
       throw 'Could not find date/merchant/amount columns. Expected headers like: date, merchant/description, and either debit/credit (money out/money in) or a single amount column.';
-    const num = v => { const n = parseFloat(String(v).replace(/[€£,\s]/g,'')); return isNaN(n) ? 0 : n; };
-    const out = [];
-    let noDate = 0, noAmount = 0;
-    const noAmountEg = [];
-    for (let i = 1; i < rows.length; i++){
-      const r = rows[i];
-      if (!r || r.length < 2) continue;
-      if (r.every(c => String(c).trim() === '')) continue;      // blank line, not a loss
-      const d = normDate(r[iDate] || '');
-      if (!d){ noDate++; continue; }
-      const mer = (r[iMer] || '').trim().slice(0, 40) || 'UNKNOWN';
-      let de = 0, cr = 0;
-      if (iDe >= 0 || iCr >= 0){
-        de = iDe >= 0 ? Math.abs(num(r[iDe])) : 0;
-        cr = iCr >= 0 ? Math.abs(num(r[iCr])) : 0;
-        // a debit/credit pair was found but this row has neither: fall back to a
-        // single amount column if the file also has one
-        if (de === 0 && cr === 0 && iAmt >= 0){
-          const a = num(r[iAmt]);
-          if (a < 0) de = -a; else cr = a;
-        }
-      } else { const a = num(r[iAmt]); if (a < 0) de = -a; else cr = a; }
-      if (de === 0 && cr === 0){
-        noAmount++;
-        if (noAmountEg.length < 3) noAmountEg.push(mer + ' on ' + d);
-        continue;
-      }
-      out.push([d, mer, iCat >= 0 && r[iCat] ? r[iCat].trim() : 'Uncategorized',
-        iSub >= 0 && r[iSub] ? r[iSub].trim() : 'Uncategorized', de, cr,
-        iConf >= 0 && r[iConf] !== '' ? num(r[iConf]) : (iCat >= 0 && r[iCat] ? 0.85 : 0.1)]);
-    }
-    if (!out.length)
+    const res = Engine.impApply(rows, S);
+    const m = res.meta;
+    if (!res.rows.length)
       throw 'No parseable transaction rows found' +
-        (noAmount ? ' — ' + noAmount + ' row(s) had a date but no amount in the columns found (' +
-          (iDe >= 0 ? '“' + hdr[iDe] + '”' : 'no money-out column') + ' / ' +
-          (iCr >= 0 ? '“' + hdr[iCr] + '”' : 'no money-in column') +
+        (m.noAmount ? ' — ' + m.noAmount + ' row(s) had a date but no amount in the columns found (' +
+          (m.columns.debit ? '“' + m.columns.debit + '”' : 'no money-out column') + ' / ' +
+          (m.columns.credit ? '“' + m.columns.credit + '”' : 'no money-in column') +
           '). Rename your amount columns to debit/credit, or money out/money in.' : '.');
-    out.meta = {
-      columns: {date: hdr[iDate], merchant: hdr[iMer],
-                debit: iDe >= 0 ? hdr[iDe] : null, credit: iCr >= 0 ? hdr[iCr] : null,
-                amount: iAmt >= 0 ? hdr[iAmt] : null},
-      header: hdr, noDate, noAmount, noAmountEg,
-      debits: out.filter(r => r[4] > 0).length,
-      credits: out.filter(r => r[5] > 0).length
-    };
+    const out = res.rows;
+    out.meta = m;
+    out.src = res.src;
     return out;
   }
-  function addStatement(filename, text){
-    const rows = mapStatement(parseCSV(text));
+  // opts: {grid, spec, accountId} — the mapping preview passes the grid it
+  // showed and the spec the user approved, so the rows that land here are the
+  // rows they saw. With no opts this is the plain auto-detecting CSV path.
+  function addStatement(filename, text, opts){
+    const rows = mapStatement((opts && opts.grid) || parseCSV(text), opts && opts.spec);
     // whole-file duplicate check — same parsed content as a previous upload
     const rowsHash = djb2(JSON.stringify(rows));
     const twin = uploads.statements.find(s => (s.rowsHash || djb2(JSON.stringify(s.rows))) === rowsHash);
     if (twin && !window.confirm('This file looks identical to “' + twin.filename + '” uploaded on ' + twin.at +
         ' (' + twin.rows.length + ' rows).\n\nUpload it again anyway? Duplicate rows will still be skipped.'))
       throw 'Skipped — identical to “' + twin.filename + '”, already uploaded.';
-    let acctId = document.getElementById('upAccount').value;
+    let acctId = (opts && opts.accountId) || document.getElementById('upAccount').value;
     if (acctId === '__new'){
-      const acName = document.getElementById('upNewName').value.trim();
+      // the upload card fills these; the mapping preview passes its own
+      const na = (opts && opts.newAccount) || {
+        name: document.getElementById('upNewName').value,
+        ownerId: document.getElementById('upOwner').value,
+        ownerName: document.getElementById('upOwnerName').value,
+        ownerType: document.getElementById('upOwnerType').value,
+        kind: document.getElementById('upKind').value};
+      const acName = String(na.name || '').trim();
       if (!acName) throw 'Name the new account (e.g. “Sally · BOI credit card”).';
-      let ownerId = document.getElementById('upOwner').value;
-      if (ownerId === '__new'){
-        const oName = document.getElementById('upOwnerName').value.trim();
+      let ownerId = na.ownerId;
+      if (!ownerId || ownerId === '__new'){
+        const oName = String(na.ownerName || '').trim();
         if (!oName) throw 'Tell us who this account belongs to — a personal or business name is fine.';
         ownerId = uid('u');
-        org.users.push({id:ownerId, name:oName, type:document.getElementById('upOwnerType').value});
+        org.users.push({id:ownerId, name:oName, type: na.ownerType || 'personal'});
       }
       acctId = uid('a');
-      org.accounts.push({id:acctId, name:acName, userId:ownerId, kind:document.getElementById('upKind').value});
+      org.accounts.push({id:acctId, name:acName, userId:ownerId, kind: na.kind || 'current'});
       save(LS.org, org);
     }
     // row-level dedupe (multiset, Engine kernel): two real €3.35 bus fares on
     // one day survive, a re-uploaded overlapping export does not
     const {fresh, skipped} = Engine.dedupeRows(TX.filter(t => t.acct === acctId), rows);
-    if (!fresh.length) return {added: 0, skipped, meta: rows.meta};
+    if (!fresh.length) return {added: 0, skipped, meta: rows.meta, acctId};
     const dates = fresh.map(r=>r[0]).sort();
     uploads.statements.push({id:uid('s'), filename, at:new Date().toISOString().slice(0,10),
       accountId:acctId, rows:fresh, rowsHash, dupSkipped:skipped, from:dates[0], to:dates[dates.length-1]});
     save(LS.uploads, uploads);
-    return {added: fresh.length, skipped, meta: rows.meta};
+    return {added: fresh.length, skipped, meta: rows.meta, acctId};
   }
   // What the importer read, and anything it could not — shown after every upload.
   // A statement whose money-in column was not recognised imports as outgoings
@@ -8101,11 +8668,25 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     if (!m) return '';
     const bits = [];
     const cols = m.columns;
-    bits.push('Read: date “' + cols.date + '”, name “' + cols.merchant + '”, ' +
+    bits.push((m.preset && m.preset !== 'auto' && m.preset !== 'custom' ? m.label + ' statement. ' : '') +
+      'Read: date “' + cols.date + '”, name “' + cols.merchant + '”, ' +
       (cols.debit ? 'money out “' + cols.debit + '”' : 'no money-out column') + ', ' +
       (cols.credit ? 'money in “' + cols.credit + '”' : 'no money-in column') +
       (cols.amount ? ', amount “' + cols.amount + '”' : ''));
+    // fees, filters and the balance check are decisions, not failures — they
+    // are reported plainly so the numbers can be traced back to the file
+    if (m.fees) bits.push('. ' + m.fees.rows + ' fee' + (m.fees.rows === 1 ? '' : 's') +
+      ' totalling ' + eurC(m.fees.total) + ' folded into their own transactions');
+    (m.filtered || []).forEach(f => bits.push('. ' + f.count + ' row' + (f.count === 1 ? '' : 's') +
+      ' held back — ' + f.label + ' not ' + f.values.join('/') +
+      (f.examples.length ? ' (e.g. ' + f.examples.join('; ') + ')' : '')));
+    if (m.recon && m.recon.ok) bits.push('. ✓ Reconciles to the cent against the statement’s own balance column');
     const warn = [];
+    if (m.recon && !m.recon.ok)
+      warn.push('⚠ Does not reconcile against the statement’s own balance column: ' + m.recon.bad + ' of ' +
+        m.recon.steps + ' step' + (m.recon.steps === 1 ? '' : 's') + ' disagree, first on ' + m.recon.first.at +
+        ' (balance should read ' + eurC(m.recon.first.want) + ', file says ' + eurC(m.recon.first.got) +
+        '). Check the column mapping before trusting these numbers.');
     if (m.noAmount)
       warn.push('⚠ ' + m.noAmount + ' row' + (m.noAmount === 1 ? '' : 's') + ' had a date but no amount in those columns and ' +
         (m.noAmount === 1 ? 'was' : 'were') + ' NOT imported' +
@@ -8119,32 +8700,379 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         'rename it to “Debit”, “Money out”, “Paid out” or “Withdrawals” and upload again.');
     return bits.join('') + (warn.length ? ' — ' + warn.join(' ') : '');
   }
+  // How an upload finished, in the same words wherever it happened.
+  function uploadOutcome(name, res){
+    const head = res.added
+      ? '✓ ' + name + ' — ' + res.added + ' new transaction' + (res.added === 1 ? '' : 's') + ' added' +
+        (res.skipped ? ', ' + res.skipped + ' duplicate' + (res.skipped === 1 ? '' : 's') + ' skipped' : '') + '.'
+      : '• ' + name + ' — nothing new: all ' + res.skipped + ' rows already exist in this account.';
+    const rep = importReport(res);
+    return esc(head) + (rep ? '<span class="' + (/⚠/.test(rep) ? 'imp-warn' : 'imp-note') + '">' + esc(rep) + '</span>' : '');
+  }
   document.getElementById('upGo').addEventListener('click', ()=>{
     const f = document.getElementById('upFile').files[0];
     const status = document.getElementById('upStatus');
-    if (!f){ status.textContent = 'Choose a CSV file first.'; return; }
-    if (/\.xlsx?$/i.test(f.name)){ status.textContent = 'That looks like an Excel file — open it in Excel and File → Save As → CSV, then upload the CSV.'; return; }
-    const rd = new FileReader();
-    rd.onload = () => {
+    if (!f){ status.textContent = 'Choose a file first.'; return; }
+    // Anything that is not a plain auto-readable CSV goes through the mapping
+    // preview rather than being refused: spreadsheets, unfamiliar headers, and
+    // bank exports we have a preset for.
+    Importer.open(f, {status});
+  });
+  // testing hook (harmless): lets automation feed a CSV string
+  window.__ddAddStatement = (name, text, opts) => { const r = addStatement(name, text, opts); if (r.added) onDataChanged(); return r; };
+
+  // ══ the statement importer ══
+  // Choose a file → check the column mapping → see the result BEFORE it lands.
+  // The preview is not a rehearsal of the import: it IS the import, computed by
+  // Engine.impApply and simply not saved yet. Pressing Add saves the same rows.
+  const Importer = (() => {
+    const $ = id => document.getElementById(id);
+    let st = null;                                   // live session, null when closed
+    const stepNames = ['Columns', 'Preview & import'];
+
+    function open(file, opts){
+      const status = (opts && opts.status) || null;
+      const setStatus = msg => { if (status) status.textContent = msg; };
+      setStatus('Reading ' + file.name + '…');
+      gridFromFile(file).then(grid => {
+        if (!grid.length) throw 'That file has no rows in it.';
+        const headerRow = guessHeaderRow(grid);
+        const saved = savedFor(grid, headerRow);
+        st = {file, grid, headerRow, step: 0, remember: true,
+              spec: saved ? Engine.impSpec(Object.assign({}, saved.spec, {headerRow})) : Engine.impDetect(grid, headerRow),
+              savedLabel: saved ? saved.label : null,
+              acctId: $('upAccount').value,
+              newAcct: {name: $('upNewName').value, ownerId: $('upOwner').value,
+                        ownerName: $('upOwnerName').value, ownerType: $('upOwnerType').value, kind: $('upKind').value},
+              setOpening: true, status, onDone: (opts && opts.onDone) || null};
+        setStatus('');
+        $('impOverlay').hidden = false;
+        document.body.style.overflow = 'hidden';
+        render();
+      }).catch(err => { setStatus('✗ ' + (err && err.message ? err.message : err)); });
+    }
+    function close(){
+      st = null;
+      $('impOverlay').hidden = true;
+      document.body.style.overflow = '';
+    }
+    const sig = (grid, hr) => djb2((grid[hr] || []).map(h => String(h).trim().toLowerCase()).join('|'));
+    function savedFor(grid, hr){
+      const m = impStore.maps[sig(grid, hr)];
+      return m && m.spec ? m : null;
+    }
+    function result(){ return Engine.impApply(st.grid, st.spec); }
+    // once the user has changed anything, the mapping is theirs, not the preset's
+    function markCustom(){ st.spec.preset = 'custom'; st.spec.label = 'Your own mapping'; }
+
+    function render(){
+      $('impSteps').innerHTML = stepNames.map((n, i) =>
+        `<span class="${i === st.step ? 'on' : (i < st.step ? 'done' : '')}">${i + 1}. ${esc(n)}</span>`).join('');
+      $('impBack').style.visibility = st.step ? '' : 'hidden';
+      $('impErr').textContent = '';
+      $('impRememberWrap').style.display = st.step === 1 ? '' : 'none';
+      if (st.step === 0) renderColumns(); else renderPreview();
+    }
+
+    // ── step 1: what each column is ──
+    function renderColumns(){
+      $('impErr').textContent = '';                 // a fixed problem stops being shown
+      const S = st.spec, grid = st.grid, hr = st.headerRow;
+      const hdr = (grid[hr] || []).map(h => String(h).trim());
+      const preset = Engine.impPresetFor(grid, hr);
+      $('impTitle').textContent = st.file.name;
+      $('impSub').innerHTML = (st.savedLabel
+          ? '↺ Using the mapping you saved for this bank (<b>' + esc(st.savedLabel) + '</b>).'
+          : preset ? 'Recognised as a <b>' + esc(preset.label) + '</b> export. ' + esc(preset.note)
+          : 'Columns matched by name. ') +
+        ' Change anything that is wrong — nothing is imported until you have seen the preview.';
+      const roleOpts = i => Engine.IMP_ROLES.map(r =>
+        `<option value="${r.k}"${Engine.impRoleOf(S, i) === r.k ? ' selected' : ''}>${esc(r.label)}</option>`).join('');
+      const sample = i => {
+        const out = [];
+        for (let r = hr + 1; r < grid.length && out.length < 3; r++){
+          const v = String((grid[r] || [])[i] == null ? '' : (grid[r] || [])[i]).trim();
+          if (v) out.push(v.slice(0, 30));
+        }
+        return out.length ? out.join(' · ') : '(empty)';
+      };
+      const cols = hdr.map((h, i) =>
+        `<div class="imp-col${Engine.impRoleOf(S, i) === 'skip' ? '' : ' used'}">
+           <div class="imp-col-name">${esc(h || '(column ' + (i + 1) + ')')}</div>
+           <select class="inp imp-role" data-i="${i}" aria-label="What is the column ${esc(h || i + 1)}?">${roleOpts(i)}</select>
+           <div class="imp-eg">${esc(sample(i))}</div>
+         </div>`).join('');
+      const sel = (id, label, val, opts, title) =>
+        `<div><label for="${id}"${title ? ' title="' + esc(title) + '"' : ''}>${esc(label)}</label>
+          <select class="inp imp-opt" id="${id}">${opts.map(([v, t]) =>
+            `<option value="${v}"${val === v ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></div>`;
+      const headOpts = [];
+      for (let i = 0; i < Math.min(grid.length, 12); i++)
+        headOpts.push([String(i), 'Row ' + (i + 1) + ' — ' + (grid[i] || []).slice(0, 4).map(c => String(c).slice(0, 14)).join(', ').slice(0, 46)]);
+      $('impBody').innerHTML =
+        `<div class="imp-grid">${cols}</div>
+         <div class="imp-opts">
+           ${sel('impHeaderRow', 'Header row', String(hr), headOpts, 'The row holding the column names')}
+           ${sel('impDateFmt', 'Date order', S.dateFormat, [['auto','Work it out'],['dmy','Day first (05/03 = 5 March)'],['mdy','Month first (05/03 = 3 May)'],['ymd','Year first']])}
+           ${sel('impDec', 'Decimal mark', S.decimal, [['auto','Work it out'],['dot','1,234.56'],['comma','1.234,56']])}
+           ${sel('impFee', 'Fee column', S.feeMode, [['fold','Add the fee to its transaction'],['ignore','Ignore fees']], 'Revolut and Wise bill the fee separately; folding it in is what makes the balance reconcile')}
+           ${sel('impClean', 'Names', S.clean, [['none','Exactly as the file has them'],['revolut','Tidy up (“Transfer to JOHN SMITH” → “John Smith”)']])}
+           ${sel('impSwap', 'Direction', S.swap ? 'yes' : 'no', [['no','As read'],['yes','Swap money in and money out']], 'Use this if the preview has everything the wrong way round')}
+         </div>
+         <div class="imp-filters">
+           <div class="imp-sub-head">Only import some rows</div>
+           ${renderFilters()}
+           <div class="imp-filter">
+             <span class="hint">Add a rule:</span>
+             <select class="inp" id="impFilterCol" style="max-width:190px" aria-label="Filter on which column">
+               <option value="-1">— pick a column —</option>
+               ${hdr.map((h, i) => `<option value="${i}">${esc(h || 'column ' + (i + 1))}</option>`).join('')}
+             </select>
+             <select class="inp" id="impFilterVal" style="max-width:190px" aria-label="Keep only rows with this value"></select>
+             <button class="btn small" id="impFilterAdd" type="button">Add</button>
+           </div>
+         </div>`;
+      $('impNext').textContent = 'Preview →';
+      wireColumns();
+    }
+    function renderFilters(){
+      const hdr = (st.grid[st.headerRow] || []).map(h => String(h).trim());
+      if (!st.spec.filters.length)
+        return '<div class="hint" style="margin-bottom:7px">Every row is imported. Add a rule to hold some back — e.g. only rows whose <i>State</i> is COMPLETED.</div>';
+      return st.spec.filters.map((f, i) =>
+        `<div class="imp-filter">
+           <b>${esc(f.label || hdr[f.col] || 'column ' + (f.col + 1))}</b>
+           <span>${f.mode === 'keep' ? 'must be' : 'must not be'}</span>
+           <b>${esc(f.values.join(', '))}</b>
+           <button class="btn small imp-filter-del" data-i="${i}" type="button" aria-label="Remove this rule">✕</button>
+         </div>`).join('');
+    }
+    function wireColumns(){
+      $('impBody').querySelectorAll('.imp-role').forEach(s => s.addEventListener('change', () => {
+        st.spec = Engine.impSetRole(st.spec, +s.dataset.i, s.value);
+        st.savedLabel = null;
+        renderColumns();
+      }));
+      const opt = (id, fn) => { const e = $(id); if (e) e.addEventListener('change', () => { fn(e.value); markCustom(); renderColumns(); }); };
+      opt('impDateFmt', v => st.spec.dateFormat = v);
+      opt('impDec', v => st.spec.decimal = v);
+      opt('impFee', v => st.spec.feeMode = v);
+      opt('impClean', v => st.spec.clean = v);
+      opt('impSwap', v => st.spec.swap = v === 'yes');
+      const hrSel = $('impHeaderRow');
+      if (hrSel) hrSel.addEventListener('change', () => {
+        st.headerRow = +hrSel.value;
+        st.spec = Engine.impDetect(st.grid, st.headerRow);      // a new header means a new mapping
+        st.savedLabel = null;
+        renderColumns();
+      });
+      const fc = $('impFilterCol'), fv = $('impFilterVal');
+      const fillVals = () => {
+        const c = +fc.value;
+        fv.innerHTML = c < 0 ? '' : Engine.impTally(st.grid, c, st.headerRow).slice(0, 40)
+          .map(t => `<option value="${esc(t.v)}">${esc(t.v)} (${t.n})</option>`).join('');
+      };
+      if (fc) fc.addEventListener('change', fillVals);
+      const add = $('impFilterAdd');
+      if (add) add.addEventListener('click', () => {
+        const c = +fc.value;
+        if (c < 0 || !fv.value) return;
+        const hdr = (st.grid[st.headerRow] || []).map(h => String(h).trim());
+        st.spec.filters = st.spec.filters.filter(f => f.col !== c)
+          .concat([{col: c, mode: 'keep', values: [fv.value], label: hdr[c] || ('column ' + (c + 1))}]);
+        markCustom();
+        renderColumns();
+      });
+      $('impBody').querySelectorAll('.imp-filter-del').forEach(b => b.addEventListener('click', () => {
+        st.spec.filters.splice(+b.dataset.i, 1);
+        markCustom();
+        renderColumns();
+      }));
+    }
+
+    // ── step 2: the file as it stands, beside what will be stored ──
+    function renderPreview(){
+      const res = result(), m = res.meta;
+      const grid = st.grid, hr = st.headerRow;
+      $('impTitle').textContent = 'Before it lands: ' + st.file.name;
+      $('impSub').innerHTML = 'Left is your file. Right is exactly what will be stored — the same rows this Add button saves. ' +
+        'Nothing has been written to your dashboard yet.';
+      const kept = new Set(res.src);
+      const rawRows = [];
+      for (let i = hr + 1; i < grid.length && rawRows.length < 60; i++){
+        const r = grid[i];
+        if (!r || r.every(c => String(c).trim() === '')) continue;
+        rawRows.push(`<tr class="${kept.has(i) ? '' : 'imp-drop'}">${
+          r.slice(0, 6).map(c => `<td>${esc(String(c == null ? '' : c).slice(0, 22))}</td>`).join('')}</tr>`);
+      }
+      const hdrCells = (grid[hr] || []).slice(0, 6).map(h => `<th>${esc(String(h).slice(0, 16))}</th>`).join('');
+      const mapped = res.rows.slice(0, 60).map(r =>
+        `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td>
+             <td class="r">${r[4] ? '−' + eurC(r[4]) : ''}</td>
+             <td class="r">${r[5] ? eurC(r[5]) : ''}</td></tr>`).join('');
+      const stat = (v, l) => `<div class="imp-stat"><b>${esc(v)}</b><span>${esc(l)}</span></div>`;
+      const notes = [];
+      if (m.filtered.length) m.filtered.forEach(f => notes.push(['', f.count + ' row' + (f.count === 1 ? '' : 's') +
+        ' held back because ' + f.label + ' is not ' + f.values.join('/') +
+        (f.examples.length ? ' — e.g. ' + f.examples.join('; ') : '') + '. They are struck through on the left.']));
+      if (m.fees) notes.push(['', m.fees.rows + ' fee' + (m.fees.rows === 1 ? '' : 's') + ' totalling ' +
+        eurC(m.fees.total) + ' folded into their own transactions, so the balance still adds up.']);
+      if (m.noDate) notes.push(['warn', '⚠ ' + m.noDate + ' row' + (m.noDate === 1 ? '' : 's') +
+        ' had no readable date and will NOT be imported' + (m.noDateEg.length ? ' (e.g. ' + m.noDateEg.join(', ') + ')' : '') +
+        '. Check the date column and date order.']);
+      if (m.noAmount) notes.push(['warn', '⚠ ' + m.noAmount + ' row' + (m.noAmount === 1 ? '' : 's') +
+        ' had a date but no readable amount and will NOT be imported' +
+        (m.noAmountEg.length ? ' (e.g. ' + m.noAmountEg.join('; ') + ')' : '') + '. Check the amount columns.']);
+      if (res.rows.length && !m.credits) notes.push(['warn', '⚠ Every row is money OUT. If this account also receives money, ' +
+        'its money-in column is mapped wrongly — go back and check.']);
+      if (res.rows.length && !m.debits) notes.push(['warn', '⚠ Every row is money IN. If this account also spends, ' +
+        'its money-out column is mapped wrongly — go back and check.']);
+      if (m.recon && m.recon.ok) notes.push(['good', '✓ Checked against the statement’s own balance column: all ' +
+        m.recon.steps + ' steps reconcile to the cent. The mapping is right.']);
+      if (m.recon && !m.recon.ok) notes.push(['warn', '⚠ The statement’s own balance column does not agree: ' + m.recon.bad +
+        ' of ' + m.recon.steps + ' steps are out, first on ' + m.recon.first.at + ' (balance should read ' +
+        eurC(m.recon.first.want) + ', the file says ' + eurC(m.recon.first.got) +
+        '). Something in the mapping is wrong, or the file skips rows.']);
+      if (!res.rows.length) notes.push(['warn', '⚠ Nothing to import with this mapping. Go back and check the columns.']);
+      const accts = allAccounts();
+      // Offer the opening balance the statement itself proves — but never
+      // overwrite one the user already set without saying so, and never by
+      // default. An opening balance is the number every reconciled figure in
+      // the app is built on.
+      const openRowHtml = () => {
+        if (!(m.recon && m.recon.ok)) return '';
+        const id = ($('impAcct') || {}).value || st.acctId;
+        const had = (org.balances || {})[id] || {};
+        const has = had.opening != null && !!had.asOf;
+        st.setOpening = !has;
+        return `<label class="chk" style="margin-top:8px"><input type="checkbox" id="impSetOpening"${has ? '' : ' checked'}>
+             ${has ? 'Replace this account’s opening balance (currently <b>' + esc(eurC(had.opening)) + '</b> on ' + esc(had.asOf) + ') with '
+                   : 'Also set this account’s opening balance to '}<b>${esc(eurC(m.recon.opening))}</b> on ${esc(m.recon.openingAt)}
+             — the balance the statement itself implies before its first row</label>`;
+      };
+      $('impBody').innerHTML =
+        `<div class="imp-stats">
+           ${stat(res.rows.length, 'transactions')}
+           ${stat(m.from ? m.from + ' → ' + m.to : '—', 'covering')}
+           ${stat(eurC(m.totalIn), 'money in')}
+           ${stat(eurC(m.totalOut), 'money out')}
+           ${stat((m.totalIn - m.totalOut >= 0 ? '+' : '−') + eurC(Math.abs(m.totalIn - m.totalOut)), 'net')}
+         </div>
+         ${notes.map(([k, t]) => `<p class="imp-note-line ${k}">${esc(t)}</p>`).join('')}
+         <div class="imp-two" style="margin-top:12px">
+           <div class="imp-pane"><h4>As uploaded — ${esc(st.file.name)}</h4>
+             <div class="imp-scroll"><table><thead><tr>${hdrCells}</tr></thead><tbody>${rawRows.join('')}</tbody></table></div></div>
+           <div class="imp-pane"><h4>As Lithifyte will store it</h4>
+             <div class="imp-scroll"><table><thead><tr><th>Date</th><th>Who</th><th class="r">Out</th><th class="r">In</th></tr></thead>
+               <tbody>${mapped || '<tr><td colspan="4">Nothing to import.</td></tr>'}</tbody></table></div></div>
+         </div>
+         <div class="imp-opts">
+           <div style="flex:1 1 240px"><label for="impAcct">File it under</label>
+             <select class="inp" id="impAcct">
+               ${accts.map(a => { const u = userOf(a.userId);
+                 return `<option value="${esc(a.id)}"${st.acctId === a.id ? ' selected' : ''}>${esc(a.name)}${u ? ' — ' + esc(u.name) : ''}</option>`; }).join('')}
+               <option value="__new"${st.acctId === '__new' || !accts.length ? ' selected' : ''}>＋ New account…</option>
+             </select></div>
+           <div id="impNewWrap" style="flex:1 1 200px; display:none"><label for="impNewName">New account name</label>
+             <input class="inp" id="impNewName" placeholder="e.g. Sally · Revolut" value="${esc(st.newAcct.name || '')}"></div>
+           <div id="impOwnerWrap" style="flex:1 1 180px; display:none"><label for="impOwner">Whose is it?</label>
+             <select class="inp" id="impOwner">${allUsers().map(u =>
+               `<option value="${esc(u.id)}"${st.newAcct.ownerId === u.id ? ' selected' : ''}>${esc(u.name)}</option>`).join('')}
+               <option value="__new"${st.newAcct.ownerId === '__new' || !allUsers().length ? ' selected' : ''}>＋ Someone new…</option></select></div>
+           <div id="impOwnerNameWrap" style="flex:1 1 170px; display:none"><label for="impOwnerName">Their name</label>
+             <input class="inp" id="impOwnerName" placeholder="e.g. Sally" value="${esc(st.newAcct.ownerName || '')}"></div>
+           <div id="impKindWrap" style="flex:0 0 auto; display:none"><label for="impKind">Account type</label>
+             <select class="inp" id="impKind">${['current','credit','savings','cash'].map(k =>
+               `<option value="${k}"${st.newAcct.kind === k ? ' selected' : ''}>${k === 'credit' ? 'Credit card' : k[0].toUpperCase() + k.slice(1)}</option>`).join('')}</select></div>
+         </div>
+         <div id="impOpenRow"></div>`;
+      $('impOpenRow').innerHTML = openRowHtml();
+      st.openRowHtml = openRowHtml;
+      $('impNext').textContent = res.rows.length
+        ? 'Add ' + res.rows.length + ' transaction' + (res.rows.length === 1 ? '' : 's') + ' to my dashboard'
+        : 'Nothing to add';
+      $('impNext').disabled = !res.rows.length;
+      wirePreview();
+    }
+    function wirePreview(){
+      const syncNew = () => {
+        const isNew = $('impAcct').value === '__new';
+        $('impNewWrap').style.display = isNew ? '' : 'none';
+        $('impOwnerWrap').style.display = isNew ? '' : 'none';
+        $('impKindWrap').style.display = isNew ? '' : 'none';
+        $('impOwnerNameWrap').style.display = (isNew && $('impOwner').value === '__new') ? '' : 'none';
+      };
+      const wireOpening = () => {
+        const so = $('impSetOpening');
+        if (so) so.addEventListener('change', () => st.setOpening = so.checked);
+      };
+      $('impAcct').addEventListener('change', () => {
+        st.acctId = $('impAcct').value;
+        syncNew();
+        // the offer depends on the account: a different one may already have a
+        // balance set, and that changes both the wording and the default
+        if (st.openRowHtml){ $('impOpenRow').innerHTML = st.openRowHtml(); wireOpening(); }
+      });
+      $('impOwner').addEventListener('change', syncNew);
+      wireOpening();
+      syncNew();
+    }
+
+    // ── commit ──
+    function commit(){
+      const res = result();
+      if (!res.rows.length) return;
+      const newAcct = {name: ($('impNewName') || {}).value, ownerId: ($('impOwner') || {}).value,
+                       ownerName: ($('impOwnerName') || {}).value, ownerType: 'personal',
+                       kind: ($('impKind') || {}).value};
       try{
-        const res = addStatement(f.name, rd.result);
-        const head = res.added
-          ? '✓ ' + f.name + ' — ' + res.added + ' new transaction' + (res.added === 1 ? '' : 's') + ' added' +
-            (res.skipped ? ', ' + res.skipped + ' duplicate' + (res.skipped === 1 ? '' : 's') + ' skipped' : '') + '.'
-          : '• ' + f.name + ' — nothing new: all ' + res.skipped + ' rows already exist in this account.';
-        const rep = importReport(res);
-        status.innerHTML = esc(head) + (rep ? '<span class="' + (/⚠/.test(rep) ? 'imp-warn' : 'imp-note') + '">' + esc(rep) + '</span>' : '');
-        document.getElementById('upFile').value = '';
-        if (res.added) {
+        const out = addStatement(st.file.name, null,
+          {grid: st.grid, spec: st.spec, accountId: $('impAcct').value, newAccount: newAcct});
+        // the mapping is worth keeping only once it has actually worked
+        if ($('impRemember').checked){
+          impStore.maps[sig(st.grid, st.headerRow)] = {
+            spec: st.spec, label: st.spec.label || 'Custom mapping',
+            file: st.file.name, at: new Date().toISOString().slice(0, 10)};
+          save(LS.imports, impStore);
+        }
+        const m = res.meta;
+        if (st.setOpening && m.recon && m.recon.ok && out.acctId){
+          const b = org.balances[out.acctId] || {};
+          b.opening = m.recon.opening; b.asOf = m.recon.openingAt;
+          org.balances[out.acctId] = b;
+          save(LS.org, org);
+        }
+        const status = st.status || document.getElementById('upStatus');
+        const name = st.file.name, done = st.onDone;
+        close();
+        if (status) status.innerHTML = uploadOutcome(name, out);
+        const fileInput = document.getElementById('upFile');
+        if (fileInput) fileInput.value = '';
+        if (out.added){
           try { if (window.__lfTrack) window.__lfTrack('action', { action: 'csv_upload' }); } catch (e) {}
           onDataChanged();
         }
-      }catch(err){ status.textContent = '✗ ' + err; }
-    };
-    rd.readAsText(f);
-  });
-  // testing hook (harmless): lets automation feed a CSV string
-  window.__ddAddStatement = (name, text) => { const r = addStatement(name, text); if (r.added) onDataChanged(); return r; };
+        if (done) done(out);
+      }catch(err){ $('impErr').textContent = '✗ ' + err; }
+    }
+
+    $('impNext').addEventListener('click', () => {
+      if (st.step === 0){
+        const probs = Engine.impProblems(st.spec);
+        if (probs.length){ $('impErr').textContent = probs[0]; return; }
+        st.step = 1; render();
+      } else commit();
+    });
+    $('impBack').addEventListener('click', () => { if (st.step){ st.step = 0; render(); } });
+    $('impCancel').addEventListener('click', close);
+    $('impClose').addEventListener('click', close);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && st) close(); });
+
+    return {open, close, isOpen: () => !!st,
+            // testing hook: run a file's worth of rows through the real mapper
+            __state: () => st && {spec: st.spec, headerRow: st.headerRow, step: st.step}};
+  })();
+  window.__ddImporter = Importer;
 
   function householdLabel(){
     const n = org.householdName && String(org.householdName).trim();
@@ -10969,6 +11897,136 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       }
     });
 
+    // ── bank presets + explicit column mapping ──
+    // A real Revolut export, trimmed. Everything below is checked against this
+    // shape because that is the file a user actually downloads.
+    const REVOLUT =
+      'Type,Product,Started Date,Completed Date,Description,Amount,Fee,Currency,State,Balance\n' +
+      'Transfer,Current,2026-07-03 16:45:25,2026-07-03 16:45:26,Transfer to JOHN MARTIN SAAIMAN,-120.00,0.00,EUR,COMPLETED,3124.57\n' +
+      'Card Payment,Current,2026-07-07 20:55:47,2026-07-08 05:14:14,Anthropic,-22.14,0.00,EUR,COMPLETED,3102.43\n' +
+      'Card Payment,Current,2026-07-16 09:25:21,2026-07-18 02:19:31,GoDaddy,-80.47,0.00,EUR,COMPLETED,3021.96\n' +
+      'Transfer,Current,2026-07-30 16:12:53,2026-07-30 16:12:53,Transfer from JOHN MARTIN SAAIMAN,587.00,0.00,EUR,COMPLETED,3608.96\n' +
+      'Card Payment,Current,2026-07-31 10:00:00,2026-07-31 10:00:01,Declined shop,-9.99,0.00,EUR,REVERTED,\n';
+    T('preset: a Revolut export is recognised from its header alone', () => {
+      const p = E.impPresetFor(parseCSV(REVOLUT), 0);
+      return (p && p.id === 'revolut') || 'not detected';
+    });
+    T('preset: Revolut maps to the completed date, not the started one', () => {
+      const s = E.impDetect(parseCSV(REVOLUT), 0);
+      return (s.date === 3 && s.dateAlt === 2 && s.amount === 5 && s.fee === 6 && s.balance === 9)
+             || JSON.stringify({d:s.date, a:s.amount, f:s.fee, b:s.balance});
+    });
+    T('preset: Revolut holds back anything not COMPLETED, and says so', () => {
+      const r = mapStatement(parseCSV(REVOLUT));
+      const held = r.meta.filtered.find(f => f.label === 'State');
+      return (r.length === 4 && held && held.count === 1 && held.examples.length === 1)
+             || JSON.stringify({n: r.length, f: r.meta.filtered});
+    });
+    T('preset: a held-back row is a decision, never a silent loss', () => {
+      const rep = importReport({added: 4, skipped: 0, meta: mapStatement(parseCSV(REVOLUT)).meta});
+      return /held back/.test(rep) || rep;
+    });
+    T('preset: Revolut tidies the statement name into a person', () => {
+      const r = mapStatement(parseCSV(REVOLUT));
+      return (r[0][1] === 'John Martin Saaiman' && r[1][1] === 'Anthropic' &&
+              r[3][1] === 'John Martin Saaiman') || JSON.stringify(r.map(x => x[1]));
+    });
+    T('preset: the signed amount column splits into money out and money in', () => {
+      const r = mapStatement(parseCSV(REVOLUT));
+      return (r[0][4] === 120 && r[0][5] === 0 && r[3][5] === 587 && r[3][4] === 0)
+             || JSON.stringify(r.map(x => [x[4], x[5]]));
+    });
+    T('import: a fee is folded into its own transaction, not lost', () => {
+      const withFee = REVOLUT.replace(',-22.14,0.00,EUR,COMPLETED,3102.43', ',-22.14,1.50,EUR,COMPLETED,3100.93');
+      const r = mapStatement(parseCSV(withFee));
+      return (r[1][4] === 23.64 && r.meta.fees && r.meta.fees.rows === 1 && r.meta.fees.total === 1.5)
+             || JSON.stringify({row: r[1], fees: r.meta.fees});
+    });
+    T('import: the statement’s own balance column is walked, and it reconciles', () => {
+      const m = mapStatement(parseCSV(REVOLUT)).meta;
+      return (m.recon && m.recon.ok && m.recon.steps === 3) || JSON.stringify(m.recon);
+    });
+    T('import: a balance column that does NOT reconcile is reported, not ignored', () => {
+      const bent = REVOLUT.replace(',EUR,COMPLETED,3102.43', ',EUR,COMPLETED,3102.99');
+      const m = mapStatement(parseCSV(bent)).meta;
+      const rep = importReport({added: 4, skipped: 0, meta: m});
+      return (m.recon && !m.recon.ok && m.recon.bad === 2 && /⚠/.test(rep) && /reconcile/.test(rep))
+             || JSON.stringify({recon: m.recon, rep});
+    });
+    T('import: reconciliation yields the opening balance before the first row', () => {
+      const m = mapStatement(parseCSV(REVOLUT)).meta;
+      // 3124.57 after a −120 transfer on 3 July → 3244.57 the day before
+      return (m.recon.opening === 3244.57 && m.recon.openingAt === '2026-07-02') || JSON.stringify(m.recon);
+    });
+    T('import: two currencies in one file are separated, not summed', () => {
+      const mixed = REVOLUT.replace(',0.00,EUR,COMPLETED,3021.96', ',0.00,GBP,COMPLETED,3021.96');
+      const r = mapStatement(parseCSV(mixed));
+      const cur = r.meta.filtered.find(f => f.label === 'Currency');
+      return (cur && cur.count === 1 && cur.values[0] === 'EUR') || JSON.stringify(r.meta.filtered);
+    });
+    // ── the explicit mapping a user builds themselves ──
+    const ODD = 'Booking day;Counterparty;Turnover;Note\n05.03.2026;SHOP;-1.234,56;x\n06.03.2026;WAGES;2.000,00;y\n';
+    T('mapping: a spec the user builds by hand is applied exactly', () => {
+      const rows = parseDelim(ODD, ';');
+      const spec = E.impSpec({date: 0, merchant: 1, amount: 2, decimal: 'comma', dateFormat: 'dmy'});
+      const r = mapStatement(rows, spec);
+      return (r.length === 2 && r[0][0] === '2026-03-05' && r[0][4] === 1234.56 && r[1][5] === 2000)
+             || JSON.stringify(r);
+    });
+    T('mapping: the same file without a spec cannot be read — which is why the mapper exists', () => {
+      try { mapStatement(parseDelim(ODD, ';')); return 'should have thrown'; }
+      catch(e){ return /date\/merchant\/amount/.test(String(e)) || String(e); }
+    });
+    T('mapping: giving a role to a column takes it off the column that had it', () => {
+      let s = E.impSpec({date: 0, merchant: 1, amount: 2});
+      s = E.impSetRole(s, 3, 'amount');
+      return (s.amount === 3 && E.impRoleOf(s, 2) === 'skip') || JSON.stringify(s);
+    });
+    T('mapping: swapping direction turns an all-out import into an all-in one', () => {
+      const rows = parseCSV('Date,Description,Amount\n2026-01-05,A,-10\n2026-01-06,B,-20\n');
+      const flip = mapStatement(rows, E.impSpec({date: 0, merchant: 1, amount: 2, swap: true}));
+      return (flip.meta.credits === 2 && flip.meta.debits === 0) || JSON.stringify(flip.meta);
+    });
+    T('mapping: an unmapped date column is refused with a sentence, not a stack trace', () => {
+      const p = E.impProblems(E.impSpec({merchant: 1, amount: 2}));
+      return (p.length === 1 && /date column/.test(p[0])) || JSON.stringify(p);
+    });
+    T('mapping: filters can also be exclusions', () => {
+      const rows = parseCSV('Date,Description,Amount,Kind\n2026-01-05,A,-10,fee\n2026-01-06,B,-20,card\n');
+      const r = mapStatement(rows, E.impSpec({date: 0, merchant: 1, amount: 2,
+        filters: [{col: 3, mode: 'drop', values: ['fee'], label: 'Kind'}]}));
+      return (r.length === 1 && r[0][1] === 'B' && r.meta.filtered[0].count === 1) || JSON.stringify(r);
+    });
+    // ── the readers underneath ──
+    T('numbers: 1.234,56 and (12.34) and €1,234.56 all read correctly', () =>
+      (E.impNum('1.234,56', 'comma') === 1234.56 && E.impNum('(12.34)', 'auto') === -12.34 &&
+       E.impNum('€1,234.56', 'auto') === 1234.56 && isNaN(E.impNum('', 'auto')) && isNaN(E.impNum('abc', 'auto')))
+      || 'number parsing wrong');
+    T('dates: the whole column decides day-first vs month-first, not each row', () => {
+      const us = parseCSV('Date,D,Amount\n01/15/2026,A,1\n02/03/2026,B,2\n');
+      const f = E.impSniffDateFormat(us, 0, 0);
+      const r = mapStatement(us, E.impSpec({date: 0, merchant: 1, amount: 2, dateFormat: f}));
+      return (f === 'mdy' && r[0][0] === '2026-01-15' && r[1][0] === '2026-02-03') || (f + ' ' + JSON.stringify(r));
+    });
+    T('dates: a 13th month is refused rather than stored as month 13', () =>
+      (E.impDate('15/15/2026', 'dmy') === null && E.impDate('05 Jan 2026', 'auto') === '2026-01-05')
+      || 'bad date accepted');
+    T('delimiter: a semicolon export is not read as one giant column', () =>
+      (sniffDelim(ODD) === ';' && parseDelim(ODD, ';')[0].length === 4) || sniffDelim(ODD));
+    T('header row: a preamble above the table does not become the header', () => {
+      const grid = [['Account statement'], ['IBAN', 'IE12 XXXX'], [],
+                    ['Date', 'Description', 'Amount'], ['2026-01-05', 'SHOP', '-10']];
+      return guessHeaderRow(grid) === 3 || ('row ' + guessHeaderRow(grid));
+    });
+    T('import: the preview and the import are the same call', () => {
+      // impApply is what the preview renders AND what mapStatement stores; if
+      // these ever diverge, a user approves one thing and gets another
+      const rows = parseCSV(REVOLUT);
+      const spec = E.impDetect(rows, 0);
+      return JSON.stringify(E.impApply(rows, spec).rows) === JSON.stringify(mapStatement(rows, spec).slice())
+             || 'preview and import disagree';
+    });
+
     // ── the categorical palette ──
     // The colour-vision separation numbers were established offline with the
     // dataviz validator (see CAT_PAL). These are the invariants that a future
@@ -11603,32 +12661,19 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   document.getElementById('ob-file-go').addEventListener('click', ()=>{
     const f = document.getElementById('ob-file').files[0];
     const status = document.getElementById('ob-file-status');
-    if (!f){ status.textContent = 'Choose a CSV file first.'; return; }
-    if (/\.xlsx?$/i.test(f.name)){ status.textContent = 'Excel file — save it as CSV first (File → Save As → CSV).'; return; }
-    const rd = new FileReader();
-    rd.onload = () => {
-      try{
-        const acct = allAccounts()[0];
-        document.getElementById('upAccount').value = acct.id;   // route through the normal pipeline
-        const res = addStatement(f.name, rd.result);
-        // the same import report as the main upload path — a first-time user is
-        // the LEAST likely to notice half a statement going missing
-        const rep = importReport(res);
-        status.innerHTML = (res.added ? '' : esc('Nothing new in that file.')) +
-          (rep ? '<span class="' + (/⚠/.test(rep) ? 'imp-warn' : 'imp-note') + '">' + esc(rep) + '</span>' : '');
-        if (res.added){
-          try {
-            if (window.__lfTrack) {
-              window.__lfTrack('onboarding_step', { step: 'statement' });
-              window.__lfTrack('action', { action: 'csv_upload' });
-            }
-          } catch (e) {}
-          onDataChanged();                                       // TX > 0 → the dashboard unlocks
-          if (graph) setTimeout(()=>graph.fit(), 300);           // pull back to see it all light up
-        }
-      }catch(err){ status.textContent = '✗ ' + err; }
-    };
-    rd.readAsText(f);
+    if (!f){ status.textContent = 'Choose a file first.'; return; }
+    const acct = allAccounts()[0];
+    if (!acct){ status.textContent = 'Add an account first.'; return; }
+    // Same importer as the main upload path — a first-time user is the LEAST
+    // likely to spot half a statement going missing, so they get the preview too.
+    document.getElementById('upAccount').value = acct.id;
+    Importer.open(f, {status, onDone: res => {
+      if (!res.added) return;
+      try {
+        if (window.__lfTrack) window.__lfTrack('onboarding_step', { step: 'statement' });
+      } catch (e) {}
+      if (graph) setTimeout(()=>graph.fit(), 300);              // pull back to see it all light up
+    }});
   });
   document.getElementById('ob-goal-go').addEventListener('click', ()=>{
     const name = document.getElementById('ob-goal').value.trim();
@@ -13218,7 +14263,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       base: {txCount: raw.transactions.length, checksum: BASE_SUM,
              from: raw.transactions.length ? raw.transactions[0][0] : null,
              to: raw.transactions.length ? raw.transactions[raw.transactions.length-1][0] : null},
-      stores: {rules, cats: catStore, goals, org, recur: recurStore, uploads, xfers: xferStore, manrec, fcast: FCONF, budget: budgetStore, debts: debtStore, holdings: holdStore, assets: assetStore, nwlog: nwLog, merch: merchStore, notes: noteStore, lm: lmStore, cash: cashStore, alerts: alertStore, txcat: txCatStore, docs: docStore},
+      stores: {rules, cats: catStore, goals, org, recur: recurStore, uploads, xfers: xferStore, manrec, fcast: FCONF, budget: budgetStore, debts: debtStore, holdings: holdStore, assets: assetStore, nwlog: nwLog, merch: merchStore, notes: noteStore, lm: lmStore, cash: cashStore, alerts: alertStore, txcat: txCatStore, docs: docStore, imports: impStore},
       ui: {cuts: {...cutStore}, rangeFrom, rangeTo, privacy: {...PRIV}}
     };
   }
@@ -13464,11 +14509,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     if (st.fcast && typeof st.fcast.bufferPct === 'number') FCONF = st.fcast;
     if (st.txcat && st.txcat.overrides && typeof st.txcat.overrides === 'object') txCatStore = {overrides: st.txcat.overrides};
     if (st.docs && Array.isArray(st.docs.items)) docStore = {items: st.docs.items};
+    if (st.imports && st.imports.maps && typeof st.imports.maps === 'object') impStore = {maps: st.imports.maps};
     save(LS.rules, rules); save(LS.cats, catStore); save(LS.goals, goals);
     save(LS.org, org); save(LS.recur, recurStore); save(LS.uploads, uploads);
     save(LS.xfers, xferStore); save(LS.manrec, manrec); save(LS.fcast, FCONF);
     save(LS.debts, debtStore); save(LS.holds, holdStore);
-    save(LS.assets, assetStore); save(LS.nwlog, nwLog); save(LS.merch, merchStore); save(LS.notes, noteStore); save(LS.lm, lmStore); save(LS.alerts, alertStore); save(LS.txcat, txCatStore); save(LS.docs, docStore);
+    save(LS.assets, assetStore); save(LS.nwlog, nwLog); save(LS.merch, merchStore); save(LS.notes, noteStore); save(LS.lm, lmStore); save(LS.alerts, alertStore); save(LS.txcat, txCatStore); save(LS.docs, docStore); save(LS.imports, impStore);
     if (budgetStore) save(LS.budget, budgetStore);
     if (b.ui && b.ui.cuts){
       const legacy = {groc:'Groceries', dine:'Dining', shop:'Shopping', bills:'Bills & Utilities', ent:'Entertainment', misc:'Uncategorized'};
@@ -13853,10 +14899,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // Part 2 — First data
       {part:2, dock:'people', target:'#spacePanel, #sec-people', title:'Household → people → accounts',
        loc:'Data → People 👥 (centered popup)',
-       body:'People is its own Data tab and opens centered over the map. Structure matches the sample: name the household, add people under it, then accounts and CSV statements. First-run onboarding on the map walks the same path (household → people → account → CSV → goal). Re-uploads are safe — duplicates are skipped.'},
+       body:'People is its own Data tab and opens centered over the map. Structure matches the sample: name the household, add people under it, then accounts and statements. First-run onboarding on the map walks the same path (household → people → account → statement → goal). Re-uploads are safe — duplicates are skipped.'},
       {part:2, dock:'people', target:'#hhBanner, #orgAddUser, #sec-people', title:'People, accounts & statements',
        loc:'Data → People 👥',
-       body:'Edit the household name (map root). Add partners or businesses with ＋ Add person. Each person gets accounts (current / credit / savings / cash). Upload CSVs under the right account. Opening balances power cash-on-hand, net worth, and linked goals.'},
+       body:'Edit the household name (map root). Add partners or businesses with ＋ Add person. Each person gets accounts (current / credit / savings / cash). Upload your bank\u2019s own CSV or Excel export under the right account: Prepare & preview shows which column it read as what, lets you change any of it, and shows the finished transactions beside your raw file before anything is saved. Where the statement carries a running balance it is checked against it, and the opening balance can be set from that check. Opening balances power cash-on-hand, net worth, and linked goals.'},
       {part:2, dock:'goals', target:'#goalHero, .kpis', title:'Goals',
        loc:'Overview → Goals',
        body:'Goals are funded from the cautious forecast surplus in priority order. Link a goal to a savings account (with an opening balance) for the strongest pot. Verdicts always quote the cautious date first.'},
