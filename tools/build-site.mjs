@@ -187,6 +187,9 @@ const NAV = [
   ['/guide', 'Guide'],
   ['/faq', 'FAQ'],
   [`${APP}/demo`, 'Sample'],
+  // Every page needs a route into the product. A reader who arrives on a learn
+  // article from a search result should never have to go home to find one.
+  ['https://access.lithifyte.com/', 'Sign in'],
 ];
 
 function head(page) {
@@ -424,7 +427,9 @@ function render(page, allPages) {
     page.kind === 'article'
       ? `<aside class="cta"><h2>See it on your own money</h2><p>Lithifyte does this arithmetic for you, in your browser, from your own bank statements. Nothing is uploaded.</p><p><a class="btn" href="${APP}/demo">Explore the sample household</a> <a class="btn ghost" href="/how-it-works">How it works</a></p>
 <p class="disclaimer">This page is general financial education, not financial advice. It describes how the arithmetic works so you can do it yourself; it does not recommend a product, a provider or a course of action for your circumstances.</p></aside>`
-      : '';
+      : page.slug === 'learn'
+      ? ''
+      : `<aside class="cta"><h2>Try it</h2><p>The sample household is fully populated with invented data — no sign-up, nothing to upload. When you are ready to use your own statements, sign-in is a magic link and holds no financial data.</p><p><a class="btn" href="${APP}/demo">Explore the sample household</a> <a class="btn ghost" href="https://access.lithifyte.com/">Sign in free</a></p></aside>`;
 
   return `${head(page)}
 

@@ -1,0 +1,30 @@
+# Response headers for lithifyte.com (Cloudflare Workers static assets).
+#
+# Deliberately conservative. No Content-Security-Policy is set here yet: the
+# landing inlines its styles and pulls a React runtime from unpkg, so a policy
+# tight enough to be worth having would break it, and a policy loose enough to
+# work would be theatre. The app is the surface where CSP would actually pay —
+# see docs/seo-and-ai-search.md and SECURITY.md.
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: SAMEORIGIN
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=()
+  Strict-Transport-Security: max-age=15552000; includeSubDomains
+
+# Generated indexes for machines. Long-lived caching is wrong here: these are
+# regenerated on every content edit and should be refetched.
+/llms.txt
+  Cache-Control: public, max-age=300
+  Content-Type: text/plain; charset=utf-8
+
+/llms-full.txt
+  Cache-Control: public, max-age=300
+  Content-Type: text/plain; charset=utf-8
+
+/sitemap.xml
+  Cache-Control: public, max-age=300
+
+/robots.txt
+  Cache-Control: public, max-age=300
