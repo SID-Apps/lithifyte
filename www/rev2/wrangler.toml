@@ -1,10 +1,16 @@
-# lithifyte.com landing (Rev 2.1) — deploy: cd www/rev2 && wrangler deploy
+# lithifyte.com landing + content library — deploy: cd www/rev2 && wrangler deploy
 name = "lithifyte-landing"
+main = "worker.js"
 compatibility_date = "2026-07-16"
 workers_dev = true
 
 [assets]
 directory = "."
+binding = "ASSETS"
 # Real 404s (branded 404.html) instead of serving index.html for every path —
 # keeps robots/sitemap honest and avoids infinite duplicate content for SEO.
 not_found_handling = "404-page"
+# The worker must see every request, otherwise an existing asset is served
+# before content negotiation gets a chance to run. It passes everything it does
+# not handle straight to ASSETS.
+run_worker_first = true

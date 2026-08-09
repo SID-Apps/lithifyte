@@ -6,6 +6,12 @@
 # work would be theatre. The app is the surface where CSP would actually pay —
 # see docs/seo-and-ai-search.md and SECURITY.md.
 
+# The homepage advertises the machine-readable entry points in headers, so a
+# client that never parses the HTML can still find them. Per-page markdown
+# alternates are added by worker.js.
+/
+  Link: </llms.txt>; rel="alternate"; type="text/plain"; title="llms.txt", </index.md>; rel="alternate"; type="text/markdown", </sitemap.xml>; rel="sitemap"; type="application/xml"
+
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin

@@ -483,6 +483,39 @@ function learnHub(articles, meta) {
 
 /* ─────────────────────────── generated files ─────────────────────────── */
 
+/** One page as clean markdown, with just enough front matter to be citable. */
+function markdownTwin(page) {
+  return (
+    `# ${page.title}\n\n` +
+    `Source: ${ORIGIN}${page.path}\n` +
+    `Updated: ${page.updated}\n` +
+    `Licence: content CC-BY-4.0 · software AGPL-3.0-or-later\n\n` +
+    (page.summary ? `${page.summary}\n\n` : '') +
+    `${page.body.trim()}\n`
+  );
+}
+
+/** The markdown homepage, served for `GET / ` with Accept: text/markdown. */
+function markdownHome(pages) {
+  const line = (p) => `- [${p.title}](${ORIGIN}${p.path}) — ${p.summary || p.description}`;
+  return (
+    `# Lithifyte\n\n` +
+    `Free, open-source household finance software that runs as a single HTML file in your browser. ` +
+    `It imports bank statements, draws a live map of people, accounts, categories and merchants, and computes ` +
+    `budgets, forecasts, debt payoff plans and net worth locally. Financial data is never sent to a server — ` +
+    `there is no finance backend to send it to.\n\n` +
+    `- Application: ${APP}/\n- Sample household (no sign-up): ${APP}/demo\n` +
+    `- Source: https://github.com/SID-Apps/lithifyte\n- Licence: AGPL-3.0-or-later, free forever\n\n` +
+    `## Product\n\n${pages.filter((p) => p.section === 'product').map(line).join('\n')}\n\n` +
+    `## Learn\n\n${pages.filter((p) => p.section === 'learn').map(line).join('\n')}\n\n` +
+    `## Machine-readable\n\n` +
+    `- ${ORIGIN}/llms.txt — site map for language models\n` +
+    `- ${ORIGIN}/llms-full.txt — every page as one markdown file\n` +
+    `- ${ORIGIN}/sitemap.xml\n\n` +
+    `Any page here is available as markdown: request it with \`Accept: text/markdown\`, or append \`.md\`.\n`
+  );
+}
+
 function sitemap(pages) {
   const rows = [
     { loc: `${ORIGIN}/`, lastmod: maxDate(pages), priority: '1.0', changefreq: 'weekly' },
@@ -649,6 +682,10 @@ function main() {
     if (!CHECK) {
       mkdirSync(dirname(target), { recursive: true });
       writeFileSync(target, html);
+      // A markdown twin of every page. worker.js serves these to any client
+      // asking for text/markdown, so an agent gets the prose without parsing
+      // a page of styling it has no use for.
+      writeFileSync(join(OUT, page.path.slice(1) + '.md'), markdownTwin(page));
     }
     written.push({ path: page.path, bytes: html.length, words: page.words });
   }
@@ -657,6 +694,7 @@ function main() {
     'sitemap.xml': sitemap(ordered),
     'llms.txt': llmsTxt(ordered),
     'llms-full.txt': llmsFull(ordered),
+    'index.md': markdownHome(ordered),
   };
   for (const [name, content] of Object.entries(generated)) {
     if (!CHECK) writeFileSync(join(OUT, name), content);
