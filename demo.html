@@ -591,21 +591,82 @@ So, when you change a stored shape:
     border:1px solid rgba(56,189,248,.35); background:rgba(56,189,248,.08); color:var(--ink)}
   .cp-sug:hover{border-color:rgba(56,189,248,.7); background:rgba(56,189,248,.16)}
   .cp-hint{font-size:12px; color:var(--muted); padding:4px 2px 0}
-  body.space #topCompanion{display:inline-flex}
+  /* ── Co-pilot: bottom composer + left chat panel (ChatGPT/Grok-style) ── */
+  #spaceSubbar{display:none}
+  body.space #spaceSubbar{display:flex; position:fixed; top:62px; left:50%; transform:translateX(-50%); z-index:26;
+    align-items:center; gap:10px; padding:6px 12px; border-radius:999px;
+    background:rgba(2,11,26,.78); border:1px solid rgba(56,189,248,.28); backdrop-filter:blur(10px);
+    color:#dbeafe; font-size:12.5px; max-width:min(720px, calc(100vw - 200px))}
+  #spaceSubbar .ss-range{display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px;
+    border:1px solid rgba(56,189,248,.3); background:rgba(56,189,248,.08); color:#e0f2ff; cursor:pointer; font:600 12px system-ui,sans-serif}
+  #spaceSubbar .ss-range:hover{border-color:rgba(56,189,248,.65)}
+  #spaceSubbar #lapsePlayHud{flex:0 0 auto}
+  #spaceSubbar .ss-lapse{display:flex; align-items:center; gap:8px; min-width:0}
+  #spaceSubbar .ss-track{width:72px; height:4px; border-radius:2px; background:rgba(56,189,248,.15); overflow:hidden}
+  #spaceSubbar .ss-track > div{height:100%; width:0; background:#38bdf8; border-radius:2px}
 
-  #companionPanel{display:flex; flex-direction:column; max-height:min(78vh,640px)}
-  #companionThread{flex:1; overflow:auto; padding:8px 14px; display:flex; flex-direction:column; gap:8px; min-height:120px}
-  .cp-msg{max-width:92%; padding:8px 11px; border-radius:12px; font-size:13.5px; line-height:1.45; white-space:pre-wrap}
-  .cp-msg.user{align-self:flex-end; background:rgba(56,189,248,.2); border:1px solid rgba(56,189,248,.35)}
-  .cp-msg.bot{align-self:flex-start; background:rgba(255,255,255,.04); border:1px solid rgba(56,189,248,.18)}
-  .cp-msg .cp-prov{display:block; margin-top:5px; font-size:11px; color:var(--muted)}
-  .cp-msg.tool{align-self:stretch; font-size:12px; background:rgba(52,211,153,.08); border:1px dashed rgba(52,211,153,.35); color:var(--ink-2)}
-  .cp-toolbar{display:flex; flex-wrap:wrap; gap:6px; padding:0 14px 8px; align-items:center}
-  .cp-toolbar select,.cp-toolbar input{font-size:12px}
-  #companionInput{border-top:1px solid rgba(56,189,248,.18)}
+  #chatComposer{display:none}
+  body.space #chatComposer{display:flex; position:fixed; left:50%; transform:translateX(-50%); bottom:14px; z-index:28;
+    width:min(760px, calc(100vw - 200px)); flex-direction:column; gap:6px;
+    padding:10px 12px 12px; border-radius:20px;
+    background:rgba(4,14,30,.92); border:1px solid rgba(56,189,248,.35); backdrop-filter:blur(14px);
+    box-shadow:0 12px 40px rgba(0,0,0,.45)}
+  body.space.chat-open #chatComposer{left:calc(50% + 110px); width:min(640px, calc(100vw - 420px))}
+  .cc-row{display:flex; align-items:flex-end; gap:8px}
+  .cc-tools{display:flex; align-items:center; gap:6px; flex:0 0 auto}
+  .cc-btn{width:36px; height:36px; border-radius:50%; border:1px solid rgba(56,189,248,.3);
+    background:rgba(56,189,248,.08); color:#cfe9ff; cursor:pointer; font-size:16px; line-height:1; padding:0}
+  .cc-btn:hover{border-color:rgba(56,189,248,.7); background:rgba(56,189,248,.16)}
+  .cc-btn.primary{background:linear-gradient(135deg,#1d4ed8,#0891b2); border-color:transparent; color:#fff}
+  #ccInput{flex:1; min-height:40px; max-height:120px; resize:none; border:0; outline:none; background:transparent;
+    color:#e8f4ff; font:500 14.5px/1.4 system-ui,sans-serif; padding:8px 4px; caret-color:#38bdf8}
+  #ccInput::placeholder{color:#7fa5cc}
+  .cc-foot{display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:0 2px}
+  .cc-foot select{font-size:11.5px; max-width:150px; background:rgba(2,11,26,.6); color:#cfe9ff;
+    border:1px solid rgba(56,189,248,.25); border-radius:8px; padding:3px 6px}
+  .cc-foot .hint{font-size:11px; color:#7fa5cc}
+  .cc-chips{display:flex; flex-wrap:wrap; gap:6px}
+  .cc-chip{font:600 11.5px system-ui,sans-serif; padding:3px 8px; border-radius:999px;
+    border:1px solid rgba(56,189,248,.28); background:rgba(56,189,248,.08); color:#cfe9ff; cursor:pointer}
+  .cc-chip:hover{border-color:rgba(56,189,248,.6)}
+  .cc-attach{font-size:11.5px; color:#9fc3e8; display:flex; flex-wrap:wrap; gap:4px}
+  .cc-attach b{font-weight:600; color:#dbeafe}
+
+  #chatPanel{display:none}
+  body.space #chatPanel.open{display:flex; flex-direction:column; position:fixed; top:64px; left:190px; bottom:110px; z-index:22;
+    width:min(380px, calc(100vw - 240px)); border-radius:14px;
+    background:rgba(4,14,30,.94); border:1px solid rgba(56,189,248,.32); backdrop-filter:blur(12px);
+    box-shadow:0 16px 48px rgba(0,0,0,.4)}
+  body.space #spaceDock.col ~ /* no-op */ { }
+  body.space #chatPanel.open.dock-col{left:78px}
+  body.space #chatPanel.open.max{width:min(520px, calc(100vw - 120px)); left:78px}
+  body.space.chat-open #spacePanel.open:not(.center){ /* keep data panels usable on the right */ }
+  body.space #insightRail{bottom:118px}
+  body.space #lapseBar{display:none} /* play history lives under HUD */
+  body.space.chat-open #insightRail{max-width:min(720px, calc(100vw - 420px)); left:calc(50% + 80px)}
+
+  #chatPanel .cp-head{display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid rgba(56,189,248,.2)}
+  #chatPanel .cp-head b{flex:1; font-size:13.5px; color:#e8f4ff}
+  #companionThread{flex:1; overflow:auto; padding:12px; display:flex; flex-direction:column; gap:10px}
+  .cp-msg{max-width:94%; padding:9px 12px; border-radius:14px; font-size:13.5px; line-height:1.45; white-space:pre-wrap}
+  .cp-msg.user{align-self:flex-end; background:rgba(56,189,248,.2); border:1px solid rgba(56,189,248,.35); color:#e8f4ff}
+  .cp-msg.bot{align-self:flex-start; background:rgba(255,255,255,.04); border:1px solid rgba(56,189,248,.16); color:#dbeafe}
+  .cp-msg .cp-prov{display:block; margin-top:5px; font-size:11px; color:#7fa5cc}
+  .cp-msg.tool{align-self:stretch; font-size:12px; background:rgba(52,211,153,.08); border:1px dashed rgba(52,211,153,.35); color:#b7e4d0}
   .cp-apply{margin-top:6px; display:flex; gap:6px; flex-wrap:wrap}
-  /* knowledge-ring map nodes */
-  .node-chat{/* drawn on canvas */}
+  .cp-sugs{display:flex; flex-wrap:wrap; gap:6px; padding:0 12px 10px}
+  .cp-sug{font:600 12px system-ui,sans-serif; padding:5px 10px; border-radius:999px; cursor:pointer;
+    border:1px solid rgba(56,189,248,.35); background:rgba(56,189,248,.08); color:#e0f2ff}
+  .cp-sug:hover{border-color:rgba(56,189,248,.7)}
+  .cp-hint{font-size:12.5px; color:#8fb3d6; padding:8px 4px; line-height:1.45}
+  .cp-hist{padding:6px 10px; border-bottom:1px solid rgba(56,189,248,.12); max-height:96px; overflow:auto}
+  .cp-hist button{display:flex; width:100%; text-align:left; gap:6px; align-items:center;
+    background:none; border:0; color:#cfe9ff; font:600 12px system-ui,sans-serif; padding:5px 6px; border-radius:8px; cursor:pointer}
+  .cp-hist button:hover{background:rgba(56,189,248,.1)}
+  .cp-hist .del{margin-left:auto; color:#f87171; font-size:11px; border:1px solid rgba(248,113,113,.35);
+    border-radius:6px; padding:1px 6px; background:rgba(248,113,113,.08)}
+  #companionBar{display:none !important} /* legacy modal removed */
+  body.space #topCompanion{display:none !important}
 
   /* ── Space view (Phase B): the map is the app, sections become panels ── */
   body.space{overflow:hidden}
@@ -669,7 +730,7 @@ So, when you change a stored shape:
   body.space .ob-step:not(.done):not(.locked) ~ .ob-step{display:none}
   #obClassic{display:none}
   body.space #obClassic{display:inline-flex}
-  body.fresh #spaceDock, body.fresh #spaceHud, body.fresh #spaceTop, body.fresh #insightRail,
+  body.fresh #spaceDock, body.fresh #spaceHud, body.fresh #spaceTop, body.fresh #spaceSubbar, body.fresh #chatComposer, body.fresh #chatPanel, body.fresh #insightRail,
   body.fresh #spacePanel, body.fresh #miniPanel{display:none !important}
   #settingsCard{display:none}
   body.space #settingsCard{display:block}
@@ -1831,7 +1892,10 @@ So, when you change a stored shape:
       <span class="hint">Exports current matches (account scope + date range + query)</span></div>
 <div class="hint num" id="txFound" style="margin:-6px 0 10px; color:var(--ink)"></div>
     <div class="card">
-      <input id="txSearch" class="search-input" placeholder="Merchant name or amount…" aria-label="Search transactions">
+      <div style="display:flex;gap:8px;align-items:center">
+      <input id="txSearch" class="search-input" placeholder="Merchant name or amount…" aria-label="Search transactions" style="flex:1">
+      <button class="btn small" id="txSearchClear" type="button" title="Clear search">Clear</button>
+    </div>
       <div class="filter-row" id="txBulkBar" style="margin:8px 0 4px; display:none; flex-wrap:wrap; gap:8px; align-items:center">
         <span class="filter-label" id="txSelCount">0 selected</span>
         <select id="txBulkCat" class="inp" style="max-width:200px" aria-label="Send selected transactions to category">
@@ -2451,47 +2515,77 @@ rewrite the static advice cards if the picture has changed.</div>
 <div id="alertStack" aria-live="polite"></div>
 <!-- P6: top-right quick tools (space view) — range + search as mini cards -->
 <div id="spaceTop">
-  <button class="top-ic" id="topCompanion" type="button" title="Ask Lithifyte (Ctrl+K)" aria-label="Ask Lithifyte command bar">💬</button>
-  <button class="top-ic" id="topRange" type="button" title="Date range" aria-label="Date range">📅</button>
   <button class="top-ic" id="topSearch" type="button" title="Search transactions" aria-label="Search transactions">🔎</button>
 </div>
+<!-- Space sub-bar: play history + active date range (below HUD) -->
+<div id="spaceSubbar" aria-label="Timeline controls">
+  <div class="ss-lapse">
+    <button class="btn small" id="lapsePlayHud" type="button" title="Replay money history month by month">▶ Play history</button>
+    <span id="lapseLblHud" class="num" style="font-size:11.5px;color:#9fc3e8;min-width:4ch"></span>
+    <div class="ss-track" aria-hidden="true"><div id="lapseProgHud"></div></div>
+  </div>
+  <button type="button" class="ss-range" id="ssRangeBtn" title="Change date range">
+    <span aria-hidden="true">📅</span>
+    <span id="ssRangeLbl">Date range</span>
+  </button>
+</div>
+
 <div id="miniPanel" role="dialog" aria-modal="false" aria-labelledby="miniTitle">
   <div class="panel-head"><span class="ic" id="miniIc"></span><span id="miniTitle"></span>
     <button class="btn small panel-close" id="miniClose" type="button" aria-label="Close">✕</button></div>
   <div class="panel-body" id="miniBody"></div>
 </div>
-<!-- Companion / In-App LM Co-Pilot -->
-<div id="companionBar" role="dialog" aria-modal="true" aria-labelledby="companionTitle" hidden>
-  <div id="companionPanel">
-    <div class="cp-head">
-      <span aria-hidden="true">💬</span>
-      <b id="companionTitle">Lithifyte co-pilot</b>
-      <span class="hint" id="companionKbd">Ctrl+K</span>
-      <button type="button" class="btn small" id="companionNew" title="New conversation">＋</button>
-      <button type="button" class="btn small" id="companionClose" aria-label="Close">✕</button>
-    </div>
-    <div class="cp-toolbar">
-      <select id="cp-provider" class="inp" style="max-width:150px" aria-label="AI provider">
-        <option value="off">No AI · commands only</option>
-        <option value="lithifyte">Lithifyte AI (hosted)</option>
-        <option value="xai">xAI Grok</option>
-        <option value="openai">OpenAI</option>
-        <option value="anthropic">Anthropic</option>
-        <option value="openai_compat">Custom / local URL</option>
-      </select>
-      <input id="cp-model" class="inp" placeholder="model (optional)" style="max-width:140px" aria-label="Model name">
-      <input id="cp-key" class="inp" type="password" placeholder="API key (stays in this browser)" style="max-width:180px" aria-label="API key">
-      <input id="cp-endpoint" class="inp" placeholder="compat endpoint" style="max-width:160px;display:none" aria-label="OpenAI-compatible endpoint">
-      <button type="button" class="btn small" id="cp-saveLm" title="Save AI settings">Save</button>
-      <span class="hint" id="cp-lmStatus"></span>
-    </div>
-    <div id="companionThread" aria-live="polite"></div>
-    <div id="companionOut"></div>
-    <input id="companionInput" type="text" autocomplete="off" spellcheck="true"
-      placeholder="Ask about your money, design a budget, or open a section…"
-      aria-label="Message the co-pilot">
+<!-- Co-pilot: left chat panel (opens when conversation is active) -->
+<div id="chatPanel" role="complementary" aria-label="Co-pilot conversation" aria-hidden="true">
+  <div class="cp-head">
+    <span aria-hidden="true">✦</span>
+    <b id="companionTitle">Co-pilot</b>
+    <button type="button" class="btn small" id="companionNew" title="New chat">＋</button>
+    <button type="button" class="btn small" id="chatMax" title="Widen panel">⤢</button>
+    <button type="button" class="btn small" id="companionClose" aria-label="Collapse chat">✕</button>
+  </div>
+  <div class="cp-hist" id="chatHist" aria-label="Recent chats"></div>
+  <div id="companionThread" aria-live="polite"></div>
+  <div id="companionOut"></div>
+  <div style="padding:8px 12px; border-top:1px solid rgba(56,189,248,.15)">
+    <input id="cp-key" class="inp" type="password" placeholder="API key (BYOK, optional)" style="width:100%;font-size:12px;margin-bottom:4px" aria-label="API key">
+    <input id="cp-endpoint" class="inp" placeholder="Custom endpoint URL" style="width:100%;font-size:12px;display:none" aria-label="Endpoint">
+    <span class="hint" id="cp-lmStatus" style="font-size:11px"></span>
   </div>
 </div>
+<!-- Bottom chat composer — always visible in Space -->
+<div id="chatComposer" aria-label="Message co-pilot">
+  <div class="cc-attach" id="ccAttachList" hidden></div>
+  <div class="cc-row">
+    <div class="cc-tools">
+      <button type="button" class="cc-btn" id="ccPlus" title="Attach a file (CSV, Excel, text) for the model or import">＋</button>
+      <input type="file" id="ccFile" accept=".csv,.xlsx,.xls,.txt,.md,.json,text/*,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" hidden multiple>
+    </div>
+    <textarea id="ccInput" rows="1" placeholder="How can I help with your finances?" aria-label="Message the co-pilot"></textarea>
+    <div class="cc-tools">
+      <button type="button" class="cc-btn" id="ccVoice" title="Voice input (off by default — Chrome may send audio to Google)">🎤</button>
+      <button type="button" class="cc-btn primary" id="ccSend" title="Send (Enter)">↑</button>
+    </div>
+  </div>
+  <div class="cc-foot">
+    <select id="cp-provider" aria-label="AI model provider">
+      <option value="off">Commands only</option>
+      <option value="lithifyte">Lithifyte AI</option>
+      <option value="xai">Grok (xAI)</option>
+      <option value="openai">ChatGPT (OpenAI)</option>
+      <option value="anthropic">Claude</option>
+      <option value="openai_compat">Custom / local</option>
+    </select>
+    <input id="cp-model" class="inp" placeholder="model" style="max-width:110px;font-size:11.5px;padding:3px 6px;background:rgba(2,11,26,.6);color:#cfe9ff;border:1px solid rgba(56,189,248,.25);border-radius:8px" aria-label="Model name">
+    <button type="button" class="btn small" id="cp-saveLm" style="font-size:11px;padding:3px 8px">Save</button>
+    <span class="hint" id="companionKbd">Enter to send · Ctrl+K focus</span>
+  </div>
+  <div class="cc-chips" id="ccChips"></div>
+</div>
+<!-- legacy id for tests -->
+<div id="companionBar" hidden aria-hidden="true"></div>
+<input id="companionInput" type="hidden" value="">
+
 <!-- P6: onboarding floats over the live map when space view hosts first-run -->
 <div id="spaceOb"></div>
 
@@ -5966,7 +6060,7 @@ rewrite the static advice cards if the picture has changed.</div>
       : '';
     if (!docStore.items.length){
       list.innerHTML = `<div class="hint" style="padding:14px 2px">No notes yet. The first one is usually the most valuable:
-        <b>what changed recently, and what you are actually planning</b>. Press <b>＋ New note</b>.</div>`;
+        <b>what changed recently, and what you are actually planning</b>. Press <b>＋ New note</b>. Each note has <b>Delete</b> if you no longer need it.</div>`;
       return;
     }
     if (!items.length){ list.innerHTML = '<div class="hint" style="padding:12px 2px">No notes match that filter.</div>'; return; }
@@ -7856,6 +7950,16 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
     }
   }
   document.getElementById('txSearch').addEventListener('input', renderTxSearch);
+  (function(){
+    const clr = document.getElementById('txSearchClear');
+    if (clr) clr.addEventListener('click', ()=>{
+      const inp = document.getElementById('txSearch');
+      if (inp) inp.value = '';
+      try { renderTxSearch(); } catch (e) {}
+      try { if (typeof clearMapFilter === 'function') clearMapFilter(); } catch (e) {}
+      try { if (window.__ddMapFilter && window.__ddMapFilter.clear) window.__ddMapFilter.clear(); } catch (e) {}
+    });
+  })();
 
   // ── bulk assign (multi-select → one category) ──
   function onTxCatChanged(){ save(LS.txcat, txCatStore); renderAll(); }
@@ -9336,12 +9440,16 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
 
   // ══ date range controls ══
   function syncRangeUI(){
-    document.getElementById('rangeFrom').value = rangeFrom;
-    document.getElementById('rangeTo').value = rangeTo;
-    document.getElementById('rangeInfo').textContent = MONTHS.length
+    const rf = document.getElementById('rangeFrom');
+    const rt = document.getElementById('rangeTo');
+    const ri = document.getElementById('rangeInfo');
+    if (rf) rf.value = rangeFrom;
+    if (rt) rt.value = rangeTo;
+    if (ri) ri.textContent = MONTHS.length
       ? RN + ' months · ' + fmtMoLbl(rangeFrom) + ' – ' + fmtMoLbl(rangeTo)
       : 'no data yet';
     if (typeof syncLocalRanges === 'function') syncLocalRanges();
+    try { if (window.__ddCompanion && window.__ddCompanion.syncRangeLabel) window.__ddCompanion.syncRangeLabel(); } catch (e) {}
   }
   function buildRangePresets(){
     const sel = document.getElementById('rangePreset');
@@ -15399,24 +15507,83 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
 
     // ── UI ──
     let bound = false;
+    let pendingFiles = [];
+    const PLACEHOLDERS = [
+      'How can I help with your finances?',
+      "What's on your mind about your money?",
+      'What do you want to know?',
+      'Ask about cashflow, budgets, or a category…'
+    ];
+    let phI = 0;
+
     function isOpen(){
-      const el = document.getElementById('companionBar');
+      const el = document.getElementById('chatPanel');
       return el && el.classList.contains('open');
+    }
+    function setChatOpen(on){
+      const panel = document.getElementById('chatPanel');
+      if (!panel) return;
+      panel.classList.toggle('open', !!on);
+      panel.setAttribute('aria-hidden', on ? 'false' : 'true');
+      document.body.classList.toggle('chat-open', !!on);
+      // align with collapsed dock
+      try {
+        const dock = document.getElementById('spaceDock');
+        panel.classList.toggle('dock-col', !!(dock && dock.classList.contains('col')));
+      } catch (e) {}
     }
     function renderThread(){
       const el = document.getElementById('companionThread');
       if (!el) return;
       const chat = activeChatId && chatStore.items.find(c => c.id === activeChatId);
       if (!chat || !chat.messages.length){
-        el.innerHTML = '<div class="cp-hint">Ask about your money, open sections, or design a sandbox budget. Figures always come from Lithifyte’s Engine.</div>';
+        el.innerHTML = '<div class="cp-hint">Ask anything about your household finances. I can open sections, explain numbers from your data, and design sandbox budgets — figures always come from Lithifyte’s Engine.</div>';
         return;
       }
-      el.innerHTML = chat.messages.slice(-30).map(m => {
-        if (m.role === 'tool') return '<div class="cp-msg tool">🔧 ' + esc(String(m.content).slice(0, 280)) + '</div>';
+      el.innerHTML = chat.messages.slice(-40).map(m => {
+        if (m.role === 'tool') return '<div class="cp-msg tool">🔧 ' + esc(String(m.content).slice(0, 320)) + '</div>';
         const cls = m.role === 'user' ? 'user' : 'bot';
         return '<div class="cp-msg ' + cls + '">' + esc(m.content) + '</div>';
       }).join('');
       el.scrollTop = el.scrollHeight;
+    }
+    function renderHist(){
+      const el = document.getElementById('chatHist');
+      if (!el) return;
+      const items = (chatStore.items || []).slice(0, 12);
+      if (!items.length){ el.innerHTML = ''; el.hidden = true; return; }
+      el.hidden = false;
+      el.innerHTML = items.map(c => {
+        const on = c.id === activeChatId ? ' style="background:rgba(56,189,248,.12)"' : '';
+        return '<button type="button" data-id="' + esc(c.id) + '"' + on + '><span>💬 ' + esc((c.title || 'Chat').slice(0, 36)) + '</span>'
+          + '<span class="del" data-del="' + esc(c.id) + '" title="Delete chat">Delete</span></button>';
+      }).join('');
+      el.querySelectorAll('button[data-id]').forEach(b => {
+        b.addEventListener('click', e => {
+          if (e.target && e.target.dataset && e.target.dataset.del) return;
+          activeChatId = b.dataset.id;
+          renderHist(); renderThread(); setChatOpen(true);
+        });
+      });
+      el.querySelectorAll('[data-del]').forEach(b => {
+        b.addEventListener('click', e => {
+          e.stopPropagation();
+          const id = b.dataset.del;
+          const i = chatStore.items.findIndex(c => c.id === id);
+          if (i < 0) return;
+          const removed = chatStore.items.splice(i, 1)[0];
+          if (activeChatId === id) activeChatId = (chatStore.items[0] && chatStore.items[0].id) || null;
+          saveChats();
+          try { if (graph && graph.rebuild){ graph.rebuild(); graph.draw(); } } catch (err) {}
+          renderHist(); renderThread();
+          if (typeof undoToast === 'function'){
+            undoToast('Deleted chat “' + (removed.title || 'Chat') + '”', ()=>{
+              chatStore.items.splice(Math.min(i, chatStore.items.length), 0, removed);
+              saveChats(); renderHist(); renderThread();
+            });
+          }
+        });
+      });
     }
     function renderResult(result){
       const out = document.getElementById('companionOut');
@@ -15424,7 +15591,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (!result){ out.innerHTML = ''; return; }
       let html = '';
       if (result.apply){
-        html += '<div class="cp-apply"><button type="button" class="btn primary small" id="cpApplyBtn">' + esc(result.apply.label || 'Apply sandbox') + '</button></div>';
+        html += '<div class="cp-apply" style="padding:8px 12px"><button type="button" class="btn primary small" id="cpApplyBtn">' + esc(result.apply.label || 'Apply sandbox') + '</button></div>';
       }
       const sugs = result.suggestions || suggestions();
       if (sugs.length) html += '<div class="cp-sugs">' + sugs.map(s =>
@@ -15441,9 +15608,30 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         pendingApply = null;
       });
       out.querySelectorAll('.cp-sug').forEach(b => b.addEventListener('click', ()=>{
-        const inp = document.getElementById('companionInput');
+        const inp = document.getElementById('ccInput') || document.getElementById('companionInput');
         if (inp) inp.value = b.dataset.q;
         submit();
+      }));
+    }
+    function renderChips(){
+      const el = document.getElementById('ccChips');
+      if (!el) return;
+      const sugs = suggestions().slice(0, 5);
+      el.innerHTML = sugs.map(s => '<button type="button" class="cc-chip" data-q="' + esc(s) + '">' + esc(s) + '</button>').join('');
+      el.querySelectorAll('.cc-chip').forEach(b => b.addEventListener('click', ()=>{
+        const inp = document.getElementById('ccInput');
+        if (inp){ inp.value = b.dataset.q; submit(); }
+      }));
+    }
+    function renderAttach(){
+      const el = document.getElementById('ccAttachList');
+      if (!el) return;
+      if (!pendingFiles.length){ el.hidden = true; el.innerHTML = ''; return; }
+      el.hidden = false;
+      el.innerHTML = pendingFiles.map((f, i) =>
+        '<span>📎 <b>' + esc(f.name) + '</b> <button type="button" class="btn small" data-rm="' + i + '" style="font-size:10px;padding:1px 5px">✕</button></span>').join(' ');
+      el.querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', ()=>{
+        pendingFiles.splice(+b.dataset.rm, 1); renderAttach();
       }));
     }
     function syncLmForm(){
@@ -15472,48 +15660,107 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (!lmStore.relay) lmStore.relay = RELAY_DEFAULT;
       save(LS.lm, lmStore);
       const st = document.getElementById('cp-lmStatus');
-      if (st) st.textContent = 'Saved · stays in this browser';
+      if (st) st.textContent = 'Saved in this browser';
       syncLmForm();
     }
     function open(prefill){
-      const bar = document.getElementById('companionBar');
-      const inp = document.getElementById('companionInput');
-      if (!bar || !inp) return;
-      bar.hidden = false; bar.classList.add('open');
-      const kbd = document.getElementById('companionKbd');
-      if (kbd) kbd.textContent = /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘K' : 'Ctrl+K';
+      setChatOpen(true);
+      const inp = document.getElementById('ccInput') || document.getElementById('companionInput');
       syncLmForm();
-      if (prefill != null) inp.value = prefill;
+      if (prefill != null && inp) inp.value = prefill;
       if (!activeChatId) ensureChat();
+      renderHist();
       renderThread();
-      if (!document.getElementById('companionOut').innerHTML)
-        renderResult({suggestions: suggestions()});
-      setTimeout(()=>{ inp.focus(); }, 30);
+      renderChips();
+      if (inp) setTimeout(()=>{ inp.focus(); }, 30);
     }
     function close(){
-      const bar = document.getElementById('companionBar');
-      if (!bar) return;
-      bar.classList.remove('open'); bar.hidden = true;
+      setChatOpen(false);
     }
     function newChat(){
       activeChatId = null;
       ensureChat();
+      renderHist();
       renderThread();
       renderResult({suggestions: suggestions()});
-      const inp = document.getElementById('companionInput');
+      const inp = document.getElementById('ccInput');
       if (inp) inp.value = '';
+      setChatOpen(true);
+    }
+    function deleteChat(id){
+      const i = chatStore.items.findIndex(c => c.id === id);
+      if (i < 0) return false;
+      chatStore.items.splice(i, 1);
+      if (activeChatId === id) activeChatId = null;
+      saveChats();
+      renderHist(); renderThread();
+      return true;
+    }
+    async function readFileAsText(file){
+      return await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result || ''));
+        r.onerror = () => reject(r.error);
+        r.readAsText(file);
+      });
+    }
+    async function handleFiles(fileList){
+      const files = [...(fileList || [])];
+      for (const f of files){
+        const name = f.name || 'file';
+        const lower = name.toLowerCase();
+        if (/\.(csv|xlsx|xls)$/.test(lower)){
+          // Offer import path: stash and open people/import
+          pendingFiles.push({name, kind:'statement', file:f});
+        } else if (/\.(txt|md|json|log)$/.test(lower) || (f.type && f.type.startsWith('text/'))){
+          try {
+            const text = (await readFileAsText(f)).slice(0, 12000);
+            pendingFiles.push({name, kind:'text', text});
+          } catch (e) {
+            pendingFiles.push({name, kind:'meta', text:'(could not read file)'});
+          }
+        } else {
+          pendingFiles.push({name, kind:'meta', text:'Attached file ' + name + ' (' + (f.type || 'unknown') + ', ' + f.size + ' bytes).'});
+        }
+      }
+      renderAttach();
+    }
+    async function consumeAttachments(){
+      if (!pendingFiles.length) return '';
+      const parts = [];
+      const statements = pendingFiles.filter(f => f.kind === 'statement');
+      for (const f of pendingFiles){
+        if (f.kind === 'text' || f.kind === 'meta') parts.push('[Attached: ' + f.name + ']\n' + (f.text || ''));
+        if (f.kind === 'statement') parts.push('[Statement file attached: ' + f.name + ' — open People → import to map columns, or ask me to summarise after import.]');
+      }
+      if (statements.length){
+        // Jump user to import flow with first file if possible
+        try {
+          goSection('people', 'sec-people');
+          const inp = document.querySelector('#sec-people input[type=file], input[type=file][id*="stmt"], input[type=file][id*="csv"], input[type=file][id*="file"]');
+          // cannot programmatically set file input with path; leave message
+        } catch (e) {}
+      }
+      pendingFiles = [];
+      renderAttach();
+      return parts.join('\n\n').slice(0, 14000);
     }
     async function submit(){
-      const inp = document.getElementById('companionInput');
+      const inp = document.getElementById('ccInput') || document.getElementById('companionInput');
       if (!inp) return;
-      const q = inp.value.trim();
+      let q = (inp.value || '').trim();
+      const attach = await consumeAttachments();
+      if (attach) q = (q ? q + '\n\n' : '') + attach;
       if (!q) return;
       inp.value = '';
+      if (inp.tagName === 'TEXTAREA') inp.style.height = 'auto';
+      setChatOpen(true);
       const st = document.getElementById('cp-lmStatus');
-      if (st) st.textContent = lmEnabled() ? 'Thinking…' : '';
+      if (st) st.textContent = lmEnabled() ? 'Thinking…' : 'Working…';
       renderThread();
       try {
         const result = await handle(q);
+        renderHist();
         renderThread();
         renderResult(result);
         if (st) st.textContent = result && result.provenance ? result.provenance : '';
@@ -15521,46 +15768,133 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         if (st) st.textContent = String(e.message || e);
       }
     }
+    function syncRangeLabel(){
+      const el = document.getElementById('ssRangeLbl');
+      if (!el) return;
+      try {
+        if (!MONTHS.length){ el.textContent = 'No data yet'; return; }
+        el.textContent = (typeof fmtMoLbl === 'function' ? fmtMoLbl(rangeFrom) : rangeFrom)
+          + ' – ' + (typeof fmtMoLbl === 'function' ? fmtMoLbl(rangeTo) : rangeTo)
+          + ' · ' + RN + ' mo';
+      } catch (e) { el.textContent = 'Date range'; }
+    }
     function bind(){
       if (bound) return; bound = true;
-      const bar = document.getElementById('companionBar');
-      const inp = document.getElementById('companionInput');
+      const inp = document.getElementById('ccInput');
+      const send = document.getElementById('ccSend');
+      const plus = document.getElementById('ccPlus');
+      const file = document.getElementById('ccFile');
+      const voice = document.getElementById('ccVoice');
       const closeBtn = document.getElementById('companionClose');
       const newBtn = document.getElementById('companionNew');
-      const topBtn = document.getElementById('topCompanion');
+      const maxBtn = document.getElementById('chatMax');
       const saveBtn = document.getElementById('cp-saveLm');
       const prov = document.getElementById('cp-provider');
+      const ssRange = document.getElementById('ssRangeBtn');
+      const playHud = document.getElementById('lapsePlayHud');
+      const topComp = document.getElementById('topCompanion');
+
       if (closeBtn) closeBtn.addEventListener('click', close);
       if (newBtn) newBtn.addEventListener('click', newChat);
-      if (topBtn) topBtn.addEventListener('click', ()=> open());
+      if (maxBtn) maxBtn.addEventListener('click', ()=>{
+        const p = document.getElementById('chatPanel');
+        if (p) p.classList.toggle('max');
+      });
       if (saveBtn) saveBtn.addEventListener('click', saveLmForm);
       if (prov) prov.addEventListener('change', ()=>{
         lmStore.provider = prov.value;
+        lmStore.useLm = prov.value !== 'off';
         syncLmForm();
+        save(LS.lm, lmStore);
       });
-      if (bar) bar.addEventListener('click', e => { if (e.target === bar) close(); });
+      if (send) send.addEventListener('click', ()=> submit());
+      if (plus && file){
+        plus.addEventListener('click', ()=> file.click());
+        file.addEventListener('change', ()=>{ handleFiles(file.files); file.value = ''; });
+      }
+      if (voice) voice.addEventListener('click', ()=>{
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR){
+          alert('Voice input is not supported in this browser. Type your question instead.');
+          return;
+        }
+        if (!confirm('Voice input: Chrome may send your audio to Google’s servers. Continue? (Local-only voice is not built yet.)')) return;
+        const rec = new SR();
+        rec.lang = 'en-IE';
+        rec.onresult = e => {
+          const t = e.results && e.results[0] && e.results[0][0] && e.results[0][0].transcript;
+          const ta = document.getElementById('ccInput');
+          if (ta && t){ ta.value = (ta.value ? ta.value + ' ' : '') + t; ta.focus(); }
+        };
+        rec.onerror = () => {};
+        rec.start();
+      });
       if (inp){
         inp.addEventListener('keydown', e => {
-          if (e.key === 'Enter'){ e.preventDefault(); submit(); }
-          if (e.key === 'Escape'){ e.preventDefault(); close(); }
+          if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); submit(); }
         });
+        inp.addEventListener('input', ()=>{
+          inp.style.height = 'auto';
+          inp.style.height = Math.min(120, inp.scrollHeight) + 'px';
+        });
+        // rotate placeholder gently
+        setInterval(()=>{
+          if (document.activeElement === inp && inp.value) return;
+          phI = (phI + 1) % PLACEHOLDERS.length;
+          if (!inp.value) inp.placeholder = PLACEHOLDERS[phI];
+        }, 5000);
       }
+      if (ssRange) ssRange.addEventListener('click', ()=>{
+        try {
+          if (window.__ddSpace && window.__ddSpace.openMini) window.__ddSpace.openMini('range');
+          else if (window.__ddOpenRange) window.__ddOpenRange();
+        } catch (e) {}
+      });
+      if (playHud) playHud.addEventListener('click', e => {
+        e.stopPropagation();
+        const main = document.getElementById('lapsePlay');
+        if (main) main.click();
+      });
+      if (topComp) topComp.addEventListener('click', ()=> open());
+
+      // Sync dual lapse labels when main play updates
+      const obsTarget = document.getElementById('lapsePlay');
+      if (obsTarget && window.MutationObserver){
+        new MutationObserver(()=>{
+          const hud = document.getElementById('lapsePlayHud');
+          if (hud) hud.textContent = obsTarget.textContent;
+          const lab = document.getElementById('lapseLbl');
+          const labH = document.getElementById('lapseLblHud');
+          if (lab && labH) labH.textContent = lab.textContent;
+          const prog = document.getElementById('lapseProg');
+          const progH = document.getElementById('lapseProgHud');
+          if (prog && progH) progH.style.width = prog.style.width;
+        }).observe(obsTarget, {characterData:true, childList:true, subtree:true});
+      }
+
       document.addEventListener('keydown', e => {
         const mod = e.metaKey || e.ctrlKey;
         if (mod && (e.key === 'k' || e.key === 'K')){
           const tag = (e.target && e.target.tagName) || '';
-          if (tag === 'TEXTAREA') return;
+          if (tag === 'TEXTAREA' && e.target.id === 'ccInput') return;
           e.preventDefault();
-          if (isOpen()) close(); else open();
-        } else if (e.key === 'Escape' && isOpen()){
-          e.preventDefault(); close();
+          open();
+          const ta = document.getElementById('ccInput');
+          if (ta) ta.focus();
         }
       });
+
+      // Keep range label fresh
+      syncRangeLabel();
+      renderChips();
+      syncLmForm();
+      // Patch setRange/renderAll indirectly: poll lightly
+      setInterval(syncRangeLabel, 2000);
     }
     return {
       ask, match, run, handle, askLm, applyActions, registry, suggestions, open, close, bind, isOpen,
-      ensureChat, newChat, lmEnabled, lmComplete, chats: () => chatStore.items, scenarios: () => scenarioStore.items,
-      SECTIONS, RELAY_DEFAULT
+      ensureChat, newChat, deleteChat, lmEnabled, lmComplete, chats: () => chatStore.items, scenarios: () => scenarioStore.items,
+      syncRangeLabel, SECTIONS, RELAY_DEFAULT
     };
   })();
   window.__ddCompanion = Companion;
@@ -15761,7 +16095,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       miniActive = kind;
       document.getElementById(d.btn).classList.add('active');
     }
-    document.getElementById('topRange').addEventListener('click', ()=>openMini('range'));
+    const _topRange = document.getElementById('topRange');
+    if (_topRange) _topRange.addEventListener('click', ()=>openMini('range'));
+    window.__ddOpenRange = () => openMini('range');
     document.getElementById('topSearch').addEventListener('click', ()=>openMini('search'));
     document.getElementById('miniClose').addEventListener('click', closeMini);
     document.getElementById('setClassicBtn').addEventListener('click', ()=>exit());
@@ -15840,7 +16176,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     document.getElementById('viewToggle').addEventListener('click', e => { e.preventDefault(); enter(); });
     document.getElementById('graphSpaceBtn').addEventListener('click', enter);
     const ALIAS = {backup:'settings'};   // people is its own dock item
-    return {enter, exit, closePanel, closeMini, refreshDock: renderDock,
+    return {enter, exit, closePanel, closeMini, openMini, refreshDock: renderDock,
             isSpace: () => document.body.classList.contains('space'),
             active: () => active,
             open: (k, opts) => {
