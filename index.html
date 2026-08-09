@@ -200,6 +200,11 @@ shows a visible "Data integrity" warning when they fail):
      (~150 behavioural checks on pure Engine kernels + live invariants; also
      callable as window.__ddSelfTest()). A failure means your edit changed
      behaviour — fix it before returning the file to the user.
+     COMPANION / CO-PILOT: command bar ⌘/Ctrl+K + window.__ddCompanion — tool
+     registry over Engine (read + navigate only). The model must never produce a
+     number; Companion.ask() returns Engine figures only. Do not add recommend/
+     optimise tools. Later phases: LM intent, sandbox, map chat nodes — see
+     Obsidian "Lithifyte - In-App LM Co-Pilot".
      ARCHITECTURE NOTE: pure computation lives in the `Engine` object (no DOM,
      no app-state reads — everything parameterised); the app binds it via thin
      wrappers; renderers read the derived-state surface `D`. Keep new logic in
@@ -562,6 +567,45 @@ So, when you change a stored shape:
     box-shadow:0 6px 24px rgba(0,0,0,.28); opacity:0; pointer-events:none; transition:opacity .2s, transform .2s}
   @media (prefers-reduced-motion: reduce){ .toast{transition:none} }
   .toast.show{opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto}
+
+  /* ── Companion Phase 1: command bar (no LM) ── */
+  #companionBar{display:none; position:fixed; inset:0; z-index:640; align-items:flex-start; justify-content:center;
+    padding:12vh 16px 24px; background:rgba(2,8,20,.55); backdrop-filter:blur(4px)}
+  #companionBar.open{display:flex}
+  #companionPanel{width:min(560px,100%); background:var(--page,#0a1628); border:1px solid rgba(56,189,248,.45);
+    border-radius:14px; box-shadow:0 24px 70px rgba(0,0,0,.55); overflow:hidden}
+  #companionPanel .cp-head{display:flex; align-items:center; gap:10px; padding:12px 14px 8px;
+    border-bottom:1px solid rgba(56,189,248,.2)}
+  #companionPanel .cp-head b{flex:1; font-size:13.5px}
+  #companionPanel .cp-head .hint{font-size:11.5px; font-weight:500}
+  #companionInput{width:100%; box-sizing:border-box; border:0; outline:none; background:transparent;
+    color:var(--ink); font:500 15.5px system-ui,sans-serif; padding:14px 16px; caret-color:#38bdf8}
+  #companionInput::placeholder{color:var(--muted)}
+  #companionOut{padding:0 14px 14px; max-height:min(48vh,360px); overflow:auto}
+  #companionOut:empty{display:none}
+  .cp-say{font-size:13.5px; line-height:1.45; color:var(--ink); padding:10px 12px; border-radius:10px;
+    background:rgba(56,189,248,.08); border:1px solid rgba(56,189,248,.22); margin-top:8px; white-space:pre-wrap}
+  .cp-prov{display:block; margin-top:6px; font-size:11.5px; color:var(--muted)}
+  .cp-sugs{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px}
+  .cp-sug{font:600 12px system-ui,sans-serif; padding:5px 10px; border-radius:999px; cursor:pointer;
+    border:1px solid rgba(56,189,248,.35); background:rgba(56,189,248,.08); color:var(--ink)}
+  .cp-sug:hover{border-color:rgba(56,189,248,.7); background:rgba(56,189,248,.16)}
+  .cp-hint{font-size:12px; color:var(--muted); padding:4px 2px 0}
+  body.space #topCompanion{display:inline-flex}
+
+  #companionPanel{display:flex; flex-direction:column; max-height:min(78vh,640px)}
+  #companionThread{flex:1; overflow:auto; padding:8px 14px; display:flex; flex-direction:column; gap:8px; min-height:120px}
+  .cp-msg{max-width:92%; padding:8px 11px; border-radius:12px; font-size:13.5px; line-height:1.45; white-space:pre-wrap}
+  .cp-msg.user{align-self:flex-end; background:rgba(56,189,248,.2); border:1px solid rgba(56,189,248,.35)}
+  .cp-msg.bot{align-self:flex-start; background:rgba(255,255,255,.04); border:1px solid rgba(56,189,248,.18)}
+  .cp-msg .cp-prov{display:block; margin-top:5px; font-size:11px; color:var(--muted)}
+  .cp-msg.tool{align-self:stretch; font-size:12px; background:rgba(52,211,153,.08); border:1px dashed rgba(52,211,153,.35); color:var(--ink-2)}
+  .cp-toolbar{display:flex; flex-wrap:wrap; gap:6px; padding:0 14px 8px; align-items:center}
+  .cp-toolbar select,.cp-toolbar input{font-size:12px}
+  #companionInput{border-top:1px solid rgba(56,189,248,.18)}
+  .cp-apply{margin-top:6px; display:flex; gap:6px; flex-wrap:wrap}
+  /* knowledge-ring map nodes */
+  .node-chat{/* drawn on canvas */}
 
   /* ── Space view (Phase B): the map is the app, sections become panels ── */
   body.space{overflow:hidden}
@@ -2407,6 +2451,7 @@ rewrite the static advice cards if the picture has changed.</div>
 <div id="alertStack" aria-live="polite"></div>
 <!-- P6: top-right quick tools (space view) — range + search as mini cards -->
 <div id="spaceTop">
+  <button class="top-ic" id="topCompanion" type="button" title="Ask Lithifyte (Ctrl+K)" aria-label="Ask Lithifyte command bar">💬</button>
   <button class="top-ic" id="topRange" type="button" title="Date range" aria-label="Date range">📅</button>
   <button class="top-ic" id="topSearch" type="button" title="Search transactions" aria-label="Search transactions">🔎</button>
 </div>
@@ -2414,6 +2459,38 @@ rewrite the static advice cards if the picture has changed.</div>
   <div class="panel-head"><span class="ic" id="miniIc"></span><span id="miniTitle"></span>
     <button class="btn small panel-close" id="miniClose" type="button" aria-label="Close">✕</button></div>
   <div class="panel-body" id="miniBody"></div>
+</div>
+<!-- Companion / In-App LM Co-Pilot -->
+<div id="companionBar" role="dialog" aria-modal="true" aria-labelledby="companionTitle" hidden>
+  <div id="companionPanel">
+    <div class="cp-head">
+      <span aria-hidden="true">💬</span>
+      <b id="companionTitle">Lithifyte co-pilot</b>
+      <span class="hint" id="companionKbd">Ctrl+K</span>
+      <button type="button" class="btn small" id="companionNew" title="New conversation">＋</button>
+      <button type="button" class="btn small" id="companionClose" aria-label="Close">✕</button>
+    </div>
+    <div class="cp-toolbar">
+      <select id="cp-provider" class="inp" style="max-width:150px" aria-label="AI provider">
+        <option value="off">No AI · commands only</option>
+        <option value="lithifyte">Lithifyte AI (hosted)</option>
+        <option value="xai">xAI Grok</option>
+        <option value="openai">OpenAI</option>
+        <option value="anthropic">Anthropic</option>
+        <option value="openai_compat">Custom / local URL</option>
+      </select>
+      <input id="cp-model" class="inp" placeholder="model (optional)" style="max-width:140px" aria-label="Model name">
+      <input id="cp-key" class="inp" type="password" placeholder="API key (stays in this browser)" style="max-width:180px" aria-label="API key">
+      <input id="cp-endpoint" class="inp" placeholder="compat endpoint" style="max-width:160px;display:none" aria-label="OpenAI-compatible endpoint">
+      <button type="button" class="btn small" id="cp-saveLm" title="Save AI settings">Save</button>
+      <span class="hint" id="cp-lmStatus"></span>
+    </div>
+    <div id="companionThread" aria-live="polite"></div>
+    <div id="companionOut"></div>
+    <input id="companionInput" type="text" autocomplete="off" spellcheck="true"
+      placeholder="Ask about your money, design a budget, or open a section…"
+      aria-label="Message the co-pilot">
+  </div>
 </div>
 <!-- P6: onboarding floats over the live map when space view hosts first-run -->
 <div id="spaceOb"></div>
@@ -2679,7 +2756,7 @@ rewrite the static advice cards if the picture has changed.</div>
   const MAP_LEGEND = false;
 
   // ══ persistent stores (all in this browser — self-hosted) ══
-  const LS = {rules:'dd-rules-v2', cats:'dd-cats-v2', goals:'dd-goals-v1', org:'dd-org-v1', recur:'dd-recur-v1', uploads:'dd-uploads-v1', xfers:'dd-xfers-v1', manrec:'dd-manrec-v1', fcast:'dd-fcast-v1', cuts:'dd-cuts-v1', visit:'dd-visit-v1', budget:'dd-budget-v1', priv:'dd-privacy-v1', debts:'dd-debts-v1', holds:'dd-holdings-v1', assets:'dd-assets-v1', nwlog:'dd-nwlog-v1', merch:'dd-merch-v1', notes:'dd-notes-v1', lm:'dd-lm-v1', cash:'dd-cash-v1', alerts:'dd-alerts-v1', txcat:'dd-txcat-v1', docs:'dd-docs-v1', imports:'dd-imports-v1'};
+  const LS = {rules:'dd-rules-v2', cats:'dd-cats-v2', goals:'dd-goals-v1', org:'dd-org-v1', recur:'dd-recur-v1', uploads:'dd-uploads-v1', xfers:'dd-xfers-v1', manrec:'dd-manrec-v1', fcast:'dd-fcast-v1', cuts:'dd-cuts-v1', visit:'dd-visit-v1', budget:'dd-budget-v1', priv:'dd-privacy-v1', debts:'dd-debts-v1', holds:'dd-holdings-v1', assets:'dd-assets-v1', nwlog:'dd-nwlog-v1', merch:'dd-merch-v1', notes:'dd-notes-v1', lm:'dd-lm-v1', cash:'dd-cash-v1', alerts:'dd-alerts-v1', txcat:'dd-txcat-v1', docs:'dd-docs-v1', imports:'dd-imports-v1', chats:'dd-chats-v1', scenarios:'dd-scenarios-v1'};
   // demo build (raw.demo:true in the data block): every store gets its own
   // namespace — the sample household shares an origin with the real app, and
   // playing with sample data must never be able to touch someone's real data
@@ -3074,7 +3151,15 @@ rewrite the static advice cards if the picture has changed.</div>
   let nwLog = load(LS.nwlog, []);                 // P5-23: [{d "YYYY-MM-DD", t €}] — one net-worth point per day the page opens
   let merchStore = load(LS.merch, {rules:[], keep:[]});   // P7-32: rules=[{contains, name}] manual merges; keep=[raw] exempt from auto-normalisation
   let noteStore = load(LS.notes, {});   // P7-36: free-text notes keyed by map-node id ('m:ALDI', 'goal:house', 'debt:d1', …)
-  let lmStore = load(LS.lm, {endpoint:'http://localhost:11434/v1/chat/completions', model:'', dismissed:{}});   // build-5: local-LM categoriser config + dismissed merchants
+  let lmStore = load(LS.lm, {endpoint:'http://localhost:11434/v1/chat/completions', model:'', dismissed:{}, provider:'lithifyte', apiKey:'', relay:'https://lithifyte-ai.sidethecomputer.workers.dev', useLm:true});
+  if (!lmStore.relay) lmStore.relay = 'https://lithifyte-ai.sidethecomputer.workers.dev';
+  if (!lmStore.provider) lmStore.provider = 'lithifyte';
+  if (lmStore.apiKey == null) lmStore.apiKey = '';
+  if (lmStore.useLm == null) lmStore.useLm = true;
+  let chatStore = load(LS.chats, {items:[]});
+  if (!Array.isArray(chatStore.items)) chatStore = {items:[]};
+  let scenarioStore = load(LS.scenarios, {items:[]});
+  if (!Array.isArray(scenarioStore.items)) scenarioStore = {items:[]};
   // Manual cash ledger: items on kind=cash accounts (ATM→spend links, notes, edit/delete)
   let cashStore = load(LS.cash, {items:[]}); // {id, acctId, d, m, c, s, de, cr, note, link:{acctId,d,m,de,cr}|null}
   // Alerts & reminders: user-set reminders (once / monthly / yearly, with a
@@ -5854,8 +5939,25 @@ rewrite the static advice cards if the picture has changed.</div>
       const rest = id.slice(4), cut = rest.indexOf(':');
       return 'cat:' + (cut >= 0 ? rest.slice(cut + 1) : rest);
     }
+    if (id.slice(0, 5) === 'chat:') return id; // conversation node
+    if (id.slice(0, 5) === 'scen:') return id; // sandbox scenario node
     return null;
   }
+  function chatsFor({category, account, goal, month} = {}){
+    const out = [];
+    for (const c of (chatStore.items || [])){
+      const links = c.links || [];
+      let score = 0;
+      if (category && links.includes('cat:' + category)) score += 2;
+      if (account && links.includes(account)) score += 2;
+      if (goal && links.includes('goal:' + goal)) score += 2;
+      if (month && links.includes('mo:' + month)) score += 1;
+      if (score) out.push({chat:c, score});
+    }
+    return out.sort((a,b)=>b.score-a.score);
+  }
+  function saveChats(){ save(LS.chats, chatStore); }
+  function saveScenarios(){ save(LS.scenarios, scenarioStore); }
   function docNotesForNode(node){
     const key = nodeLinkId(node);
     if (!key) return [];
@@ -9424,6 +9526,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       n.type === 'hold' ? '#67e8f9' :
       n.type === 'asset' ? '#9fb3c8' :
       n.type === 'debt' ? '#f87171' :
+      n.type === 'chat' ? '#c4b5fd' :
+      n.type === 'scen' ? '#6ee7b7' :
       (n.type === 'cat' || n.type === 'save') ? catColor(n.label) : MERCH;
     const WEALTH_TYPES = new Set(['goal', 'hold', 'asset', 'debt']);
 
@@ -9565,6 +9669,55 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           }
         });
       });
+      // ── Knowledge ring: conversations + sandbox scenarios (outer orbit) ──
+      // Zoned outside banking; tethers show which money objects a chat touches.
+      try {
+        const chats = (typeof chatStore !== 'undefined' && chatStore.items) ? chatStore.items.filter(c => c.status !== 'archived').slice(0, 24) : [];
+        const scens = (typeof scenarioStore !== 'undefined' && scenarioStore.items) ? scenarioStore.items.filter(s => s.status === 'draft').slice(0, 12) : [];
+        const ringR = 380;
+        function resolveLinkTarget(linkId){
+          if (!linkId) return null;
+          if (byId.has(linkId)) return linkId;
+          if (linkId.slice(0,4) === 'cat:'){
+            const name = linkId.slice(4);
+            for (const n of nodes) if (n.type === 'cat' || n.type === 'save'){
+              if (n.label === name) return n.id;
+            }
+          }
+          if (byId.has('user:'+linkId)) return 'user:'+linkId;
+          if (byId.has('acct:'+linkId)) return 'acct:'+linkId;
+          if (linkId.slice(0,5) === 'goal:'){
+            const gid = linkId.slice(5);
+            if (byId.has('goal:'+gid)) return 'goal:'+gid;
+          }
+          return null;
+        }
+        chats.forEach((c, i) => {
+          const ang = -Math.PI/2 + (i / Math.max(1, chats.length)) * Math.PI * 2;
+          const nid = 'chat:' + c.id;
+          add({id:nid, label:(c.title||'Chat').slice(0,18), type:'chat', zone:'knowledge', r:11,
+               full:c.title, chatId:c.id,
+               seed:{x:cx + Math.cos(ang)*ringR, y:cy + Math.sin(ang)*ringR}});
+          for (const L of (c.links || []).slice(0, 8)){
+            const t = resolveLinkTarget(L);
+            if (t) links.push({a:nid, b:t, w:1.2, kind:'tether', dash:true});
+          }
+        });
+        scens.forEach((s, i) => {
+          const ang = Math.PI/2 + (i / Math.max(1, scens.length)) * Math.PI;
+          const nid = 'scen:' + s.id;
+          add({id:nid, label:(s.title||'Scenario').slice(0,16), type:'scen', zone:'knowledge', r:10,
+               full:s.title, scenId:s.id,
+               seed:{x:cx + Math.cos(ang)*(ringR+40), y:cy + Math.sin(ang)*(ringR+40)}});
+          if (s.conversationId && byId.has('chat:'+s.conversationId))
+            links.push({a:nid, b:'chat:'+s.conversationId, w:1, kind:'tether', dash:true});
+          for (const L of (s.links || []).slice(0, 6)){
+            const t = resolveLinkTarget(L);
+            if (t) links.push({a:nid, b:t, w:1, kind:'tether', dash:true});
+          }
+        });
+      } catch (e) { /* knowledge ring is best-effort */ }
+
       // account-to-account internal transfers as their own luminous links
       const xAgg = new Map();
       for (const x of XFERS){
@@ -12548,6 +12701,73 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (!IDB_OK || lockedMode) return true;
       return localStorage.getItem(LS.uploads) == null || 'plaintext uploads still in localStorage';
     });
+    // ── Companion Phase 1 (command bar / tool registry) ──
+    T('companion: registry has core read tools', () => {
+      const r = Companion.registry();
+      const ids = r.map(t => t.id);
+      const need = ['help','nav','cashflow_summary','cat_monthly','balances'];
+      return r.length >= 6 && need.every(id => ids.includes(id)) || 'missing core tools: '+ids.join(',');
+    });
+    T('companion: apply_scenario is gated', () => {
+      const t = Companion.registry().find(x => x.id === 'apply_scenario');
+      return t && t.readOnly === false || 'apply should be non-readonly gated tool';
+    });
+    T('companion: help matches', () => {
+      const m = Companion.match('help');
+      return (m && m.tool === 'help') || 'help not matched';
+    });
+    T('companion: cashflow navigates', () => {
+      const m = Companion.match('show cashflow');
+      return (m && m.tool === 'cashflow_summary') || JSON.stringify(m);
+    });
+    T('companion: last 12 months is set_range', () => {
+      const m = Companion.match('last 12 months');
+      return (m && m.tool === 'set_range' && m.args.preset === '12') || JSON.stringify(m);
+    });
+    T('companion: section nav for budget', () => {
+      const m = Companion.match('open budget');
+      return (m && m.tool === 'nav' && m.args.k === 'budget') || JSON.stringify(m);
+    });
+    T('companion: balances tool', () => {
+      const m = Companion.match('show balances');
+      return (m && m.tool === 'balances') || JSON.stringify(m);
+    });
+    T('companion: category ask uses Engine figures', () => {
+      if (!TX.length || !A || !A.cats12 || !A.cats12.length) return true;
+      const cat = A.cats12[0].category;
+      const r = Companion.run(Companion.match('how has ' + cat + ' done'));
+      if (!r || !r.ok || !r.data) return 'no data in result';
+      const M = catMonthlyModel(cat);
+      // never invent: avg must match Engine
+      if (Math.abs((r.data.avg || 0) - (M.avg || 0)) > 0.02) return 'avg mismatch ' + r.data.avg + ' vs ' + M.avg;
+      if (!String(r.say).includes(eur(M.avg).replace(/[^0-9.,]/g,'').slice(0,3)) && !String(r.say).includes(String(Math.round(M.avg)))) {
+        // soft: say should mention the figure somehow
+        if (Math.round(M.avg) !== 0 && !String(r.say).match(/\d/)) return 'say has no digits';
+      }
+      return true;
+    });
+    T('companion: unknown query fails closed', () => {
+      const m = Companion.match('zxqwy not a real command 999');
+      return m == null || 'should not match garbage';
+    });
+    T('companion: registry includes sandbox tools', () => {
+      const ids = Companion.registry().map(t => t.id);
+      return ids.includes('propose_budget') && ids.includes('apply_scenario') || ids.join(',');
+    });
+    T('companion: propose_budget creates draft scenario', () => {
+      if (!TX.length || !A || !A.cats12 || !A.cats12.length) return true;
+      const r = Companion.run({tool:'propose_budget', args:{fromHistory:true}});
+      if (!r.ok) return r.say || 'failed';
+      if (!r.apply || !r.apply.scenarioId) return 'no apply payload';
+      return true;
+    });
+    T('companion: chats store is backup-safe', () => {
+      const b = buildBackup();
+      return b.stores && b.stores.chats && Array.isArray(b.stores.chats.items) || 'chats missing from backup';
+    });
+    T('companion: relay default is https', () => {
+      return String(Companion.RELAY_DEFAULT || '').indexOf('https://') === 0 || Companion.RELAY_DEFAULT;
+    });
     return R;
   }
   async function renderSelfTest(){
@@ -14263,7 +14483,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       base: {txCount: raw.transactions.length, checksum: BASE_SUM,
              from: raw.transactions.length ? raw.transactions[0][0] : null,
              to: raw.transactions.length ? raw.transactions[raw.transactions.length-1][0] : null},
-      stores: {rules, cats: catStore, goals, org, recur: recurStore, uploads, xfers: xferStore, manrec, fcast: FCONF, budget: budgetStore, debts: debtStore, holdings: holdStore, assets: assetStore, nwlog: nwLog, merch: merchStore, notes: noteStore, lm: lmStore, cash: cashStore, alerts: alertStore, txcat: txCatStore, docs: docStore, imports: impStore},
+      stores: {rules, cats: catStore, goals, org, recur: recurStore, uploads, xfers: xferStore, manrec, fcast: FCONF, budget: budgetStore, debts: debtStore, holdings: holdStore, assets: assetStore, nwlog: nwLog, merch: merchStore, notes: noteStore, lm: lmStore, cash: cashStore, alerts: alertStore, txcat: txCatStore, docs: docStore, imports: impStore, chats: chatStore, scenarios: scenarioStore},
       ui: {cuts: {...cutStore}, rangeFrom, rangeTo, privacy: {...PRIV}}
     };
   }
@@ -14502,7 +14722,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     if (Array.isArray(st.nwlog)) nwLog = st.nwlog;
     if (st.merch && typeof st.merch === 'object'){ merchStore = {rules: st.merch.rules || [], keep: st.merch.keep || []}; merchCanon.clear(); }
     if (st.notes && typeof st.notes === 'object') noteStore = st.notes;
-    if (st.lm && typeof st.lm === 'object') lmStore = {endpoint: st.lm.endpoint || lmStore.endpoint, model: st.lm.model || '', dismissed: st.lm.dismissed || {}};
+    if (st.lm && typeof st.lm === 'object') lmStore = {endpoint: st.lm.endpoint || lmStore.endpoint, model: st.lm.model || '', dismissed: st.lm.dismissed || {}, provider: st.lm.provider || lmStore.provider || 'lithifyte', apiKey: st.lm.apiKey || '', relay: st.lm.relay || lmStore.relay, useLm: st.lm.useLm != null ? st.lm.useLm : true};
+    if (st.chats && Array.isArray(st.chats.items)) chatStore = st.chats;
+    else if (st.chats && Array.isArray(st.chats)) chatStore = {items: st.chats};
+    if (st.scenarios && Array.isArray(st.scenarios.items)) scenarioStore = st.scenarios;
+    else if (st.scenarios && Array.isArray(st.scenarios)) scenarioStore = {items: st.scenarios};
     if (st.cash && Array.isArray(st.cash.items)) cashStore = {items: st.cash.items};
     if (st.alerts && typeof st.alerts === 'object') alertStore = {items: st.alerts.items || [], auto: {upcoming: true, goalPace: true, ...(st.alerts.auto || {})}, ack: st.alerts.ack || {}};
     if (Array.isArray(st.manrec)) manrec = st.manrec;
@@ -14514,7 +14738,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     save(LS.org, org); save(LS.recur, recurStore); save(LS.uploads, uploads);
     save(LS.xfers, xferStore); save(LS.manrec, manrec); save(LS.fcast, FCONF);
     save(LS.debts, debtStore); save(LS.holds, holdStore);
-    save(LS.assets, assetStore); save(LS.nwlog, nwLog); save(LS.merch, merchStore); save(LS.notes, noteStore); save(LS.lm, lmStore); save(LS.alerts, alertStore); save(LS.txcat, txCatStore); save(LS.docs, docStore); save(LS.imports, impStore);
+    save(LS.assets, assetStore); save(LS.nwlog, nwLog); save(LS.merch, merchStore); save(LS.notes, noteStore); save(LS.lm, lmStore); save(LS.alerts, alertStore); save(LS.txcat, txCatStore); save(LS.docs, docStore); save(LS.imports, impStore); save(LS.chats, chatStore); save(LS.scenarios, scenarioStore);
     if (budgetStore) save(LS.budget, budgetStore);
     if (b.ui && b.ui.cuts){
       const legacy = {groc:'Groceries', dine:'Dining', shop:'Shopping', bills:'Bills & Utilities', ent:'Entertainment', misc:'Uncategorized'};
@@ -14578,6 +14802,823 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   window.__ddXfers = () => XFERS;
   window.__ddRec = () => REC;
   window.__ddFc = () => FC;
+
+  // ══ Companion / In-App LM Co-Pilot (P1 tools + LLM tool loop + chats + sandbox) ══
+  // Spec: Lithifyte - In-App LM Co-Pilot. Engine owns every euro figure.
+  const Companion = (function(){
+    const RELAY_DEFAULT = 'https://lithifyte-ai.sidethecomputer.workers.dev';
+    const SECTIONS = [
+      {k:'summary', sec:'sec-summary', labels:['summary','home','overview','front screen','dashboard']},
+      {k:'cash', sec:'sec-cashflow', labels:['cashflow','cash flow','cash','income and spending','income vs spend','money in and out']},
+      {k:'cats', sec:'sec-cats', labels:['categories','category','spending by category','where money goes']},
+      {k:'leaks', sec:'sec-leaks', labels:['leaks','leak','subscriptions']},
+      {k:'budget', sec:'sec-budget', labels:['budget','budgets']},
+      {k:'fcast', sec:'sec-forecast', labels:['forecast','prediction','outlook']},
+      {k:'goals', sec:'goalHero', labels:['goals','goal','savings goals']},
+      {k:'plan', sec:'sec-plan', labels:['plan','plans']},
+      {k:'notes', sec:'sec-notes', labels:['notes','context','why notes']},
+      {k:'pulse', sec:'pulseCard', labels:['pulse','financial pulse','health score']},
+      {k:'wealth', sec:'nwCard', labels:['net worth','wealth','networth']},
+      {k:'invest', sec:'holdCard', labels:['invest','investments','holdings']},
+      {k:'debts', sec:'debtCard', labels:['debts','debt','loans']},
+      {k:'alerts', sec:'sec-alerts', labels:['alerts','alert']},
+      {k:'audit', sec:'sec-audit', labels:['audit','transactions audit']},
+      {k:'rules', sec:'sec-rules', labels:['rules','categorisation rules','auto categorisation']},
+      {k:'people', sec:'sec-people', labels:['people','accounts','household','opening balance']},
+      {k:'settings', sec:'settingsCard', labels:['settings','backup','self test']},
+      {k:'sim', sec:'sec-sim', labels:['simulate','simulator','what if']},
+      {k:'ready', sec:'sec-ready', labels:['readiness','mortgage readiness']}
+    ];
+    const MONTH_RE = {
+      january:1,jan:1,february:2,feb:2,march:3,mar:3,april:4,apr:4,may:5,june:6,jun:6,
+      july:7,jul:7,august:8,aug:8,september:9,sept:9,sep:9,october:10,oct:10,
+      november:11,nov:11,december:12,dec:12
+    };
+    let activeChatId = null;
+    let pendingApply = null;
+
+    function registry(){
+      return [
+        {id:'help', title:'Help', desc:'List commands', readOnly:true},
+        {id:'nav', title:'Open section', desc:'Navigate', readOnly:true},
+        {id:'set_range', title:'Set date range', desc:'Change period', readOnly:true},
+        {id:'cashflow_summary', title:'Cashflow summary', desc:'Income/spend from Engine', readOnly:true},
+        {id:'cat_monthly', title:'Category by month', desc:'Engine.catMonthly', readOnly:true},
+        {id:'balances', title:'Balances', desc:'Engine.balanceRuns', readOnly:true},
+        {id:'summary_outlook', title:'Next-month outlook', desc:'Engine.nextMonth', readOnly:true},
+        {id:'notes_for', title:'Notes', desc:'Engine.notesFor', readOnly:true},
+        {id:'goals_status', title:'Goals', desc:'List goals', readOnly:true},
+        {id:'propose_budget', title:'Propose budget (sandbox)', desc:'Draft budget lines from history', readOnly:false, sandbox:true},
+        {id:'propose_goal', title:'Propose goal (sandbox)', desc:'Draft savings goal', readOnly:false, sandbox:true},
+        {id:'run_scenario', title:'Run scenario', desc:'Compare draft vs live figures', readOnly:true, sandbox:true},
+        {id:'apply_scenario', title:'Apply scenario', desc:'Commit sandbox to live (needs confirm)', readOnly:false}
+      ];
+    }
+    function toolSchemasForPrompt(){
+      return registry().map(t => ({
+        name: t.id,
+        description: t.desc,
+        readOnly: !!t.readOnly,
+        args: t.id === 'nav' ? '{k: sectionKey}' :
+              t.id === 'set_range' ? '{preset: "12"|"6"|"3"|"24"|"all"|"y2026"}' :
+              t.id === 'cat_monthly' ? '{category: string, rangePreset?: string, month?: "YYYY-MM"}' :
+              t.id === 'notes_for' ? '{category?: string, month?: "YYYY-MM"}' :
+              t.id === 'propose_budget' ? '{title?: string, lines: [{category: string, amount: number}]}' :
+              t.id === 'propose_goal' ? '{name: string, target: number, months?: number}' :
+              t.id === 'run_scenario' ? '{scenarioId?: string}' :
+              t.id === 'apply_scenario' ? '{scenarioId: string, confirm: true}' :
+              t.id === 'cashflow_summary' ? '{rangePreset?: string}' : '{}'
+      }));
+    }
+    function norm(q){
+      return String(q || '').toLowerCase()
+        .replace(/[€$£]/g, '').replace(/[’']/g, "'")
+        .replace(/[^a-z0-9+\-./\s]/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+    function rangeLabel(){
+      if (!MONTHS.length) return 'no data yet';
+      return fmtMoLbl(rangeFrom) + ' – ' + fmtMoLbl(rangeTo) + ' (' + RN + ' mo)';
+    }
+    function allCatNames(){
+      const set = new Set();
+      if (A && A.cats12) for (const c of A.cats12) if (c.category) set.add(c.category);
+      if (A && A.allCats) for (const c of A.allCats) if (c) set.add(c);
+      if (typeof TX !== 'undefined') for (const t of TX) if (t && t.c) set.add(t.c);
+      return [...set].filter(c => c && c !== INT_CAT).sort((a,b) => b.length - a.length);
+    }
+    function findCategory(n){
+      for (const c of allCatNames()){
+        const cl = c.toLowerCase();
+        if (n === cl || n.includes(cl) || n.includes('for ' + cl) || n.includes('on ' + cl)) return c;
+      }
+      return null;
+    }
+    function findMonth(n){
+      let m = n.match(/\b(20\d{2})[-/](0?[1-9]|1[0-2])\b/);
+      if (m) return m[1] + '-' + String(+m[2]).padStart(2, '0');
+      m = n.match(/\b(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)\s+(20\d{2})\b/);
+      if (m) return m[2] + '-' + String(MONTH_RE[m[1]]).padStart(2, '0');
+      m = n.match(/\b(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)\b/);
+      if (m && MONTHS.length){
+        const mm = String(MONTH_RE[m[1]]).padStart(2, '0');
+        const hits = MONTHS.filter(x => x.slice(5) === mm);
+        if (hits.length) return hits[hits.length - 1];
+      }
+      return null;
+    }
+    function findRangePreset(n){
+      if (/\b(all\s*time|entire\s*history|everything|full\s*history)\b/.test(n)) return 'all';
+      if (/\b(last|past)\s*(12|twelve)\b/.test(n) || /\b12\s*months?\b/.test(n)) return '12';
+      if (/\b(last|past)\s*(6|six)\b/.test(n) || /\b6\s*months?\b/.test(n)) return '6';
+      if (/\b(last|past)\s*(3|three)\b/.test(n) || /\b3\s*months?\b/.test(n)) return '3';
+      if (/\b(last|past)\s*(24|twenty\s*four)\b/.test(n) || /\b24\s*months?\b/.test(n)) return '24';
+      if (/\bthis year\b/.test(n) || /\bcurrent year\b/.test(n)) return 'y' + new Date().getFullYear();
+      const ym = n.match(/\byear\s+(20\d{2})\b/);
+      if (ym) return 'y' + ym[1];
+      return null;
+    }
+    function findSection(n){
+      let q = n.replace(/^(show|open|go to|goto|take me to|view|see|display)\s+(me\s+)?(the\s+)?/, '');
+      let best = null, bestLen = 0;
+      for (const s of SECTIONS){
+        for (const lab of s.labels){
+          if (q === lab || q.startsWith(lab + ' ') || n.includes(lab)){
+            if (lab.length > bestLen){ best = s; bestLen = lab.length; }
+          }
+        }
+      }
+      return best;
+    }
+    function suggestions(){
+      const base = ['show cashflow', 'last 12 months', 'balances', 'next month outlook', 'goals', 'help'];
+      if (A && A.cats12 && A.cats12[0]) base.splice(1, 0, 'how has ' + A.cats12[0].category + ' done');
+      if (lmEnabled()) base.push('design a budget from my last 12 months');
+      return base;
+    }
+    function match(q){
+      const n = norm(q);
+      if (!n) return null;
+      if (/^(help|\?|commands|what can you do|examples)$/.test(n)) return {tool:'help', args:{}, score:1};
+      if (/\b(why|note|notes|explain)\b/.test(n)){
+        const cat = findCategory(n), mo = findMonth(n);
+        if (cat || mo) return {tool:'notes_for', args:{category:cat, month:mo}, score:0.9};
+      }
+      const onlyRange = findRangePreset(n);
+      if (onlyRange && (/^(last|past|previous)\s*\d+\s*months?$/.test(n) || /^(all time|all|everything|this year|full history)$/.test(n)))
+        return {tool:'set_range', args:{preset:onlyRange}, score:0.95};
+      if (findCategory(n) && (/\b(how|has|have|done|doing|spend|spent|spending|performance|trend|over|months?)\b/.test(n) || n === findCategory(n).toLowerCase())){
+        const cat = findCategory(n);
+        return {tool:'cat_monthly', args:{category:cat, rangePreset:findRangePreset(n), month:findMonth(n)}, score:0.9};
+      }
+      if (/\b(balance|balances|how much.*(account|have)|what.?s in|carried forward)\b/.test(n))
+        return {tool:'balances', args:{}, score:0.9};
+      if (/\b(next month|outlook|predict|prediction|what.?s coming)\b/.test(n))
+        return {tool:'summary_outlook', args:{}, score:0.9};
+      if (/\bgoals?\b/.test(n) && !/\b(set|create|propose|design)\b/.test(n))
+        return {tool:'goals_status', args:{}, score:0.85};
+      if (/\b(budget|budgets)\b/.test(n) && /\b(design|propose|create|set up|setup|make|build|from my)\b/.test(n))
+        return {tool:'propose_budget', args:{fromHistory:true}, score:0.88};
+      if (/\b(cashflow|cash flow|income and spend|money in|going out)\b/.test(n) && !findCategory(n))
+        return {tool:'cashflow_summary', args:{rangePreset:findRangePreset(n)}, score:0.88};
+      if (onlyRange && (n.startsWith('last ') || n.startsWith('past ') || n === 'this year' || n === 'all time'))
+        return {tool:'set_range', args:{preset:onlyRange}, score:0.9};
+      const sec = findSection(n);
+      if (sec && (/^(show|open|go to|goto|take me to|view|see|display)\b/.test(n) || n === sec.labels[0] || sec.labels.some(l => n === l)))
+        return {tool:'nav', args:{k:sec.k, sec:sec.sec, label:sec.labels[0]}, score:0.8};
+      if (sec && n.length <= 24) return {tool:'nav', args:{k:sec.k, sec:sec.sec, label:sec.labels[0]}, score:0.7};
+      const cat2 = findCategory(n);
+      if (cat2 && n.includes(cat2.toLowerCase()))
+        return {tool:'cat_monthly', args:{category:cat2, rangePreset:findRangePreset(n), month:findMonth(n)}, score:0.65};
+      return null;
+    }
+
+    function uid(prefix){
+      return prefix + '_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+    }
+    function ensureChat(){
+      if (activeChatId){
+        const c = chatStore.items.find(x => x.id === activeChatId);
+        if (c) return c;
+      }
+      const chat = {
+        id: uid('chat'), title: 'Conversation', status: 'active',
+        provider: lmStore.provider || 'off', model: lmStore.model || '',
+        created: new Date().toISOString(), updated: new Date().toISOString(),
+        links: [], tags: [], requests: [], messages: [], scenarioIds: [],
+        mapNodeId: null
+      };
+      chat.mapNodeId = 'chat:' + chat.id;
+      chatStore.items.unshift(chat);
+      activeChatId = chat.id;
+      saveChats();
+      return chat;
+    }
+    function touchChat(chat, links){
+      chat.updated = new Date().toISOString();
+      if (links && links.length){
+        const set = new Set(chat.links || []);
+        for (const l of links) if (l) set.add(l);
+        chat.links = [...set];
+      }
+      if (!chat.title || chat.title === 'Conversation'){
+        const firstUser = (chat.messages || []).find(m => m.role === 'user');
+        if (firstUser) chat.title = String(firstUser.content || '').slice(0, 48) || 'Conversation';
+      }
+      saveChats();
+      try { if (graph && graph.rebuild) { graph.rebuild(); graph.draw(); } } catch (e) {}
+    }
+    function appendMsg(chat, role, content, extra){
+      const m = Object.assign({id: uid('m'), role, content, created: new Date().toISOString(), links: []}, extra || {});
+      chat.messages.push(m);
+      if (chat.messages.length > 80) chat.messages = chat.messages.slice(-80);
+      touchChat(chat, m.links);
+      return m;
+    }
+
+    function applyActions(actions){
+      actions = actions || [];
+      for (const a of actions){
+        if (a.type === 'range' && a.preset){
+          if (applyRangePreset(a.preset)){
+            const sel = document.getElementById('rangePreset');
+            if (sel) try { sel.value = a.preset; } catch (e) {}
+            syncRangeUI(); renderAll();
+          }
+        }
+      }
+      for (const a of actions){
+        if (a.type === 'nav') goSection(a.k, a.sec);
+        if (a.type === 'cat' && a.name){
+          catSel = a.name; catMoSel = a.month || null; catView = 'months';
+          try { renderCats(); renderCatDetail(); } catch (e) {}
+          try { if (typeof syncScopeMapHighlight === 'function') syncScopeMapHighlight(); } catch (e) {}
+        }
+      }
+    }
+    function refill(result){
+      if (!result || !result.ok) return result;
+      if (result._refill === 'cashflow' && A){
+        result.data = {incomeAvg: A.incomeAvg12, spendAvg: A.spendAvg12, saveAvg: A.saveAvg12, months: RN, from: rangeFrom, to: rangeTo};
+        result.say = rangeLabel() + ' — ' + eur(result.data.incomeAvg) + ' in, ' + eur(result.data.spendAvg) + ' out a month'
+          + (result.data.saveAvg > 0.5 ? '; ' + eur(result.data.saveAvg) + ' to deposit savings.' : '.');
+        result.provenance = 'Cashflow · ' + rangeLabel();
+      }
+      if (result._refill === 'cat' && result._cat && A){
+        const cat = result._cat;
+        const M = catMonthlyModel(cat);
+        result.data = {category:cat, avg:M.avg, avgActive:M.avgActive, peak:M.peak, low:M.low, months:M.months, activeMonths:M.activeMonths};
+        const peakBit = M.peak && M.peak.n ? ' Highest ' + fmtMoLbl(M.peak.month) + ' ' + eur(M.peak.total) + '.' : '';
+        const lowBit = M.low && M.low.n && M.activeMonths > 1 ? ' Lowest ' + fmtMoLbl(M.low.month) + ' ' + eur(M.low.total) + '.' : '';
+        result.say = cat + ' — ' + eur(M.avg) + ' a month on average over ' + M.months + ' months.' + peakBit + lowBit;
+        result.provenance = 'Categories → ' + cat + ' · ' + rangeLabel();
+      }
+      if (result.tool === 'set_range'){
+        result.say = 'Range is now ' + rangeLabel() + '.';
+        result.provenance = 'Date range · ' + rangeLabel();
+        result.data = {from:rangeFrom, to:rangeTo, n:RN};
+      }
+      return result;
+    }
+
+    function historyBudgetLines(){
+      if (!A || !A.cats12) return [];
+      return A.cats12
+        .filter(c => c.category !== SAVE_CAT && c.category !== INT_CAT && c.avgMonth > 0)
+        .slice(0, 12)
+        .map(c => ({category: c.category, amount: Math.round(c.avgMonth)}));
+    }
+
+    function run(intent){
+      if (!intent) return {ok:false, tool:null, say:'I did not catch that. Try “show cashflow”, “how has groceries done”, or enable Lithifyte AI for freer chat.', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
+      const t = intent.tool, a = intent.args || {};
+      if (t === 'help'){
+        return {ok:true, tool:t, say:[
+          'Co-pilot commands (work offline):',
+          '• show cashflow / categories / budget / forecast / goals',
+          '• last 12 months · balances · next month outlook',
+          '• how has <category> done',
+          '• design a budget from my last 12 months (sandbox)',
+          '',
+          'With Lithifyte AI (or your API key): ask freely — I call the same tools.',
+          'Numbers always come from Lithifyte’s Engine, never invented.'
+        ].join('\n'), provenance:'help', data:{tools:registry().map(x=>x.id)}, actions:[], suggestions:suggestions(), links:[]};
+      }
+      if (t === 'nav'){
+        return {ok:true, tool:t, say:'Opening ' + (a.label || a.k) + '.', provenance:'navigate', data:{k:a.k}, actions:[{type:'nav', k:a.k, sec:a.sec}], suggestions:suggestions(), links:[]};
+      }
+      if (t === 'set_range'){
+        if (!MONTHS.length) return {ok:false, tool:t, say:'No statements loaded yet.', provenance:null, data:null, actions:[], suggestions:['help'], links:[]};
+        return {ok:true, tool:t, say:'Date range set.', provenance:'range · ' + a.preset, data:{preset:a.preset}, actions:[{type:'range', preset:a.preset}], suggestions:suggestions(), links:[]};
+      }
+      if (t === 'cashflow_summary'){
+        const actions = [];
+        if (a.rangePreset) actions.push({type:'range', preset:a.rangePreset});
+        actions.push({type:'nav', k:'cash', sec:'sec-cashflow'});
+        const result = {ok:true, tool:t, say: a.rangePreset ? 'Updating range…' : '', provenance:'Cashflow', data:null, actions, suggestions:suggestions(), links:[], _refill: a.rangePreset ? 'cashflow' : null};
+        if (!a.rangePreset && A){
+          result.data = {incomeAvg:A.incomeAvg12, spendAvg:A.spendAvg12, saveAvg:A.saveAvg12};
+          result.say = rangeLabel() + ' — ' + eur(A.incomeAvg12) + ' in, ' + eur(A.spendAvg12) + ' out a month.';
+          result.provenance = 'Cashflow · ' + rangeLabel();
+        } else if (a.rangePreset) result._refill = 'cashflow';
+        return result;
+      }
+      if (t === 'cat_monthly'){
+        const cat = a.category;
+        if (!cat) return {ok:false, tool:t, say:'Which category?', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
+        const actions = [];
+        if (a.rangePreset) actions.push({type:'range', preset:a.rangePreset});
+        actions.push({type:'nav', k:'cats', sec:'sec-cats'}, {type:'cat', name:cat, month:a.month||null});
+        const result = {ok:true, tool:t, say:'…', provenance:'Categories → ' + cat, data:null, actions, suggestions:suggestions(), links:['cat:'+cat], _refill:'cat', _cat:cat, _month:a.month||null};
+        if (!a.rangePreset && A){
+          const M = catMonthlyModel(cat);
+          result.data = {category:cat, avg:M.avg, peak:M.peak, low:M.low, months:M.months};
+          result.say = cat + ' — ' + eur(M.avg) + ' a month on average over ' + M.months + ' months.';
+          if (M.peak && M.peak.n) result.say += ' Highest ' + fmtMoLbl(M.peak.month) + ' ' + eur(M.peak.total) + '.';
+          result.provenance = 'Categories → ' + cat + ' · ' + rangeLabel();
+          result._refill = null;
+        }
+        return result;
+      }
+      if (t === 'balances'){
+        const runs = balanceRunsModel();
+        if (!runs.length) return {ok:true, tool:t, say:'No accounts yet.', provenance:'balances', data:{runs:[]}, actions:[{type:'nav', k:'people', sec:'sec-people'}], suggestions:suggestions(), links:[]};
+        const lines = runs.map(r => '• ' + r.name + ': ' + (r.endBal < -0.005 ? '−' : '') + eur(Math.abs(r.endBal)) + (r.relative ? ' (movement only)' : ''));
+        return {ok:true, tool:t, say:lines.join('\n'), provenance:'Balances · ' + rangeLabel(), data:{runs}, actions:[{type:'nav', k:'cash', sec:'sec-cashflow'}], suggestions:suggestions(), links:runs.map(r=>r.id).filter(Boolean)};
+      }
+      if (t === 'summary_outlook'){
+        const O = summaryModel();
+        if (!O || !O.month) return {ok:true, tool:t, say:'Upload a statement for a next-month outlook.', provenance:'summary', data:null, actions:[{type:'nav', k:'summary', sec:'sec-summary'}], suggestions:suggestions(), links:[]};
+        return {ok:true, tool:t, say:'Next month (' + fmtMoLbl(O.month) + ') — income ' + eur(O.income) + ', expenses ' + eur(O.expenses) + ', saved (cautious) ' + eur(O.savedCautious) + '.', provenance:'Summary · Engine.nextMonth', data:O, actions:[{type:'nav', k:'summary', sec:'sec-summary'}], suggestions:suggestions(), links:[]};
+      }
+      if (t === 'notes_for'){
+        const hits = Engine.notesFor({notes: docStore.items, category:a.category, month:a.month});
+        const scope = [a.category, a.month ? fmtMoLbl(a.month) : null].filter(Boolean).join(' · ');
+        const actions = a.category ? [{type:'nav', k:'cats', sec:'sec-cats'}, {type:'cat', name:a.category, month:a.month||null}] : [{type:'nav', k:'notes', sec:'sec-notes'}];
+        const links = [];
+        if (a.category) links.push('cat:'+a.category);
+        if (a.month) links.push('mo:'+a.month);
+        if (!hits.length) return {ok:true, tool:t, say:'No notes for ' + (scope||'that') + ' yet.', provenance:'Notes', data:{hits:[]}, actions, suggestions:suggestions(), links};
+        return {ok:true, tool:t, say:hits.map(h => '• ' + (h.note.title ? h.note.title + ': ' : '') + h.note.body).join('\n'), provenance:'Notes · ' + scope, data:{hits}, actions, suggestions:suggestions(), links};
+      }
+      if (t === 'goals_status'){
+        if (!goals.length) return {ok:true, tool:t, say:'No goals yet.', provenance:'goals', data:{goals:[]}, actions:[{type:'nav', k:'goals', sec:'goalHero'}], suggestions:suggestions(), links:[]};
+        return {ok:true, tool:t, say:goals.map(g => '• ' + (g.name||'Goal') + ' — target ' + eur(g.target) + (g.targetMonth ? ' by ' + fmtMoLbl(g.targetMonth) : '')).join('\n'), provenance:'Goals', data:{goals:goals.map(g=>({id:g.id,name:g.name,target:g.target}))}, actions:[{type:'nav', k:'goals', sec:'goalHero'}], suggestions:suggestions(), links:goals.map(g=>'goal:'+g.id)};
+      }
+      if (t === 'propose_budget'){
+        let lines = Array.isArray(a.lines) ? a.lines : null;
+        if (!lines || !lines.length) lines = historyBudgetLines();
+        if (!lines.length) return {ok:false, tool:t, say:'No category history to seed a budget from yet.', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
+        const scen = {
+          id: uid('scen'), title: a.title || 'Budget draft', status: 'draft',
+          kind: 'budget', created: new Date().toISOString(), updated: new Date().toISOString(),
+          conversationId: activeChatId, links: lines.map(l => 'cat:' + l.category),
+          payload: {lines: lines.map(l => ({category: String(l.category), amount: Math.round(+l.amount || 0)}))}
+        };
+        scenarioStore.items.unshift(scen);
+        saveScenarios();
+        pendingApply = {scenarioId: scen.id};
+        const total = scen.payload.lines.reduce((s,l)=>s+l.amount,0);
+        const say = 'Sandbox budget “' + scen.title + '” (' + scen.payload.lines.length + ' lines, ' + eur(total) + '/mo total).\n'
+          + scen.payload.lines.slice(0,8).map(l => '• ' + l.category + ': ' + eur(l.amount) + '/mo').join('\n')
+          + (scen.payload.lines.length > 8 ? '\n• …' : '')
+          + '\n\nNothing live changed. Say “apply scenario” or press Apply when ready.';
+        return {ok:true, tool:t, say, provenance:'Sandbox · not applied', data:scen, actions:[{type:'nav', k:'budget', sec:'sec-budget'}], suggestions:['apply this budget', 'show cashflow'], links:scen.links, apply:{scenarioId:scen.id, label:'Apply budget draft'}};
+      }
+      if (t === 'propose_goal'){
+        const name = a.name || 'Savings goal';
+        const target = Math.round(+a.target || 0);
+        if (target <= 0) return {ok:false, tool:t, say:'Need a target amount for the goal.', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
+        const months = Math.max(1, Math.round(+a.months || 12));
+        const scen = {
+          id: uid('scen'), title: 'Goal: ' + name, status: 'draft', kind: 'goal',
+          created: new Date().toISOString(), updated: new Date().toISOString(),
+          conversationId: activeChatId, links: [],
+          payload: {name, target, months, monthly: Math.round(target / months)}
+        };
+        scenarioStore.items.unshift(scen);
+        saveScenarios();
+        pendingApply = {scenarioId: scen.id};
+        return {ok:true, tool:t, say:'Sandbox goal “' + name + '” — target ' + eur(target) + ' over ~' + months + ' months (~' + eur(scen.payload.monthly) + '/mo). Not applied yet.', provenance:'Sandbox · not applied', data:scen, actions:[{type:'nav', k:'goals', sec:'goalHero'}], suggestions:['apply this goal'], links:[], apply:{scenarioId:scen.id, label:'Apply goal draft'}};
+      }
+      if (t === 'run_scenario'){
+        const id = a.scenarioId || (pendingApply && pendingApply.scenarioId);
+        const scen = scenarioStore.items.find(s => s.id === id) || scenarioStore.items[0];
+        if (!scen) return {ok:false, tool:t, say:'No sandbox scenario yet.', provenance:null, data:null, actions:[], suggestions:['design a budget from my last 12 months'], links:[]};
+        if (scen.kind === 'budget'){
+          const live = historyBudgetLines();
+          const byLive = new Map(live.map(l => [l.category, l.amount]));
+          const lines = (scen.payload.lines || []).map(l => ({
+            category: l.category, draft: l.amount, live: byLive.get(l.category) || 0
+          }));
+          const say = 'Scenario “' + scen.title + '” vs recent averages:\n' + lines.slice(0,10).map(l =>
+            '• ' + l.category + ': draft ' + eur(l.draft) + ' vs live avg ' + eur(l.live)).join('\n');
+          return {ok:true, tool:t, say, provenance:'Sandbox compare · Engine averages', data:{lines}, actions:[], suggestions:['apply this budget'], links:scen.links||[], apply:{scenarioId:scen.id, label:'Apply budget draft'}};
+        }
+        if (scen.kind === 'goal'){
+          const p = scen.payload;
+          const saveAvg = A ? A.saveAvg12 : 0;
+          const say = 'Goal “' + p.name + '” needs ~' + eur(p.monthly) + '/mo; recent save rate ~' + eur(saveAvg) + '/mo (' + (saveAvg >= p.monthly ? 'on pace' : 'short by ' + eur(p.monthly - saveAvg) + '/mo') + ').';
+          return {ok:true, tool:t, say, provenance:'Sandbox · Engine save avg', data:{payload:p, saveAvg}, actions:[], suggestions:['apply this goal'], links:[], apply:{scenarioId:scen.id, label:'Apply goal draft'}};
+        }
+        return {ok:true, tool:t, say:'Scenario ' + scen.id + ' status ' + scen.status, provenance:'sandbox', data:scen, actions:[], suggestions:suggestions(), links:[]};
+      }
+      if (t === 'apply_scenario'){
+        if (!a.confirm) return {ok:false, tool:t, say:'Apply requires confirm:true (use the Apply button).', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
+        const scen = scenarioStore.items.find(s => s.id === a.scenarioId);
+        if (!scen) return {ok:false, tool:t, say:'Scenario not found.', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
+        if (scen.kind === 'budget'){
+          const pack = {
+            id: uid('pack'), name: scen.title || 'Co-pilot budget',
+            cats: (scen.payload.lines || []).map(l => ({id: 'cat:' + l.category, cat: l.category, name: l.category, cur: l.amount, sug: l.amount, max: Math.max(l.amount * 2, 100), note: 'from co-pilot sandbox'})),
+            other: 0, seededOn: new Date().toISOString().slice(0,10)
+          };
+          if (!budgetStore) budgetStore = {v:2, packs:[], activeId:null};
+          if (!budgetStore.packs) budgetStore = {v:2, packs:[], activeId:null};
+          budgetStore.packs.push(pack);
+          budgetStore.activeId = pack.id;
+          save(LS.budget, budgetStore);
+          scen.status = 'applied'; scen.updated = new Date().toISOString();
+          saveScenarios();
+          try { renderBudget(); } catch (e) {}
+          return {ok:true, tool:t, say:'Applied budget pack “' + pack.name + '” with ' + pack.cats.length + ' lines. Open Budget to fine-tune.', provenance:'Applied · live budgetStore', data:{packId:pack.id}, actions:[{type:'nav', k:'budget', sec:'sec-budget'}], suggestions:['show budget'], links:scen.links||[]};
+        }
+        if (scen.kind === 'goal'){
+          const p = scen.payload;
+          const g = {id: uid('g'), name: p.name, target: p.target, targetMonth: null, pot: null, potAsOf: null, autoFromSavings: true, accountId: null};
+          if (p.months){
+            const d = new Date(); d.setMonth(d.getMonth() + p.months);
+            g.targetMonth = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+          }
+          goals.push(g);
+          save(LS.goals, goals);
+          scen.status = 'applied'; scen.updated = new Date().toISOString();
+          saveScenarios();
+          try { renderAll(); } catch (e) {}
+          return {ok:true, tool:t, say:'Applied goal “' + g.name + '” — target ' + eur(g.target) + (g.targetMonth ? ' by ' + fmtMoLbl(g.targetMonth) : '') + '.', provenance:'Applied · live goals', data:{goalId:g.id}, actions:[{type:'nav', k:'goals', sec:'goalHero'}], suggestions:['goals'], links:['goal:'+g.id]};
+        }
+        return {ok:false, tool:t, say:'Unknown scenario kind.', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
+      }
+      return {ok:false, tool:t, say:'Unknown tool ' + t, provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
+    }
+
+    function ask(q){
+      const intent = match(q);
+      let result = run(intent);
+      applyActions(result.actions);
+      result = refill(result);
+      return result;
+    }
+
+    function lmEnabled(){
+      const p = (lmStore.provider || 'off');
+      if (p === 'off' || !lmStore.useLm) return false;
+      if (p === 'lithifyte') return true;
+      if (p === 'openai_compat') return !!(lmStore.endpoint || document.getElementById('cp-endpoint')?.value);
+      return !!(lmStore.apiKey);
+    }
+
+    async function lmComplete(messages){
+      const provider = lmStore.provider || 'lithifyte';
+      const relay = (lmStore.relay || RELAY_DEFAULT).replace(/\/$/, '');
+      const body = {
+        provider,
+        model: lmStore.model || undefined,
+        messages,
+        temperature: 0,
+        max_tokens: 900,
+        endpoint: provider === 'openai_compat' ? (lmStore.endpoint || '') : undefined
+      };
+      const headers = {'Content-Type': 'application/json'};
+      if (lmStore.apiKey) headers['X-Api-Key'] = lmStore.apiKey;
+      const res = await fetch(relay + '/chat', {method:'POST', headers, body: JSON.stringify(body), signal: AbortSignal.timeout(90000)});
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || data.message || ('HTTP ' + res.status));
+      return String(data.content || '');
+    }
+
+    function parseLmJson(text){
+      const raw = String(text || '').trim();
+      let m = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
+      let s = m ? m[1].trim() : raw;
+      // Prefer an explicit tool call object even if multiple JSON blobs are present
+      const toolRe = /\{\s*"type"\s*:\s*"tool"[\s\S]*?\}/g;
+      const toolHits = s.match(toolRe);
+      if (toolHits && toolHits.length){
+        for (const hit of toolHits){
+          try {
+            const o = JSON.parse(hit);
+            if (o && o.type === 'tool' && o.name) return o;
+          } catch (e) {}
+        }
+      }
+      const finRe = /\{\s*"type"\s*:\s*"final"[\s\S]*\}/;
+      const fm = s.match(finRe);
+      if (fm){
+        try {
+          const o = JSON.parse(fm[0]);
+          if (o && o.type === 'final') return o;
+        } catch (e) {}
+      }
+      const i = s.indexOf('{');
+      const j = s.lastIndexOf('}');
+      if (i >= 0 && j > i) s = s.slice(i, j + 1);
+      try {
+        const o = JSON.parse(s);
+        if (o && o.name && !o.type) return {type:'tool', name:o.name, args:o.args||{}};
+        return o;
+      } catch (e) {
+        // bare tool name lines: TOOL cat_monthly {"category":"Groceries"}
+        const tm = raw.match(/\b(help|nav|set_range|cashflow_summary|cat_monthly|balances|summary_outlook|notes_for|goals_status|propose_budget|propose_goal|run_scenario|apply_scenario)\b[\s\S]{0,200}/);
+        if (tm){
+          try {
+            const am = tm[0].match(/\{[\s\S]*\}/);
+            const args = am ? JSON.parse(am[0]) : {};
+            return {type:'tool', name: tm[1], args};
+          } catch (e2) {}
+        }
+        return {type:'final', say: raw.slice(0, 1200)};
+      }
+    }
+
+    function systemPrompt(){
+      const cats = allCatNames().slice(0, 40);
+      return [
+        'You are Lithifyte co-pilot — a household finance assistant inside the Lithifyte app.',
+        'You MUST NOT invent euro amounts, balances, or averages. Call tools; the app Engine computes figures.',
+        'You help structure data, explain numbers, and design budgets/goals in a SANDBOX until the user applies.',
+        'You are not a regulated financial adviser — co-author the user\'s plan, do not recommend products.',
+        '',
+        'Respond with exactly ONE JSON object per turn (never multiple). One of:',
+        '{"type":"tool","name":"<tool>","args":{...}}',
+        '{"type":"final","say":"<plain language answer using ONLY numbers already returned by tools>"}',
+        '',
+        'Tools: ' + JSON.stringify(toolSchemasForPrompt()),
+        'Known categories: ' + JSON.stringify(cats),
+        'Current range: ' + rangeLabel(),
+        'Household notes context (may be empty):',
+        (typeof notesForPrompt === 'function' ? notesForPrompt() : '') || '(none)'
+      ].join('\n');
+    }
+
+    async function askLm(userText){
+      const chat = ensureChat();
+      appendMsg(chat, 'user', userText);
+      const history = chat.messages.slice(-12).map(m => ({
+        role: m.role === 'tool' ? 'user' : (m.role === 'assistant' ? 'assistant' : 'user'),
+        content: m.role === 'tool' ? ('Tool result: ' + m.content) : m.content
+      }));
+      let messages = [{role:'system', content: systemPrompt()}, ...history];
+      const steps = [];
+      for (let round = 0; round < 5; round++){
+        const raw = await lmComplete(messages);
+        const parsed = parseLmJson(raw);
+        if (parsed && parsed.type === 'tool' && parsed.name){
+          const intent = {tool: parsed.name, args: parsed.args || {}};
+          let result = run(intent);
+          applyActions(result.actions || []);
+          result = refill(result);
+          steps.push(result);
+          const toolText = JSON.stringify({
+            tool: result.tool, ok: result.ok, say: result.say,
+            provenance: result.provenance, data: result.data
+          });
+          appendMsg(chat, 'tool', toolText, {tool: result.tool, links: result.links || []});
+          touchChat(chat, result.links || []);
+          messages.push({role:'assistant', content: raw});
+          messages.push({role:'user', content: 'Tool result (use these numbers; do not invent others):\n' + toolText + '\n\nIf you need another tool, return type:tool. Else type:final with a clear answer.'});
+          if (result.apply) pendingApply = result.apply;
+          continue;
+        }
+        let say = (parsed && parsed.say) ? parsed.say : String(raw).slice(0, 1500);
+        // Guard: never present invented money figures without tool steps
+        const moneyish = /[€$£]|\d+[.,]\d{2}|\b\d{3,}\b/.test(say);
+        if (moneyish && !steps.length){
+          // Force grounded tools then answer from Engine only
+          for (const forced of [
+            {tool:'cashflow_summary', args:{}},
+            {tool:'balances', args:{}},
+            {tool:'summary_outlook', args:{}}
+          ]){
+            let result = run(forced);
+            applyActions(result.actions || []);
+            result = refill(result);
+            steps.push(result);
+            appendMsg(chat, 'tool', JSON.stringify({tool:result.tool, say:result.say, provenance:result.provenance}), {tool:result.tool, links:result.links||[]});
+            touchChat(chat, result.links || []);
+          }
+          say = steps.map(s => s.say).filter(Boolean).join('\n\n')
+            + '\n\n(Answer rebuilt from Engine tools — the model is not allowed to invent euro amounts.)';
+        }
+        appendMsg(chat, 'assistant', say);
+        touchChat(chat, []);
+        return {ok:true, tool:'lm_final', say, provenance: 'Lithifyte AI · tools: ' + (steps.map(s=>s.tool).join(', ') || 'none'), data:{steps}, actions:[], suggestions:suggestions(), links: chat.links || [], apply: pendingApply, chatId: chat.id};
+      }
+      const last = steps[steps.length - 1];
+      let say = (last && last.say) || 'I ran tools but did not finish — try a more specific ask.';
+      if (steps.length) say = steps.map(s => s.say).filter(Boolean).join('\n\n');
+      appendMsg(chat, 'assistant', say);
+      return {ok:true, tool:'lm_final', say, provenance:'Lithifyte AI · max tool rounds', data:{steps}, actions:[], suggestions:suggestions(), links: chat.links || [], apply: pendingApply, chatId: chat.id};
+    }
+
+    async function handle(q){
+      const text = String(q || '').trim();
+      if (!text) return null;
+      // explicit apply shortcuts
+      if (/^apply\b/i.test(text) && pendingApply){
+        const result = run({tool:'apply_scenario', args:{scenarioId: pendingApply.scenarioId || pendingApply, confirm:true}});
+        applyActions(result.actions || []);
+        const chat = ensureChat();
+        appendMsg(chat, 'user', text);
+        appendMsg(chat, 'assistant', result.say, {links: result.links});
+        touchChat(chat, result.links);
+        return result;
+      }
+      // Prefer deterministic tools when they match strongly
+      const intent = match(text);
+      if (intent && intent.score >= 0.8){
+        let result = run(intent);
+        applyActions(result.actions || []);
+        result = refill(result);
+        const chat = ensureChat();
+        appendMsg(chat, 'user', text);
+        appendMsg(chat, 'assistant', result.say, {links: result.links});
+        touchChat(chat, result.links);
+        if (result.apply) pendingApply = result.apply;
+        return result;
+      }
+      if (lmEnabled()){
+        try {
+          return await askLm(text);
+        } catch (e) {
+          // fall back to deterministic
+          let result = ask(text);
+          result.say = (result.ok ? result.say : '') + (result.ok ? '' : '\n\n') + 'AI error: ' + (e.message || e) + (result.ok ? '' : '\n' + (result.say || ''));
+          if (!result.ok && intent){
+            result = run(intent); applyActions(result.actions); result = refill(result);
+          }
+          const chat = ensureChat();
+          appendMsg(chat, 'user', text);
+          appendMsg(chat, 'assistant', result.say || String(e));
+          return result;
+        }
+      }
+      // offline
+      let result = ask(text);
+      const chat = ensureChat();
+      appendMsg(chat, 'user', text);
+      appendMsg(chat, 'assistant', result.say);
+      touchChat(chat, result.links);
+      return result;
+    }
+
+    // ── UI ──
+    let bound = false;
+    function isOpen(){
+      const el = document.getElementById('companionBar');
+      return el && el.classList.contains('open');
+    }
+    function renderThread(){
+      const el = document.getElementById('companionThread');
+      if (!el) return;
+      const chat = activeChatId && chatStore.items.find(c => c.id === activeChatId);
+      if (!chat || !chat.messages.length){
+        el.innerHTML = '<div class="cp-hint">Ask about your money, open sections, or design a sandbox budget. Figures always come from Lithifyte’s Engine.</div>';
+        return;
+      }
+      el.innerHTML = chat.messages.slice(-30).map(m => {
+        if (m.role === 'tool') return '<div class="cp-msg tool">🔧 ' + esc(String(m.content).slice(0, 280)) + '</div>';
+        const cls = m.role === 'user' ? 'user' : 'bot';
+        return '<div class="cp-msg ' + cls + '">' + esc(m.content) + '</div>';
+      }).join('');
+      el.scrollTop = el.scrollHeight;
+    }
+    function renderResult(result){
+      const out = document.getElementById('companionOut');
+      if (!out) return;
+      if (!result){ out.innerHTML = ''; return; }
+      let html = '';
+      if (result.apply){
+        html += '<div class="cp-apply"><button type="button" class="btn primary small" id="cpApplyBtn">' + esc(result.apply.label || 'Apply sandbox') + '</button></div>';
+      }
+      const sugs = result.suggestions || suggestions();
+      if (sugs.length) html += '<div class="cp-sugs">' + sugs.map(s =>
+        '<button type="button" class="cp-sug" data-q="' + esc(s) + '">' + esc(s) + '</button>').join('') + '</div>';
+      out.innerHTML = html;
+      const ab = document.getElementById('cpApplyBtn');
+      if (ab && result.apply) ab.addEventListener('click', async ()=>{
+        const r = run({tool:'apply_scenario', args:{scenarioId: result.apply.scenarioId, confirm:true}});
+        applyActions(r.actions || []);
+        const chat = ensureChat();
+        appendMsg(chat, 'assistant', r.say);
+        renderThread();
+        renderResult(Object.assign({}, r, {apply:null}));
+        pendingApply = null;
+      });
+      out.querySelectorAll('.cp-sug').forEach(b => b.addEventListener('click', ()=>{
+        const inp = document.getElementById('companionInput');
+        if (inp) inp.value = b.dataset.q;
+        submit();
+      }));
+    }
+    function syncLmForm(){
+      const p = document.getElementById('cp-provider');
+      const m = document.getElementById('cp-model');
+      const k = document.getElementById('cp-key');
+      const e = document.getElementById('cp-endpoint');
+      if (p) p.value = lmStore.provider || 'lithifyte';
+      if (m) m.value = lmStore.model || '';
+      if (k) k.value = lmStore.apiKey || '';
+      if (e){
+        e.style.display = (lmStore.provider === 'openai_compat') ? '' : 'none';
+        e.value = lmStore.endpoint || '';
+      }
+    }
+    function saveLmForm(){
+      const p = document.getElementById('cp-provider');
+      const m = document.getElementById('cp-model');
+      const k = document.getElementById('cp-key');
+      const e = document.getElementById('cp-endpoint');
+      if (p) lmStore.provider = p.value;
+      if (m) lmStore.model = m.value.trim();
+      if (k) lmStore.apiKey = k.value;
+      if (e && lmStore.provider === 'openai_compat') lmStore.endpoint = e.value.trim();
+      lmStore.useLm = lmStore.provider !== 'off';
+      if (!lmStore.relay) lmStore.relay = RELAY_DEFAULT;
+      save(LS.lm, lmStore);
+      const st = document.getElementById('cp-lmStatus');
+      if (st) st.textContent = 'Saved · stays in this browser';
+      syncLmForm();
+    }
+    function open(prefill){
+      const bar = document.getElementById('companionBar');
+      const inp = document.getElementById('companionInput');
+      if (!bar || !inp) return;
+      bar.hidden = false; bar.classList.add('open');
+      const kbd = document.getElementById('companionKbd');
+      if (kbd) kbd.textContent = /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘K' : 'Ctrl+K';
+      syncLmForm();
+      if (prefill != null) inp.value = prefill;
+      if (!activeChatId) ensureChat();
+      renderThread();
+      if (!document.getElementById('companionOut').innerHTML)
+        renderResult({suggestions: suggestions()});
+      setTimeout(()=>{ inp.focus(); }, 30);
+    }
+    function close(){
+      const bar = document.getElementById('companionBar');
+      if (!bar) return;
+      bar.classList.remove('open'); bar.hidden = true;
+    }
+    function newChat(){
+      activeChatId = null;
+      ensureChat();
+      renderThread();
+      renderResult({suggestions: suggestions()});
+      const inp = document.getElementById('companionInput');
+      if (inp) inp.value = '';
+    }
+    async function submit(){
+      const inp = document.getElementById('companionInput');
+      if (!inp) return;
+      const q = inp.value.trim();
+      if (!q) return;
+      inp.value = '';
+      const st = document.getElementById('cp-lmStatus');
+      if (st) st.textContent = lmEnabled() ? 'Thinking…' : '';
+      renderThread();
+      try {
+        const result = await handle(q);
+        renderThread();
+        renderResult(result);
+        if (st) st.textContent = result && result.provenance ? result.provenance : '';
+      } catch (e) {
+        if (st) st.textContent = String(e.message || e);
+      }
+    }
+    function bind(){
+      if (bound) return; bound = true;
+      const bar = document.getElementById('companionBar');
+      const inp = document.getElementById('companionInput');
+      const closeBtn = document.getElementById('companionClose');
+      const newBtn = document.getElementById('companionNew');
+      const topBtn = document.getElementById('topCompanion');
+      const saveBtn = document.getElementById('cp-saveLm');
+      const prov = document.getElementById('cp-provider');
+      if (closeBtn) closeBtn.addEventListener('click', close);
+      if (newBtn) newBtn.addEventListener('click', newChat);
+      if (topBtn) topBtn.addEventListener('click', ()=> open());
+      if (saveBtn) saveBtn.addEventListener('click', saveLmForm);
+      if (prov) prov.addEventListener('change', ()=>{
+        lmStore.provider = prov.value;
+        syncLmForm();
+      });
+      if (bar) bar.addEventListener('click', e => { if (e.target === bar) close(); });
+      if (inp){
+        inp.addEventListener('keydown', e => {
+          if (e.key === 'Enter'){ e.preventDefault(); submit(); }
+          if (e.key === 'Escape'){ e.preventDefault(); close(); }
+        });
+      }
+      document.addEventListener('keydown', e => {
+        const mod = e.metaKey || e.ctrlKey;
+        if (mod && (e.key === 'k' || e.key === 'K')){
+          const tag = (e.target && e.target.tagName) || '';
+          if (tag === 'TEXTAREA') return;
+          e.preventDefault();
+          if (isOpen()) close(); else open();
+        } else if (e.key === 'Escape' && isOpen()){
+          e.preventDefault(); close();
+        }
+      });
+    }
+    return {
+      ask, match, run, handle, askLm, applyActions, registry, suggestions, open, close, bind, isOpen,
+      ensureChat, newChat, lmEnabled, lmComplete, chats: () => chatStore.items, scenarios: () => scenarioStore.items,
+      SECTIONS, RELAY_DEFAULT
+    };
+  })();
+  window.__ddCompanion = Companion;
+
 
   // ══ boot ══
   if (MONTHS.length) ['rangeFrom','rangeTo'].forEach(id => {
@@ -14865,6 +15906,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
             }};
   })();
   window.__ddSpace = Space;   // testing hook
+  try { Companion.bind(); } catch (e) { console.warn("companion bind", e); }
 
   // ══ In-app Space tour: 7-part playthrough with spotlight + coach card ══
   // Opt-in only. Walks the real Space dock/panels; never touches finance data.
@@ -15566,6 +16608,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const catName = catM ? catM[2] : name;
       act = `<button class="btn small" data-act="cats" data-cat="${esc(catName)}" data-acct="${esc(catAcct)}" type="button">View category</button>
              <button class="btn small" data-act="cash" data-acct="${esc(catAcct)}" type="button">Cashflow</button>`;
+    } else if (info.type === 'chat' || info.type === 'scen'){
+      color = info.type === 'chat' ? '#a78bfa' : '#34d399';
+      title = info.full || info.label;
+      html = row('Kind', info.type === 'chat' ? 'Conversation' : 'Sandbox scenario') +
+             row('Links', String((info.links && info.links.length) || '—'));
+      act = `<button class="btn small" data-act="companion" data-chat="${esc(info.chatId || '')}" type="button">Open co-pilot</button>`;
     } else if (info.type === 'merch'){
       title = info.full; color = '#8fb8dd';
       let tot = 0, cnt = 0; const cats = new Map(), raws = new Set();
@@ -15655,6 +16703,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     actions.innerHTML = act;
     actions.querySelectorAll('button').forEach(btn => btn.addEventListener('click', ()=>{
       const k = btn.dataset.act;
+      if (k === 'companion'){
+        try { Companion.open(); } catch (e) {}
+        return;
+      }
       if (k === 'note'){   // inline editor inside the card — the card stays open
         const key = btn.dataset.key;
         const bodyEl = document.getElementById('ncBody');

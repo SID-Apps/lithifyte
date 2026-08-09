@@ -1,0 +1,11 @@
+# App at app.lithifyte.com — deploy: cd /home/sid-ai/lithifyte && wrangler deploy
+name = "lithifyte"
+main = "app-worker.js"
+compatibility_date = "2026-07-16"
+workers_dev = true
+
+[assets]
+directory = "."
+binding = "ASSETS"
+not_found_handling = "404-page"
+# Exclude non-app trees from the asset upload
