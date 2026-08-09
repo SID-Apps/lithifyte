@@ -15374,13 +15374,13 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         if (steps.length){
           const grounded = steps.map(s => s.say).filter(Boolean).join('\n\n');
           if (grounded){
-            const modelBit = say && !steps.some(s => (s.say||'').includes(say.slice(0,40))) ? ('\n\n' + say) : '';
-            // Keep model prose only if it does not introduce digits not present in tool text
-            const toolDigits = (grounded.match(/\d/g)||[]).join('');
-            const modelDigits = (say.match(/\d/g)||[]).join('');
-            const extra = modelDigits && !modelDigits.split('').every(d => toolDigits.includes(d));
-            say = grounded + (extra ? '' : modelBit);
-            if (extra) say = grounded + '\n\n(Model commentary omitted — it introduced figures not returned by tools.)';
+            // Only keep model prose if every currency-like amount it mentions appears in tool text
+            const amts = (s) => [...String(s).matchAll(/(?:€|\$|£)?\s*\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+\.\d{2}/g)]
+              .map(m => m[0].replace(/[€$£\s]/g,'').replace(/,/g,''));
+            const gSet = new Set(amts(grounded));
+            const bad = amts(say).some(a => a && !gSet.has(a) && !grounded.includes(a));
+            say = grounded + (bad || !say ? '' : ('\n\n' + say));
+            if (bad) say = grounded + '\n\n(Model commentary omitted — it introduced figures not returned by tools.)';
           }
         }
         // Guard: never present invented money figures without tool steps
