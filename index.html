@@ -720,6 +720,20 @@ So, when you change a stored shape:
   body.space #spaceStage{display:block; position:fixed; inset:0; z-index:0; background:#020b1a}
   body.space #spaceStage .graph-card{position:absolute; inset:0; border:none; border-radius:0; margin:0}
   body.space .graph-fs-btn{display:none}
+  /* phone first run — the three routes that work from a phone */
+  #obMobile{display:none}
+  body.mobile #obMobile{display:flex; flex-direction:column; gap:8px; margin:14px 0 18px}
+  body.mobile #obMobile + .ob-steps{opacity:.82}
+  .ob-m-btn{display:flex; align-items:center; gap:11px; width:100%; padding:12px 13px; border-radius:12px;
+    border:1px solid rgba(56,189,248,.3); background:rgba(255,255,255,.04); color:inherit;
+    cursor:pointer; text-align:left; text-decoration:none; font:inherit; font-size:16px}
+  .ob-m-btn:hover{border-color:rgba(56,189,248,.65)}
+  .ob-m-btn.primary{border-color:rgba(56,189,248,.55); background:rgba(56,189,248,.14)}
+  .ob-m-btn > span{display:flex; flex-direction:column; min-width:0}
+  .ob-m-btn b{font:650 13px system-ui,sans-serif; color:var(--ink)}
+  .ob-m-btn small{font:400 11px/1.4 system-ui,sans-serif; color:var(--muted)}
+  .ob-m-note{font:400 11.5px/1.55 system-ui,sans-serif; color:var(--muted); margin:4px 2px 0}
+
   /* ══ Classic at narrow widths ══
      Classic stays the accessibility and keyboard path, and the wide-screen
      alternative — but it was scrolling sideways by 326px at 512px, mostly on
@@ -1803,6 +1817,16 @@ So, when you change a stored shape:
     <h1 style="font-size:clamp(22px,3vw,30px); margin:6px 0 4px">Let's light up your money map</h1>
     <p class="sub">Five small steps. Name the <b>household</b>, then the <b>people</b> in it — everything stays on this device.</p>
     <p class="sub" id="obDemoLine" style="display:none">Want a feel for it first? <a href="demo.html"><b>Explore the sample household</b></a> — fully loaded invented data, nothing to upload. Prefer a guided walkthrough? <a href="demo.html?tutorial=1"><b>Open the Tutorial guide</b></a>.</p>
+    <!-- Phone first run. Step 4 asks for a bank's CSV export, which on a phone
+         means digging a file out of a banking app — the point most people give
+         up. These are the three things that actually work from a phone; the
+         five steps stay below for anyone who wants them. -->
+    <div id="obMobile">
+      <a class="ob-m-btn primary" href="demo.html">🪐 <span><b>Explore the sample household</b><small>Fully loaded invented data — nothing to upload</small></span></a>
+      <a class="ob-m-btn" href="https://access.lithifyte.com/">✉️ <span><b>Sign in</b><small>Already set up on a computer? Pick up where you left off</small></span></a>
+      <button class="ob-m-btn" type="button" id="obMobRestore">⬆ <span><b>Restore a backup</b><small>Bring a backup file over from another device</small></span></button>
+      <p class="ob-m-note">Starting from scratch? Adding your bank's statement export is much easier on a computer — this page works the same there, and everything stays on the device you use.</p>
+    </div>
     <ol class="ob-steps">
       <li class="ob-step" id="obs1"><span class="ob-num">1</span><b>Name your household</b>
         <input id="ob-hh" class="inp" placeholder="e.g. The Byrnes, or My household" style="min-width:200px" aria-label="Household name">
@@ -15352,6 +15376,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
   });
   document.getElementById('bkImport').addEventListener('click', ()=>document.getElementById('bkFile').click());
+  // phone first run reuses the same restore path rather than a second one
+  {
+    const mr = document.getElementById('obMobRestore');
+    if (mr) mr.addEventListener('click', ()=>document.getElementById('bkFile').click());
+  }
   document.getElementById('bkFile').addEventListener('change', e=>{
     const f = e.target.files[0]; if (!f) return;
     const rd = new FileReader();
