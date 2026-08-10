@@ -10382,7 +10382,14 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const d = px - camShift;
       camShift = px;
       if (!d) return;
-      const to = {k: view.k, x: view.x + d, y: view.y};
+      // Anchor on the flight already in progress, not on the live view.
+      // Switching sections calls closePanel() then openPanel() in ONE tick, so
+      // view.x is still the pre-close value when the second call lands —
+      // applying the delta to it re-applied the whole shift every time, and the
+      // map marched off screen a panel-width at a time (visible from tutorial
+      // part 4, which opens several sections in a row).
+      const base = fly ? fly.to : view;
+      const to = {k: base.k, x: base.x + d, y: base.y};
       if (reduceMotion){ view = to; draw(performance.now()); return; }
       fly = {t0:performance.now(), dur:dur == null ? 340 : dur, from:{...view}, to};
       ensureAnim();
@@ -10552,7 +10559,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
     return {rebuild: soft => { if (soft) rebuild.soft = true; rebuild(); },
             draw:()=>draw(performance.now()), resize, fit: fitAll,
-            flyToNode, camShift: setCamShift, onNode: cb => { onNodeCb = cb; },
+            flyToNode, camShift: setCamShift,
+            view: () => ({x: view.x, y: view.y, k: view.k, shift: camShift}),   // testing hook
+            onNode: cb => { onNodeCb = cb; },
             highlight: ids => { extHi = ids && ids.length ? new Set(ids) : null; draw(performance.now()); },
             setPaused: b => { paused = !!b; if (!paused) ensureAnim(); else draw(performance.now()); }};
   })();
@@ -16717,6 +16726,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
             }};
   })();
   window.__ddSpace = Space;   // testing hook
+  window.__ddGraph = graph;   // testing hook (camera state)
   try { Companion.bind(); } catch (e) { console.warn("companion bind", e); }
 
   // ══ In-app Space tour: 7-part playthrough with spotlight + coach card ══
