@@ -592,76 +592,118 @@ So, when you change a stored shape:
   .cp-sug:hover{border-color:rgba(56,189,248,.7); background:rgba(56,189,248,.16)}
   .cp-hint{font-size:12px; color:var(--muted); padding:4px 2px 0}
   /* ── Co-pilot: bottom composer + left chat panel (ChatGPT/Grok-style) ── */
-  #spaceSubbar{display:none}
-  body.space #spaceSubbar{display:flex; position:fixed; top:62px; left:50%; transform:translateX(-50%); z-index:26;
-    align-items:center; gap:10px; padding:6px 12px; border-radius:999px;
-    background:rgba(2,11,26,.78); border:1px solid rgba(56,189,248,.28); backdrop-filter:blur(10px);
-    color:#dbeafe; font-size:12.5px; max-width:min(720px, calc(100vw - 200px))}
-  #spaceSubbar .ss-range{display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px;
-    border:1px solid rgba(56,189,248,.3); background:rgba(56,189,248,.08); color:#e0f2ff; cursor:pointer; font:600 12px system-ui,sans-serif}
-  #spaceSubbar .ss-range:hover{border-color:rgba(56,189,248,.65)}
-  #spaceSubbar #lapsePlayHud{flex:0 0 auto}
-  #spaceSubbar .ss-lapse{display:flex; align-items:center; gap:8px; min-width:0}
-  #spaceSubbar .ss-track{width:72px; height:4px; border-radius:2px; background:rgba(56,189,248,.15); overflow:hidden}
-  #spaceSubbar .ss-track > div{height:100%; width:0; background:#38bdf8; border-radius:2px}
+  /* (#spaceSubbar was folded into #spaceHud — see the ONE top bar block below) */
+
+  /* The composer is ONE row (~56px). Anything you configure once in your life
+     lives behind #modelBtn, not parked on the map. */
+  /* ── Space geometry, in one place ──
+     --nav-w  : the always-present icon rail (52, or 190 with labels)
+     --rail-w : the co-pilot rail (0 when hidden)
+     --stage-l: where the map's usable area starts.
+     JS keeps these in sync; everything else positions off them, so no element
+     can drift on top of another when a rail resizes. */
+  body.space{--nav-w:52px; --rail-w:300px; --gap:8px; --stage-r:0px;
+    --rail-l:calc(14px + var(--nav-w) + var(--gap));
+    --stage-l:calc(var(--rail-l) + var(--rail-w) + var(--gap));
+    /* the horizontal centre of the map's *usable* area, both rails and any
+       open data panel accounted for. --stage-r is set by syncCamShift(). */
+    --stage-c:calc((var(--stage-l) + 100vw - var(--stage-r)) / 2)}
+  body.space.nav-labels{--nav-w:190px}
+  body.space.dock-wide{--rail-w:400px}
+  body.space.rail-hidden{--rail-w:0px; --gap:0px}
 
   #chatComposer{display:none}
-  body.space #chatComposer{display:flex; position:fixed; left:50%; transform:translateX(-50%); bottom:14px; z-index:28;
-    width:min(760px, calc(100vw - 200px)); flex-direction:column; gap:6px;
-    padding:10px 12px 12px; border-radius:20px;
+  body.space #chatComposer{display:flex; position:fixed; z-index:31;
+    left:var(--stage-c); transform:translateX(-50%); bottom:14px;
+    width:min(640px, calc(100vw - var(--stage-l) - var(--stage-r) - 40px));
+    flex-direction:column; gap:8px; align-items:center;
+    transition:left .24s ease, width .24s ease, bottom .24s ease, transform .24s ease}
+  @media (prefers-reduced-motion: reduce){ body.space #chatComposer{transition:none} }
+  /* The composer has two homes and MOVES between them — same element, animated,
+     so it reads as travelling into the rail rather than one thing vanishing and
+     another appearing. */
+  body.space.chat-open:not(.rail-hidden) #chatComposer{
+    left:calc(var(--rail-l) + 8px); transform:none; bottom:22px;
+    width:calc(var(--rail-w) - 16px)}
+  .cc-pill{display:flex; flex-direction:column; align-items:stretch; gap:6px; width:100%;
+    padding:8px 8px 8px 12px; border-radius:20px;
     background:rgba(4,14,30,.92); border:1px solid rgba(56,189,248,.35); backdrop-filter:blur(14px);
     box-shadow:0 12px 40px rgba(0,0,0,.45)}
-  body.space.chat-open #chatComposer{left:calc(50% + 110px); width:min(640px, calc(100vw - 420px))}
-  .cc-row{display:flex; align-items:flex-end; gap:8px}
-  .cc-tools{display:flex; align-items:center; gap:6px; flex:0 0 auto}
-  .cc-btn{width:36px; height:36px; border-radius:50%; border:1px solid rgba(56,189,248,.3);
-    background:rgba(56,189,248,.08); color:#cfe9ff; cursor:pointer; font-size:16px; line-height:1; padding:0}
+  .cc-tools{display:flex; align-items:center; gap:6px}
+  .cc-gap{flex:1 1 auto}
+  .cc-btn{width:32px; height:32px; border-radius:50%; border:1px solid rgba(56,189,248,.3);
+    background:rgba(56,189,248,.08); color:#cfe9ff; cursor:pointer; font-size:15px; line-height:1; padding:0;
+    flex:0 0 auto}
   .cc-btn:hover{border-color:rgba(56,189,248,.7); background:rgba(56,189,248,.16)}
   .cc-btn.primary{background:linear-gradient(135deg,#1d4ed8,#0891b2); border-color:transparent; color:#fff}
-  #ccInput{flex:1; min-height:40px; max-height:120px; resize:none; border:0; outline:none; background:transparent;
-    color:#e8f4ff; font:500 14.5px/1.4 system-ui,sans-serif; padding:8px 4px; caret-color:#38bdf8}
+  /* full width in both homes, and it grows with the text (JS caps at 120px) */
+  #ccInput{width:100%; min-height:24px; max-height:120px; resize:none; border:0; outline:none;
+    background:transparent; color:#e8f4ff; font:500 14px/1.45 system-ui,sans-serif; padding:4px 4px 2px;
+    caret-color:#38bdf8; display:block}
   #ccInput::placeholder{color:#7fa5cc}
-  .cc-foot{display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:0 2px}
-  .cc-foot select{font-size:11.5px; max-width:150px; background:rgba(2,11,26,.6); color:#cfe9ff;
-    border:1px solid rgba(56,189,248,.25); border-radius:8px; padding:3px 6px}
-  .cc-foot .hint{font-size:11px; color:#7fa5cc}
-  .cc-chips{display:flex; flex-wrap:wrap; gap:6px}
-  .cc-chip{font:600 11.5px system-ui,sans-serif; padding:3px 8px; border-radius:999px;
-    border:1px solid rgba(56,189,248,.28); background:rgba(56,189,248,.08); color:#cfe9ff; cursor:pointer}
+  .model-btn{display:inline-flex; align-items:center; gap:5px; flex:0 0 auto; height:30px; padding:0 10px;
+    border-radius:999px; border:1px solid rgba(56,189,248,.28); background:rgba(56,189,248,.07);
+    color:#cfe9ff; cursor:pointer; font:600 12px system-ui,sans-serif; white-space:nowrap}
+  .model-btn:hover{border-color:rgba(56,189,248,.7); background:rgba(56,189,248,.14)}
+  .model-btn .caret{font-size:9px; opacity:.75}
+  .model-pop{position:absolute; bottom:calc(100% + 10px); right:0; z-index:5;
+    width:min(290px, calc(100vw - 40px)); padding:7px; border-radius:14px;
+    background:rgba(6,18,36,.98); border:1px solid rgba(56,189,248,.45);
+    box-shadow:0 18px 50px rgba(0,0,0,.6); text-align:left}
+  .model-pop[hidden]{display:none}
+  .model-pop .pop-label{font:700 9.5px system-ui,sans-serif; letter-spacing:.14em; text-transform:uppercase;
+    color:#6d8fb5; padding:6px 8px 6px; margin:0}
+  .model-pop select, .model-pop .inp{width:100%; font-size:12.5px; padding:6px 8px; margin-bottom:6px;
+    background:rgba(2,11,26,.6); color:#cfe9ff; border:1px solid rgba(56,189,248,.25); border-radius:9px}
+  .model-pop #modelExtra{display:none}
+  .model-pop.byok #modelExtra{display:block}
+  .model-pop.byok #cp-endpoint{display:none}
+  .model-pop.byok.compat #cp-endpoint{display:block}
+  .model-pop .pop-note{margin:2px 0 2px; padding:8px 8px 4px; border-top:1px solid rgba(56,189,248,.16);
+    font-size:11px; color:#6d8fb5; line-height:1.45}
+  /* chips are the EMPTY state only — once a conversation starts they go */
+  .cc-chips{display:flex; flex-wrap:wrap; gap:6px; justify-content:center}
+  body.space.chat-open .cc-chips{display:none}
+  .cc-chip{font:600 11.5px system-ui,sans-serif; padding:4px 10px; border-radius:999px;
+    border:1px solid rgba(56,189,248,.28); background:rgba(4,14,30,.8); color:#cfe9ff; cursor:pointer;
+    backdrop-filter:blur(8px)}
   .cc-chip:hover{border-color:rgba(56,189,248,.6)}
-  .cc-attach{font-size:11.5px; color:#9fc3e8; display:flex; flex-wrap:wrap; gap:4px}
+  .cc-attach{font-size:11.5px; color:#9fc3e8; display:flex; flex-wrap:wrap; gap:4px; align-self:flex-start;
+    padding:0 10px}
   .cc-attach b{font-weight:600; color:#dbeafe}
 
-  #chatPanel{display:none}
-  body.space #chatPanel.open{display:flex; flex-direction:column; position:fixed; top:64px; left:190px; bottom:110px; z-index:22;
-    width:min(380px, calc(100vw - 240px)); border-radius:14px;
-    background:rgba(4,14,30,.94); border:1px solid rgba(56,189,248,.32); backdrop-filter:blur(12px);
-    box-shadow:0 16px 48px rgba(0,0,0,.4)}
-  body.space #spaceDock.col ~ /* no-op */ { }
-  body.space #chatPanel.open.dock-col{left:78px}
-  body.space #chatPanel.open.max{width:min(520px, calc(100vw - 120px)); left:78px}
-  body.space.chat-open #spacePanel.open:not(.center){ /* keep data panels usable on the right */ }
+  /* #chatPanel is a retired stub — the conversation lives in the rail now */
+  #chatPanel{display:none !important}
+  /* Rail (270) + data panel (780) would leave under 400px of map on a 1440px
+     laptop. While chatting the data panel gives way so the map keeps ~520px. */
+  body.space.chat-open #spacePanel.open:not(.center){
+    width:min(620px, calc(100vw - 420px))}
   body.space #insightRail{bottom:118px}
   body.space #lapseBar{display:none} /* play history lives under HUD */
-  body.space.chat-open #insightRail{max-width:min(720px, calc(100vw - 420px)); left:calc(50% + 80px)}
 
-  #chatPanel .cp-head{display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid rgba(56,189,248,.2)}
-  #chatPanel .cp-head b{flex:1; font-size:13.5px; color:#e8f4ff}
-  #companionThread{flex:1; overflow:auto; padding:12px; display:flex; flex-direction:column; gap:10px}
-  .cp-msg{max-width:94%; padding:9px 12px; border-radius:14px; font-size:13.5px; line-height:1.45; white-space:pre-wrap}
+  /* the thread now flows inside the rail's own scroll region, so it must not
+     claim flex:1 or scroll on its own — one rail, one scrollbar */
+  #companionThread{padding:2px; display:flex; flex-direction:column; gap:9px}
+  .cp-msg{max-width:94%; padding:8px 11px; border-radius:13px; font-size:12px; line-height:1.45; white-space:pre-wrap}
   .cp-msg.user{align-self:flex-end; background:rgba(56,189,248,.2); border:1px solid rgba(56,189,248,.35); color:#e8f4ff}
   .cp-msg.bot{align-self:flex-start; background:rgba(255,255,255,.04); border:1px solid rgba(56,189,248,.16); color:#dbeafe}
   .cp-msg .cp-prov{display:block; margin-top:5px; font-size:11px; color:#7fa5cc}
   .cp-msg.tool{align-self:stretch; font-size:12px; background:rgba(52,211,153,.08); border:1px dashed rgba(52,211,153,.35); color:#b7e4d0}
   .cp-apply{margin-top:6px; display:flex; gap:6px; flex-wrap:wrap}
-  .cp-sugs{display:flex; flex-wrap:wrap; gap:6px; padding:0 12px 10px}
-  .cp-sug{font:600 12px system-ui,sans-serif; padding:5px 10px; border-radius:999px; cursor:pointer;
-    border:1px solid rgba(56,189,248,.35); background:rgba(56,189,248,.08); color:#e0f2ff}
+  /* follow-ups sit in a 300px rail now — small, and only the first few.
+     The composer's own chips carry the empty-state suggestions. */
+  .cp-sugs{display:flex; flex-wrap:wrap; gap:5px; padding:2px 2px 10px}
+  .cp-sugs .cp-sug:nth-child(n+5){display:none}
+  .cp-sug{font:600 11px system-ui,sans-serif; padding:4px 9px; border-radius:999px; cursor:pointer;
+    border:1px solid rgba(56,189,248,.3); background:rgba(56,189,248,.08); color:#cfe9ff;
+    max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .cp-sug:hover{border-color:rgba(56,189,248,.7)}
   .cp-hint{font-size:12.5px; color:#8fb3d6; padding:8px 4px; line-height:1.45}
-  .cp-hist{padding:6px 10px; border-bottom:1px solid rgba(56,189,248,.12); max-height:96px; overflow:auto}
+  /* Recents: a plain list in the rail, not a scrolling sub-pane */
+  .cp-hist{padding:0}
   .cp-hist button{display:flex; width:100%; text-align:left; gap:6px; align-items:center;
-    background:none; border:0; color:#cfe9ff; font:600 12px system-ui,sans-serif; padding:5px 6px; border-radius:8px; cursor:pointer}
+    background:none; border:0; color:#cfe9ff; font:500 11.5px system-ui,sans-serif; padding:6px 9px; border-radius:8px; cursor:pointer}
+  .cp-hist button > span:first-child{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .cp-hist button:hover{background:rgba(56,189,248,.1)}
   .cp-hist .del{margin-left:auto; color:#f87171; font-size:11px; border:1px solid rgba(248,113,113,.35);
     border-radius:6px; padding:1px 6px; background:rgba(248,113,113,.08)}
@@ -675,36 +717,94 @@ So, when you change a stored shape:
   body.space #spaceStage{display:block; position:fixed; inset:0; z-index:0; background:#020b1a}
   body.space #spaceStage .graph-card{position:absolute; inset:0; border:none; border-radius:0; margin:0}
   body.space .graph-fs-btn{display:none}
+  /* ══ Two rails, both constant ══
+     Navigation is ALWAYS the icon rail on the far left — it never appears or
+     disappears under you. The co-pilot rail beside it holds Recents or the
+     live conversation, and can be hidden outright to give the map the room. */
+  #spaceIcoRail{display:none}
+  body.space #spaceIcoRail{display:flex; position:fixed; left:14px; top:14px; bottom:14px; z-index:30;
+    flex-direction:column; align-items:stretch; gap:2px; width:var(--nav-w); padding:8px 6px; border-radius:14px;
+    overflow-y:auto; overflow-x:hidden; scrollbar-width:none;
+    background:rgba(2,11,26,.9); border:1px solid rgba(56,189,248,.28); backdrop-filter:blur(10px);
+    transition:width .2s ease}
+  @media (prefers-reduced-motion: reduce){ body.space #spaceIcoRail{transition:none} }
+  #spaceIcoRail::-webkit-scrollbar{display:none}
+  .ico-expand{flex:0 0 auto; align-self:flex-end; width:26px; height:26px; margin-bottom:4px; border-radius:8px;
+    border:1px solid rgba(56,189,248,.3); background:none; color:#9fc3e8; cursor:pointer;
+    font-size:11px; line-height:1; padding:0}
+  .ico-expand:hover{color:#fff; border-color:rgba(56,189,248,.65)}
+  .ico-list{display:flex; flex-direction:column; gap:2px; min-height:0}
+  .ico-btn{display:flex; align-items:center; gap:9px; width:100%; height:34px; flex:0 0 auto;
+    border-radius:9px; border:1px solid transparent; padding:0 0 0 7px;
+    background:none; color:#9fc3e8; font:600 11.5px system-ui,sans-serif; line-height:1;
+    cursor:pointer; white-space:nowrap; overflow:hidden; text-align:left}
+  .ico-btn .ic{font-size:15px; flex:0 0 auto; width:20px; text-align:center}
+  .ico-btn .lbl{display:none}
+  body.space.nav-labels .ico-btn .lbl{display:inline}
+  body.space:not(.nav-labels) .ico-btn{justify-content:center; padding:0}
+  .ico-btn:hover{background:rgba(56,189,248,.12); color:#fff}
+  .ico-btn.active{background:rgba(56,189,248,.2); color:#fff; border-color:rgba(56,189,248,.45)}
+  .ico-sep{height:1px; background:rgba(56,189,248,.22); margin:5px 6px; flex:0 0 auto}
+  .ico-group{display:none; font:700 9px system-ui,sans-serif; letter-spacing:.13em; text-transform:uppercase;
+    color:#557799; padding:8px 8px 3px; white-space:nowrap}
+  body.space.nav-labels .ico-group{display:block}
+  body.space.nav-labels .ico-sep{display:none}
+
   #spaceDock{display:none}
-  body.space #spaceDock{display:flex; position:fixed; left:14px; top:50%; transform:translateY(-50%); z-index:30;
-    flex-direction:column; gap:2px; padding:10px; border-radius:14px; max-height:94vh; overflow-y:auto; scrollbar-width:none;
-    background:rgba(2,11,26,.74); border:1px solid rgba(56,189,248,.28); backdrop-filter:blur(10px);
-    width:172px; transition:width .18s ease}
-  body.space #spaceDock.col{width:58px}
+  body.space #spaceDock{display:flex; position:fixed; left:var(--rail-l); top:14px; bottom:14px; z-index:30;
+    flex-direction:column; gap:0; padding:0; border-radius:14px; overflow:hidden;
+    background:rgba(2,11,26,.82); border:1px solid rgba(56,189,248,.28); backdrop-filter:blur(10px);
+    width:var(--rail-w); transition:width .2s ease, left .2s ease}
+  /* hidden outright — and #railShow is the way back (never hide your own opener) */
+  body.space.rail-hidden #spaceDock{display:none}
   @media (prefers-reduced-motion: reduce){ body.space #spaceDock{transition:none} }
   #spaceDock::-webkit-scrollbar{display:none}
-  .dock-col-btn{align-self:flex-end; flex:0 0 auto; width:24px; height:24px; border-radius:50%;
-    border:1px solid rgba(56,189,248,.3); background:none; color:#9fc3e8; cursor:pointer; font-size:12px; line-height:1; padding:0}
-  .dock-col-btn:hover{color:#fff; border-color:rgba(56,189,248,.6)}
-  #spaceDock.col .dock-col-btn{align-self:center}
-  .dock-user{display:flex; align-items:center; gap:9px; padding:2px 4px 10px; margin-bottom:6px;
-    border-bottom:1px solid rgba(56,189,248,.2); color:#e0f2ff; font:700 12.5px system-ui,sans-serif;
+  /* Both stubs live at the rail's edge, UNDER it (z-index 29 < the rails' 30).
+     Open or expand the rail and they disappear behind it, which is the point. */
+  #railStubs{display:none}
+  body.space #railStubs{display:flex; position:fixed; left:calc(var(--rail-l) + 8px); top:14px; z-index:29;
+    align-items:center; gap:8px}
+  #railShow{display:none}
+  body.space.rail-hidden #railShow{display:inline-flex;
+    align-items:center; gap:7px; height:34px; padding:0 13px; border-radius:999px; cursor:pointer;
+    background:rgba(2,11,26,.9); border:1px solid rgba(56,189,248,.4); color:#e0f2ff;
+    font:700 12px system-ui,sans-serif; backdrop-filter:blur(10px); box-shadow:0 8px 24px rgba(0,0,0,.35)}
+  #railShow:hover{border-color:rgba(56,189,248,.75); background:rgba(56,189,248,.16)}
+
+  .dock-head{display:flex; align-items:center; gap:9px; padding:11px 12px; flex:0 0 auto;
+    border-bottom:1px solid rgba(56,189,248,.18); color:#e0f2ff; font:700 12.5px system-ui,sans-serif;
     white-space:nowrap; overflow:hidden}
+  .dock-actions{padding:8px; display:flex; flex-direction:column; gap:2px; flex:0 0 auto}
+  .ra-btn{display:flex; align-items:center; gap:9px; width:100%; padding:7px 9px; border-radius:9px;
+    border:1px solid transparent; background:none; color:#9fc3e8; cursor:pointer;
+    font:600 12.5px system-ui,sans-serif; text-align:left; white-space:nowrap; overflow:hidden}
+  .ra-btn:hover{background:rgba(56,189,248,.12); color:#e0f2ff}
+  .ra-btn.primary{border-color:rgba(56,189,248,.4); background:rgba(56,189,248,.12); color:#e0f2ff}
+  .ra-btn[hidden]{display:none}          /* author display: beats UA [hidden] */
+  .ra-btn .ic{font-size:15px; flex:0 0 auto; width:17px; text-align:center}
+  .ra-btn .caret{margin-left:auto; font-size:9px; opacity:.7; transition:transform .18s ease}
+  .ra-btn[aria-expanded="true"] .caret{transform:rotate(180deg)}
+  @media (prefers-reduced-motion: reduce){ .ra-btn .caret{transition:none} }
+  .dock-scroll{flex:1 1 auto; min-height:0; overflow-y:auto; padding:0 8px 8px; scrollbar-width:thin}
+  .dock-scroll::-webkit-scrollbar{width:7px}
+  .dock-scroll::-webkit-scrollbar-thumb{background:rgba(56,189,248,.22); border-radius:4px}
+  .dock-list-lbl{font:700 9px system-ui,sans-serif; letter-spacing:.13em; text-transform:uppercase;
+    color:#557799; padding:10px 9px 5px}
+  .dock-thread-head{display:flex; align-items:center; gap:6px; padding:9px 9px 6px;
+    font:700 11.5px system-ui,sans-serif; color:#e8f4ff; position:sticky; top:0; z-index:2;
+    background:linear-gradient(rgba(2,11,26,.97), rgba(2,11,26,.86))}
+  .dock-thread-head #companionTitle{flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .dock-th-b{flex:0 0 auto; width:24px; height:24px; border-radius:7px; padding:0; cursor:pointer;
+    border:1px solid rgba(56,189,248,.28); background:rgba(56,189,248,.08); color:#cfe9ff; font-size:11px; line-height:1}
+  .dock-th-b:hover{border-color:rgba(56,189,248,.65); color:#fff}
+  /* the composer docks into the rail foot, so leave room for it (two rows now) */
+  body.space.chat-open:not(.rail-hidden) #spaceDock{padding-bottom:96px}
   .dock-ava{width:28px; height:28px; border-radius:50%; flex:0 0 auto; display:inline-flex; align-items:center;
     justify-content:center; background:linear-gradient(135deg,#1d4ed8,#0891b2); color:#fff; font:700 13px system-ui,sans-serif}
-  #spaceDock.col .dock-user{justify-content:center; padding-left:0; padding-right:0}
-  #spaceDock.col .dock-user span:not(.dock-ava){display:none}
-  .dock-group{font:700 9.5px system-ui,sans-serif; letter-spacing:.12em; text-transform:uppercase;
-    color:#557799; padding:9px 6px 3px; white-space:nowrap}
-  #spaceDock.col .dock-group{font-size:0; padding:0; border-top:1px solid rgba(56,189,248,.18); margin:6px 4px}
-  .dock-btn{display:flex; flex-direction:row; align-items:center; gap:9px; width:100%; padding:6px 8px;
-    border-radius:9px; border:1px solid transparent; background:none; color:#9fc3e8; cursor:pointer;
-    font:600 12px system-ui,sans-serif; white-space:nowrap; overflow:hidden; text-align:left}
-  .dock-btn .ic{font-size:17px; line-height:1.25; flex:0 0 auto}
-  #spaceDock.col .dock-btn{justify-content:center; padding:6px 0}
-  #spaceDock.col .dock-btn .lbl{display:none}
-  .dock-btn:hover{background:rgba(56,189,248,.12); color:#e0f2ff}
-  .dock-btn.active{background:rgba(56,189,248,.2); color:#fff; border-color:rgba(56,189,248,.5)}
+  .dock-col-btn{margin-left:auto; flex:0 0 auto; width:22px; height:22px; border-radius:50%;
+    border:1px solid rgba(56,189,248,.3); background:none; color:#9fc3e8; cursor:pointer;
+    font-size:11px; line-height:1; padding:0}
+  .dock-col-btn:hover{color:#fff; border-color:rgba(56,189,248,.6)}
   /* P6: top-right quick tools + mini card (range / search) */
   #spaceTop{display:none}
   body.space #spaceTop{display:flex; position:fixed; top:14px; right:16px; z-index:27; gap:8px}
@@ -730,12 +830,16 @@ So, when you change a stored shape:
   body.space .ob-step:not(.done):not(.locked) ~ .ob-step{display:none}
   #obClassic{display:none}
   body.space #obClassic{display:inline-flex}
-  body.fresh #spaceDock, body.fresh #spaceHud, body.fresh #spaceTop, body.fresh #spaceSubbar, body.fresh #chatComposer, body.fresh #chatPanel, body.fresh #insightRail,
+  body.fresh #spaceDock, body.fresh #spaceIcoRail, body.fresh #railStubs,
+  body.fresh #spaceHud, body.fresh #spaceTop, body.fresh #chatComposer, body.fresh #chatPanel, body.fresh #insightRail,
   body.fresh #spacePanel, body.fresh #miniPanel{display:none !important}
   #settingsCard{display:none}
   body.space #settingsCard{display:block}
   #spacePanel{display:none}
-  body.space #spacePanel.open{display:flex; flex-direction:column; position:fixed; top:64px; right:16px; bottom:16px; z-index:20;
+  /* C2: height follows content. Pinned top-to-bottom left a short panel
+     trailing 200px of empty glass that dimmed the map for nothing. */
+  body.space #spacePanel.open{display:flex; flex-direction:column; position:fixed; top:64px; right:16px; z-index:20;
+    max-height:calc(100vh - 80px);
     width:min(780px, calc(100vw - 130px)); border-radius:14px; overflow:hidden;
     background:color-mix(in srgb, var(--page) 55%, transparent); border:1px solid rgba(56,189,248,.4);
     backdrop-filter:blur(16px) saturate(1.15); box-shadow:0 20px 60px rgba(0,0,0,.5)}
@@ -810,6 +914,8 @@ So, when you change a stored shape:
   #tourParts .tp-label{width:100%; font:700 10px system-ui,sans-serif; letter-spacing:.1em; text-transform:uppercase; color:#7dd3fc; margin:0 0 2px}
   /* Elevated Space chrome during tutorial — ABOVE the dim so nav/panel stay bright */
   body.touring #spaceDock[data-tour-elev="1"],
+  body.touring #spaceIcoRail[data-tour-elev="1"],
+  body.touring #chatComposer[data-tour-elev="1"],
   body.touring #spacePanel[data-tour-elev="1"],
   body.touring #miniPanel[data-tour-elev="1"],
   body.touring #spaceTop[data-tour-elev="1"],
@@ -817,7 +923,9 @@ So, when you change a stored shape:
   body.touring #spaceStage[data-tour-elev="1"]{
     z-index:450 !important;
   }
-  body.touring #spaceDock[data-tour-elev="1"]{
+  body.touring #spaceDock[data-tour-elev="1"],
+  body.touring #spaceIcoRail[data-tour-elev="1"],
+  body.touring #chatComposer[data-tour-elev="1"] .cc-pill{
     background:rgba(2,11,26,.94) !important;
     box-shadow:0 8px 28px rgba(0,0,0,.5);
   }
@@ -843,11 +951,11 @@ So, when you change a stored shape:
     border-color:rgba(52,211,153,.55) !important; color:#fff !important}
   .tour-panel-spot{outline:2.5px solid rgba(125,211,252,.98) !important; outline-offset:0}
   #tourFab{display:none}
-  body.space:not(.fresh) #tourFab{display:flex; position:fixed; left:14px; bottom:14px; z-index:31;
-    align-items:center; gap:8px; padding:8px 12px; border-radius:999px; cursor:pointer;
-    background:rgba(2,11,26,.8); border:1px solid rgba(56,189,248,.4); color:#e0f2ff;
-    font:700 12.5px system-ui,sans-serif; backdrop-filter:blur(10px); box-shadow:0 8px 24px rgba(0,0,0,.35)}
-  body.space.touring #tourFab{display:none !important}
+  body.space:not(.fresh) #tourFab{display:inline-flex; height:34px;
+    align-items:center; gap:8px; padding:0 12px; border-radius:999px; cursor:pointer;
+    background:rgba(2,11,26,.9); border:1px solid rgba(56,189,248,.4); color:#e0f2ff;
+    font:700 12px system-ui,sans-serif; backdrop-filter:blur(10px); box-shadow:0 8px 24px rgba(0,0,0,.35)}
+  body.space.touring #railStubs{display:none !important}
   body.fresh #tourFab{display:none !important}
   #tourFab:hover{border-color:rgba(56,189,248,.75); background:rgba(56,189,248,.16)}
   /* NEVER set position/transform on .tour-spot — targets include position:fixed
@@ -1048,21 +1156,73 @@ So, when you change a stored shape:
   #balTable th{font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
 
   /* ── Space Phase D: HUD, insight rail, alert stack ── */
+  /* ── ONE top bar (goal HUD + timeline), ~48px ── */
   #spaceHud{display:none}
-  body.space #spaceHud{display:flex; position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:25;
-    align-items:center; gap:14px; padding:7px 16px; border-radius:999px; cursor:pointer;
-    background:rgba(2,11,26,.76); border:1px solid rgba(56,189,248,.3); backdrop-filter:blur(10px);
-    color:#dbeafe; font-size:13px}
+  body.space #spaceHud{display:flex; position:fixed; top:14px; z-index:25;
+    /* centred between the rails and the top-right tools (search + demo badge),
+       which --stage-c knows nothing about because they only exist up here */
+    left:calc((var(--stage-l) + 100vw - var(--top-r, 70px)) / 2); transform:translateX(-50%);
+    align-items:center; gap:10px; padding:6px 8px 6px 12px; border-radius:999px;
+    background:rgba(2,11,26,.78); border:1px solid rgba(56,189,248,.3); backdrop-filter:blur(10px);
+    color:#dbeafe; font-size:13px;
+    /* centred on the map's usable area — the old hardcoded 50%−200px offset
+       predated the rails and left the bar clipped behind them */
+    max-width:calc(100vw - var(--stage-l) - var(--top-r, 70px) - 28px)}
+  @media (prefers-reduced-motion: no-preference){
+    body.space #spaceHud{transition:left .2s ease}
+  }
   #spaceHud:hover{border-color:rgba(56,189,248,.6)}
-  .hud-ring{width:34px; height:34px; flex:0 0 auto; transform:rotate(-90deg)}
-  .hud-sub{color:#9fc3e8; font-size:10.5px}
-  .hud-div{width:1px; height:26px; background:rgba(56,189,248,.25)}
-  /* P5-20: cash widget + privacy eye */
-  #hudCash{cursor:pointer; border-radius:8px; padding:1px 4px; user-select:none; -webkit-user-select:none}
-  #hudCash:focus-visible{outline:2px solid #38bdf8}
-  .hud-eye{flex:0 0 auto; background:none; border:1px solid rgba(56,189,248,.35); color:#9fc3e8;
-    border-radius:8px; width:28px; height:28px; cursor:pointer; font-size:13px; line-height:1; padding:0}
-  .hud-eye:hover{border-color:rgba(56,189,248,.7); color:#e2f3ff}
+  /* every cell stacks value over caption; only the goal cell puts a ring
+     beside that stack (hence .hud-txt) */
+  .hud-cell{display:flex; flex-direction:column; align-items:flex-start; gap:0; flex:0 0 auto;
+    padding:2px 5px; border-radius:9px;
+    background:none; border:0; color:inherit; font:inherit; text-align:left; line-height:1.18;
+    user-select:none; -webkit-user-select:none}
+  .hud-cell.hud-goal{flex-direction:row; align-items:center; gap:9px}
+  .hud-goal .hud-txt{display:flex; flex-direction:column; align-items:flex-start}
+  button.hud-cell{cursor:pointer}
+  button.hud-cell:hover{background:rgba(56,189,248,.12)}
+  .hud-cell:focus-visible{outline:2px solid #38bdf8; outline-offset:1px}
+  .hud-cell .num{font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap}
+  .hud-ring{width:30px; height:30px; flex:0 0 auto; transform:rotate(-90deg)}
+  .hud-sub{color:#9fc3e8; font-size:10px; white-space:nowrap}
+  .hud-div{width:1px; height:26px; background:rgba(56,189,248,.25); flex:0 0 auto}
+  #hudCashWrap{display:contents}
+  #hudCashWrap[hidden]{display:none}
+  .hud-tools{display:flex; align-items:center; gap:6px; flex:0 0 auto}
+  .hud-chip{display:inline-flex; align-items:center; gap:6px; height:28px; padding:0 11px; border-radius:999px;
+    border:1px solid rgba(56,189,248,.3); background:rgba(56,189,248,.08); color:#e0f2ff; cursor:pointer;
+    font:600 11.5px system-ui,sans-serif; white-space:nowrap; font-variant-numeric:tabular-nums}
+  .hud-chip:hover{border-color:rgba(56,189,248,.65)}
+  .hud-ic{width:28px; height:28px; border-radius:50%; padding:0; flex:0 0 auto; cursor:pointer;
+    border:1px solid rgba(56,189,248,.35); background:rgba(56,189,248,.08); color:#9fc3e8;
+    font-size:12px; line-height:1}
+  .hud-ic:hover{border-color:rgba(56,189,248,.7); color:#e2f3ff}
+  /* playing: the label + track appear inline, the range chip steps aside —
+     a range that changes every 950ms is not a control worth showing */
+  .hud-lapse{display:none; align-items:center; gap:7px}
+  #spaceHud.playing .hud-lapse{display:flex}
+  #spaceHud.playing #ssRangeBtn, #spaceHud.playing .hud-opt{display:none}
+  #lapseLblHud{font-size:11.5px; color:#cfe9ff; min-width:5ch; font-weight:600}
+  .hud-lapse .ss-track{width:72px; height:4px; border-radius:2px; background:rgba(56,189,248,.15); overflow:hidden}
+  .hud-lapse .ss-track > div{height:100%; width:0; background:#38bdf8; border-radius:2px}
+  /* the classic in-card play bar must never leak into Space — syncGraph sets
+     its display inline, so this needs !important to win */
+  body.space #lapseBar{display:none !important}
+  /* narrow viewports shed the optional cells before the bar ever wraps */
+  @media (max-width:1200px){
+    body.space #spaceHud .hud-opt{display:none}
+    body.space #spaceHud #hudCashWrap{display:none}
+  }
+  /* expanded section labels cost 138px of stage — the bar sheds the optional
+     cells sooner so it never runs under the top-right tools */
+  @media (max-width:1500px){
+    body.space.nav-labels #spaceHud .hud-opt{display:none}
+    body.space.nav-labels #spaceHud #hudCashWrap{display:none}
+  }
+  @media (max-width:900px){
+    body.space #spaceHud .hud-sub{display:none}
+  }
   .priv-eye{background:none; border:1px solid var(--border-strong); color:var(--ink-2); border-radius:7px;
     width:26px; height:22px; cursor:pointer; font-size:12px; line-height:1; padding:0; vertical-align:middle}
   .priv-eye:hover{color:var(--ink)}
@@ -1103,7 +1263,7 @@ So, when you change a stored shape:
   .al-chip{display:inline-block; font-size:10.5px; padding:1px 7px; border-radius:999px; border:1px solid var(--border); color:var(--muted); margin-left:6px; vertical-align:1px}
   .dock-btn .al-badge{margin-left:auto; background:var(--serious); color:#fff; font-size:10.5px; font-weight:700;
     border-radius:999px; min-width:17px; height:17px; line-height:17px; text-align:center; padding:0 4px}
-  #spaceDock.col .dock-btn .al-badge{position:absolute; top:2px; right:2px; margin:0}
+  body.space:not(.nav-labels) .ico-btn .al-badge{position:absolute; top:2px; right:2px; margin:0}
   /* panel enlarge (P9): stretches across the stage but never past the dock —
      the left edge is set inline (JS) to clear #spaceDock's current width */
   body.space #spacePanel.open.max:not(.center){width:auto; max-width:none}
@@ -1288,8 +1448,12 @@ So, when you change a stored shape:
     display:none; flex-direction:column; gap:6px; align-items:center; pointer-events:none;
     max-width:min(440px, 94vw)}
   .map-filter-stack.on{display:flex}
-  body.space .map-filter-stack{position:fixed; left:50%; bottom:58px; transform:translateX(-50%)}
-  body.space .map-filter-stack.low{bottom:14px} /* when play-history bar is hidden */
+  /* Sits ABOVE the composer, not behind it — the composer is z-index 31 and
+     was swallowing every clear-filter ✕. Centred on the map, not the viewport. */
+  body.space .map-filter-stack{position:fixed; z-index:32; bottom:calc(14px + var(--cc-h, 96px) + 10px);
+    left:var(--stage-c); transform:translateX(-50%)}
+  body.space.chat-open:not(.rail-hidden) .map-filter-stack{bottom:14px}
+  body.space .map-filter-stack.low{bottom:calc(14px + var(--cc-h, 96px) + 10px)}
   .map-filter-chip{pointer-events:auto; display:flex; align-items:center; gap:8px;
     background:rgba(2,11,26,.92); border:1px solid rgba(56,189,248,.5); border-radius:999px;
     padding:7px 8px 7px 12px; color:#e8f1ff; font:600 12.5px system-ui,sans-serif;
@@ -2481,31 +2645,90 @@ rewrite the static advice cards if the picture has changed.</div>
 </div>
 
 <div id="spaceStage" aria-hidden="true"></div>
-<nav id="spaceDock" aria-label="Lithifyte menu"></nav>
+<!-- Variant B rail. The dock used to be one JS-rendered blob (renderDock set
+     dock.innerHTML), which would destroy the chat DOM now living inside it.
+     The containers below are STATIC; renderDock only fills #dockHead,
+     #dockSections and #dockIcons. Nothing else in here may be innerHTML'd. -->
+<!-- Navigation is ALWAYS the icon rail — same twenty sections whether or not a
+     conversation is open. It widens in place to show labels rather than handing
+     navigation to a second list, so the layout never changes shape underneath you. -->
+<nav id="spaceIcoRail" aria-label="Sections">
+  <button class="ico-expand" id="navLabels" type="button" aria-expanded="false"
+          title="Show section names" aria-label="Show section names">»</button>
+  <div class="ico-list" id="dockSections"></div>
+</nav>
+<nav id="spaceDock" aria-label="Co-pilot">
+  <div class="dock-head" id="dockHead"></div>
+  <div class="dock-actions">
+    <button class="ra-btn primary" id="companionNew" type="button" title="Start a new conversation">
+      <span class="ic" aria-hidden="true">✦</span><span class="lbl">New chat</span></button>
+  </div>
+  <div class="dock-scroll" id="dockScroll">
+    <!-- idle: recent conversations -->
+    <div id="dockRecents">
+      <div class="dock-list-lbl">Recents</div>
+      <div class="cp-hist" id="chatHist" aria-label="Recent chats"></div>
+    </div>
+    <!-- chatting: the live conversation, in the rail rather than a floating card -->
+    <div id="dockThread" hidden>
+      <div class="dock-thread-head">
+        <span id="companionTitle">Co-pilot</span>
+        <button type="button" class="dock-th-b" id="chatMax" title="Widen the rail" aria-label="Widen the rail">⤢</button>
+        <button type="button" class="dock-th-b" id="companionClose" title="Back to sections" aria-label="Close conversation">✕</button>
+      </div>
+      <div id="companionThread" aria-live="polite"></div>
+      <div id="companionOut"></div>
+    </div>
+  </div>
+</nav>
 <div id="spacePanel" role="dialog" aria-modal="false" aria-labelledby="panelTitle">
   <div class="panel-head"><span class="ic" id="panelIc"></span><span id="panelTitle"></span>
     <button class="btn small panel-max" id="panelMax" type="button" aria-label="Enlarge panel" title="Enlarge">⤢</button>
     <button class="btn small panel-close" id="panelClose" type="button" aria-label="Close panel">✕</button></div>
   <div class="panel-body" id="panelBody"></div>
 </div>
-<div id="spaceHud" role="button" tabindex="0" aria-label="Goal overview — open Goals">
-  <svg class="hud-ring" viewBox="0 0 36 36" aria-hidden="true">
-    <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="3.4"/>
-    <circle id="hudArc" cx="18" cy="18" r="15.9" fill="none" stroke="#34d399" stroke-width="3.4"
-            stroke-linecap="round" stroke-dasharray="0, 100"/>
-  </svg>
-  <div><div id="hudGoal" class="num" style="font-weight:700"></div><div class="hud-sub" id="hudDate"></div></div>
+<!-- ONE top bar: the goal HUD and the timeline controls used to be two stacked
+     pills that physically overlapped by 6px. The container is no longer itself
+     a button — a role="button" wrapping five other buttons was both invalid and
+     the reason a range click would have opened Goals. Each cell owns its own. -->
+<div id="spaceHud" aria-label="Money overview and timeline">
+  <button type="button" class="hud-cell hud-goal" id="hudGoalBtn" aria-label="Goal overview — open Goals">
+    <svg class="hud-ring" viewBox="0 0 36 36" aria-hidden="true">
+      <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="3.4"/>
+      <circle id="hudArc" cx="18" cy="18" r="15.9" fill="none" stroke="#34d399" stroke-width="3.4"
+              stroke-linecap="round" stroke-dasharray="0, 100"/>
+    </svg>
+    <span class="hud-txt"><span id="hudGoal" class="num"></span><span class="hud-sub" id="hudDate"></span></span>
+  </button>
   <div class="hud-div"></div>
-  <div><div class="num" id="hudMachine" style="font-weight:700; color:#34d399"></div><div class="hud-sub">the machine /mo</div></div>
+  <div class="hud-cell"><span class="num" id="hudMachine" style="color:#34d399"></span><span class="hud-sub">the machine /mo</span></div>
+  <!-- C4: the cash cell hides entirely until balances exist — an em dash over
+       "set balances" is not a call to action. hudCashWrap is toggled in renderCash. -->
+  <span id="hudCashWrap" hidden>
+    <span class="hud-div"></span>
+    <button type="button" class="hud-cell" id="hudCash" aria-label="Cash on hand — tap to hide or show, hold to peek">
+      <span class="num" id="hudCashVal" style="color:#38bdf8">—</span>
+      <span class="hud-sub" id="hudCashSub">cash on hand</span></button>
+  </span>
+  <div class="hud-div hud-opt"></div>
+  <button type="button" class="hud-cell hud-opt" id="hudPulse" aria-label="Financial pulse — open the Wealth panel">
+    <span class="num" id="hudPulseVal">—</span>
+    <span class="hud-sub" id="hudPulseSub">pulse</span></button>
   <div class="hud-div"></div>
-  <div id="hudCash" role="button" tabindex="0" aria-label="Cash on hand — tap to hide or show, hold to peek">
-    <div class="num" id="hudCashVal" style="font-weight:700; color:#38bdf8">—</div>
-    <div class="hud-sub" id="hudCashSub">cash on hand</div></div>
-  <div class="hud-div"></div>
-  <div id="hudPulse" role="button" tabindex="0" aria-label="Financial pulse — open the Wealth panel">
-    <div class="num" id="hudPulseVal" style="font-weight:700">—</div>
-    <div class="hud-sub" id="hudPulseSub">pulse</div></div>
-  <button class="hud-eye" id="hudEye" type="button" title="Privacy mode — mask every € figure" aria-pressed="false" aria-label="Privacy mode — mask every euro figure">👁</button>
+  <div class="hud-tools">
+    <button type="button" class="hud-chip" id="ssRangeBtn" title="Change date range">
+      <span aria-hidden="true">📅</span><span id="ssRangeLbl">Date range</span>
+    </button>
+    <!-- the month label and progress track only mean anything WHILE playing,
+         so at rest they are zero-width (.hud-lapse is display:none) -->
+    <div class="hud-lapse">
+      <span id="lapseLblHud" class="num"></span>
+      <div class="ss-track" aria-hidden="true"><div id="lapseProgHud"></div></div>
+    </div>
+    <button class="hud-ic" id="lapsePlayHud" type="button" title="Replay money history month by month"
+            aria-label="Replay money history month by month">▶</button>
+    <button class="hud-ic" id="hudEye" type="button" title="Privacy mode — mask every € figure" aria-pressed="false" aria-label="Privacy mode — mask every euro figure">👁</button>
+  </div>
 </div>
 <div id="insightRail" aria-label="Insights">
   <button class="ins-nav" id="insPrev" type="button" aria-label="Previous insights">‹</button>
@@ -2517,57 +2740,44 @@ rewrite the static advice cards if the picture has changed.</div>
 <div id="spaceTop">
   <button class="top-ic" id="topSearch" type="button" title="Search transactions" aria-label="Search transactions">🔎</button>
 </div>
-<!-- Space sub-bar: play history + active date range (below HUD) -->
-<div id="spaceSubbar" aria-label="Timeline controls">
-  <div class="ss-lapse">
-    <button class="btn small" id="lapsePlayHud" type="button" title="Replay money history month by month">▶ Play history</button>
-    <span id="lapseLblHud" class="num" style="font-size:11.5px;color:#9fc3e8;min-width:4ch"></span>
-    <div class="ss-track" aria-hidden="true"><div id="lapseProgHud"></div></div>
-  </div>
-  <button type="button" class="ss-range" id="ssRangeBtn" title="Change date range">
-    <span aria-hidden="true">📅</span>
-    <span id="ssRangeLbl">Date range</span>
-  </button>
-</div>
+<!-- (the Space sub-bar was folded into #spaceHud above — one bar, not two) -->
 
 <div id="miniPanel" role="dialog" aria-modal="false" aria-labelledby="miniTitle">
   <div class="panel-head"><span class="ic" id="miniIc"></span><span id="miniTitle"></span>
     <button class="btn small panel-close" id="miniClose" type="button" aria-label="Close">✕</button></div>
   <div class="panel-body" id="miniBody"></div>
 </div>
-<!-- Co-pilot: left chat panel (opens when conversation is active) -->
-<div id="chatPanel" role="complementary" aria-label="Co-pilot conversation" aria-hidden="true">
-  <div class="cp-head">
-    <span aria-hidden="true">✦</span>
-    <b id="companionTitle">Co-pilot</b>
-    <button type="button" class="btn small" id="companionNew" title="New chat">＋</button>
-    <button type="button" class="btn small" id="chatMax" title="Widen panel">⤢</button>
-    <button type="button" class="btn small" id="companionClose" aria-label="Collapse chat">✕</button>
-  </div>
-  <div class="cp-hist" id="chatHist" aria-label="Recent chats"></div>
-  <div id="companionThread" aria-live="polite"></div>
-  <div id="companionOut"></div>
-  <div style="padding:8px 12px; border-top:1px solid rgba(56,189,248,.15)">
-    <input id="cp-key" class="inp" type="password" placeholder="API key (BYOK, optional)" style="width:100%;font-size:12px;margin-bottom:4px" aria-label="API key">
-    <input id="cp-endpoint" class="inp" placeholder="Custom endpoint URL" style="width:100%;font-size:12px;display:none" aria-label="Endpoint">
-    <span class="hint" id="cp-lmStatus" style="font-size:11px"></span>
-  </div>
-</div>
-<!-- Bottom chat composer — always visible in Space -->
+<!-- The floating co-pilot card is gone: its thread, history and controls live in
+     the rail now (#dockThread / #dockRecents). The element itself stays as an
+     empty stub because setChatOpen() and the tour still address it by id. -->
+<div id="chatPanel" hidden aria-hidden="true"></div>
+<!-- Bottom chat composer — always visible in Space.
+     ONE row. Model configuration lives behind the ⚡ button, never on the map:
+     #cp-provider / #cp-model / #cp-key / #cp-endpoint / #cp-saveLm were RELOCATED
+     into #modelPop, not deleted — syncLmForm()/saveLmForm() fetch them by id. -->
 <div id="chatComposer" aria-label="Message co-pilot">
   <div class="cc-attach" id="ccAttachList" hidden></div>
-  <div class="cc-row">
+  <!-- Text above, controls below (the Grok/Claude shape). A single row left the
+       input ~110px wide once the composer docked into the rail; this gives the
+       textarea the full width in both homes and lets it grow as you type. -->
+  <div class="cc-pill">
+    <textarea id="ccInput" rows="1" placeholder="How can I help with your finances?" aria-label="Message the co-pilot"></textarea>
     <div class="cc-tools">
       <button type="button" class="cc-btn" id="ccPlus" title="Attach a file (CSV, Excel, text) for the model or import">＋</button>
       <input type="file" id="ccFile" accept=".csv,.xlsx,.xls,.txt,.md,.json,text/*,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" hidden multiple>
-    </div>
-    <textarea id="ccInput" rows="1" placeholder="How can I help with your finances?" aria-label="Message the co-pilot"></textarea>
-    <div class="cc-tools">
+      <button type="button" class="model-btn" id="modelBtn" aria-expanded="false" aria-haspopup="true"
+              title="Which model answers — Auto lets Lithifyte choose">
+        <span id="modelLbl">Auto</span><span class="caret" aria-hidden="true">▾</span>
+      </button>
+      <span class="cc-gap"></span>
       <button type="button" class="cc-btn" id="ccVoice" title="Voice input (off by default — Chrome may send audio to Google)">🎤</button>
       <button type="button" class="cc-btn primary" id="ccSend" title="Send (Enter)">↑</button>
     </div>
   </div>
-  <div class="cc-foot">
+  <div class="cc-chips" id="ccChips"></div>
+  <!-- model popover: the single home for model config (was: composer foot + chat-panel foot) -->
+  <div class="model-pop" id="modelPop" hidden role="menu" aria-label="Model">
+    <p class="pop-label">Model</p>
     <select id="cp-provider" aria-label="AI model provider">
       <option value="off">Commands only</option>
       <option value="lithifyte">Lithifyte AI</option>
@@ -2576,11 +2786,15 @@ rewrite the static advice cards if the picture has changed.</div>
       <option value="anthropic">Claude</option>
       <option value="openai_compat">Custom / local</option>
     </select>
-    <input id="cp-model" class="inp" placeholder="model" style="max-width:110px;font-size:11.5px;padding:3px 6px;background:rgba(2,11,26,.6);color:#cfe9ff;border:1px solid rgba(56,189,248,.25);border-radius:8px" aria-label="Model name">
-    <button type="button" class="btn small" id="cp-saveLm" style="font-size:11px;padding:3px 8px">Save</button>
-    <span class="hint" id="companionKbd">Enter to send · Ctrl+K focus</span>
+    <div id="modelExtra">
+      <input id="cp-model" class="inp" placeholder="Model name (optional)" aria-label="Model name">
+      <input id="cp-key" class="inp" type="password" placeholder="API key (BYOK)" aria-label="API key">
+      <input id="cp-endpoint" class="inp" placeholder="Custom endpoint URL" aria-label="Endpoint">
+    </div>
+    <!-- kept for the saveLmForm() binding; the popover saves as you type -->
+    <button type="button" id="cp-saveLm" hidden aria-hidden="true">Save</button>
+    <p class="pop-note"><span id="cp-lmStatus">Saved in this browser only — never on a server.</span></p>
   </div>
-  <div class="cc-chips" id="ccChips"></div>
 </div>
 <!-- legacy id for tests -->
 <div id="companionBar" hidden aria-hidden="true"></div>
@@ -2637,7 +2851,14 @@ rewrite the static advice cards if the picture has changed.</div>
 </div>
 
 <!-- In-app Space tour -->
-<button type="button" id="tourFab" title="Guided tutorial of features in Space view">📘 Tutorial</button>
+<!-- Rail stubs: Co-pilot (reopen the rail) and Tutorial, side by side at the
+     rail's own edge and BEHIND it (z-index 29 vs the rails' 30) — so opening or
+     expanding the rail slides them out of sight rather than stacking on top.
+     The tutorial also stays reachable from Settings → Guided Space tutorial. -->
+<div id="railStubs">
+  <button id="railShow" type="button" title="Show the co-pilot rail" aria-label="Show the co-pilot rail">✦ Co-pilot</button>
+  <button type="button" id="tourFab" title="Guided tutorial of features in Space view">📘 Tutorial</button>
+</div>
 <div id="tourRoot" aria-live="polite" hidden>
   <div id="tourBlocker" aria-hidden="true" title="Use the tour buttons to navigate"></div>
   <svg id="tourSvg" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
@@ -2863,7 +3084,9 @@ rewrite the static advice cards if the picture has changed.</div>
     db.textContent = 'Sample household';
     db.setAttribute('aria-label', 'Sample household — invented data only; changes are not saved; open your own account');
     db.title = 'Sample data only — changes are not saved (refresh resets). Click to open the real app';
-    db.style.cssText = 'position:fixed;top:12px;left:14px;z-index:62;' +
+    // top-RIGHT, clear of the search button: top-left is the rail's household
+    // header now, and the badge was landing on top of it
+    db.style.cssText = 'position:fixed;top:18px;right:64px;z-index:62;' +
       'background:rgba(16,20,34,.92);border:1px solid rgba(240,180,60,.55);color:#f0c464;' +
       'padding:6px 12px;border-radius:999px;font:700 12px system-ui,sans-serif;text-decoration:none;white-space:nowrap;' +
       'backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,.35)';
@@ -10058,6 +10281,75 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // diving in never blows the text up and out never makes it unreadable
       ctx.textAlign = 'center';
       const fs1 = 11.5/k, fs2 = 10.5/k;
+
+      // ── C1: label placement with collision avoidance ──
+      // Every label used to be stamped below its node, so the dense core (the
+      // most important part of the map) was the least readable part of it.
+      // Now labels claim space in priority order — people and accounts first,
+      // then hubs, then merchants — trying below → above → right → left, and
+      // a merchant that cannot find a clear slot yields until you zoom in.
+      // Font sizes are already divided by k, so these world-space rects
+      // compare exactly as on-screen rects do.
+      const isAnchor = n => n.type === 'hh' || n.type === 'user' || n.type === 'acct';
+      const labelBox = new Map();
+      {
+        // Node bodies are obstacles too — a label sitting on a glowing sphere
+        // is as unreadable as one sitting on another label. Inset slightly so
+        // the bloom halo doesn't push every label away.
+        const placed = [];
+        for (const n of nodes){
+          if (!vis(n)) continue;
+          const rr = n.r * 0.9;
+          placed.push({x0:n.x - rr, x1:n.x + rr, y0:n.y - rr, y1:n.y + rr});
+        }
+        const hits = r => placed.some(p =>
+          r.x0 < p.x1 && r.x1 > p.x0 && r.y0 < p.y1 && r.y1 > p.y0);
+        const pad = 2/k;
+        const order = nodes.filter(n => {
+          if (!vis(n)) return false;
+          const hov = hover && (n.id === hover.id || (adj && adj.has(n.id)));
+          return !(n.type === 'merch' && k < 0.85 && !hov);
+        }).map(n => {
+          const hov = hover && (n.id === hover.id || (adj && adj.has(n.id)));
+          return {n, rank: hov ? -1 : isAnchor(n) ? 0 : n.type === 'merch' ? 2 : 1};
+        }).sort((a, b) => a.rank - b.rank || b.n.r - a.n.r);
+
+        for (const {n, rank} of order){
+          ctx.font = (isAnchor(n) ? '600 ' : '') + fs1 + 'px system-ui,sans-serif';
+          const wLab = ctx.measureText(n.label).width;
+          const showVal = n.val != null && n.type !== 'merch';
+          let vtxt = '', wVal = 0;
+          if (showVal){
+            vtxt = n.type === 'goal' ? eurShort(n.val) + ' · ' + Math.round((n.progress || 0)*100) + '%'
+                 : n.type === 'debt' ? '−' + eurShort(n.val) : eurShort(n.val);
+            ctx.font = fs2 + 'px system-ui,sans-serif';
+            wVal = ctx.measureText(vtxt).width;
+          }
+          const w = Math.max(wLab, wVal), h = fs1 + (showVal ? fs2 + 2/k : 0);
+          const gap = 4/k, side = 6/k;
+          // candidate label-block TOPS, in preference order
+          const cands = [
+            {cx: n.x,                  top: n.y + n.r + gap},                 // below
+            {cx: n.x,                  top: n.y - n.r - gap - h},            // above
+            {cx: n.x + n.r + side + w/2, top: n.y - h/2},                    // right
+            {cx: n.x - n.r - side - w/2, top: n.y - h/2}                     // left
+          ];
+          let put = null;
+          for (const c of cands){
+            const r = {x0:c.cx - w/2 - pad, x1:c.cx + w/2 + pad, y0:c.top - pad, y1:c.top + h + pad};
+            if (!hits(r)){ put = c; placed.push(r); break; }
+          }
+          // anchors and the hovered node are never silenced — they are how you
+          // read the map at all. Everything else yields and returns on zoom.
+          if (!put && (rank <= 0)){
+            put = cands[0];
+            const c = put;
+            placed.push({x0:c.cx - w/2 - pad, x1:c.cx + w/2 + pad, y0:c.top - pad, y1:c.top + h + pad});
+          }
+          if (put) labelBox.set(n.id, {cx: put.cx, top: put.top, vtxt, showVal});
+        }
+      }
+
       for (const n of nodes){
         if (!vis(n)) continue;
         const isHover = hover && (n.id === hover.id || (adj && adj.has(n.id)));
@@ -10066,14 +10358,15 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         const dim = adj && !adj.has(n.id);
         const fade = n.revealK ? Math.min(1, (k - n.revealK)/0.25) : 1;
         ctx.globalAlpha = (dim ? 0.25 : 1) * fade;
-        ctx.font = (n.type==='hh'||n.type==='user'||n.type==='acct' ? '600 ' : '') + fs1 + 'px system-ui,sans-serif';
-        ctx.fillStyle = dim ? INK2 : INK;
-        ctx.fillText(n.label, n.x, n.y + n.r + 4 + fs1);
-        if (n.val != null && n.type !== 'merch'){
-          ctx.font = fs2 + 'px system-ui,sans-serif'; ctx.fillStyle = INK2;
-          const vtxt = n.type === 'goal' ? eurShort(n.val) + ' · ' + Math.round((n.progress || 0)*100) + '%'
-                     : n.type === 'debt' ? '−' + eurShort(n.val) : eurShort(n.val);
-          ctx.fillText(vtxt, n.x, n.y + n.r + 6 + fs1 + fs2);
+        const box = labelBox.get(n.id);
+        if (box){
+          ctx.font = (isAnchor(n) ? '600 ' : '') + fs1 + 'px system-ui,sans-serif';
+          ctx.fillStyle = dim ? INK2 : INK;
+          ctx.fillText(n.label, box.cx, box.top + fs1);
+          if (box.showVal){
+            ctx.font = fs2 + 'px system-ui,sans-serif'; ctx.fillStyle = INK2;
+            ctx.fillText(box.vtxt, box.cx, box.top + fs1 + 2/k + fs2);
+          }
         }
         // A marker means "there is context here". Two sources: the one-line note
         // pinned to this node (P7-36) and any linked concept note that names this
@@ -10124,6 +10417,15 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         expanded.add(n.id); rebuild.soft = true; rebuild();
         flyTo(n.x, n.y, Math.max(view.k, 1.5), 750);
       }
+      // C6: the hint has done its job the moment you click a hub — retire it
+      // for the session rather than leaving it parked on the bottom edge.
+      // display:none, not a fade: an opacity transition on this element never
+      // progressed (it sits in the card that Space relocates into the stage),
+      // and a hint that half-disappears is worse than one that just goes.
+      try {
+        const gh = document.querySelector('.graph-hint');
+        if (gh) gh.style.display = 'none';
+      } catch (e) {}
       if (onNodeCb) onNodeCb({id:n.id, type:n.type, label:n.label, full:n.full || n.label,
         val:n.val, n:n.n, inc:n.inc, out:n.out, expanded: expanded.has(n.id),
         progress:n.progress, target:n.target, payoffMonth:n.payoffMonth,
@@ -10132,11 +10434,24 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     window.__graphClick = id => { const n2 = byId.get(id); if (n2) clickNode(n2); };
 
     // ── camera ──
+    // camShift (C3): how far left the world is held so a right-hand panel
+    // doesn't cover what you were reading. Every camera move adds it, so
+    // fit/flyToNode stay correct while a panel is open instead of fighting it.
+    let camShift = 0;
     const easeIO = u => u < 0.5 ? 4*u*u*u : 1 - Math.pow(-2*u + 2, 3)/2;
     function flyTo(wx, wy, k, dur){
-      const to = {k, x: W/2 - wx*k, y: Hc/2 - wy*k};
+      const to = {k, x: W/2 - wx*k + camShift, y: Hc/2 - wy*k};
       if (reduceMotion){ view = to; draw(performance.now()); return; }
       fly = {t0:performance.now(), dur:dur||700, from:{...view}, to};
+      ensureAnim();
+    }
+    function setCamShift(px, dur){
+      const d = px - camShift;
+      camShift = px;
+      if (!d) return;
+      const to = {k: view.k, x: view.x + d, y: view.y};
+      if (reduceMotion){ view = to; draw(performance.now()); return; }
+      fly = {t0:performance.now(), dur:dur == null ? 340 : dur, from:{...view}, to};
       ensureAnim();
     }
     function fitAll(){
@@ -10304,7 +10619,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
     return {rebuild: soft => { if (soft) rebuild.soft = true; rebuild(); },
             draw:()=>draw(performance.now()), resize, fit: fitAll,
-            flyToNode, onNode: cb => { onNodeCb = cb; },
+            flyToNode, camShift: setCamShift, onNode: cb => { onNodeCb = cb; },
             highlight: ids => { extHi = ids && ids.length ? new Set(ids) : null; draw(performance.now()); },
             setPaused: b => { paused = !!b; if (!paused) ensureAnim(); else draw(performance.now()); }};
   })();
@@ -13124,12 +13439,30 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   // section time-travels together (the range drives all renderers), and the
   // map gets soft rebuilds so clusters settle calmly as they appear.
   const Lapse = {on:false, timer:null, i:0, saved:null};
+  // Mirror playback into the merged top bar. The label and track live inside
+  // .hud-lapse, which is display:none until #spaceHud gets .playing — so at
+  // rest they cost zero width, which is what let both bars become one.
+  function syncLapseHud(){
+    const hud = document.getElementById('spaceHud');
+    if (hud) hud.classList.toggle('playing', !!Lapse.on);
+    const btn = document.getElementById('lapsePlayHud');
+    if (btn){
+      btn.textContent = Lapse.on ? '⏹' : '▶';
+      btn.setAttribute('aria-label', Lapse.on ? 'Stop replay' : 'Replay money history month by month');
+      btn.title = btn.getAttribute('aria-label');
+    }
+    const lab = document.getElementById('lapseLbl'), labH = document.getElementById('lapseLblHud');
+    if (lab && labH) labH.textContent = lab.textContent;
+    const prog = document.getElementById('lapseProg'), progH = document.getElementById('lapseProgHud');
+    if (prog && progH) progH.style.width = prog.style.width;
+  }
   function lapseStart(){
     if (Lapse.on || MONTHS.length < 3) return;
     Lapse.on = true; Lapse.i = 0;
     Lapse.saved = [rangeFrom, rangeTo, document.getElementById('rangePreset').value];
     document.getElementById('lapsePlay').textContent = '⏹ Stop';
     document.getElementById('lapseBar').classList.add('playing');
+    syncLapseHud();
     lapseStep();
   }
   function lapseStep(){
@@ -13143,6 +13476,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     syncRangeUI(); renderAll();
     document.getElementById('lapseLbl').textContent = fmtMoLbl(m);
     document.getElementById('lapseProg').style.width = ((Lapse.i + 1) / MONTHS.length * 100) + '%';
+    syncLapseHud();
     if (graph && Lapse.i % 3 === 2) graph.fit();
     if (Lapse.i >= MONTHS.length - 1){
       if (graph) graph.fit();
@@ -13159,6 +13493,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     document.getElementById('lapseBar').classList.remove('playing');
     document.getElementById('lapseLbl').textContent = '';
     document.getElementById('lapseProg').style.width = '0';
+    syncLapseHud();
     if (restore && Lapse.saved){
       setRange(Lapse.saved[0], Lapse.saved[1]);
       document.getElementById('rangePreset').value = Lapse.saved[2];
@@ -13201,6 +13536,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
     set('hudCashVal', val); set('heroCashVal', val);
     set('hudCashSub', cp.rows.length ? 'cash · ' + (masked ? 'tap to show' : 'tap to hide') : 'cash — set balances');
+    // C4: no balances → no cell. The classic hero still carries the "set
+    // opening balances" prompt, where it can actually be acted on; a dead
+    // em dash parked in the top bar could not.
+    const cashWrap = document.getElementById('hudCashWrap');
+    if (cashWrap) cashWrap.hidden = !cp.rows.length;
     set('heroCashSub', cp.rows.length
       ? cp.rows.length + ' account' + (cp.rows.length === 1 ? '' : 's') + ' · reconciled to ' + latest +
         (drift ? ' · ⚖️ drifted' : '') + (cp.untracked.length ? ' · ' + cp.untracked.length + ' untracked' : '') +
@@ -13334,12 +13674,19 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   // flag to bring it back exactly as it was (rail markup + generateInsights
   // + the ‹ › bindings all remain live code).
   const INSIGHT_RAIL = false;
+  // C7: the rail stays parked, but the insights themselves are NOT wasted —
+  // they seed the composer's empty-state chips, so a fresh chat offers your
+  // actual biggest leak instead of a generic prompt. Always computed, stashed
+  // here, read by Companion.renderChips().
+  let INSIGHTS_LAST = [];
   function renderInsights(fc, as){
     const rail = document.getElementById('insightRail');
     if (rail) rail.style.display = INSIGHT_RAIL ? '' : 'none';
+    const ins = generateInsights(fc, as);
+    INSIGHTS_LAST = ins;
+    try { if (window.__ddCompanion && window.__ddCompanion.refreshChips) window.__ddCompanion.refreshChips(); } catch (e) {}
     if (!INSIGHT_RAIL) return;
     const track = document.getElementById('insTrack');
-    const ins = generateInsights(fc, as);
     track.innerHTML = ins.map((i, idx) => `<div class="ins-card" data-i="${idx}" role="button" tabindex="0">
       <div class="ins-title"><span>${i.ic}</span>${esc(i.title)}</div>
       <div class="ins-body">${esc(i.body)}</div></div>`).join('');
@@ -15583,21 +15930,38 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     ];
     let phI = 0;
 
+    // The conversation lives in the rail now — body.chat-open is the truth.
+    // This used to read #chatPanel.open, which is a retired stub that never
+    // gets the class, so isOpen() would always have answered false.
     function isOpen(){
-      const el = document.getElementById('chatPanel');
-      return el && el.classList.contains('open');
+      return document.body.classList.contains('chat-open');
     }
+    // The rail has two faces. Idle: Sections + Recents, composer floating over
+    // the map. Chatting: the thread fills the rail, the composer slides into
+    // its foot, and the 52px icon rail takes over navigation.
     function setChatOpen(on){
-      const panel = document.getElementById('chatPanel');
-      if (!panel) return;
-      panel.classList.toggle('open', !!on);
-      panel.setAttribute('aria-hidden', on ? 'false' : 'true');
       document.body.classList.toggle('chat-open', !!on);
-      // align with collapsed dock
-      try {
-        const dock = document.getElementById('spaceDock');
-        panel.classList.toggle('dock-col', !!(dock && dock.classList.contains('col')));
-      } catch (e) {}
+      const rec = document.getElementById('dockRecents');
+      const thr = document.getElementById('dockThread');
+      if (rec) rec.hidden = !!on;
+      if (thr) thr.hidden = !on;
+      // opening a conversation must never leave the rail hidden — the thread
+      // would have nowhere to render
+      if (on) document.body.classList.remove('rail-hidden');
+      else document.body.classList.remove('dock-wide');
+      const t = document.getElementById('companionTitle');
+      if (t){
+        const chat = activeChatId && chatStore.items.find(c => c.id === activeChatId);
+        t.textContent = (chat && chat.title && chat.title !== 'Conversation') ? chat.title : 'Co-pilot';
+      }
+      // the docked composer is ~150px of input — the wide-open placeholder
+      // just truncates there
+      // no !value guard: setChatOpen fires while the sent text is still in the
+      // box, and a placeholder is invisible whenever there is text anyway
+      const ci = document.getElementById('ccInput');
+      if (ci) ci.placeholder = on ? 'Ask a follow-up…' : 'How can I help with your finances?';
+      // the rail moved/resized — re-centre the map on what's left of the screen
+      try { if (window.__ddSyncCam) setTimeout(window.__ddSyncCam, 0); } catch (e) {}
     }
     function renderThread(){
       const el = document.getElementById('companionThread');
@@ -15618,7 +15982,15 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const el = document.getElementById('chatHist');
       if (!el) return;
       const items = (chatStore.items || []).slice(0, 12);
-      if (!items.length){ el.innerHTML = ''; el.hidden = true; return; }
+      // Recents is a permanent part of the rail now, so an empty one has to say
+      // something rather than leaving a labelled void
+      if (!items.length){
+        el.hidden = false;
+        el.innerHTML = '<p class="cp-hint" style="padding:4px 9px; font-size:11.5px">' +
+          'No conversations yet. Ask about a category, a month, or your goals — ' +
+          'every figure comes from your own data.</p>';
+        return;
+      }
       el.hidden = false;
       el.innerHTML = items.map(c => {
         const on = c.id === activeChatId ? ' style="background:rgba(56,189,248,.12)"' : '';
@@ -15680,11 +16052,51 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         submit();
       }));
     }
+    // C7: chips come from the same computed insights the parked rail used, so
+    // an empty composer offers YOUR biggest leak, not a generic prompt. Every
+    // query below is a shape match() already routes (SECTIONS labels are
+    // matched for anything ≤24 chars), so a chip can never dead-end.
+    const CHIP_FOR = {
+      leaks:  i => ({label:'biggest leak', q:'leaks'}),
+      goals:  i => ({label:'goal timing', q:'goals'}),
+      budget: i => ({label:'budget pace', q:'budget'}),
+      ready:  i => ({label:'readiness', q:'readiness'}),
+      pulse:  i => ({label:'my pulse', q:'pulse'}),
+      fcast:  i => ({label:'next month outlook', q:'next month outlook'}),
+      wealth: i => ({label:'net worth', q:'net worth'}),
+      debts:  i => ({label:'my debts', q:'debts'}),
+      invest: i => ({label:'investments', q:'invest'}),
+      cats:   i => {
+        // "Groceries up €142 vs Mar 26" — lead with the category that moved
+        const cat = String(i.body || '').split(/\s+(?:up|down)\s+/)[0].trim();
+        return cat ? {label:'how has ' + cat.toLowerCase() + ' done',
+                      q:'how has ' + cat + ' done'} : null;
+      }
+    };
+    function personalChips(){
+      const out = [], seen = new Set();
+      for (const i of (INSIGHTS_LAST || [])){
+        const mk = CHIP_FOR[i.k];
+        if (!mk) continue;
+        const c = mk(i);
+        if (!c || seen.has(c.q)) continue;
+        seen.add(c.q);
+        out.push(c);
+        if (out.length === 3) break;
+      }
+      return out;
+    }
     function renderChips(){
       const el = document.getElementById('ccChips');
       if (!el) return;
-      const sugs = suggestions().slice(0, 5);
-      el.innerHTML = sugs.map(s => '<button type="button" class="cc-chip" data-q="' + esc(s) + '">' + esc(s) + '</button>').join('');
+      let chips = personalChips();
+      if (chips.length < 3)                              // blank slate / fresh install
+        for (const s of suggestions()){
+          if (chips.length === 3) break;
+          if (!chips.some(c => c.q === s)) chips.push({label:s, q:s});
+        }
+      el.innerHTML = chips.map(c =>
+        '<button type="button" class="cc-chip" data-q="' + esc(c.q) + '">' + esc(c.label) + '</button>').join('');
       el.querySelectorAll('.cc-chip').forEach(b => b.addEventListener('click', ()=>{
         const inp = document.getElementById('ccInput');
         if (inp){ inp.value = b.dataset.q; submit(); }
@@ -15701,20 +16113,32 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         pendingFiles.splice(+b.dataset.rm, 1); renderAttach();
       }));
     }
+    // The composer button names whatever is actually answering. "Auto" is the
+    // default (Lithifyte picks); anything else names the provider you chose.
+    const LM_LABEL = {off:'Commands only', lithifyte:'Auto', xai:'Grok',
+                      openai:'GPT', anthropic:'Claude', openai_compat:'Local'};
     function syncLmForm(){
       const p = document.getElementById('cp-provider');
       const m = document.getElementById('cp-model');
       const k = document.getElementById('cp-key');
       const e = document.getElementById('cp-endpoint');
-      if (p) p.value = lmStore.provider || 'lithifyte';
+      const prov = lmStore.provider || 'lithifyte';
+      if (p) p.value = prov;
       if (m) m.value = lmStore.model || '';
       if (k) k.value = lmStore.apiKey || '';
-      if (e){
-        e.style.display = (lmStore.provider === 'openai_compat') ? '' : 'none';
-        e.value = lmStore.endpoint || '';
+      if (e) e.value = lmStore.endpoint || '';
+      const lbl = document.getElementById('modelLbl');
+      if (lbl) lbl.textContent = LM_LABEL[prov] || 'Auto';
+      // key/model/endpoint only exist for providers that need them (CSS-driven)
+      const pop = document.getElementById('modelPop');
+      if (pop){
+        pop.classList.toggle('byok', prov !== 'off' && prov !== 'lithifyte');
+        pop.classList.toggle('compat', prov === 'openai_compat');
       }
     }
-    function saveLmForm(){
+    // resync=false while the user is typing — re-writing .value mid-keystroke
+    // sends the caret to the end of the field.
+    function saveLmForm(resync){
       const p = document.getElementById('cp-provider');
       const m = document.getElementById('cp-model');
       const k = document.getElementById('cp-key');
@@ -15727,8 +16151,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (!lmStore.relay) lmStore.relay = RELAY_DEFAULT;
       save(LS.lm, lmStore);
       const st = document.getElementById('cp-lmStatus');
-      if (st) st.textContent = 'Saved in this browser';
-      syncLmForm();
+      if (st) st.textContent = 'Saved in this browser only — never on a server.';
+      if (resync !== false) syncLmForm();
     }
     function open(prefill){
       setChatOpen(true);
@@ -15864,8 +16288,13 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (closeBtn) closeBtn.addEventListener('click', close);
       if (newBtn) newBtn.addEventListener('click', newChat);
       if (maxBtn) maxBtn.addEventListener('click', ()=>{
-        const p = document.getElementById('chatPanel');
-        if (p) p.classList.toggle('max');
+        const d = document.getElementById('spaceDock');
+        if (!d) return;
+        const wide = !document.body.classList.contains('dock-wide');   // 300 → 400
+        document.body.classList.toggle('dock-wide', wide);
+        maxBtn.title = wide ? 'Narrow the rail' : 'Widen the rail';
+        maxBtn.setAttribute('aria-label', maxBtn.title);
+        try { if (window.__ddSyncCam) setTimeout(window.__ddSyncCam, 0); } catch (e) {}
       });
       if (saveBtn) saveBtn.addEventListener('click', saveLmForm);
       if (prov) prov.addEventListener('change', ()=>{
@@ -15874,6 +16303,37 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         syncLmForm();
         save(LS.lm, lmStore);
       });
+      // ── model popover: the one home for model config ──
+      // There is no Save button by design — the fields persist as you type,
+      // which is how the rest of the app already behaves.
+      const modelBtn = document.getElementById('modelBtn');
+      const modelPop = document.getElementById('modelPop');
+      const setPop = open => {
+        if (!modelPop || !modelBtn) return;
+        modelPop.hidden = !open;
+        modelBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      };
+      if (modelBtn && modelPop){
+        modelBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          const opening = modelPop.hidden;
+          if (opening) syncLmForm();
+          setPop(opening);
+        });
+        modelPop.addEventListener('click', e => e.stopPropagation());
+        ['cp-model', 'cp-key', 'cp-endpoint'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.addEventListener('input', ()=> saveLmForm(false));
+        });
+        document.addEventListener('click', ()=> setPop(false));
+        document.addEventListener('keydown', e => {
+          if (e.key === 'Escape' && !modelPop.hidden){
+            e.stopPropagation();       // don't also close the Space panel
+            setPop(false);
+            modelBtn.focus();
+          }
+        }, true);
+      }
       if (send) send.addEventListener('click', ()=> submit());
       if (plus && file){
         plus.addEventListener('click', ()=> file.click());
@@ -15904,8 +16364,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           inp.style.height = 'auto';
           inp.style.height = Math.min(120, inp.scrollHeight) + 'px';
         });
-        // rotate placeholder gently
+        // Rotate the placeholder gently — but only while the composer is
+        // floating over the map. Docked in the rail it is ~150px wide and
+        // says one specific thing ("Ask a follow-up…"), which the rotation
+        // was overwriting every 5s.
         setInterval(()=>{
+          if (document.body.classList.contains('chat-open')) return;
           if (document.activeElement === inp && inp.value) return;
           phI = (phI + 1) % PLACEHOLDERS.length;
           if (!inp.value) inp.placeholder = PLACEHOLDERS[phI];
@@ -15924,20 +16388,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       });
       if (topComp) topComp.addEventListener('click', ()=> open());
 
-      // Sync dual lapse labels when main play updates
-      const obsTarget = document.getElementById('lapsePlay');
-      if (obsTarget && window.MutationObserver){
-        new MutationObserver(()=>{
-          const hud = document.getElementById('lapsePlayHud');
-          if (hud) hud.textContent = obsTarget.textContent;
-          const lab = document.getElementById('lapseLbl');
-          const labH = document.getElementById('lapseLblHud');
-          if (lab && labH) labH.textContent = lab.textContent;
-          const prog = document.getElementById('lapseProg');
-          const progH = document.getElementById('lapseProgHud');
-          if (prog && progH) progH.style.width = prog.style.width;
-        }).observe(obsTarget, {characterData:true, childList:true, subtree:true});
-      }
+      // The lapse mirror used to observe #lapsePlay's text, which only mutates
+      // on start/stop — so the month label and progress never advanced in the
+      // HUD during playback. syncLapseHud() is now called from every step.
 
       document.addEventListener('keydown', e => {
         const mod = e.metaKey || e.ctrlKey;
@@ -15961,7 +16414,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     return {
       ask, match, run, handle, askLm, applyActions, registry, suggestions, open, close, bind, isOpen,
       ensureChat, newChat, deleteChat, lmEnabled, lmComplete, chats: () => chatStore.items, scenarios: () => scenarioStore.items,
-      syncRangeLabel, SECTIONS, RELAY_DEFAULT
+      syncRangeLabel, SECTIONS, RELAY_DEFAULT,
+      refreshChips: () => { if (bound) renderChips(); },   // called when insights recompute
+      personalChips
     };
   })();
   window.__ddCompanion = Companion;
@@ -16077,6 +16532,41 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (marker && marker.parentNode){ marker.parentNode.insertBefore(el, marker); marker.remove(); }
       homes.delete(el);
     }
+    // C3: hold the world clear of a right-hand panel. Both calls in openPanel
+    // land in one synchronous block, so the camera animates straight to the
+    // final shift — closePanel's reset never renders as a bounce.
+    // Hold the world in the middle of the space it actually has. Chrome on the
+    // left (rail + icon rail) pushes the map right; a data panel on the right
+    // pushes it left. Centring on the viewport — which is what it did before
+    // the rail existed — puts the constellation under whichever side is wider.
+    function syncCamShift(){
+      const open = panel.classList.contains('open') && !panel.classList.contains('center');
+      document.body.classList.toggle('panel-open', open);
+      if (!graph || !graph.camShift) return;
+      const vw = window.innerWidth;
+      const seen = el => el && getComputedStyle(el).display !== 'none';
+      // left chrome = whichever rail actually reaches furthest right
+      let left = 0;
+      const ico = document.getElementById('spaceIcoRail');
+      if (seen(ico)) left = Math.max(left, ico.getBoundingClientRect().right + 8);
+      if (seen(dock)) left = Math.max(left, dock.getBoundingClientRect().right + 8);
+      let right = 0;
+      if (open) right = vw - panel.getBoundingClientRect().left + 14;
+      graph.camShift((left - right) / 2);
+      document.body.style.setProperty('--stage-r', Math.round(right) + 'px');
+      // reserve the top-right strip so the HUD never slides under the search
+      // button or the sample-household badge
+      let topR = 70;
+      for (const id of ['spaceTop', 'demoBadge']){
+        const el = document.getElementById(id);
+        if (seen(el)) topR = Math.max(topR, vw - el.getBoundingClientRect().left + 12);
+      }
+      document.body.style.setProperty('--top-r', Math.round(topR) + 'px');
+      // the filter chips clear the composer, whose height changes as it grows
+      const cc = document.getElementById('chatComposer');
+      if (seen(cc)) document.body.style.setProperty('--cc-h', Math.round(cc.getBoundingClientRect().height) + 'px');
+    }
+    window.__ddSyncCam = syncCamShift;
     function closePanel(){
       mounted.forEach(restore);
       mounted = []; active = null;
@@ -16086,7 +16576,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (mx){ mx.textContent = '⤢'; mx.title = 'Enlarge'; mx.setAttribute('aria-label', 'Enlarge panel'); }
       const stageEl = document.getElementById('spaceStage');
       if (stageEl) stageEl.classList.remove('panel-dim');
-      dock.querySelectorAll('.dock-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('#spaceIcoRail .ico-btn').forEach(b => b.classList.remove('active'));
+      syncCamShift();
     }
     function openPanel(item, opts){
       opts = opts || {};
@@ -16105,46 +16596,83 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const stageEl = document.getElementById('spaceStage');
       if (stageEl) stageEl.classList.toggle('panel-dim', item.mode === 'center');
       panel.classList.add('open');
+      syncCamShift();
       active = item.k;
-      dock.querySelectorAll('.dock-btn').forEach(b => b.classList.toggle('active', b.dataset.k === item.k));
+      document.querySelectorAll('#spaceIcoRail .ico-btn').forEach(b => b.classList.toggle('active', b.dataset.k === item.k));
       try { if (window.__lfTrack) window.__lfTrack('section_view', { section: String(item.k) }); } catch (e) {}
       // the world stays LIVE behind the glass — the panel blur shows the
       // moving map (the old setPaused freeze read as a hang; setPaused
       // itself remains available for testing/future use)
     }
     // ── P6: collapsible dock with group labels + household header ──
+    // renderDock only ever writes #dockHead, #dockSections and #dockIcons.
+    // The rail's other children (actions, recents, thread, composer foot) are
+    // static markup and MUST NOT be innerHTML'd away — the live conversation
+    // lives among them now.
+    const icoRail = document.getElementById('spaceIcoRail');
     function renderDock(){
       const hh = (org.householdName && String(org.householdName).trim()) || '';
       const u = allUsers().find(x => x.name && x.name !== 'Me') || allUsers()[0];
       const nm = hh || ((u && u.name) ? u.name : 'You');
       const ava = hh ? '⌂' : ((nm.trim().charAt(0) || 'Y').toUpperCase());
-      dock.classList.toggle('col', !!FCONF.dockCol);
-      dock.innerHTML = `<button class="dock-col-btn" id="dockCol" type="button" title="${FCONF.dockCol ? 'Expand the menu' : 'Collapse to icons'}" aria-label="${FCONF.dockCol ? 'Expand the menu' : 'Collapse the menu'}">${FCONF.dockCol ? '»' : '«'}</button>
-        <div class="dock-user" title="${esc(nm)}"><span class="dock-ava">${esc(ava)}</span><span>${esc(nm)}</span></div>` +
-        groups.map(([g, keys]) => `<div class="dock-group">${g}</div>` +
-          keys.map(k => {
-            const i = items.find(x => x.k === k);
-            return `<button class="dock-btn${active === i.k ? ' active' : ''}" data-k="${i.k}" type="button" title="${i.label}" style="position:relative"><span class="ic">${i.ic}</span><span class="lbl">${i.label}</span>${i.k === 'alerts' ? '<span class="al-badge" id="dockAlBadge" style="display:none"></span>' : ''}</button>`;
-          }).join('')).join('');
+      document.getElementById('dockHead').innerHTML =
+        `<span class="dock-ava">${esc(ava)}</span><span title="${esc(nm)}">${esc(nm)}</span>` +
+        `<button class="dock-col-btn" id="dockCol" type="button" title="Hide the co-pilot rail" aria-label="Hide the co-pilot rail">«</button>`;
+      // One navigation list, in the icon rail. Group headings show only when
+      // labels are on; separators stand in for them when they're not.
+      document.getElementById('dockSections').innerHTML = groups.map(([g, keys], gi) =>
+        (gi ? '<div class="ico-sep" aria-hidden="true"></div>' : '') +
+        `<div class="ico-group">${g}</div>` +
+        keys.map(k => { const i = items.find(x => x.k === k);
+          return `<button class="ico-btn${active === i.k ? ' active' : ''}" data-k="${i.k}" type="button" title="${i.label}" aria-label="${i.label}" style="position:relative"><span class="ic">${i.ic}</span><span class="lbl">${i.label}</span>${i.k === 'alerts' ? '<span class="al-badge" id="dockAlBadge" style="display:none"></span>' : ''}</button>`;
+        }).join('')).join('');
       if (typeof updateAlertsBadge === 'function') updateAlertsBadge();
-      dock.querySelector('#dockCol').addEventListener('click', ()=>{
-        FCONF.dockCol = !FCONF.dockCol; save(LS.fcast, FCONF); renderDock();
-      });
-      dock.querySelectorAll('.dock-btn[data-k]').forEach(b =>
+      const colBtn = document.getElementById('dockCol');
+      if (colBtn) colBtn.addEventListener('click', ()=> setRailHidden(true));
+      document.querySelectorAll('#spaceIcoRail .ico-btn[data-k]').forEach(b =>
         b.addEventListener('click', ()=>openPanel(items.find(i => i.k === b.dataset.k))));
     }
     renderDock();
+    // ── rail visibility ──
+    // The old collapse hid its own expand button, so there was no way back.
+    // Hiding the rail now reveals #railShow, which is the only way it can go.
+    function setRailHidden(hidden){
+      document.body.classList.toggle('rail-hidden', !!hidden);
+      FCONF.railHidden = !!hidden; save(LS.fcast, FCONF);
+      try { if (window.__ddSyncCam) setTimeout(window.__ddSyncCam, 0); } catch (e) {}
+    }
+    const railShow = document.getElementById('railShow');
+    if (railShow) railShow.addEventListener('click', ()=> setRailHidden(false));
+    if (FCONF.railHidden) document.body.classList.add('rail-hidden');
+    // ── section labels ──
+    const navLabels = document.getElementById('navLabels');
+    function setNavLabels(on){
+      document.body.classList.toggle('nav-labels', !!on);
+      FCONF.navLabels = !!on; save(LS.fcast, FCONF);
+      if (navLabels){
+        navLabels.textContent = on ? '«' : '»';
+        navLabels.title = on ? 'Hide section names' : 'Show section names';
+        navLabels.setAttribute('aria-label', navLabels.title);
+        navLabels.setAttribute('aria-expanded', on ? 'true' : 'false');
+      }
+      try { if (window.__ddSyncCam) setTimeout(window.__ddSyncCam, 0); } catch (e) {}
+    }
+    if (navLabels) navLabels.addEventListener('click', ()=> setNavLabels(!document.body.classList.contains('nav-labels')));
+    setNavLabels(!!FCONF.navLabels);
     // ── P6: top-right mini cards (range + search) ──
     const mini = document.getElementById('miniPanel');
     const miniBody = document.getElementById('miniBody');
-    const miniDefs = {range: {ic:'📅', label:'Date range', btn:'topRange', sel:['.range-bar']},
+    // btn: the control that opens this mini card. The range moved out of
+    // #spaceTop into the merged top bar, so it is #ssRangeBtn now — the old
+    // 'topRange' id resolved to null and threw on every range open.
+    const miniDefs = {range: {ic:'📅', label:'Date range', btn:'ssRangeBtn', sel:['.range-bar']},
                       search: {ic:'🔎', label:'Search transactions', btn:'topSearch', sel:['#sec-search']}};
     let miniMounted = [], miniActive = null;
     function closeMini(){
       miniMounted.forEach(restore);
       miniMounted = []; miniActive = null;
       mini.classList.remove('open');
-      document.querySelectorAll('#spaceTop .top-ic').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('#spaceTop .top-ic, #ssRangeBtn').forEach(b => b.classList.remove('active'));
     }
     function openMini(kind, opts){
       opts = opts || {};
@@ -16160,10 +16688,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       }
       mini.classList.add('open');
       miniActive = kind;
-      document.getElementById(d.btn).classList.add('active');
+      const openerBtn = document.getElementById(d.btn);
+      if (openerBtn) openerBtn.classList.add('active');
     }
-    const _topRange = document.getElementById('topRange');
-    if (_topRange) _topRange.addEventListener('click', ()=>openMini('range'));
     window.__ddOpenRange = () => openMini('range');
     document.getElementById('topSearch').addEventListener('click', ()=>openMini('search'));
     document.getElementById('miniClose').addEventListener('click', closeMini);
@@ -16221,6 +16748,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       }
       if (graph){ graph.resize(); setTimeout(()=>graph.fit(), 80); }
       renderDock();
+      // centre the world on the map area beside the rail, not on the viewport
+      setTimeout(syncCamShift, 120);
       FCONF.view = 'space'; save(LS.fcast, FCONF);
       if (TX.length) setTimeout(showSpaceAlerts, 900);    // attention items drift in once
       try {
@@ -16261,31 +16790,35 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   // Opt-in only. Walks the real Space dock/panels; never touches finance data.
   const SpaceTour = (function(){
     const PARTS = [
-      {id:1, name:'1 · Space shell', blurb:'Map, dock, panels'},
+      {id:1, name:'1 · Space shell', blurb:'Map, rails, panels'},
       {id:2, name:'2 · First data', blurb:'Household → people → CSV'},
-      {id:3, name:'3 · Look around', blurb:'Map, range, HUD'},
+      {id:3, name:'3 · Look around', blurb:'Map, range, search'},
       {id:4, name:'4 · Clean data', blurb:'People, audit, rules'},
       {id:5, name:'5 · Understand', blurb:'Cashflow & leaks'},
       {id:6, name:'6 · Plan', blurb:'Goals, budget, forecast'},
-      {id:7, name:'7 · Wealth & backup', blurb:'Pulse, debts, export'}
+      {id:7, name:'7 · Wealth & backup', blurb:'Pulse, debts, export'},
+      {id:8, name:'8 · Co-pilot', blurb:'Ask, models, history'}
     ];
     // target: CSS selector resolved after dock/panel open
     // dock: Space.open key | 'map' | 'range' | 'search' | null
     // pad: spotlight padding
     const STEPS = [
       // Part 1 — Space shell
-      {part:1, dock:'map', target:'#spaceDock', title:'Space view is the app',
-       loc:'Space shell — map behind, dock on the left',
-       body:'You are in Space view — the money map fills the screen and every feature opens as a glass panel over it. This tour walks the real controls (highlighted). Pick any part below, or press Next to play through in order. Use End tutorial anytime.'},
-      {part:1, dock:'map', target:'#spaceDock', title:'The left dock',
-       loc:'Left edge · Overview / Planning / Wealth / Data',
-       body:'This is your main menu. Groups: Overview (Goals, Cashflow, Categories, Leaks), Planning (Budget, Simulate, Forecast, Plan), Wealth (Pulse, Net worth, Invest, Debts, Readiness), and Data (Audit, Rules, People, Settings). People opens as a centered popup — not a side rail.'},
-      {part:1, dock:'map', target:'#spaceTop', title:'Date range & Search',
-       loc:'Top-right 📅 and 🔎 icons',
-       body:'📅 opens the date range (charts and flows follow it). 🔎 opens transaction search. Both open as mini cards so the map stays visible. They stay highlighted bright above the fade — try them after the tutorial.'},
-      {part:1, dock:'map', target:'#spaceHud', title:'The HUD',
+      {part:1, dock:'map', target:'#spaceIcoRail', title:'Space view is the app',
+       loc:'Space shell — map behind, two rails on the left',
+       body:'You are in Space view — the money map fills the screen and every feature opens as a glass panel over it. Two rails sit on the left: a narrow icon rail holding every section, and the co-pilot rail beside it. This tour walks the real controls (highlighted). Pick any part below, or press Next to play through in order. Use End tutorial anytime.'},
+      {part:1, dock:'map', target:'#spaceIcoRail', title:'The section rail',
+       loc:'Far left — always there',
+       body:'Every section lives here as an icon, and the rail never moves or disappears. Groups: Overview (Summary, Goals, Alerts, Cashflow, Categories, Leaks), Planning (Budget, Simulate, Forecast, Plan, Notes), Wealth (Pulse, Net worth, Invest, Debts, Readiness), and Data (Audit, Rules, People, Settings). Press » at the top to widen it and show the names; press « to go back to icons. People opens as a centered popup — not a side rail.'},
+      {part:1, dock:'map', target:'#spaceDock', title:'The co-pilot rail',
+       loc:'Beside the icons',
+       body:'This rail is the conversation. Idle it shows ✦ New chat and your Recents; ask something and it becomes the live thread with the message box docked at its foot. « hides the rail when you want the whole map — a ✦ Co-pilot button brings it back, and 📘 Tutorial sits beside it.'},
+      {part:1, dock:'map', target:'#spaceHud', title:'The top bar',
        loc:'Top centre strip',
-       body:'At a glance: primary goal progress (ring), monthly “machine” surplus, cash on hand, and Pulse score. The 👁 toggles privacy mode — every euro can mask as € •••. Tap cash to hide/show; hold to peek.'},
+       body:'One bar: primary goal progress (ring), monthly “machine” surplus, Pulse score, the active date range, ▶ Play history, and 👁 for privacy mode — every euro can mask as € •••. Cash on hand joins the bar once you set opening balances. Press ▶ and the range steps aside for a month-by-month replay.'},
+      {part:1, dock:'map', target:'#spaceTop', title:'Search',
+       loc:'Top-right 🔎',
+       body:'🔎 opens transaction search as a mini card so the map stays visible. It stays highlighted bright above the fade — try it after the tutorial. The date range now lives in the top bar, next to ▶.'},
 
       // Part 2 — First data
       {part:2, dock:'people', target:'#spacePanel, #sec-people', title:'Household → people → accounts',
@@ -16302,8 +16835,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       {part:3, dock:'map', target:'#graphCanvas, #spaceStage .graph-card', title:'The money map',
        loc:'Background stage',
        body:'Household sits at the centre (once named), with people and accounts around it — same shape as the sample. Click a category hub to dive into merchants; double-click to fold. Scroll zooms, drag pans. ▶ Play history time-lapses month by month.'},
-      {part:3, dock:'range', target:'#miniPanel, #topRange', title:'Date range',
-       loc:'Top-right 📅',
+      {part:3, dock:'range', target:'#miniPanel, #ssRangeBtn', title:'Date range',
+       loc:'Top bar 📅',
        body:'Almost every chart and the map’s flow view follow this range. Change it when you want “this year only” or a custom window, then reopen Cashflow or Categories to read the same period.'},
       {part:3, dock:'search', target:'#miniPanel, #sec-search, #topSearch', title:'Search',
        loc:'Top-right 🔎',
@@ -16363,7 +16896,18 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
        body:'Underwriter-style checks: savings streak, gambling flags (you rule on ambiguous names), uncategorised %, missed payments, commitments, overdraft. Fail-first — fix these before a mortgage chat.'},
       {part:7, dock:'settings', target:'#sec-alive, #settingsCard', title:'Backup & trust',
        loc:'Data → Settings 🛠️',
-       body:'Settings is view/tutorial plus Backup & integrity (People moved to its own Data tab). Export a backup file (optional passphrase encryption). Import on another browser to restore. Self-test must stay green. End of tour — open any dock item freely.'}
+       body:'Settings is view/tutorial plus Backup & integrity (People moved to its own Data tab). Export a backup file (optional passphrase encryption). Import on another browser to restore. Self-test must stay green.'},
+
+      // Part 8 — the co-pilot (shipped after this tour was first written)
+      {part:8, dock:'map', target:'#chatComposer', title:'Ask about your money',
+       loc:'Message box — over the map, or docked in the rail',
+       body:'Type a question and press Enter. Ask for a category (“how has groceries done”), your balances, next month’s outlook, or a section by name. Answers are computed by Lithifyte’s own Engine from your data — the model narrates, it never invents a number. The chips underneath are built from your actual figures, so they change as your data does.'},
+      {part:8, dock:'map', target:'#modelBtn', title:'Which model answers',
+       loc:'Message box → Auto',
+       body:'Auto lets Lithifyte choose. Open it to pick Grok, Claude, GPT, a local endpoint, or Commands only (no model at all — the tools still work). Your key, model name and endpoint live in that popover and are saved in this browser only, never on a server.'},
+      {part:8, dock:'map', target:'#spaceDock', title:'The conversation lives in the rail',
+       loc:'Co-pilot rail',
+       body:'Send a message and the rail becomes the thread, with the message box docked at its foot. ✦ New chat starts a fresh one; Recents lists the previous conversations and ✕ closes back to that list. ⬚ widens the rail when an answer needs room. Ask for a section and it opens on the right while the map stays live behind the glass — end of tour, explore freely.'}
     ];
 
     const root = document.getElementById('tourRoot');
@@ -16496,15 +17040,14 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           const cr = readRect(contentEl);
           if (cr) rects.push({r: cr, kind: 'content', radius: 12});
         }
-        // Nav bar twin: left dock button for this panel
-        const btn = document.querySelector('#spaceDock .dock-btn[data-k="' + dockKey + '"]');
+        // Nav twin: the icon-rail button for this panel
+        const btn = document.querySelector('#spaceIcoRail .ico-btn[data-k="' + dockKey + '"]');
         if (btn){
           const br = readRect(btn);
           if (br) rects.push({r: br, kind: 'dock', radius: 9, el: btn});
         }
       } else if (dockKey === 'range' || dockKey === 'search'){
-        const topId = dockKey === 'range' ? 'topRange' : 'topSearch';
-        const topBtn = document.getElementById(topId);
+        const topBtn = document.getElementById(dockKey === 'range' ? 'ssRangeBtn' : 'topSearch');
         if (topBtn){
           const br = readRect(topBtn);
           if (br) rects.push({r: br, kind: 'dock', radius: 19, el: topBtn});
@@ -16558,12 +17101,13 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const rings = [];
       const PAD = 3;
 
-      // Always elevate the left nav so it stays bright above the fade
+      // Always elevate BOTH left rails so navigation stays bright above the fade
       if (dock) elevate(dock);
+      elevate(document.getElementById('spaceIcoRail'));
 
       if (dockKey === 'range' || dockKey === 'search'){
         if (top) elevate(top);
-        const topBtn = document.getElementById(dockKey === 'range' ? 'topRange' : 'topSearch');
+        const topBtn = document.getElementById(dockKey === 'range' ? 'ssRangeBtn' : 'topSearch');
         if (topBtn){
           dockSpotEl = topBtn;
           topBtn.classList.add('tour-dock-spot');
@@ -16578,8 +17122,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           if (mr){ rings.push({r: mr, kind: 'panel', radius: 14}); primary = mr; }
         }
       } else if (dockKey && dockKey !== 'map'){
-        // Specific dock item for this section
-        const btn = document.querySelector('#spaceDock .dock-btn[data-k="' + dockKey + '"]');
+        // Specific nav item for this section
+        const btn = document.querySelector('#spaceIcoRail .ico-btn[data-k="' + dockKey + '"]');
         if (btn){
           dockSpotEl = btn;
           btn.classList.add('tour-dock-spot');
@@ -16601,13 +17145,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         const topEl = document.getElementById('spaceTop');
         const hudEl = document.getElementById('spaceHud');
         const stageEl = document.getElementById('spaceStage');
-        const tid = contentEl && (contentEl.id || (contentEl.closest && contentEl.closest('#spaceTop, #spaceHud, #spaceStage, #graphCard') && contentEl.closest('#spaceTop, #spaceHud, #spaceStage, #graphCard').id));
+        const tid = contentEl && (contentEl.id || (contentEl.closest && contentEl.closest('#spaceTop, #spaceHud, #spaceStage, #graphCard, #spaceIcoRail, #chatComposer') && contentEl.closest('#spaceTop, #spaceHud, #spaceStage, #graphCard, #spaceIcoRail, #chatComposer').id));
         // Date range / Search icons
         if (contentEl && (contentEl.id === 'spaceTop' || (contentEl.closest && contentEl.closest('#spaceTop')))){
           if (topEl) elevate(topEl);
-          const tr = document.getElementById('topRange');
           const ts = document.getElementById('topSearch');
-          if (tr){ tr.classList.add('tour-dock-spot'); }
           if (ts){ ts.classList.add('tour-dock-spot'); }
           const br = readRect(topEl || contentEl);
           if (br){ rings.push({r: br, kind: 'dock', radius: 12}); primary = br; }
@@ -16633,7 +17175,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           }
         } else if (contentEl){
           // Generic: elevate the node if it is fixed chrome
-          const fixed = getComputedStyle(contentEl).position === 'fixed' ? contentEl : (contentEl.closest && contentEl.closest('#spaceDock, #spaceTop, #spaceHud, #spacePanel, #miniPanel'));
+          const fixed = getComputedStyle(contentEl).position === 'fixed' ? contentEl : (contentEl.closest && contentEl.closest('#spaceDock, #spaceIcoRail, #chatComposer, #spaceTop, #spaceHud, #spacePanel, #miniPanel'));
           if (fixed) elevate(fixed);
           const cr = readRect(contentEl);
           if (cr){
@@ -16728,7 +17270,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
               el.scrollIntoView({block:'nearest', inline:'nearest', behavior: 'smooth'});
           } catch {}
         }
-        document.getElementById('tourKicker').textContent = 'Part ' + step.part + ' of 7 · Guided Space tutorial';
+        document.getElementById('tourKicker').textContent = 'Part ' + step.part + ' of ' + PARTS.length + ' · Guided Space tutorial';
         document.getElementById('tourTitle').textContent = step.title;
         document.getElementById('tourLoc').textContent = step.loc ? ('Where: ' + step.loc) : '';
         document.getElementById('tourBody').textContent = step.body;
@@ -16912,8 +17454,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   })();
 
 
-  document.getElementById('spaceHud').addEventListener('click', ()=>{ if (Space) Space.open('goals'); });
-  document.getElementById('spaceHud').addEventListener('keydown', e => { if (e.key === 'Enter' && Space) Space.open('goals'); });
+  // the goal cell owns the Goals click now — the bar itself is not a button,
+  // so the range chip and play control no longer bubble into opening Goals
+  document.getElementById('hudGoalBtn').addEventListener('click', ()=>{ if (Space) Space.open('goals'); });
   bindCashWidget(document.getElementById('hudCash'));
   bindCashWidget(document.getElementById('heroCashVal'));
   bindEye(document.getElementById('hudEye'));

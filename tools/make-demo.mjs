@@ -57,10 +57,15 @@ for (let i = 0; i < MONTHS.length; i++){
   add(day(mo, 1), 'RESIDENTIAL LETTINGS DD', 'Rent', 'Rent', 1600, 0, 0.95, 'd-ava');
   add(day(mo, 25), 'ACME LABS PAYROLL', 'Income', 'Salary', 0, Math.round(3150 * raise * 100) / 100, 0.95, 'd-ava');
   add(day(mo, 28), 'TECHFLOW LTD SALARY', 'Income', 'Salary', 0, Math.round(2850 * raise * 100) / 100, 0.95, 'd-ben');
+  // A standing order to savings has two legs: money LEAVING the current
+  // account (that is the saving) and the same money ARRIVING in the savings
+  // account (that is an internal transfer). Categorising both as savings made
+  // saveCum net to exactly zero — every goal in the demo read €0 / 0% funded
+  // while €21,600 had in fact been saved. Only the outbound leg is saving.
   add(day(mo, 26), 'SO CREDIT UNION SAVER', 'Deposit savings', 'Standing order', 600, 0, 0.95, 'd-ava');
-  add(day(mo, 26), 'TRANSFER AVA BYRNE', 'Deposit savings', 'Standing order', 0, 600, 0.95, 'd-sav');
+  add(day(mo, 26), 'TRANSFER AVA BYRNE', 'Internal transfer', 'Standing order', 0, 600, 0.95, 'd-sav');
   add(day(mo, 27), 'REVOLUT TRANSFER SAVER', 'Deposit savings', 'Standing order', 300, 0, 0.95, 'd-ben');
-  add(day(mo, 27), 'TRANSFER BEN KELLY', 'Deposit savings', 'Standing order', 0, 300, 0.95, 'd-sav');
+  add(day(mo, 27), 'TRANSFER BEN KELLY', 'Internal transfer', 'Standing order', 0, 300, 0.95, 'd-sav');
   add(day(mo, 15), 'ELECTRIC IRELAND DD', 'Bills & Utilities', 'Electricity', between(85, 105) + winter(mo), 0, 0.9, 'd-ava');
   add(day(mo, 12), 'EIR BROADBAND DD', 'Bills & Utilities', 'Internet/TV', 55, 0, 0.9, 'd-ava');
   add(day(mo, 8), 'VODAFONE IRELAND', 'Bills & Utilities', 'Mobile', 45, 0, 0.9, 'd-ben');
