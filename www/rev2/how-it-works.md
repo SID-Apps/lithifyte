@@ -15,7 +15,7 @@ That single decision explains nearly everything else about the product — why t
 ## What actually happens when you use it
 
 1. **The page loads.** It is a single self-contained HTML file — the interface, the charts and the entire calculation engine, delivered in one request.
-2. **You add a statement.** Your browser reads the file from your disk. It is parsed in memory by JavaScript running on your machine. No upload happens at any point.
+2. **You add a statement.** Your browser reads the file from your disk — CSV or Excel `.xlsx`, whichever your bank gives you. It is parsed in memory by JavaScript running on your machine, and a preview shows you exactly what will be stored before anything is. No upload happens at any point.
 3. **The engine enriches it.** Every transaction is matched against your categorisation rules, merchant names are normalised so that `TESCO STORES 3184` and `TESCO EXPRESS` become one merchant, transfers between your own accounts are detected and paired so they do not read as income and spending, and recurring payments are identified by their cadence.
 4. **The results are stored locally.** In your browser's localStorage and IndexedDB, on that device, optionally encrypted at rest behind a passphrase you choose.
 5. **Everything you see is computed from that.** Budgets, forecasts, the debt planner, net worth and the money map are all functions of the same enriched data, recalculated as it changes.
@@ -39,11 +39,19 @@ You can search it, drag it, isolate a person, and watch it redraw as you change 
 | **Leaks** | Small multiples per category with median and MAD spike flags, so a genuine anomaly separates from ordinary variation. |
 | **Health** | A seven-measure dial scored against absolute benchmarks, so the number means something outside your own history. |
 
+## Asking it questions
+
+There is a co-pilot in the app — Ctrl/Cmd+K — that you can ask in plain language: *how have groceries gone this year*, *show me the cashflow*, *design a wedding budget from the last twelve months*. It answers, it opens the right section for you, and it can draft a budget or goal in a **sandbox** that changes nothing until you press Apply.
+
+Two things make it worth trusting. The model never produces a number — it works out what you asked for, the engine computes the figures on your device, and the answer renders from those. And it is **optional**: it does nothing until you connect a model, and you can connect one running on your own machine so that nothing about your finances leaves it. What is sent, and to whom, is set out plainly in [security and privacy](/security-and-privacy).
+
 ## What it does not do
 
-It does not connect to your bank by default. It does not give financial advice, recommend products, or take a commission from anyone. It does not have a premium tier that unlocks your own numbers. And it cannot show your data to Lithifyte, because your data never arrives.
+It does not connect to your bank by default. It does not give financial advice, recommend products, or take a commission from anyone. It does not have a premium tier that unlocks your own numbers. And outside the co-pilot, which you switch on yourself, nothing about your money reaches Lithifyte — because there is no endpoint for it to arrive at.
 
 Statement import is the supported path in, and it is deliberate rather than a limitation to apologise for: a file you exported yourself is a file no third party had to be trusted with.
+
+The co-pilot is the one place where anything about your money can leave the browser, it is off until you switch it on, and a local model keeps even that on your own machine.
 
 ## Two ways to run it
 

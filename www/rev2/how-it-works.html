@@ -89,17 +89,29 @@
           "@type": "HowToStep",
           "position": 3,
           "name": "Import a statement",
-          "text": "Download a CSV from your bank and drop it in. The import report names the columns it used and counts any row it could not read."
+          "text": "Export a CSV or .xlsx from your bank and drop it in. Press Prepare & preview: it maps the columns"
         },
         {
           "@type": "HowToStep",
           "position": 4,
+          "name": "you correct anything it got wrong",
+          "text": "you correct anything it got wrong"
+        },
+        {
+          "@type": "HowToStep",
+          "position": 5,
+          "name": "and you see every finished transaction before it is saved.",
+          "text": "and you see every finished transaction before it is saved."
+        },
+        {
+          "@type": "HowToStep",
+          "position": 6,
           "name": "Check the categories",
           "text": "Fix anything miscategorised once and write a rule so it stays fixed. Transfers between your own accounts are matched and excluded from spending."
         },
         {
           "@type": "HowToStep",
-          "position": 5,
+          "position": 7,
           "name": "Set a goal or a budget",
           "text": "Give it something to aim at. The forecast and the pace-based budget both build on your real history rather than a round number."
         }
@@ -132,23 +144,27 @@
 <p>Most finance apps work by connecting to your bank, copying your transactions onto their servers, and showing you a view of that copy. Lithifyte inverts it. The analysis engine is delivered to you as a web page, and your data stays where it already is: on your device.</p>
 <p>That single decision explains nearly everything else about the product — why there is no sign-up wall, why it costs nothing, why it is one file you can download and keep, and why nobody at Lithifyte can look at your spending even if asked to.</p>
 <h2 id="what-actually-happens-when-you-use-it">What actually happens when you use it</h2>
-<ol><li><strong>The page loads.</strong> It is a single self-contained HTML file — the interface, the charts and the entire calculation engine, delivered in one request.</li><li><strong>You add a statement.</strong> Your browser reads the file from your disk. It is parsed in memory by JavaScript running on your machine. No upload happens at any point.</li><li><strong>The engine enriches it.</strong> Every transaction is matched against your categorisation rules, merchant names are normalised so that <code>TESCO STORES 3184</code> and <code>TESCO EXPRESS</code> become one merchant, transfers between your own accounts are detected and paired so they do not read as income and spending, and recurring payments are identified by their cadence.</li><li><strong>The results are stored locally.</strong> In your browser's localStorage and IndexedDB, on that device, optionally encrypted at rest behind a passphrase you choose.</li><li><strong>Everything you see is computed from that.</strong> Budgets, forecasts, the debt planner, net worth and the money map are all functions of the same enriched data, recalculated as it changes.</li></ol>
+<ol><li><strong>The page loads.</strong> It is a single self-contained HTML file — the interface, the charts and the entire calculation engine, delivered in one request.</li><li><strong>You add a statement.</strong> Your browser reads the file from your disk — CSV or Excel <code>.xlsx</code>, whichever your bank gives you. It is parsed in memory by JavaScript running on your machine, and a preview shows you exactly what will be stored before anything is. No upload happens at any point.</li><li><strong>The engine enriches it.</strong> Every transaction is matched against your categorisation rules, merchant names are normalised so that <code>TESCO STORES 3184</code> and <code>TESCO EXPRESS</code> become one merchant, transfers between your own accounts are detected and paired so they do not read as income and spending, and recurring payments are identified by their cadence.</li><li><strong>The results are stored locally.</strong> In your browser's localStorage and IndexedDB, on that device, optionally encrypted at rest behind a passphrase you choose.</li><li><strong>Everything you see is computed from that.</strong> Budgets, forecasts, the debt planner, net worth and the money map are all functions of the same enriched data, recalculated as it changes.</li></ol>
 <h2 id="the-map-is-the-point">The map is the point</h2>
 <p>Every other view in the app is a report. The map is the model.</p>
 <p>Your household sits at the centre. People branch from it, accounts branch from people, categories and merchants branch from accounts, and money flows along the edges. Because it is one connected structure rather than a series of separate screens, you can see the things that separate screens hide: that two people are quietly funding the same subscription, that one account is doing all the work, that a category you think of as small has more merchant nodes hanging off it than your grocery spend.</p>
 <p>You can search it, drag it, isolate a person, and watch it redraw as you change the date range. It is the fastest way to answer questions that begin with <em>"where is it all actually going?"</em></p>
 <h2 id="what-it-computes">What it computes</h2>
 <div class="tablewrap"><table><thead><tr><th>Area</th><th>What the engine does</th></tr></thead><tbody><tr><td><strong>Budgets</strong></td><td>Suggests amounts from your own medians rather than round numbers, then paces them against the calendar — a safe-to-spend figure per remaining day, not a bar that turns red on the 20th.</td></tr><tr><td><strong>Forecasting</strong></td><td>Detects recurring bills and their cadence, allows for seasonal uplift, and sizes a buffer from how irregular your spending genuinely is.</td></tr><tr><td><strong>Debt</strong></td><td>Real amortisation for avalanche and snowball orders, with payoff dates and an honest flag when a payment does not even cover the interest.</td></tr><tr><td><strong>Net worth</strong></td><td>Accounts, manual assets, investments and debts in one layered figure, with staleness flags rather than silently pretending an old valuation is current.</td></tr><tr><td><strong>Leaks</strong></td><td>Small multiples per category with median and MAD spike flags, so a genuine anomaly separates from ordinary variation.</td></tr><tr><td><strong>Health</strong></td><td>A seven-measure dial scored against absolute benchmarks, so the number means something outside your own history.</td></tr></tbody></table></div>
+<h2 id="asking-it-questions">Asking it questions</h2>
+<p>There is a co-pilot in the app — Ctrl/Cmd+K — that you can ask in plain language: <em>how have groceries gone this year</em>, <em>show me the cashflow</em>, <em>design a wedding budget from the last twelve months</em>. It answers, it opens the right section for you, and it can draft a budget or goal in a <strong>sandbox</strong> that changes nothing until you press Apply.</p>
+<p>Two things make it worth trusting. The model never produces a number — it works out what you asked for, the engine computes the figures on your device, and the answer renders from those. And it is <strong>optional</strong>: it does nothing until you connect a model, and you can connect one running on your own machine so that nothing about your finances leaves it. What is sent, and to whom, is set out plainly in <a href="/security-and-privacy">security and privacy</a>.</p>
 <h2 id="what-it-does-not-do">What it does not do</h2>
-<p>It does not connect to your bank by default. It does not give financial advice, recommend products, or take a commission from anyone. It does not have a premium tier that unlocks your own numbers. And it cannot show your data to Lithifyte, because your data never arrives.</p>
+<p>It does not connect to your bank by default. It does not give financial advice, recommend products, or take a commission from anyone. It does not have a premium tier that unlocks your own numbers. And outside the co-pilot, which you switch on yourself, nothing about your money reaches Lithifyte — because there is no endpoint for it to arrive at.</p>
 <p>Statement import is the supported path in, and it is deliberate rather than a limitation to apologise for: a file you exported yourself is a file no third party had to be trusted with.</p>
+<p>The co-pilot is the one place where anything about your money can leave the browser, it is off until you switch it on, and a local model keeps even that on your own machine.</p>
 <h2 id="two-ways-to-run-it">Two ways to run it</h2>
 <p><strong>Hosted</strong> — open <a href="https://app.lithifyte.com" rel="noopener">app.lithifyte.com</a>. Sign-in is a magic link to your email address, which exists so the app can recognise you across devices; it holds no financial data. The hosted build records privacy-safe product events (which sections get used, never amounts) so the project can tell what is worth building next.</p>
 <p><strong>Self-hosted</strong> — download <code>index.html</code> from <a href="https://github.com/SID-Apps/lithifyte" rel="noopener">the repository</a> and open it from your own disk, a USB stick, or a server you control. It works offline. It reports nothing to anyone, and there is no mechanism by which it could. This is the same file, not a cut-down version.</p>
 <h2 id="getting-your-data-back-out">Getting your data back out</h2>
 <p>Everything exports. Encrypted backups, plain CSV and Excel packs, and a full JSON backup containing every store the app holds. If you stop using Lithifyte tomorrow, you leave with all of it — which is the only real test of whether software respects you.</p>
 <aside class="cta"><h2>Try it</h2><p>The sample household is fully populated with invented data — no sign-up, nothing to upload. When you are ready to use your own statements, sign-in is a magic link and holds no financial data.</p><p><a class="btn" href="https://app.lithifyte.com/demo">Explore the sample household</a> <a class="btn ghost" href="https://access.lithifyte.com/">Sign in free</a></p></aside>
-<aside class="related"><h2>Keep reading</h2><ul><li><a href="/guide">The Lithifyte guide</a> <span class="rel-d">A complete feature reference, ordered the way you actually encounter things: get data in, make it trustworthy, understand it, then plan with it. There is also an interactive version inside the app with an Ask box.</span></li><li><a href="/security-and-privacy">Security and privacy, in technical terms</a> <span class="rel-d">The claim is narrow and testable: your financial data is never transmitted, because there is no server that receives it. This page states exactly what that does and does not protect you from, including the parts we cannot fix.</span></li><li><a href="/faq">Frequently asked questions</a> <span class="rel-d">Short, direct answers. If a question you have is not here, the [guide](/guide) goes deeper and the [source code](https://github.com/SID-Apps/lithifyte) settles any argument about what the software actually does.</span></li></ul></aside>
+<aside class="related"><h2>Keep reading</h2><ul><li><a href="/guide">The Lithifyte guide</a> <span class="rel-d">A complete feature reference, ordered the way you actually encounter things: get data in, make it trustworthy, understand it, then plan with it. There is also an interactive version inside the app with an Ask box.</span></li><li><a href="/security-and-privacy">Security and privacy, in technical terms</a> <span class="rel-d">The claim is narrow and testable: your financial data is never transmitted to us, because there is no server that receives it. The one exception is the AI co-pilot, which you switch on yourself and which sends what it needs to the model you chose — that is set out in full below, along with the parts we cannot fix.</span></li><li><a href="/faq">Frequently asked questions</a> <span class="rel-d">Short, direct answers. If a question you have is not here, the [guide](/guide) goes deeper and the [source code](https://github.com/SID-Apps/lithifyte) settles any argument about what the software actually does.</span></li></ul></aside>
 </main>
 
 <footer class="site">

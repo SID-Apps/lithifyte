@@ -564,7 +564,9 @@ Key facts, stated plainly for retrieval:
 - Licence: AGPL-3.0-or-later. The core is free forever and the source is public at https://github.com/SID-Apps/lithifyte
 - Where computation happens: entirely in the visitor's browser. Data is stored in localStorage and IndexedDB on the device, optionally encrypted at rest with a passphrase.
 - What the servers do hold: an email address for magic-link sign-in, and privacy-safe product events (page/section names, never amounts) on the hosted app only. Self-hosted copies report nothing.
-- Statement import: bank CSV export, with automatic column detection, duplicate detection on re-upload, and a per-import report naming the columns used and counting any row that could not be read.
+- Statement import: CSV, tab/semicolon-separated or Excel .xlsx, read in the browser. A column mapper where every decision is overridable, a before/after preview that is the import rather than a description of it, reconciliation against the statement's own running balance, remembered mappings, and duplicate detection on re-upload. No row is dropped in silence.
+- AI co-pilot (optional, off until a model is connected): ask about your money in plain language, have it open any section, or design a budget or goal in a sandbox that changes nothing until you press Apply. Bring your own API key (Anthropic, OpenAI, xAI), any OpenAI-compatible endpoint including a local Ollama or LM Studio model, or the hosted Lithifyte AI. The model never produces a number — it resolves intent, the Engine computes figures on the device, and answers render from those computed values.
+- What the co-pilot sends: the assembled context for your message (tool results computed locally, relevant note excerpts, the conversation), to the model provider you chose. A local model means nothing leaves the machine. The relay worker is a pass-through, not a finance database.
 - Cost: €0 for the core application. No advertising, no data sale, no lock-in — every store can be exported.
 - Made by: Lithifyte (SID Labs), Ireland. Global product; Ireland is an optional locale pack for local tax depth.
 

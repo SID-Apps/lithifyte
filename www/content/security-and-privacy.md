@@ -4,7 +4,7 @@ shortTitle: Security
 slug: security-and-privacy
 section: product
 description: The full technical privacy model behind Lithifyte — what is stored, where, how it is encrypted, what the servers hold, and the residual risks we cannot solve for you.
-summary: The claim is narrow and testable: your financial data is never transmitted, because there is no server that receives it. This page states exactly what that does and does not protect you from, including the parts we cannot fix.
+summary: The claim is narrow and testable: your financial data is never transmitted to us, because there is no server that receives it. The one exception is the AI co-pilot, which you switch on yourself and which sends what it needs to the model you chose — that is set out in full below, along with the parts we cannot fix.
 keywords: [local first finance app, browser storage encryption, financial data privacy, AES-GCM PBKDF2, zero server finance]
 updated: 2026-08-09
 priority: 0.8
@@ -19,6 +19,8 @@ There is no finance API. Not an encrypted one, not a temporary one, not one that
 
 You do not have to take this on faith. Open your browser's network tab and use the app. Nothing carrying financial content goes out.
 
+**One deliberate exception, and it is yours to switch on: the AI co-pilot.** A language model cannot answer a question about your money without being told something about your money. That section is below, in full, because a privacy claim with a quiet asterisk is worse than no claim at all.
+
 ## What is stored, and where
 
 | Data | Location | Leaves your device? |
@@ -29,8 +31,29 @@ You do not have to take this on faith. Open your browser's network tab and use t
 | Backups you export | Wherever you save the file | Only if you move it |
 | Your email address (hosted sign-in only) | Cloudflare KV, on our side | It is already ours to hold |
 | Product events: section opened, import happened (hosted only) | Cloudflare KV, on our side | Names of features, never amounts |
+| Co-pilot conversations and sandbox scenarios | `localStorage` in your browser | Only the context of a message you send, and only to the model you chose — see below |
 
-Self-hosted copies write nothing to the last two rows. The code that reports product events checks the hostname and does not run from a file or from a domain that is not ours.
+Self-hosted copies write nothing to the email or product-event rows. The code that reports product events checks the hostname and does not run from a file or from a domain that is not ours.
+
+## The AI co-pilot, stated without spin
+
+The co-pilot is a chat panel inside the app that can answer questions about your finances and operate the app for you. It is **off until you connect a model**. If you never connect one, nothing in this section applies to you and the rest of the page stands unqualified.
+
+**What is sent, when you use it.** Not your ledger. The app assembles the context for each message: the results of the tools the co-pilot ran (figures computed by `Engine` on your device), excerpts from notes relevant to what you asked, and the conversation you are having. That assembled context goes to the model provider you selected.
+
+**Who receives it depends entirely on which model you chose:**
+
+| Your choice | Where your context goes |
+|---|---|
+| A local model — Ollama, LM Studio, any OpenAI-compatible endpoint on your machine | Nowhere. It stays on your computer. This is the private option |
+| Your own API key — Anthropic, OpenAI, xAI | To that provider, under your own account and their terms |
+| **Lithifyte AI** (the hosted convenience) | Through our relay worker to a model provider |
+
+**What the relay is, and is not.** For the hosted and bring-your-own-key paths it is a pass-through: it forwards the request to the provider and returns the answer. It is **not** a finance database, it does not store your ledger, and it is not a step toward one. If that ever changed it would be a different product and this page would say so.
+
+**The rule that makes the answers trustworthy.** The model never produces a number. It decides what you are asking for, `Engine` computes the figures on your device, and the answer renders from those computed values. A model that could recall or calculate a euro amount would eventually state a wrong one, and one hallucinated figure discredits every real figure in the app.
+
+**What to weigh before switching it on.** If your threshold is "no third party ever sees anything about my money", use a local model or leave the co-pilot off — both are fully supported and neither is a degraded mode. If you are comfortable with the same providers you already use elsewhere, the trade is ordinary and now explicit.
 
 ## Encryption at rest
 
@@ -48,19 +71,20 @@ Two consequences worth being blunt about. First, the passphrase is not recoverab
 
 ## What the servers actually do
 
-Three small Cloudflare Workers, all of them open source in the same repository:
+Four small Cloudflare Workers, all of them open source in the same repository:
 
 - **The site** serves static pages. No account, no cookie required to read anything.
 - **Sign-in** issues a magic link to your email address and sets a session cookie so the hosted app recognises you across devices. It handles identity, never finance. Rate-limited; tokens are single-purpose.
 - **Digest mail** takes an email that your *browser* has already composed and posts it to a mail provider. The body is not stored. Amounts are masked by default, and you can uncheck that if you would rather they were not.
+- **The AI relay** forwards a co-pilot request to the model provider and returns the answer. Pass-through only; no ledger, no transcript store. It does nothing at all unless you have connected a model.
 
-The endpoints exposed are sign-in, session, sign-out, product events, digest and health. There is deliberately no data endpoint, and adding one would be a design change requiring a rewrite of this page.
+The endpoints exposed are sign-in, session, sign-out, product events, digest, AI relay and health. There is deliberately no endpoint that stores your finances, and adding one would be a design change requiring a rewrite of this page.
 
 ## Verifying any of this yourself
 
 - **Read the file.** The application is one HTML file. Search it for `fetch(` and check every result.
-- **Watch the network.** DevTools → Network, then import a statement. Nothing with your data in it is sent.
-- **Pull the plug.** Turn off your network and keep using it. Everything except the optional sign-in check keeps working.
+- **Watch the network.** DevTools → Network, then import a statement. Nothing with your data in it is sent. Do the same while using the co-pilot and you will see exactly what context each message carries — it is the same tab, and we would rather you looked.
+- **Pull the plug.** Turn off your network and keep using it. Everything except the optional sign-in check and a remote co-pilot model keeps working.
 - **Diff the deployment.** The hosted file is byte-comparable with the one in the public repository.
 - **Run the self-tests.** The app ships hundreds of behavioural checks that run in your browser, on your data, and show you the result.
 

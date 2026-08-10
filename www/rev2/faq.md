@@ -24,7 +24,9 @@ Yes, under the terms of the AGPL-3.0-or-later. You can read it, change it, run i
 
 ### Does Lithifyte see my bank data?
 
-No. Financial data is parsed and stored in your browser and never transmitted. There is no finance backend to receive it — not an encrypted one, not a temporary one. The only personal datum any Lithifyte server holds is the email address you use for the magic-link sign-in on the hosted app.
+No. Financial data is parsed and stored in your browser and never transmitted to us. There is no finance backend to receive it — not an encrypted one, not a temporary one. The only personal datum any Lithifyte server holds is the email address you use for the magic-link sign-in on the hosted app.
+
+The one exception is the AI co-pilot, which is off until you connect a model. When you use it, the app sends the model the context for your question — figures computed on your device, relevant note excerpts and the conversation — and where that goes depends on the model you picked. A local model means nothing leaves your machine. See [security and privacy](/security-and-privacy) for the full account.
 
 ### What happens if Lithifyte disappears tomorrow?
 
@@ -42,11 +44,29 @@ Anyone with access to your unlocked user account and browser profile can open th
 
 The hosted app records privacy-safe product events — that a section was opened, that an import happened — never amounts, merchants or any financial content. Self-hosted copies report nothing at all and have no code path that could. The details are in the [privacy policy](/privacy).
 
+### What is the AI co-pilot, and do I have to use it?
+
+It is a chat panel inside the app, opened with Ctrl/Cmd+K. You can ask about your money in plain language, have it open any section for you, and design a budget or goal in a **sandbox** that changes nothing until you press Apply. It is entirely optional and does nothing until you connect a model.
+
+### Which AI models can I use?
+
+Your own API key with Anthropic, OpenAI or xAI; any OpenAI-compatible endpoint including a local Ollama or LM Studio model; or **Lithifyte AI**, the hosted convenience that needs no key. A local model is the option where nothing about your finances leaves your machine.
+
+### Can the AI make up numbers?
+
+No, by construction. The model resolves what you are asking for, the `Engine` computes the figures on your device, and the answer renders from those computed values. The model is not permitted to recall or calculate a euro amount — one hallucinated figure would discredit every real figure in the app.
+
+### Can the AI change my data without asking?
+
+No. Budgets, goals and forecasts it designs live in a sandbox alongside your real data, and nothing is written until you press Apply. Conversations and scenarios are kept like notes — re-openable, linkable, and included in your backups.
+
 ## Data and compatibility
 
 ### Which banks does it support?
 
-Any bank that lets you export a statement, which is effectively all of them. Lithifyte reads CSV files and works out which columns hold dates, descriptions and amounts. If your bank's layout is unusual, the importer tells you which columns it used and counts every row it could not read, so a misread is visible immediately rather than showing up months later as a balance that makes no sense.
+Any bank that lets you export a statement, which is effectively all of them. Lithifyte reads CSV, tab- and semicolon-separated files, and Excel `.xlsx` — the spreadsheet is unzipped and parsed in your browser, so nothing is uploaded for that either.
+
+Press **Prepare & preview** and it works out which column is which, shows you every finished transaction beside your raw file, and lets you correct any decision it got wrong — date order, decimal mark, which column is money in, which rows to hold back. Known exports are recognised outright; a Revolut statement maps in one click. Where the file carries a running balance it walks it, which *proves* the mapping was read correctly rather than assuming, and offers the opening balance it can derive. Nothing is saved until you approve the preview, and no row is ever dropped in silence.
 
 ### Can it connect to my bank automatically?
 

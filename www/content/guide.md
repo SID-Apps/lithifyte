@@ -21,13 +21,18 @@ If you would rather look before you type anything, the [sample household](https:
 
 **Set up the skeleton first.** Name the people in your household and the accounts they hold. Everything else hangs off this, and getting it right early saves re-work.
 
-**Then import a statement.** Export a CSV from your online banking and drop it in. The importer works out which columns hold the date, the description and the money, and it tells you what it decided:
+**Then import a statement.** Export whatever your bank gives you — CSV, tab- or semicolon-separated, or Excel `.xlsx`. The spreadsheet is unzipped and read inside your browser, with no library and nothing uploaded, so the privacy promise holds for it too.
 
-- The columns it used, named back to you.
-- How many rows were added, and how many were skipped as duplicates.
-- How many rows it could not read, with examples.
+Press **Prepare & preview**, which is two steps:
 
-Read that report. A misread column is the single most common cause of numbers that look wrong later, and it is nearly invisible if the importer stays silent about it. Nothing is ever dropped without being counted.
+1. **Columns.** Known exports are recognised outright — a Revolut statement maps in one click, reading the *completed* date, folding each fee into its own transaction so the balance still adds up, and holding back anything not `COMPLETED`. Anything else is matched on column-name synonyms. **Every decision is yours to change**: what each column is, the header row (a preamble of bank blurb is skipped automatically), the date order — decided from the whole column rather than row by row, so one 13th "month" settles it — the decimal mark, whether to swap the two directions, and rules for holding rows back.
+2. **Preview.** Your raw file on the left, exactly what will be stored on the right, with totals, the date range, and every row that will *not* be imported named with its reason. The preview is not a rehearsal — it renders the same result the import saves, simply not saved yet. Nothing reaches your dashboard until you press the button.
+
+**Where the statement carries a running balance, the importer walks it.** If every step agrees with the amounts it read, the mapping is *proven* correct rather than assumed — and the balance implied before the first row is offered as that account's **opening balance**, which is the number your cash, net-worth and goal figures are built on. It never overwrites an opening balance you already set without telling you.
+
+**Mappings are remembered** against that file's column headers, so next month's export from the same bank comes back already mapped.
+
+**Nothing is ever dropped in silence.** A row held back by one of your rules is counted and named. A row that cannot be read is counted and named. An import that is entirely one-directional is flagged, because that is nearly always a mapping slip rather than a strange month.
 
 **Re-uploading is safe.** Transactions are fingerprinted, so importing an overlapping statement adds only what is new. If a previous import went wrong, fixing it is usually just uploading the file again.
 
@@ -73,7 +78,17 @@ This is the step people skip, and it is the one that determines whether anything
 
 **Financial health** is a seven-measure dial scored against absolute benchmarks rather than only against your own past, so the score carries meaning outside your own history.
 
-## 5 · Keeping it alive
+## 5 · Asking instead of clicking
+
+Press **Ctrl/Cmd+K** for the co-pilot. Ask in plain language — *how have groceries gone this year*, *show me the cashflow*, *why was January low*, *design a wedding budget from the last twelve months* — and it answers, opens the section it is talking about, and can draft a budget or goal for you.
+
+Anything it designs lands in a **sandbox** beside your real data. You can iterate on it in the chat — *cut dining, protect rent* — and nothing touches your live stores until you press **Apply**. Conversations and scenarios are kept like notes: re-openable, linkable, included in your backups, and shown on the money map's outer ring so you can find the discussion that produced a decision months later.
+
+**Connect a model first.** Your own API key with Anthropic, OpenAI or xAI; any OpenAI-compatible endpoint, including Ollama or LM Studio on your own machine; or **Lithifyte AI**, the hosted option that needs no key. The local option is the one where nothing about your finances leaves your computer — see [security and privacy](/security-and-privacy) for exactly what is sent in each case.
+
+**The model never produces a number.** It works out what you asked for, the engine computes the figures, and the answer renders from those computed values. If a figure appears in a co-pilot answer, it came from the same code that draws your charts.
+
+## 6 · Keeping it alive
 
 **Export a backup.** This is the single most important habit. Your data lives in your browser, and browsers can be cleared, corrupted or replaced. A backup file is a full JSON export of every store, optionally encrypted with a passphrase.
 
