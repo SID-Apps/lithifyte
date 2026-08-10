@@ -1,4 +1,7 @@
 <!doctype html><meta charset="utf-8">
+<!-- Without this a phone lays the page out at ~980px and scales it down,
+     which makes every media query in this file unreachable on a phone. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lithifyte — household finance mission control</title>
 <script>
 /* Hosted sign-in gate — app.lithifyte.com only. This is identity, not
@@ -717,6 +720,114 @@ So, when you change a stored shape:
   body.space #spaceStage{display:block; position:fixed; inset:0; z-index:0; background:#020b1a}
   body.space #spaceStage .graph-card{position:absolute; inset:0; border:none; border-radius:0; margin:0}
   body.space .graph-fs-btn{display:none}
+  /* ══ Classic at narrow widths ══
+     Classic stays the accessibility and keyboard path, and the wide-screen
+     alternative — but it was scrolling sideways by 326px at 512px, mostly on
+     one 1061px balances table. Wide content scrolls inside its own box so the
+     page itself never does. */
+  @media (max-width:720px){
+    .wrap{padding-left:12px; padding-right:12px}
+    .wrap table{display:block; width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch}
+    /* viewBox charts need width, not just max-width, to scale down */
+    .wrap svg{width:100%; max-width:100%; height:auto}
+    /* The form grids are set by more specific selectors and a media query adds
+       no specificity of its own, so these have to be marked to win. Scoped to
+       phone widths, so nothing above 720px is affected. */
+    .wrap .upload-form, .wrap .rule-form, .wrap .goal-form, .wrap .bg-mode-pick,
+    .wrap .imp-two, .wrap .hh-fields{grid-template-columns:1fr !important}
+    .wrap .kpis{grid-template-columns:1fr 1fr !important}
+    .wrap .filter-row, .wrap .rule-actions, .wrap .xl-bar,
+    .wrap .sim-summary, .wrap .org-add-user{flex-wrap:wrap}
+    .wrap input, .wrap select, .wrap .inp{max-width:100%}
+    /* `1fr` carries an implicit min-width:auto, so a grid column refuses to
+       shrink below its content — which is what kept the simulator 458px wide
+       inside a 350px card. minmax(0,1fr) lets it actually narrow. */
+    .wrap .sim{grid-template-columns:minmax(0, 1fr) !important}
+    .wrap .sim > *, .wrap .card, .wrap .chart-card{min-width:0}
+  }
+
+  /* ══════════════ MOBILE SHELL ══════════════
+     body.mobile is set by JS from a media query (CSS cannot set classes, and
+     the map needs to know too, not just the stylesheet). Everything that
+     assumes desktop width stands down; the map stays as the living backdrop
+     and the content floats over it as glass. */
+  #mobHome, #mapExpand, #mapCollapse{display:none}
+  body.space.mobile #spaceIcoRail,
+  body.space.mobile #spaceDock,
+  body.space.mobile #railStubs,
+  body.space.mobile #spaceTop,
+  body.space.mobile #spaceHud{display:none !important}
+  /* the map is the whole backdrop; the sheet covers its lower part */
+  body.space.mobile{--stage-l:0px; --stage-r:0px; --top-r:0px}
+  body.space.mobile #mobHome{
+    display:block; position:fixed; left:0; right:0; top:38vh; bottom:0; z-index:20;
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
+    padding:0 12px calc(var(--cc-h, 120px) + 24px);
+    background:linear-gradient(rgba(2,11,26,0) 0, rgba(2,11,26,.72) 38px,
+                               rgba(2,11,26,.93) 110px, rgba(2,11,26,.97) 100%);
+    scrollbar-width:none}
+  #mobHome::-webkit-scrollbar{display:none}
+  body.space.mobile.map-full #mobHome{display:none}
+  .mob-lead{text-align:center; padding:22px 8px 0}
+  .mob-ring{width:52px; height:52px; transform:rotate(-90deg); margin-bottom:8px}
+  .mob-big{font:700 25px/1.1 system-ui,sans-serif; color:#fff; letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums}
+  .mob-big small{color:#6d8fb5; font-weight:400; font-size:.7em}
+  .mob-sub{font:500 11px system-ui,sans-serif; color:#6d8fb5; margin-top:4px}
+  .mob-stats{display:flex; gap:7px; margin:16px 0 0}
+  .mob-stat{flex:1; min-width:0; border:1px solid rgba(56,189,248,.2); border-radius:11px;
+    padding:9px 8px; background:rgba(255,255,255,.03); text-align:center}
+  .mob-stat b{display:block; font:700 14px system-ui,sans-serif; color:#fff;
+    font-variant-numeric:tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .mob-stat span{font:500 9px system-ui,sans-serif; color:#6d8fb5}
+  .mob-lbl{font:700 8.5px system-ui,sans-serif; letter-spacing:.14em; text-transform:uppercase;
+    color:#557799; margin:20px 2px 8px}
+  .mob-cards{display:flex; flex-direction:column; gap:7px}
+  .mob-card{display:flex; align-items:center; gap:10px; width:100%; padding:11px;
+    border-radius:12px; border:1px solid rgba(56,189,248,.2); background:rgba(255,255,255,.035);
+    color:inherit; cursor:pointer; text-align:left; font:inherit}
+  .mob-card:hover, .mob-card:focus-visible{border-color:rgba(56,189,248,.62)}
+  .mob-card .ic{font-size:16px; flex:0 0 auto; width:20px; text-align:center}
+  .mob-card .t{flex:1; min-width:0}
+  .mob-card .t b{display:block; font:650 12px system-ui,sans-serif; color:#e8f4ff}
+  .mob-card .t span{font:400 10px system-ui,sans-serif; color:#6d8fb5;
+    display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .mob-card .v{font:700 12px system-ui,sans-serif; color:#7dd3fc; flex:0 0 auto;
+    font-variant-numeric:tabular-nums}
+  .mob-foot{font:400 10px/1.5 system-ui,sans-serif; color:#557799; margin:18px 4px 0; text-align:center}
+  /* map controls */
+  body.space.mobile #mapExpand{display:inline-flex; position:fixed; right:12px; top:12px; z-index:24;
+    align-items:center; gap:6px; height:30px; padding:0 11px; border-radius:999px; cursor:pointer;
+    background:rgba(2,11,26,.82); border:1px solid rgba(56,189,248,.4); color:#dbeafe;
+    font:600 11px system-ui,sans-serif; backdrop-filter:blur(8px)}
+  body.space.mobile.map-full #mapExpand{display:none}
+  body.space.mobile.map-full #mapCollapse{display:inline-flex; position:fixed; right:12px; top:12px; z-index:24;
+    align-items:center; gap:6px; height:30px; padding:0 11px; border-radius:999px; cursor:pointer;
+    background:rgba(2,11,26,.82); border:1px solid rgba(56,189,248,.4); color:#dbeafe;
+    font:600 11px system-ui,sans-serif; backdrop-filter:blur(8px)}
+  /* composer: full width, pinned bottom, above the sheet */
+  /* no second home on a phone, so nothing to animate between */
+  body.space.mobile #chatComposer{left:0; right:0; transform:none; bottom:0; width:auto;
+    z-index:33; padding:0 10px 10px; gap:7px; transition:none}
+  body.space.mobile .cc-pill{border-radius:18px}
+  body.space.mobile .cc-chips{flex-wrap:nowrap; overflow-x:auto; justify-content:flex-start;
+    scrollbar-width:none; padding:0 2px}
+  body.space.mobile .cc-chips::-webkit-scrollbar{display:none}
+  body.space.mobile .cc-chip{flex:0 0 auto}
+  body.space.mobile.map-full #chatComposer{display:none}
+  /* sections open as a full-screen sheet — same panel manager, different CSS */
+  body.space.mobile #spacePanel.open,
+  body.space.mobile #spacePanel.open.center{
+    top:auto; left:0; right:0; bottom:0; transform:none; width:auto; height:88vh;
+    max-height:88vh; border-radius:18px 18px 0 0; z-index:40}
+  body.space.mobile #spacePanel.open.center .panel-body{max-height:none}
+  body.space.mobile #spacePanel .panel-head{padding:14px 14px 12px}
+  body.space.mobile #miniPanel.open{top:auto; left:0; right:0; bottom:0; width:auto;
+    max-height:84vh; border-radius:18px 18px 0 0; z-index:40}
+  body.space.mobile #alertStack{display:none}
+  body.space.mobile .graph-hint{display:none}
+  body.space.mobile .map-filter-stack{left:50%; bottom:auto; top:52px}
+
   /* ══ Two rails, both constant ══
      Navigation is ALWAYS the icon rail on the far left — it never appears or
      disappears under you. The co-pilot rail beside it holds Recents or the
@@ -830,6 +941,7 @@ So, when you change a stored shape:
   body.space .ob-step:not(.done):not(.locked) ~ .ob-step{display:none}
   #obClassic{display:none}
   body.space #obClassic{display:inline-flex}
+  body.fresh #mobHome, body.fresh #mapExpand, body.fresh #mapCollapse,
   body.fresh #spaceDock, body.fresh #spaceIcoRail, body.fresh #railStubs,
   body.fresh #spaceHud, body.fresh #spaceTop, body.fresh #chatComposer, body.fresh #chatPanel, body.fresh #insightRail,
   body.fresh #spacePanel, body.fresh #miniPanel{display:none !important}
@@ -2851,6 +2963,34 @@ rewrite the static advice cards if the picture has changed.</div>
 </div>
 
 <!-- In-app Space tour -->
+<!-- ══ Mobile shell ══
+     A phone gets Space's language with a scroll's mechanics: the map stays the
+     living backdrop, and this glass sheet floats over its lower two-thirds
+     carrying the number, the stats and the sections. The rails, which assume
+     desktop width, stand down entirely. Sections still open through the same
+     panel manager — it just renders as a full-screen sheet down here. -->
+<div id="mobHome" aria-label="Overview">
+  <div class="mob-lead">
+    <svg class="mob-ring" viewBox="0 0 36 36" aria-hidden="true">
+      <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="3.6"/>
+      <circle id="mobArc" cx="18" cy="18" r="15.9" fill="none" stroke="#34d399" stroke-width="3.6"
+              stroke-linecap="round" stroke-dasharray="0, 100"/>
+    </svg>
+    <div class="mob-big" id="mobGoal">—</div>
+    <div class="mob-sub" id="mobGoalSub"></div>
+  </div>
+  <div class="mob-stats">
+    <div class="mob-stat"><b id="mobMachine" style="color:#34d399">—</b><span>the machine /mo</span></div>
+    <div class="mob-stat"><b id="mobPulse">—</b><span id="mobPulseSub">pulse</span></div>
+    <div class="mob-stat"><b id="mobLeft">—</b><span>left over /mo</span></div>
+  </div>
+  <p class="mob-lbl">Where it goes</p>
+  <div class="mob-cards" id="mobCards"></div>
+  <p class="mob-foot" id="mobFoot"></p>
+</div>
+<button id="mapExpand" type="button" title="Open the money map full screen" aria-label="Open the money map full screen">⤢ Map</button>
+<button id="mapCollapse" type="button" title="Back to the overview" aria-label="Back to the overview">✕ Close map</button>
+
 <!-- Rail stubs: Co-pilot (reopen the rail) and Tutorial, side by side at the
      rail's own edge and BEHIND it (z-index 29 vs the rails' 30) — so opening or
      expanding the rail slides them out of sight rather than stacking on top.
@@ -10529,6 +10669,13 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
 
     canvas.addEventListener('pointerdown', e=>{
       const p = evPos(e); downPt = p; moved = 0;
+      pts.set(e.pointerId, p);
+      if (pts.size === 2){                 // second finger: pinch, not drag
+        drag = null; pan = null; downPt = null;
+        pinch = {d: pinchDist(), k: view.k};
+        canvas.classList.remove('grabbing');
+        return;
+      }
       const n = nodeAt(p.x, p.y);
       if (n && !n.fixed){ drag = n; alpha = Math.max(alpha, 0.3); ensureAnim(); }
       else if (!n) pan = {x:p.x - view.x, y:p.y - view.y};
@@ -10537,6 +10684,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     });
     canvas.addEventListener('pointermove', e=>{
       const p = evPos(e);
+      if (pts.has(e.pointerId)) pts.set(e.pointerId, p);
+      if (pinch && pts.size === 2){
+        const d = pinchDist();
+        if (pinch.d > 8) zoomAbout(pinchMid(), pinch.k * (d / pinch.d));
+        return;
+      }
       if (downPt) moved += Math.abs(e.movementX||0) + Math.abs(e.movementY||0);
       if (drag){
         const w = toWorld(p.x, p.y);
@@ -10575,6 +10728,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     });
     function endPointer(e){
       const p = evPos(e);
+      pts.delete(e.pointerId);
+      // lifting one finger of a pinch must not register as a tap on whatever
+      // was under it, and must not resume a drag with the finger left behind
+      if (pinch){ if (pts.size < 2){ pinch = null; downPt = null; } return; }
       const wasDrag = moved >= 5;
       drag = null; pan = null; downPt = null;
       canvas.classList.remove('grabbing');
@@ -10593,16 +10750,35 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       }, 260);
     }
     canvas.addEventListener('pointerup', endPointer);
-    canvas.addEventListener('pointercancel', ()=>{ drag = null; pan = null; downPt = null; canvas.classList.remove('grabbing'); });
+    canvas.addEventListener('pointercancel', e=>{ pts.delete(e.pointerId); if (pts.size < 2) pinch = null;
+      drag = null; pan = null; downPt = null; canvas.classList.remove('grabbing'); });
     canvas.addEventListener('pointerleave', ()=>{ if (!drag && !pan){ hover = null; hideTip(); draw(performance.now()); } });
-    canvas.addEventListener('wheel', e=>{
-      e.preventDefault();
-      const p = evPos(e);
-      const k2 = Math.min(3.2, Math.max(0.4, view.k * (e.deltaY < 0 ? 1.12 : 0.89)));
+    function zoomAbout(p, k2){
+      k2 = Math.min(3.2, Math.max(0.4, k2));
       view.x = p.x - (p.x - view.x) * k2/view.k;
       view.y = p.y - (p.y - view.y) * k2/view.k;
       view.k = k2; draw(performance.now());
+    }
+    canvas.addEventListener('wheel', e=>{
+      e.preventDefault();
+      zoomAbout(evPos(e), view.k * (e.deltaY < 0 ? 1.12 : 0.89));
     }, {passive:false});
+
+    // ── pinch to zoom ──
+    // The wheel is the only zoom a mouse has; a phone has two fingers and no
+    // wheel at all. Tracks live pointers, and while two are down it zooms about
+    // their midpoint and suppresses drag/pan so the map does not fight the
+    // gesture. touch-action:none on the canvas already stops the page scrolling.
+    const pts = new Map();
+    let pinch = null;
+    const pinchDist = () => {
+      const [a2, b2] = [...pts.values()];
+      return Math.hypot(a2.x - b2.x, a2.y - b2.y);
+    };
+    const pinchMid = () => {
+      const [a2, b2] = [...pts.values()];
+      return {x: (a2.x + b2.x) / 2, y: (a2.y + b2.y) / 2};
+    };
 
     // ── fullscreen ──
     const fsBtn = document.getElementById('graphFsBtn');
@@ -13558,6 +13734,63 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     document.getElementById('hudDate').textContent = P.g.name + (P.gap === 0 ? ' · reached 🎉' : P.projMonth ? ' · ' + fmtMoLbl(P.projMonth) : ' · out of reach');
     const machine = fc.slice(0, 12).reduce((s, f) => s + f.surplusC, 0) / 12;
     document.getElementById('hudMachine').textContent = eur(machine);
+    renderMobile(P, machine);
+  }
+  // ══ mobile home ══
+  // The phone has no rails, so the numbers the HUD carries and the sections the
+  // rails carry both surface here instead. Same figures, same Engine, same
+  // section DOM — only the shell differs.
+  const MOB_CARDS = [
+    {k:'cats',   ic:'🧩', label:'Categories', line: () => A && A.cats12 && A.cats12[0]
+       ? A.cats12[0].category + ' is your biggest' : 'where a month goes',
+      val: () => A ? eur(A.spendAvg12) + '/mo' : ''},
+    {k:'leaks',  ic:'💧', label:'Leaks', line: () => A && A.leaks && A.leaks.length
+       ? A.leaks.length + ' recurring found' : 'subscriptions and standing orders',
+      val: () => A && A.leaks && A.leaks[0] ? eur(A.leaks[0].avgMonth) + '/mo' : ''},
+    {k:'cash',   ic:'📈', label:'Cashflow', line: () => 'income and spending, month by month',
+      val: () => A ? eur(A.incomeAvg12) + '/mo' : ''},
+    {k:'goals',  ic:'🎯', label:'Goals', line: () => goals.length
+       ? goals.length + ' goal' + (goals.length === 1 ? '' : 's') : 'set your first goal',
+      val: () => ''},
+    {k:'ready',  ic:'🏦', label:'Readiness', line: () => 'mortgage-style checks on your data',
+      val: () => ''}
+  ];
+  function renderMobile(P, machine){
+    if (!document.body.classList.contains('mobile')) return;
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    if (P){
+      const pct = Math.min(100, Math.max(0, P.pot / P.g.target * 100));
+      const arc = document.getElementById('mobArc');
+      if (arc) arc.setAttribute('stroke-dasharray', pct.toFixed(1) + ', 100');
+      const g = document.getElementById('mobGoal');
+      if (g) g.innerHTML = esc(eur(P.pot)) + ' <small>/ ' + esc(eur(P.g.target)) + '</small>';
+      set('mobGoalSub', P.g.name + (P.gap === 0 ? ' · reached 🎉'
+        : P.projMonth ? ' · on track for ' + fmtMoLbl(P.projMonth) : ' · out of reach'));
+    }
+    if (machine != null) set('mobMachine', eur(machine));
+    if (PULSE && PULSE.score != null){ set('mobPulse', String(PULSE.score)); set('mobPulseSub', 'pulse · ' + PULSE.zone); }
+    // same definition the Categories panel uses: income − expenses − saved
+    if (A) set('mobLeft', eur(A.incomeAvg12 - A.spendAvg12 - A.saveAvg12));
+    const wrap = document.getElementById('mobCards');
+    if (wrap){
+      wrap.innerHTML = MOB_CARDS.map(c => {
+        let line = '', val = '';
+        try { line = c.line() || ''; } catch (e) {}
+        try { val = c.val() || ''; } catch (e) {}
+        return '<button class="mob-card" type="button" data-k="' + c.k + '"><span class="ic">' + c.ic +
+          '</span><span class="t"><b>' + esc(c.label) + '</b><span>' + esc(line) +
+          '</span></span><span class="v">' + esc(val) + '</span></button>';
+      }).join('') +
+      '<button class="mob-card" type="button" data-k="__all"><span class="ic">🧭</span>' +
+      '<span class="t"><b>All sections</b><span>budget, forecast, wealth, rules, people…</span></span>' +
+      '<span class="v">20</span></button>';
+      wrap.querySelectorAll('.mob-card[data-k]').forEach(b => b.addEventListener('click', ()=>{
+        const k = b.dataset.k;
+        if (k === '__all'){ if (Space) Space.open('summary'); return; }
+        if (Space) Space.open(k);
+      }));
+    }
+    set('mobFoot', 'Every figure is computed on this device. Nothing leaves it.');
   }
   // ══ P5-20: cash on hand — HUD + hero widget with privacy masking ══
   // Tap toggles masked (persisted); press-and-hold peeks while masked. The
@@ -17718,8 +17951,44 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   renderAll();
   renderSelfTest();
   showVisitDigest();
+  // ══ mobile shell ══
+  // CSS alone cannot carry this: the canvas has to be told to re-fit, and the
+  // home has to re-render, when the breakpoint flips. 720px is below any
+  // tablet in landscape and above every phone in portrait.
+  const MOBILE_Q = matchMedia('(max-width: 720px)');
+  // Desktop Chrome ignores the viewport meta, so the breakpoint cannot be
+  // reached by resizing a desktop window — this override is how the mobile
+  // shell gets exercised without a device. null = follow the media query.
+  let mobileForce = null;
+  window.__ddForceMobile = v => { mobileForce = v; applyMobile(); return !!document.body.classList.contains('mobile'); };
+  function applyMobile(){
+    const on = mobileForce == null ? MOBILE_Q.matches : !!mobileForce;
+    const was = document.body.classList.contains('mobile');
+    document.body.classList.toggle('mobile', on);
+    if (!on) document.body.classList.remove('map-full');
+    if (was !== on){
+      try { renderMobile(D.as && D.as[0], null); } catch (e) {}
+      try { renderAll(); } catch (e) {}
+      if (graph){ graph.resize(); setTimeout(()=>graph.fit(), 90); }
+      try { if (window.__ddSyncCam) window.__ddSyncCam(); } catch (e) {}
+    }
+  }
+  MOBILE_Q.addEventListener('change', applyMobile);
+  applyMobile();
+  document.getElementById('mapExpand').addEventListener('click', ()=>{
+    document.body.classList.add('map-full');
+    if (graph){ graph.resize(); setTimeout(()=>graph.fit(), 90); }
+  });
+  document.getElementById('mapCollapse').addEventListener('click', ()=>{
+    document.body.classList.remove('map-full');
+    if (graph){ graph.resize(); setTimeout(()=>graph.fit(), 90); }
+  });
+
   // P6: space is the default view — classic is the opt-out (FCONF.view
   // remembers an explicit switch). First run onboards on the map itself.
-  if (FCONF.view !== 'classic') Space.enter();
+  // On a phone the Space shell IS the mobile shell, so a stored desktop
+  // preference for classic must not strand someone in a sideways-scrolling
+  // table page; classic stays reachable from Settings.
+  if (FCONF.view !== 'classic' || MOBILE_Q.matches) Space.enter();
 })();
 </script>
