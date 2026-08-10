@@ -3531,6 +3531,17 @@ rewrite the static advice cards if the picture has changed.</div>
   // ═══════════════════════════════════════════════════════════════════
   const Engine = {
     djb2(str){ let h = 5381; for (let i = 0; i < str.length; i++) h = ((h*33) ^ str.charCodeAt(i)) >>> 0; return h.toString(16); },
+    // Where the map camera should be heading after a horizontal shift of
+    // `delta`. Anchors on the flight already in progress, never on the live
+    // view: switching sections runs closePanel() then openPanel() in ONE tick,
+    // so the view is still the pre-close value when the second call lands.
+    // Anchoring on it re-applied the whole shift and walked the map off screen
+    // a panel-width per switch. Pure so the self-test can assert it without
+    // moving anyone's camera.
+    camShiftTarget(pending, view, delta){
+      const base = pending || view;
+      return {k: base.k, x: base.x + delta, y: base.y};
+    },
     fvMonthly(m, r, yrs){ const i = r/12, n = yrs*12; return m * ((Math.pow(1+i, n) - 1) / i); },
     addMonths(m, k){ const d = new Date(+m.slice(0,4), +m.slice(5)-1 + k, 1); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); },
     monthDiff(a, b){ return (+b.slice(0,4) - +a.slice(0,4))*12 + (+b.slice(5) - +a.slice(5)); },
@@ -10449,14 +10460,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const d = px - camShift;
       camShift = px;
       if (!d) return;
-      // Anchor on the flight already in progress, not on the live view.
-      // Switching sections calls closePanel() then openPanel() in ONE tick, so
-      // view.x is still the pre-close value when the second call lands —
-      // applying the delta to it re-applied the whole shift every time, and the
-      // map marched off screen a panel-width at a time (visible from tutorial
-      // part 4, which opens several sections in a row).
-      const base = fly ? fly.to : view;
-      const to = {k: base.k, x: base.x + d, y: base.y};
+      // Anchoring rule lives in Engine.camShiftTarget so the self-test can
+      // assert it without moving the real camera.
+      const to = Engine.camShiftTarget(fly && fly.to, view, d);
       if (reduceMotion){ view = to; draw(performance.now()); return; }
       fly = {t0:performance.now(), dur:dur == null ? 340 : dur, from:{...view}, to};
       ensureAnim();
@@ -10627,7 +10633,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     return {rebuild: soft => { if (soft) rebuild.soft = true; rebuild(); },
             draw:()=>draw(performance.now()), resize, fit: fitAll,
             flyToNode, camShift: setCamShift,
-            view: () => ({x: view.x, y: view.y, k: view.k, shift: camShift}),   // testing hook
+            // testing hook. `target` is where the camera is HEADING — the live
+            // view lags behind a flight, and a frame may not have run yet, so
+            // only the target can show whether a shift accumulated.
+            view: () => ({x: view.x, y: view.y, k: view.k, shift: camShift,
+                          target: fly ? {x: fly.to.x, y: fly.to.y, k: fly.to.k}
+                                      : {x: view.x, y: view.y, k: view.k}}),
             onNode: cb => { onNodeCb = cb; },
             highlight: ids => { extHi = ids && ids.length ? new Set(ids) : null; draw(performance.now()); },
             setPaused: b => { paused = !!b; if (!paused) ensureAnim(); else draw(performance.now()); }};
@@ -12355,6 +12366,26 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         if (got !== want) return id + ' → ' + got + ', wanted ' + want;
       }
       return true;
+    });
+    // Regression: switching sections runs closePanel() then openPanel() in ONE
+    // tick, so the camera is told to swing out and come straight back before a
+    // frame renders. Anchoring the second move on the live view — still the
+    // pre-close value — re-applied the whole shift, and the map walked a
+    // panel-width off screen per switch (worst through tutorial part 4, which
+    // opens three sections in a row).
+    T('camera: a shift reversed in one tick lands back where it started', () => {
+      const view = {x: 500, y: 100, k: 1};
+      // close-then-open, feeding each result forward as the pending flight
+      const out = E.camShiftTarget(E.camShiftTarget(null, view, +400), view, -400);
+      if (out.x !== view.x) return 'landed at ' + out.x + ', wanted ' + view.x;
+      // and the bug it replaced: anchoring both moves on the live view
+      const buggy = E.camShiftTarget(null, view, -400);
+      return buggy.x === view.x - 400 ? true : 'delta no longer applied at all';
+    });
+    T('camera: with no flight in progress the shift applies to the live view', () => {
+      const view = {x: 500, y: 100, k: 1};
+      const out = E.camShiftTarget(null, view, -250);
+      return (out.x === 250 && out.y === 100 && out.k === 1) || JSON.stringify(out);
     });
     T('noteLinks: a link to a deleted account is reported, never silently dropped', () => {
       const r = E.noteLinks({note:{links:['u1','gone']}, users:ND_U, accounts:ND_A});
