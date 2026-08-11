@@ -624,8 +624,13 @@ So, when you change a stored shape:
   @media (prefers-reduced-motion: reduce){ body.space #chatComposer{transition:none} }
   /* The composer has two homes and MOVES between them — same element, animated,
      so it reads as travelling into the rail rather than one thing vanishing and
-     another appearing. */
-  body.space.chat-open:not(.rail-hidden) #chatComposer{
+     another appearing.
+     :not(.mobile) is load-bearing, not decoration. A phone has no rail to
+     travel into, and this selector (1 id, 3 classes) out-specifies the mobile
+     one (1 id, 2 classes), so without the guard the composer snapped to the
+     desktop rail slot the moment a chat opened — an 82px-wide "popup" over a
+     hidden rail. Every chat-open rule below carries the same guard. */
+  body.space.chat-open:not(.rail-hidden):not(.mobile) #chatComposer{
     left:calc(var(--rail-l) + 8px); transform:none; bottom:22px;
     width:calc(var(--rail-w) - 16px)}
   .cc-pill{display:flex; flex-direction:column; align-items:stretch; gap:6px; width:100%;
@@ -679,7 +684,7 @@ So, when you change a stored shape:
   #chatPanel{display:none !important}
   /* Rail (270) + data panel (780) would leave under 400px of map on a 1440px
      laptop. While chatting the data panel gives way so the map keeps ~520px. */
-  body.space.chat-open #spacePanel.open:not(.center){
+  body.space.chat-open:not(.mobile) #spacePanel.open:not(.center){
     width:min(620px, calc(100vw - 420px))}
   body.space #insightRail{bottom:118px}
   body.space #lapseBar{display:none} /* play history lives under HUD */
@@ -767,10 +772,31 @@ So, when you change a stored shape:
      and the content floats over it as glass. */
   #mobHome, #mapExpand, #mapCollapse{display:none}
   body.space.mobile #spaceIcoRail,
-  body.space.mobile #spaceDock,
   body.space.mobile #railStubs,
   body.space.mobile #spaceTop,
   body.space.mobile #spaceHud{display:none !important}
+  /* The co-pilot rail stands down like the others — EXCEPT while chatting.
+     The thread lives inside this rail, so hiding it outright meant you could
+     ask a question on a phone and never see the answer. Chatting turns the
+     same element into a bottom sheet, the same shape sections already use. */
+  body.space.mobile #spaceDock{display:none !important}
+  body.space.mobile.chat-open #spaceDock{
+    display:flex !important; left:0; right:0; top:auto; bottom:0; width:auto;
+    height:76vh; z-index:32; transition:none;
+    border-radius:18px 18px 0 0; border-left:0; border-right:0; border-bottom:0;
+    background:rgba(2,11,26,.97);
+    /* the composer stays pinned over the sheet's foot (z-index 33) — leave it room */
+    padding-bottom:calc(var(--cc-h, 120px) + 8px)}
+  body.space.mobile.map-full #spaceDock{display:none !important}
+  /* Nothing to widen when the sheet is already full-bleed, and nothing to
+     collapse — «  would persist railHidden (a desktop preference) while the
+     !important above keeps the sheet on screen, so it reads as a dead button.
+     ✕ closes the conversation; that is the only exit a phone needs. */
+  body.space.mobile #chatMax,
+  body.space.mobile #dockCol{display:none}
+  body.space.mobile .dock-thread-head{font-size:13px; padding:12px 10px 8px}
+  body.space.mobile .dock-th-b{width:30px; height:30px; font-size:13px}
+  body.space.mobile .cp-msg{max-width:88%; font-size:13px}
   /* the map is the whole backdrop; the sheet covers its lower part */
   body.space.mobile{--stage-l:0px; --stage-r:0px; --top-r:0px}
   body.space.mobile #mobHome{
@@ -923,7 +949,7 @@ So, when you change a stored shape:
     border:1px solid rgba(56,189,248,.28); background:rgba(56,189,248,.08); color:#cfe9ff; font-size:11px; line-height:1}
   .dock-th-b:hover{border-color:rgba(56,189,248,.65); color:#fff}
   /* the composer docks into the rail foot, so leave room for it (two rows now) */
-  body.space.chat-open:not(.rail-hidden) #spaceDock{padding-bottom:96px}
+  body.space.chat-open:not(.rail-hidden):not(.mobile) #spaceDock{padding-bottom:96px}
   .dock-ava{width:28px; height:28px; border-radius:50%; flex:0 0 auto; display:inline-flex; align-items:center;
     justify-content:center; background:linear-gradient(135deg,#1d4ed8,#0891b2); color:#fff; font:700 13px system-ui,sans-serif}
   .dock-col-btn{margin-left:auto; flex:0 0 auto; width:22px; height:22px; border-radius:50%;
@@ -1578,7 +1604,9 @@ So, when you change a stored shape:
      was swallowing every clear-filter ✕. Centred on the map, not the viewport. */
   body.space .map-filter-stack{position:fixed; z-index:32; bottom:calc(14px + var(--cc-h, 96px) + 10px);
     left:var(--stage-c); transform:translateX(-50%)}
-  body.space.chat-open:not(.rail-hidden) .map-filter-stack{bottom:14px}
+  /* docked composer frees the map's foot — but only on desktop, where the
+     composer actually leaves. On a phone it stays pinned over the map. */
+  body.space.chat-open:not(.rail-hidden):not(.mobile) .map-filter-stack{bottom:14px}
   body.space .map-filter-stack.low{bottom:calc(14px + var(--cc-h, 96px) + 10px)}
   .map-filter-chip{pointer-events:auto; display:flex; align-items:center; gap:8px;
     background:rgba(2,11,26,.92); border:1px solid rgba(56,189,248,.5); border-radius:999px;
@@ -12587,6 +12615,75 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const out = E.camShiftTarget(null, view, -250);
       return (out.x === 250 && out.y === 100 && out.k === 1) || JSON.stringify(out);
     });
+    // ── the phone chat surface ──
+    // One cause, three faults, all shipped: the desktop chat-open rules carry
+    // 1 id + 3 classes and the mobile ones 1 id + 2, so opening a chat on a
+    // phone parked the composer in the slot of a rail that is hidden there,
+    // and left the conversation with nowhere to render — you could ask and
+    // never see the answer. Specificity is invisible in review, so assert the
+    // OUTCOME, and assert it in BOTH shells: the fix is a scoping guard, and a
+    // guard is as easy to over-apply as to forget.
+    const layoutProbe = (classes, fn) => {
+      const b = document.body;
+      const added = classes.filter(c => !b.classList.contains(c));
+      // Transitions interpolate from the OLD value and rAF does not fire in an
+      // automation window, so a transitioning property reads back unchanged and
+      // correct CSS looks broken. Measure endpoints, never the journey.
+      const kill = document.createElement('style');
+      kill.textContent = '*,*::before,*::after{transition:none!important;animation:none!important}';
+      document.head.appendChild(kill);
+      added.forEach(c => b.classList.add(c));
+      // one synchronous block: nothing is painted between add and remove
+      try { return fn(); }
+      finally { added.forEach(c => b.classList.remove(c)); kill.remove(); }
+    };
+    // These probes measure real boxes, so they are only meaningful when the
+    // Space shell is actually rendering. A build with no data yet (body.fresh)
+    // hides every Space surface behind display:none !important — a hidden
+    // element measures 0×0 at x=0, which would let the composer check "pass"
+    // for entirely the wrong reason and the panel check fail for one.
+    const inSpace = () => document.body.classList.contains('space') &&
+                          !document.body.classList.contains('map-full') &&
+                          !document.body.classList.contains('fresh');
+    const shown = el => el && getComputedStyle(el).display !== 'none';
+    T('phone chat: composer stays full-bleed and the thread has somewhere to render', () => {
+      if (!inSpace()) return true;
+      return layoutProbe(['mobile', 'chat-open'], () => {
+        const cc = document.getElementById('chatComposer');
+        const dk = document.getElementById('spaceDock');
+        if (!shown(cc)) return 'composer is not rendering — nothing was measured';
+        const l = Math.round(cc.getBoundingClientRect().left);
+        if (l !== 0) return 'composer parked at x=' + l + ' — the desktop rail slot, not full-bleed';
+        if (!shown(dk)) return 'chat sheet hidden — the answer has nowhere to render';
+        const w = Math.round(dk.getBoundingClientRect().width);
+        return Math.abs(w - window.innerWidth) <= 1 || 'chat sheet is ' + w + 'px, not full width';
+      });
+    });
+    T('phone chat: a section sheet stays full-screen while chatting', () => {
+      if (!inSpace()) return true;
+      const panel = document.getElementById('spacePanel');
+      const wasOpen = panel.classList.contains('open');
+      return layoutProbe(['mobile', 'chat-open'], () => {
+        if (!wasOpen) panel.classList.add('open');
+        try {
+          if (!shown(panel)) return 'panel is not rendering — nothing was measured';
+          const w = Math.round(panel.getBoundingClientRect().width);
+          return Math.abs(w - window.innerWidth) <= 1 || 'panel narrowed to ' + w + 'px by the desktop chat rule';
+        } finally { if (!wasOpen) panel.classList.remove('open'); }
+      });
+    });
+    T('desktop chat: the composer still travels into the rail', () => {
+      // the counter-check — scoping the desktop rules must not disarm them
+      if (!inSpace() || document.body.classList.contains('mobile')) return true;
+      return layoutProbe(['chat-open'], () => {
+        const cc = document.getElementById('chatComposer');
+        const dk = document.getElementById('spaceDock');
+        if (!shown(dk) || !shown(cc)) return true;   // rail hidden: nothing to dock into
+        const c = cc.getBoundingClientRect(), d = dk.getBoundingClientRect();
+        return Math.abs(c.left - d.left) <= 12
+          || 'composer at x=' + Math.round(c.left) + ' but the rail is at x=' + Math.round(d.left);
+      });
+    });
     T('noteLinks: a link to a deleted account is reported, never silently dropped', () => {
       const r = E.noteLinks({note:{links:['u1','gone']}, users:ND_U, accounts:ND_A});
       return (r.links.length === 1 && r.broken.length === 1 && r.broken[0] === 'gone') || JSON.stringify(r);
@@ -16278,7 +16375,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         const cls = m.role === 'user' ? 'user' : 'bot';
         return '<div class="cp-msg ' + cls + '">' + esc(m.content) + '</div>';
       }).join('');
-      el.scrollTop = el.scrollHeight;
+      // The thread deliberately does not scroll on its own — the rail owns the
+      // one scrollbar (and on a phone the sheet does). Scrolling #companionThread
+      // was therefore a no-op, so every reply arrived below the fold and had to
+      // be hunted for. Drive the actual scroller.
+      const sc = el.closest('.dock-scroll') || el;
+      sc.scrollTop = sc.scrollHeight;
     }
     function renderHist(){
       const el = document.getElementById('chatHist');
@@ -16847,6 +16949,19 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (!graph || !graph.camShift) return;
       const vw = window.innerWidth;
       const seen = el => el && getComputedStyle(el).display !== 'none';
+      const cc = document.getElementById('chatComposer');
+      // A phone has no side chrome. Every surface is full-bleed at the BOTTOM
+      // — the section sheet, and now the chat sheet — so measuring them as a
+      // left rail or a right panel would read the full viewport width as
+      // chrome and shove the map half a screen sideways. There is nothing to
+      // shift around: the map keeps the whole width and the sheets sit over it.
+      if (document.body.classList.contains('mobile')){
+        graph.camShift(0);
+        document.body.style.setProperty('--stage-r', '0px');
+        document.body.style.setProperty('--top-r', '0px');
+        if (seen(cc)) document.body.style.setProperty('--cc-h', Math.round(cc.getBoundingClientRect().height) + 'px');
+        return;
+      }
       // left chrome = whichever rail actually reaches furthest right
       let left = 0;
       const ico = document.getElementById('spaceIcoRail');
@@ -16865,7 +16980,6 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       }
       document.body.style.setProperty('--top-r', Math.round(topR) + 'px');
       // the filter chips clear the composer, whose height changes as it grows
-      const cc = document.getElementById('chatComposer');
       if (seen(cc)) document.body.style.setProperty('--cc-h', Math.round(cc.getBoundingClientRect().height) + 'px');
     }
     window.__ddSyncCam = syncCamShift;
