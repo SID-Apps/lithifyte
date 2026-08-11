@@ -692,11 +692,28 @@ So, when you change a stored shape:
   /* the thread now flows inside the rail's own scroll region, so it must not
      claim flex:1 or scroll on its own — one rail, one scrollbar */
   #companionThread{padding:2px; display:flex; flex-direction:column; gap:9px}
-  .cp-msg{max-width:94%; padding:8px 11px; border-radius:13px; font-size:12px; line-height:1.45; white-space:pre-wrap}
+  /* min-width:0 + overflow-wrap: a bubble's content must never be allowed to
+     push past its own border. Tool steps can carry long unbroken strings. */
+  .cp-msg{max-width:94%; min-width:0; padding:8px 11px; border-radius:13px; font-size:12px; line-height:1.45; white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-word}
   .cp-msg.user{align-self:flex-end; background:rgba(56,189,248,.2); border:1px solid rgba(56,189,248,.35); color:#e8f4ff}
   .cp-msg.bot{align-self:flex-start; background:rgba(255,255,255,.04); border:1px solid rgba(56,189,248,.16); color:#dbeafe}
   .cp-msg .cp-prov{display:block; margin-top:5px; font-size:11px; color:#7fa5cc}
-  .cp-msg.tool{align-self:stretch; font-size:12px; background:rgba(52,211,153,.08); border:1px dashed rgba(52,211,153,.35); color:#b7e4d0}
+  /* the green step box: a labelled result, not a JSON dump */
+  .cp-msg.tool{align-self:stretch; font-size:12px; background:rgba(52,211,153,.08); border:1px dashed rgba(52,211,153,.35); color:#b7e4d0;
+               display:flex; flex-direction:column; gap:4px; white-space:normal}
+  .cp-tool-hd{font-size:11px; font-weight:600; letter-spacing:.02em; text-transform:uppercase; color:#6ee7b7; opacity:.9}
+  .cp-tool-say{white-space:pre-wrap; color:#d6f3e6}
+  .cp-tool-src{font-size:10.5px; color:#7fbfa4; opacity:.85}
+  /* "thinking" is a bubble in the thread, where the eye already is — the status
+     line under the model popover is closed most of the time */
+  .cp-msg.think{align-self:flex-start; display:flex; align-items:center; gap:7px; color:#9fc4e6;
+                background:rgba(255,255,255,.03); border:1px solid rgba(56,189,248,.14); font-style:italic}
+  .cp-dots{display:inline-flex; gap:3px}
+  .cp-dots i{width:5px; height:5px; border-radius:50%; background:#38bdf8; opacity:.35; animation:cpDot 1.1s infinite}
+  .cp-dots i:nth-child(2){animation-delay:.18s}
+  .cp-dots i:nth-child(3){animation-delay:.36s}
+  @keyframes cpDot{0%,60%,100%{opacity:.25; transform:translateY(0)} 30%{opacity:1; transform:translateY(-2px)}}
+  @media (prefers-reduced-motion: reduce){ .cp-dots i{animation:none; opacity:.6} }
   .cp-apply{margin-top:6px; display:flex; gap:6px; flex-wrap:wrap}
   /* follow-ups sit in a 300px rail now — small, and only the first few.
      The composer's own chips carry the empty-state suggestions. */
@@ -715,6 +732,10 @@ So, when you change a stored shape:
   .cp-hist button:hover{background:rgba(56,189,248,.1)}
   .cp-hist .del{margin-left:auto; color:#f87171; font-size:11px; border:1px solid rgba(248,113,113,.35);
     border-radius:6px; padding:1px 6px; background:rgba(248,113,113,.08)}
+  /* a draft row carries a second line (what is in it), so its label stacks */
+  #scenList button > span:first-child{display:flex; flex-direction:column; gap:1px; min-width:0}
+  #scenList button small{font-size:10.5px; color:#7fbfa4; font-weight:400}
+  #dockDrafts{margin-top:10px}
   #companionBar{display:none !important} /* legacy modal removed */
   body.space #topCompanion{display:none !important}
 
@@ -2832,6 +2853,14 @@ rewrite the static advice cards if the picture has changed.</div>
     <div id="dockRecents">
       <div class="dock-list-lbl">Recents</div>
       <div class="cp-hist" id="chatHist" aria-label="Recent chats"></div>
+      <!-- sandbox drafts: proposals the co-pilot made that were never applied.
+           They already existed as green orbs on the map with no list behind
+           them, so they could not be reviewed or removed. -->
+      <div id="dockDrafts" hidden>
+        <div class="dock-list-lbl">Sandbox drafts</div>
+        <div class="cp-hist" id="scenList" aria-label="Sandbox drafts"></div>
+        <p class="cp-hint" style="padding:2px 9px 0; font-size:10.5px">Nothing here is live until you apply it.</p>
+      </div>
     </div>
     <!-- chatting: the live conversation, in the rail rather than a floating card -->
     <div id="dockThread" hidden>
@@ -13462,10 +13491,28 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     });
     T('companion: propose_budget creates draft scenario', () => {
       if (!TX.length || !A || !A.cats12 || !A.cats12.length) return true;
-      const r = Companion.run({tool:'propose_budget', args:{fromHistory:true}});
-      if (!r.ok) return r.say || 'failed';
-      if (!r.apply || !r.apply.scenarioId) return 'no apply payload';
-      return true;
+      // MUST restore the store. This test used to leave its draft behind, and
+      // the self-test runs on every page load — so the sandbox quietly grew a
+      // new "Budget draft" orb every time the app was opened, and the user was
+      // left with a ring of identical scenarios they never asked for.
+      const keep = scenarioStore.items.slice();
+      try {
+        const r = Companion.run({tool:'propose_budget', args:{fromHistory:true}});
+        if (!r.ok) return r.say || 'failed';
+        if (!r.apply || !r.apply.scenarioId) return 'no apply payload';
+        return true;
+      } finally { scenarioStore.items = keep; saveScenarios(); }
+    });
+    T('self-test: running it leaves no sandbox drafts behind', () => {
+      if (!TX.length || !A || !A.cats12 || !A.cats12.length) return true;   // blank-slate build
+      // the guard for the bug above — assert the count is unchanged by a run
+      const before = Companion.scenarios().length;
+      const keep = scenarioStore.items.slice();
+      try {
+        Companion.run({tool:'propose_budget', args:{fromHistory:true}});
+        Companion.run({tool:'propose_goal', args:{name:'T', target:120, months:2}});
+      } finally { scenarioStore.items = keep; saveScenarios(); }
+      return Companion.scenarios().length === before || 'drafts leaked: ' + before + ' → ' + Companion.scenarios().length;
     });
     T('companion: chats store is backup-safe', () => {
       const b = buildBackup();
@@ -13506,6 +13553,139 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     T('companion: a real final answer is not mistaken for a tool', () => {
       const o = Companion.parseLmJson('{"type":"final","say":"You spent 412.30 on Groceries."}');
       return (o && o.type === 'final' && /412.30/.test(o.say)) || JSON.stringify(o);
+    });
+    // ── sandbox drafts are reviewable and removable (P8) ──
+    T('companion: "over 12 months" is prose, not an invented euro figure', () => {
+      const found = Companion.amts('Over 12 months, across 6 categories, you spent €1,234.50 and 300 on fuel.');
+      // 12 and 6 are prose; 1234.50 is marked money; 300 clears the size bar
+      return (found.join(',') === '1234.50,300') || JSON.stringify(found);
+    });
+    T('companion: "can I afford" is answered by the Engine, with the sum done', () => {
+      if (!TX.length || !A || !A.cats12 || !A.cats12.length) return true;   // blank-slate build
+      const m = Companion.match('can i afford a 300 euro installment for a couch');
+      if (!m || m.tool !== 'affordability' || m.args.monthly !== 300) return JSON.stringify(m);
+      const r = Companion.run(m);
+      if (!r.ok) return 'tool failed: ' + r.say;
+      const d = r.data || {};
+      // the arithmetic the model is forbidden to do must be present in the data
+      return (Math.abs((d.income - d.spend) - d.spare) < 0.01 &&
+              Math.abs((d.spare - 300) - d.after) < 0.01 &&
+              d.fits === (d.after >= 0) &&
+              /300/.test(r.say)) || JSON.stringify(d);
+    });
+    T('companion: "where can I cut back" ranks real spending', () => {
+      if (!TX.length || !A || !A.cats12 || !A.cats12.length) return true;   // blank-slate build
+      const m = Companion.match('where can i cut back');
+      if (!m || m.tool !== 'spend_ranked') return JSON.stringify(m);
+      const r = Companion.run(m);
+      if (!r.ok) return 'tool failed: ' + r.say;
+      const lines = (r.data && r.data.lines) || [];
+      const ordered = lines.every((l, i) => i === 0 || lines[i-1].amount >= l.amount);
+      return (lines.length > 0 && ordered) || JSON.stringify({n:lines.length, ordered});
+    });
+    T('scenarios: a draft can be listed and deleted', () => {
+      if (!TX.length || !A || !A.cats12 || !A.cats12.length) return true;   // blank-slate build
+      const keep = scenarioStore.items.slice();
+      const before = keep.length;
+      try {
+        const r = Companion.run({tool:'propose_budget', args:{fromHistory:true}});
+        if (!r.ok) return 'could not create a draft: ' + r.say;
+        const made = Companion.scenarios()[0];
+        if (!made || !made.payload) return 'draft has no payload';
+        const summary = Companion.scenSummary(made);
+        const gone = Companion.deleteScenario(made.id, true);
+        const after = Companion.scenarios().length;
+        return (gone === true && after === before && /line|mo/.test(summary)) ||
+               JSON.stringify({gone, before, after, summary});
+      } finally { scenarioStore.items = keep; saveScenarios(); }
+    });
+    T('scenarios: the rail lists every draft, and hides when there are none', () => {
+      const keep = scenarioStore.items.slice();
+      try {
+        scenarioStore.items = [];
+        Companion.renderScenarios();
+        const wrap = document.getElementById('dockDrafts');
+        const list = document.getElementById('scenList');
+        if (!wrap || !list) return 'drafts rail is missing';
+        if (!wrap.hidden) return 'empty drafts rail was left showing';
+        scenarioStore.items = [
+          {id:'s1', title:'Draft A', status:'draft', kind:'budget', payload:{lines:[{category:'Groceries', amount:400}]}},
+          {id:'s2', title:'Draft B', status:'draft', kind:'goal', payload:{target:6000, months:12, monthly:500}},
+          {id:'s3', title:'Applied one', status:'applied', kind:'budget', payload:{lines:[]}}
+        ];
+        Companion.renderScenarios();
+        const rows = list.querySelectorAll('button[data-scen]').length;
+        const dels = list.querySelectorAll('[data-del]').length;
+        // only the two drafts — an applied scenario is history, not a draft
+        return (!wrap.hidden && rows === 2 && dels === 2) || JSON.stringify({hidden:wrap.hidden, rows, dels});
+      } finally { scenarioStore.items = keep; Companion.renderScenarios(); }
+    });
+    T('scenarios: the node card shows what is inside a draft', () => {
+      const keep = scenarioStore.items.slice();
+      try {
+        scenarioStore.items = [{id:'sX', title:'Draft A', status:'draft', kind:'budget',
+          created:'2026-08-01T10:00:00.000Z', payload:{lines:[{category:'Groceries', amount:432}]}}];
+        showNodeCard({type:'scen', id:'scen:sX', scenId:'sX', label:'Draft A', full:'Draft A'});
+        const body = document.getElementById('ncBody').textContent;
+        const acts = document.getElementById('ncActions').innerHTML;
+        return (/Groceries/.test(body) && /432/.test(body) &&
+                /data-act="scendel"/.test(acts) && /data-act="scenapply"/.test(acts)) ||
+               JSON.stringify({body: body.slice(0, 160), hasDel: /scendel/.test(acts)});
+      } finally { scenarioStore.items = keep; hideNodeCard(); }
+    });
+    // ── the chat answers, and looks like it is working (P8) ──
+    T('chat: a tool step renders as readable text, never raw JSON', () => {
+      const chat = {id:'t-'+Date.now(), messages:[], links:[]};
+      chatStore.items.unshift(chat);
+      const keepActive = Companion.activeChat();
+      try {
+        Companion.setActiveChat(chat.id);
+        chat.messages.push({id:'m1', role:'tool', tool:'cat_monthly', links:[],
+          content: JSON.stringify({tool:'cat_monthly', ok:true, say:'Groceries — €479 a month.',
+                                   provenance:'Engine · catMonthly', data:{a:1}})});
+        Companion.renderThread();
+        const el = document.getElementById('companionThread');
+        const txt = el.textContent;
+        return (/Groceries — €479 a month\./.test(txt) && !/\{"tool"/.test(txt) && !/"provenance"/.test(txt) &&
+                el.querySelector('.cp-tool-say')) ? true : JSON.stringify(txt.slice(0, 200));
+      } finally {
+        const i = chatStore.items.findIndex(c => c.id === chat.id);
+        if (i >= 0) chatStore.items.splice(i, 1);
+        Companion.setActiveChat(keepActive);
+      }
+    });
+    T('chat: the message you send appears before the answer does', () => {
+      const chat = {id:'t2-'+Date.now(), messages:[], links:[]};
+      chatStore.items.unshift(chat);
+      const keepActive = Companion.activeChat();
+      try {
+        Companion.setActiveChat(chat.id);
+        // what submit() does the instant send is pressed
+        Companion.echoPending({chatId: chat.id, text: 'can I afford this?'});
+        Companion.appendMsg(chat, 'user', 'can I afford this?');
+        Companion.renderThread();
+        const shown = document.getElementById('companionThread').textContent;
+        // …and the handler that follows must not add a second copy
+        Companion.echoUser(chat, 'can I afford this?');
+        const users = chat.messages.filter(m => m.role === 'user').length;
+        return (/can I afford this\?/.test(shown) && users === 1) || JSON.stringify({shown: shown.slice(0,120), users});
+      } finally {
+        Companion.echoPending(null);
+        const i = chatStore.items.findIndex(c => c.id === chat.id);
+        if (i >= 0) chatStore.items.splice(i, 1);
+        Companion.setActiveChat(keepActive);
+      }
+    });
+    T('chat: an amount the user named is not treated as invented', () => {
+      // "Can I afford a €300 installment?" — 300 is the user's own figure, and
+      // rejecting it is what made affordability questions unanswerable.
+      const q = 'Can I afford a €300 installment for a couch?';
+      const grounded = 'Jul 2025 – Jun 2026 — €6,120 in, €3,600 out a month.';
+      const answer = 'Yes — €300 a month fits inside the €2,520 you have spare.';
+      const allowed = new Set(Companion.amts(grounded).concat(Companion.amts(q)));
+      const rejected = Companion.amts(answer).filter(a => a && !allowed.has(a) && !grounded.includes(a) && !q.includes(a));
+      // 2,520 is derived, not quoted, so it is still caught — but 300 must not be
+      return (allowed.has('300') && rejected.indexOf('300') < 0) || JSON.stringify({allowed:[...allowed], rejected});
     });
     // ── model picker: only the hosted model is selectable (P8) ──
     // These assert behaviour, not markup: a picker that still *lands on* Grok
@@ -15738,6 +15918,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         {id:'cat_monthly', title:'Category by month', desc:'Engine.catMonthly', readOnly:true},
         {id:'balances', title:'Balances', desc:'Engine.balanceRuns', readOnly:true},
         {id:'summary_outlook', title:'Next-month outlook', desc:'Engine.nextMonth', readOnly:true},
+        {id:'affordability', title:'Can I afford it', desc:'Check a monthly commitment against income, spending and surplus', readOnly:true},
+        {id:'spend_ranked', title:'Biggest spending', desc:'Categories ranked by monthly average — use for "where can I cut back"', readOnly:true},
         {id:'notes_for', title:'Notes', desc:'Engine.notesFor', readOnly:true},
         {id:'goals_status', title:'Goals', desc:'List goals', readOnly:true},
         {id:'propose_budget', title:'Propose budget (sandbox)', desc:'Draft budget lines from history', readOnly:false, sandbox:true},
@@ -15759,7 +15941,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
               t.id === 'propose_goal' ? '{name: string, target: number, months?: number}' :
               t.id === 'run_scenario' ? '{scenarioId?: string}' :
               t.id === 'apply_scenario' ? '{scenarioId: string, confirm: true}' :
-              t.id === 'cashflow_summary' ? '{rangePreset?: string}' : '{}'
+              t.id === 'cashflow_summary' ? '{rangePreset?: string}' :
+              t.id === 'affordability' ? '{monthly: number}' :
+              t.id === 'spend_ranked' ? '{limit?: number}' : '{}'
       }));
     }
     function norm(q){
@@ -15842,6 +16026,16 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         const cat = findCategory(n);
         return {tool:'cat_monthly', args:{category:cat, rangePreset:findRangePreset(n), month:findMonth(n)}, score:0.9};
       }
+      // "can I afford €300 a month" — the amount is the user's, the verdict is
+      // the Engine's. Matched deterministically so it also works with the model
+      // switched off entirely.
+      if (/\b(afford|affordable|can i (take on|manage|handle)|stretch to)\b/.test(n)){
+        const m = n.match(/(\d[\d,]*(?:\.\d+)?)/);
+        const amt = m ? Math.round(parseFloat(m[1].replace(/,/g, ''))) : 0;
+        if (amt > 0) return {tool:'affordability', args:{monthly:amt}, score:0.9};
+      }
+      if (/\b(cut back|cut down|save money|spend less|savings? opportunit|where.*(money|spending) go|biggest (spend|expense))\b/.test(n))
+        return {tool:'spend_ranked', args:{}, score:0.88};
       if (/\b(balance|balances|how much.*(account|have)|what.?s in|carried forward)\b/.test(n))
         return {tool:'balances', args:{}, score:0.9};
       if (/\b(next month|outlook|predict|prediction|what.?s coming)\b/.test(n))
@@ -15905,6 +16099,20 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (chat.messages.length > 80) chat.messages = chat.messages.slice(-80);
       touchChat(chat, m.links);
       return m;
+    }
+
+    // submit() puts the user's message in the thread the instant they press
+    // send, so the chat reacts immediately instead of sitting blank for the
+    // several seconds a model round-trip takes. The handlers below still own
+    // "the user said this", so they call echoUser() and it declines to add a
+    // second copy of the message submit() already showed.
+    let pendingEcho = null;
+    function echoUser(chat, text){
+      if (pendingEcho && pendingEcho.chatId === chat.id && pendingEcho.text === text){
+        pendingEcho = null;
+        return null;
+      }
+      return appendMsg(chat, 'user', text);
     }
 
     function applyActions(actions){
@@ -15993,6 +16201,43 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           result.provenance = 'Cashflow · ' + rangeLabel();
         } else if (a.rangePreset) result._refill = 'cashflow';
         return result;
+      }
+      // "Can I afford €X a month?" is the question the co-pilot was asked most
+      // and could answer least: the model had to subtract to answer it, and the
+      // app rejects any figure it did not compute. So the Engine does the
+      // subtraction and the model only narrates the verdict.
+      if (t === 'affordability'){
+        const monthly = Math.round(+a.monthly || +a.amount || 0);
+        if (monthly <= 0) return {ok:false, tool:t, say:'Tell me the monthly amount and I will check it against your figures.', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
+        if (!A) return {ok:false, tool:t, say:'No transaction history to check against yet.', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
+        const income = A.incomeAvg12, spend = A.spendAvg12, save = A.saveAvg12 || 0;
+        const spare = income - spend;
+        const after = spare - monthly;
+        const verdict = after >= 0
+          ? (after >= monthly * 0.5
+              ? 'Yes — that fits with room to spare.'
+              : 'Yes, but it is tight.')
+          : 'Not from your current monthly surplus.';
+        const say = verdict + '\n'
+          + '• Income ' + eur(income) + '/mo, spending ' + eur(spend) + '/mo → ' + eur(spare) + ' spare\n'
+          + '• After a ' + eur(monthly) + '/mo commitment → ' + eur(after) + ' left over'
+          + (save > 0 ? '\n• You currently move ' + eur(save) + '/mo to savings, which this would come out of first.' : '');
+        return {ok:true, tool:t, say, provenance:'Engine · ' + rangeLabel(),
+                data:{monthly, income, spend, spare, after, fits: after >= 0},
+                actions:[{type:'nav', k:'cash', sec:'sec-cashflow'}],
+                suggestions:['where can I cut back', 'show cashflow'], links:[]};
+      }
+      // "Where can I cut back" had no tool at all, so the model either guessed
+      // or got a single category. Rank real spending instead.
+      if (t === 'spend_ranked'){
+        const lines = historyBudgetLines();
+        if (!lines.length) return {ok:false, tool:t, say:'No category history to rank yet.', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
+        const top = lines.slice(0, Math.max(1, Math.min(10, +a.limit || 6)));
+        const say = 'Biggest monthly spending, ' + rangeLabel() + ':\n'
+          + top.map(l => '• ' + l.category + ' — ' + eur(l.amount) + '/mo').join('\n');
+        return {ok:true, tool:t, say, provenance:'Engine · category averages',
+                data:{lines: top}, actions:[{type:'nav', k:'cats', sec:'sec-cats'}],
+                suggestions:['design a budget from my last 12 months'], links: top.map(l => 'cat:' + l.category)};
       }
       if (t === 'cat_monthly'){
         const cat = a.category;
@@ -16261,6 +16506,14 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         '- One tool is usually enough. "How has X done" is cat_monthly. "Open/show <section>" is nav and nothing else.',
         '- Only use propose_budget / propose_goal when the user actually asks to design a budget or a goal.',
         '',
+        'Advice questions still need a tool FIRST — there is one for each:',
+        '- "Can I afford €X a month / a €X installment?" → affordability {"monthly":X}. It does the sum for you.',
+        '- "Where can I cut back?" / "how do I save money?" → spend_ranked.',
+        '- "How am I doing?" → cashflow_summary.',
+        'Never answer a money question from memory: you do not know this household\'s numbers until a tool',
+        'tells you, and you must not do the arithmetic yourself — the tool returns the result already worked out.',
+        'You may repeat an amount the user named themselves. Every OTHER figure must come from a tool.',
+        '',
         'Tools: ' + JSON.stringify(toolSchemasForPrompt()),
         'Known categories: ' + JSON.stringify(cats),
         'Current range: ' + rangeLabel(),
@@ -16281,6 +16534,25 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       return out.join('\n\n');
     }
 
+    // Currency-like amounts in a string, normalised for comparison ("€1,234.50"
+    // and "1234.50" are the same figure).
+    // A BARE small integer is not money. Counting one meant the model writing
+    // "over 12 months" or "6 categories" registered as an invented euro figure
+    // and had its whole answer struck out. A number counts only when it is
+    // marked as money — currency symbol, decimal, thousands separator — or is
+    // big enough (>= 100) not to be incidental prose.
+    function amts(s){
+      const out = [];
+      for (const m of String(s || '').matchAll(/(€|\$|£)?\s*(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)/g)){
+        const body = m[2];
+        const marked = !!m[1] || body.indexOf(',') >= 0 || body.indexOf('.') >= 0;
+        if (!marked && !(parseFloat(body) >= 100)) continue;
+        out.push(body.replace(/,/g, ''));
+      }
+      return out;
+    }
+    function moneyish(s){ return /[€$£]|\d+[.,]\d{2}|\b\d{3,}\b/.test(String(s || '')); }
+
     // True when `say` is a restatement of the grounded Engine text rather than
     // commentary on it. Not an exact-subset test: a reworded echo ("on average
     // groceries RAN €479 a month") drags in a filler word or two and would slip
@@ -16297,7 +16569,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
 
     async function askLm(userText){
       const chat = ensureChat();
-      appendMsg(chat, 'user', userText);
+      echoUser(chat, userText);
       const history = chat.messages.slice(-12).map(m => ({
         role: m.role === 'tool' ? 'user' : (m.role === 'assistant' ? 'assistant' : 'user'),
         content: m.role === 'tool' ? ('Tool result: ' + m.content) : m.content
@@ -16309,6 +16581,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // same paragraph to the reply, so remember what has been asked and answer
       // a repeat from the result already in hand.
       const seen = new Map();
+      let groundedRetry = false;
       for (let round = 0; round < 5; round++){
         const raw = await lmComplete(messages);
         const parsed = parseLmJson(raw);
@@ -16339,27 +16612,13 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           continue;
         }
         let say = (parsed && parsed.say) ? parsed.say : String(raw).slice(0, 1500);
-        // Prefer Engine tool wording when tools ran (model may mis-subtract)
-        if (steps.length){
-          const grounded = joinSays(steps);
-          if (grounded){
-            // Only keep model prose if every currency-like amount it mentions appears in tool text
-            const amts = (s) => [...String(s).matchAll(/(?:€|\$|£)?\s*\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+\.\d{2}/g)]
-              .map(m => m[0].replace(/[€$£\s]/g,'').replace(/,/g,''));
-            const gSet = new Set(amts(grounded));
-            const bad = amts(say).some(a => a && !gSet.has(a) && !grounded.includes(a));
-            // …and only if it says something the Engine paragraph did not. A
-            // model asked to narrate a tool result usually restates it, and
-            // "Opening budget." twice reads like a stutter.
-            const echo = !bad && say && addsNothing(grounded, say);
-            say = grounded + (bad || echo || !say ? '' : ('\n\n' + say));
-            if (bad) say = grounded + '\n\n(Model commentary omitted — it introduced figures not returned by tools.)';
-          }
-        }
-        // Guard: never present invented money figures without tool steps
-        const moneyish = /[€$£]|\d+[.,]\d{2}|\b\d{3,}\b/.test(say);
-        if (moneyish && !steps.length){
-          // Force grounded tools then answer from Engine only
+        // A money answer with no tool behind it is ungrounded — but the fix is
+        // to GROUND it, not to bin it. Fetch the Engine's figures, hand them
+        // back and let the model answer the question that was actually asked.
+        // (Replacing the answer with a dump of three tools meant "can I afford
+        // €300 a month?" was met with a balance list and a telling-off.)
+        if (moneyish(say) && !steps.length && !groundedRetry){
+          groundedRetry = true;
           for (const forced of [
             {tool:'cashflow_summary', args:{}},
             {tool:'balances', args:{}},
@@ -16369,11 +16628,40 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
             applyActions(result.actions || []);
             result = refill(result);
             steps.push(result);
-            appendMsg(chat, 'tool', JSON.stringify({tool:result.tool, say:result.say, provenance:result.provenance}), {tool:result.tool, links:result.links||[]});
+            const tt = JSON.stringify({tool:result.tool, ok:result.ok, say:result.say, provenance:result.provenance});
+            seen.set(forced.tool + ':{}', tt);
+            appendMsg(chat, 'tool', tt, {tool:result.tool, links:result.links||[]});
             touchChat(chat, result.links || []);
           }
-          say = joinSays(steps)
-            + '\n\n(Answer rebuilt from Engine tools — the model is not allowed to invent euro amounts.)';
+          messages.push({role:'assistant', content: raw});
+          messages.push({role:'user', content:
+            'You answered with figures but called no tool, so those figures are not trustworthy. ' +
+            'Here are the real ones from the Engine:\n\n' + joinSays(steps) +
+            '\n\nNow answer the original question using ONLY these figures (and any amount the user themselves named). ' +
+            'Reply with {"type":"final","say":"…"}.'});
+          continue;
+        }
+        // Prefer Engine tool wording when tools ran (model may mis-subtract)
+        if (steps.length){
+          const grounded = joinSays(steps);
+          if (grounded){
+            // Keep the model's prose only if every amount in it is traceable —
+            // to a tool result, OR to the user's own question. A figure the user
+            // typed ("a €300 installment") is theirs to name; treating it as an
+            // invention is what made affordability questions unanswerable.
+            const gSet = new Set(amts(grounded).concat(amts(userText)));
+            const unbacked = amts(say).filter(a => a && !gSet.has(a) && !grounded.includes(a) && !String(userText).includes(a));
+            // …and only if it says something the Engine paragraph did not. A
+            // model asked to narrate a tool result usually restates it, and
+            // "Opening budget." twice reads like a stutter.
+            const echo = !unbacked.length && say && addsNothing(grounded, say);
+            // Name the figures. "figures your data does not support" with no
+            // examples reads like the app is being difficult; the numbers make
+            // it checkable.
+            if (unbacked.length) say = grounded + '\n\n(The rest of the answer was left out — it quoted ' +
+              unbacked.slice(0, 3).map(a => eur(parseFloat(a))).join(', ') + ', which the Engine did not work out from your data.)';
+            else say = grounded + (echo || !say ? '' : ('\n\n' + say));
+          }
         }
         appendMsg(chat, 'assistant', say);
         touchChat(chat, []);
@@ -16394,7 +16682,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         const result = run({tool:'apply_scenario', args:{scenarioId: pendingApply.scenarioId || pendingApply, confirm:true}});
         applyActions(result.actions || []);
         const chat = ensureChat();
-        appendMsg(chat, 'user', text);
+        echoUser(chat, text);
         appendMsg(chat, 'assistant', result.say, {links: result.links});
         touchChat(chat, result.links);
         return result;
@@ -16406,7 +16694,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         applyActions(result.actions || []);
         result = refill(result);
         const chat = ensureChat();
-        appendMsg(chat, 'user', text);
+        echoUser(chat, text);
         appendMsg(chat, 'assistant', result.say, {links: result.links});
         touchChat(chat, result.links);
         if (result.apply) pendingApply = result.apply;
@@ -16423,7 +16711,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
             result = run(intent); applyActions(result.actions); result = refill(result);
           }
           const chat = ensureChat();
-          appendMsg(chat, 'user', text);
+          echoUser(chat, text);
           appendMsg(chat, 'assistant', result.say || String(e));
           return result;
         }
@@ -16431,7 +16719,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // offline
       let result = ask(text);
       const chat = ensureChat();
-      appendMsg(chat, 'user', text);
+      echoUser(chat, text);
       appendMsg(chat, 'assistant', result.say);
       touchChat(chat, result.links);
       return result;
@@ -16481,6 +16769,25 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // the rail moved/resized — re-centre the map on what's left of the screen
       try { if (window.__ddSyncCam) setTimeout(window.__ddSyncCam, 0); } catch (e) {}
     }
+    let thinking = false;
+    // A tool step used to be dumped into the green box as raw JSON, truncated
+    // mid-token at 320 chars — an unbroken string with nowhere to wrap, which is
+    // what made it spill over its own border. Show what the step actually did:
+    // its name, the sentence it produced, and where the figures came from.
+    function toolBubble(m){
+      let o = null;
+      try { o = JSON.parse(m.content); } catch (e) {}
+      if (!o || typeof o !== 'object')
+        return '<div class="cp-msg tool"><span class="cp-tool-say">' + esc(String(m.content).slice(0, 400)) + '</span></div>';
+      const t = registry().find(r => r.id === (o.tool || m.tool));
+      const name = (t && t.title) || o.tool || m.tool || 'Tool';
+      const say = String(o.say || '').slice(0, 600);
+      return '<div class="cp-msg tool">' +
+        '<span class="cp-tool-hd">🔧 ' + esc(name) + (o.ok === false ? ' · no result' : '') + '</span>' +
+        (say ? '<span class="cp-tool-say">' + esc(say) + '</span>' : '') +
+        (o.provenance ? '<span class="cp-tool-src">' + esc(String(o.provenance).slice(0, 120)) + '</span>' : '') +
+        '</div>';
+    }
     function renderThread(){
       const el = document.getElementById('companionThread');
       if (!el) return;
@@ -16490,10 +16797,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         return;
       }
       el.innerHTML = chat.messages.slice(-40).map(m => {
-        if (m.role === 'tool') return '<div class="cp-msg tool">🔧 ' + esc(String(m.content).slice(0, 320)) + '</div>';
+        if (m.role === 'tool') return toolBubble(m);
         const cls = m.role === 'user' ? 'user' : 'bot';
         return '<div class="cp-msg ' + cls + '">' + esc(m.content) + '</div>';
-      }).join('');
+      }).join('') + (thinking ? '<div class="cp-msg think"><span class="cp-dots"><i></i><i></i><i></i></span>' +
+        esc(lmEnabled() ? 'Reading your figures…' : 'Working…') + '</div>' : '');
       // The thread deliberately does not scroll on its own — the rail owns the
       // one scrollbar (and on a phone the sheet does). Scrolling #companionThread
       // was therefore a no-op, so every reply arrived below the fold and had to
@@ -16678,13 +16986,17 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (st) st.textContent = 'Saved in this browser only — never on a server.';
       if (resync !== false) syncLmForm();
     }
-    function open(prefill){
+    function open(prefill, chatId){
       setChatOpen(true);
       const inp = document.getElementById('ccInput') || document.getElementById('companionInput');
       syncLmForm();
       if (prefill != null && inp) inp.value = prefill;
+      // a draft/chat node knows which conversation it belongs to — landing in
+      // the wrong one makes the tether on the map a lie
+      if (chatId && chatStore.items.some(c => c.id === chatId)) activeChatId = chatId;
       if (!activeChatId) ensureChat();
       renderHist();
+      renderScenarios();
       renderThread();
       renderChips();
       if (inp) setTimeout(()=>{ inp.focus(); }, 30);
@@ -16692,10 +17004,73 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     function close(){
       setChatOpen(false);
     }
+    // Sandbox drafts are real objects the user accumulates — they need the same
+    // list-and-delete affordance conversations already have, or they pile up as
+    // anonymous orbs on the map.
+    function scenSummary(s){
+      const p = (s && s.payload) || {};
+      if (s.kind === 'goal') return eur(+p.target || 0) + ' over ' + (p.months || '—') + ' mo';
+      const lines = Array.isArray(p.lines) ? p.lines : [];
+      return lines.length + ' line' + (lines.length === 1 ? '' : 's') + ' · ' +
+             eur(lines.reduce((t, l) => t + (+l.amount || 0), 0)) + '/mo';
+    }
+    function deleteScenario(id, silent){
+      const i = scenarioStore.items.findIndex(s => s.id === id);
+      if (i < 0) return false;
+      const removed = scenarioStore.items.splice(i, 1)[0];
+      if (pendingApply && pendingApply.scenarioId === id) pendingApply = null;
+      saveScenarios();
+      try { if (graph && graph.rebuild){ graph.rebuild(); graph.draw(); } } catch (e) {}
+      renderScenarios();
+      // silent is for the self-test — a run on page load must not pop an undo
+      // toast at the user for something they did not do
+      if (!silent && typeof undoToast === 'function'){
+        undoToast('Deleted draft “' + (removed.title || 'Scenario') + '”', ()=>{
+          scenarioStore.items.splice(Math.min(i, scenarioStore.items.length), 0, removed);
+          saveScenarios();
+          try { if (graph && graph.rebuild){ graph.rebuild(); graph.draw(); } } catch (e) {}
+          renderScenarios();
+        });
+      }
+      return true;
+    }
+    function applyScenario(id){
+      const result = run({tool:'apply_scenario', args:{scenarioId:id, confirm:true}});
+      applyActions(result.actions || []);
+      try { if (graph && graph.rebuild){ graph.rebuild(); graph.draw(); } } catch (e) {}
+      renderScenarios();
+      return result;
+    }
+    function renderScenarios(){
+      const el = document.getElementById('scenList');
+      const wrap = document.getElementById('dockDrafts');
+      if (!el || !wrap) return;
+      const items = (scenarioStore.items || []).filter(s => s.status === 'draft');
+      wrap.hidden = !items.length;      // no drafts, no clutter
+      if (!items.length){ el.innerHTML = ''; return; }
+      el.innerHTML = items.slice(0, 12).map(s =>
+        '<button type="button" data-scen="' + esc(s.id) + '">' +
+          '<span>' + (s.kind === 'goal' ? '🎯' : '🧾') + ' ' + esc((s.title || 'Draft').slice(0, 30)) +
+            '<small>' + esc(scenSummary(s)) + '</small></span>' +
+          '<span class="del" data-del="' + esc(s.id) + '" title="Delete draft">Delete</span>' +
+        '</button>').join('');
+      el.querySelectorAll('button[data-scen]').forEach(b => b.addEventListener('click', e => {
+        if (e.target && e.target.dataset && e.target.dataset.del) return;
+        const s = scenarioStore.items.find(x => x.id === b.dataset.scen);
+        if (!s) return;
+        // the node card is the detail view — same card the map orb opens
+        try { showNodeCard({type:'scen', id:'scen:'+s.id, scenId:s.id, label:s.title, full:s.title}); } catch (err) {}
+      }));
+      el.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', e => {
+        e.stopPropagation();
+        deleteScenario(b.dataset.del);
+      }));
+    }
     function newChat(){
       activeChatId = null;
       ensureChat();
       renderHist();
+      renderScenarios();
       renderThread();
       renderResult({suggestions: suggestions()});
       const inp = document.getElementById('ccInput');
@@ -16772,15 +17147,31 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       setChatOpen(true);
       const st = document.getElementById('cp-lmStatus');
       if (st) st.textContent = lmEnabled() ? 'Thinking…' : 'Working…';
+      // Show what they typed before anything slow starts — handle() below can
+      // take several seconds, and a chat that swallows your message until the
+      // answer lands reads as broken.
+      const chat = ensureChat();
+      pendingEcho = {chatId: chat.id, text: q};
+      appendMsg(chat, 'user', q);
+      saveChats();
+      renderHist();
+      thinking = true;
       renderThread();
       try {
         const result = await handle(q);
+        thinking = false;
         renderHist();
+        renderScenarios();
         renderThread();
         renderResult(result);
         if (st) st.textContent = result && result.provenance ? result.provenance : '';
       } catch (e) {
+        thinking = false;
+        renderThread();
         if (st) st.textContent = String(e.message || e);
+      } finally {
+        thinking = false;
+        pendingEcho = null;
       }
     }
     function syncRangeLabel(){
@@ -16931,6 +17322,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // Keep range label fresh
       syncRangeLabel();
       renderChips();
+      renderHist();
+      renderScenarios();   // drafts from an earlier session are listed on boot
       syncLmForm();
       // Patch setRange/renderAll indirectly: poll lightly
       setInterval(syncRangeLabel, 2000);
@@ -16938,6 +17331,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     return {
       ask, match, run, handle, askLm, applyActions, registry, suggestions, open, close, bind, isOpen,
       ensureChat, newChat, deleteChat, lmEnabled, lmComplete, chats: () => chatStore.items, scenarios: () => scenarioStore.items,
+      deleteScenario, applyScenario, renderScenarios, scenSummary,
+      renderThread, echoUser, appendMsg, amts, moneyish,
+      echoPending: (v) => { pendingEcho = v; },
+      setActiveChat: (id) => { activeChatId = id; },
+      activeChat: () => activeChatId,
       syncRangeLabel, syncLmForm, parseLmJson, joinSays, addsNothing, SECTIONS, RELAY_DEFAULT,
       refreshChips: () => { if (bound) renderChips(); },   // called when insights recompute
       personalChips
@@ -18037,12 +18435,50 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const catName = catM ? catM[2] : name;
       act = `<button class="btn small" data-act="cats" data-cat="${esc(catName)}" data-acct="${esc(catAcct)}" type="button">View category</button>
              <button class="btn small" data-act="cash" data-acct="${esc(catAcct)}" type="button">Cashflow</button>`;
-    } else if (info.type === 'chat' || info.type === 'scen'){
-      color = info.type === 'chat' ? '#a78bfa' : '#34d399';
+    } else if (info.type === 'chat'){
+      color = '#a78bfa';
       title = info.full || info.label;
-      html = row('Kind', info.type === 'chat' ? 'Conversation' : 'Sandbox scenario') +
+      html = row('Kind', 'Conversation') +
              row('Links', String((info.links && info.links.length) || '—'));
       act = `<button class="btn small" data-act="companion" data-chat="${esc(info.chatId || '')}" type="button">Open co-pilot</button>`;
+    } else if (info.type === 'scen'){
+      // A draft used to inspect as "Kind: Sandbox scenario" and nothing else —
+      // six identical green orbs with no way to tell them apart, no way to see
+      // what was in one, and no way to get rid of it. Show the contents.
+      color = '#34d399';
+      const scen = (typeof scenarioStore !== 'undefined' && scenarioStore.items || []).find(s => s.id === info.scenId);
+      title = (scen && scen.title) || info.full || info.label;
+      if (!scen){
+        html = row('Kind', 'Sandbox draft') + '<div class="rule-meta">This draft is no longer in the sandbox.</div>';
+        act = '';
+      } else {
+        const p = scen.payload || {};
+        const when = scen.created ? new Date(scen.created) : null;
+        html = row('Kind', scen.kind === 'goal' ? 'Goal draft (sandbox)' : 'Budget draft (sandbox)') +
+               row('Status', scen.status === 'applied' ? 'Applied' : 'Draft — nothing live changed') +
+               (when ? row('Created', when.toLocaleDateString(undefined, {day:'numeric', month:'short', year:'numeric'}) +
+                 ' · ' + when.toLocaleTimeString(undefined, {hour:'2-digit', minute:'2-digit'})) : '');
+        if (scen.kind === 'budget'){
+          const lines = Array.isArray(p.lines) ? p.lines : [];
+          const total = lines.reduce((s, l) => s + (+l.amount || 0), 0);
+          html += row('Lines', lines.length) + row('Total', eur(total) + '/mo');
+          if (lines.length){
+            const mx = Math.max(...lines.map(l => +l.amount || 0), 1);
+            html += '<div style="margin-top:8px">' + lines.slice(0, 12).map(l =>
+              `<div class="nc-bar-label"><span>${esc(l.category)}</span><span class="num">${eur(+l.amount || 0)}</span></div>
+               <div class="nc-bar"><div style="width:${Math.max(3, (+l.amount||0)/mx*100)}%; background:${color}"></div></div>`).join('') +
+              (lines.length > 12 ? `<div class="rule-meta">…and ${lines.length - 12} more</div>` : '') + '</div>';
+          }
+        } else if (scen.kind === 'goal'){
+          html += row('Target', eur(+p.target || 0)) +
+                  row('Over', (p.months || '—') + ' months') +
+                  row('Per month', eur(+p.monthly || 0));
+        }
+        act = (scen.status !== 'applied'
+                ? `<button class="btn small primary" data-act="scenapply" data-scen="${esc(scen.id)}" type="button">Apply to live</button> ` : '') +
+              `<button class="btn small" data-act="scendel" data-scen="${esc(scen.id)}" type="button">Delete draft</button>` +
+              (scen.conversationId ? ` <button class="btn small" data-act="companion" data-chat="${esc(scen.conversationId)}" type="button">Open the chat</button>` : '');
+      }
     } else if (info.type === 'merch'){
       title = info.full; color = '#8fb8dd';
       let tot = 0, cnt = 0; const cats = new Map(), raws = new Set();
@@ -18133,7 +18569,17 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     actions.querySelectorAll('button').forEach(btn => btn.addEventListener('click', ()=>{
       const k = btn.dataset.act;
       if (k === 'companion'){
-        try { Companion.open(); } catch (e) {}
+        try { Companion.open(null, btn.dataset.chat || null); } catch (e) {}
+        return;
+      }
+      if (k === 'scendel'){
+        try { Companion.deleteScenario(btn.dataset.scen); } catch (e) {}
+        hideNodeCard();
+        return;
+      }
+      if (k === 'scenapply'){
+        try { Companion.applyScenario(btn.dataset.scen); } catch (e) {}
+        showNodeCard(info);
         return;
       }
       if (k === 'note'){   // inline editor inside the card — the card stays open
