@@ -7,6 +7,11 @@ feeder/out/
 *personal*.html
 *my-*.html
 
+# worker secrets for `wrangler dev` — the OpenRouter key lives here locally
+.dev.vars
+.dev.vars.*
+**/.dev.vars
+
 # local scratch
 node_modules/
 .DS_Store

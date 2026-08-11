@@ -2930,7 +2930,7 @@ rewrite the static advice cards if the picture has changed.</div>
       <button type="button" class="cc-btn" id="ccPlus" title="Attach a file (CSV, Excel, text) for the model or import">＋</button>
       <input type="file" id="ccFile" accept=".csv,.xlsx,.xls,.txt,.md,.json,text/*,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" hidden multiple>
       <button type="button" class="model-btn" id="modelBtn" aria-expanded="false" aria-haspopup="true"
-              title="Which model answers — Auto lets Lithifyte choose">
+              title="Which model answers — Lithifyte AI is hosted for you">
         <span id="modelLbl">Auto</span><span class="caret" aria-hidden="true">▾</span>
       </button>
       <span class="cc-gap"></span>
@@ -2942,13 +2942,17 @@ rewrite the static advice cards if the picture has changed.</div>
   <!-- model popover: the single home for model config (was: composer foot + chat-panel foot) -->
   <div class="model-pop" id="modelPop" hidden role="menu" aria-label="Model">
     <p class="pop-label">Model</p>
+    <!-- Bring-your-own-key providers are built and still answer at the relay,
+         but they are not offered yet: disabled + "Coming soon". LM_OFFERED in
+         the Companion is the single source of truth — if you re-enable one
+         there, drop its disabled attribute here too. -->
     <select id="cp-provider" aria-label="AI model provider">
       <option value="off">Commands only</option>
       <option value="lithifyte">Lithifyte AI</option>
-      <option value="xai">Grok (xAI)</option>
-      <option value="openai">ChatGPT (OpenAI)</option>
-      <option value="anthropic">Claude</option>
-      <option value="openai_compat">Custom / local</option>
+      <option value="xai" disabled>Grok (xAI) — Coming soon</option>
+      <option value="openai" disabled>ChatGPT (OpenAI) — Coming soon</option>
+      <option value="anthropic" disabled>Claude — Coming soon</option>
+      <option value="openai_compat" disabled>Custom / local — Coming soon</option>
     </select>
     <div id="modelExtra">
       <input id="cp-model" class="inp" placeholder="Model name (optional)" aria-label="Model name">
@@ -3598,6 +3602,15 @@ rewrite the static advice cards if the picture has changed.</div>
   if (!lmStore.provider) lmStore.provider = 'lithifyte';
   if (lmStore.apiKey == null) lmStore.apiKey = '';
   if (lmStore.useLm == null) lmStore.useLm = true;
+  // Which providers the picker may actually select. The BYOK ones are built and
+  // still work at the relay, but read "Coming soon" until they are turned on —
+  // flip a value here and drop the matching `disabled` in #cp-provider to ship
+  // one. Anyone carrying a saved BYOK choice from an older build (or hand-editing
+  // storage) lands back on the hosted model rather than a provider that silently
+  // never answers.
+  const LM_OFFERED = {off:true, lithifyte:true, xai:false, openai:false, anthropic:false, openai_compat:false};
+  function lmProviderOf(p){ return LM_OFFERED[p] ? p : 'lithifyte'; }
+  lmStore.provider = lmProviderOf(lmStore.provider);
   let chatStore = load(LS.chats, {items:[]});
   if (!Array.isArray(chatStore.items)) chatStore = {items:[]};
   let scenarioStore = load(LS.scenarios, {items:[]});
@@ -13461,6 +13474,98 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     T('companion: relay default is https', () => {
       return String(Companion.RELAY_DEFAULT || '').indexOf('https://') === 0 || Companion.RELAY_DEFAULT;
     });
+    T('companion: a tool name in "type" is still a tool call, not an answer', () => {
+      // Observed live from the hosted model. Before this was handled the user
+      // was shown the raw JSON as their answer.
+      const cases = [
+        '{"type":"cat_monthly","args":{"category":"Groceries"}}',
+        '{"type":"nav","args":{"k":"budget"}}',
+        '```json\n{"type":"summary_outlook","args":{}}\n```',
+        '{"tool":"balances","args":{}}'
+      ];
+      const bad = cases.filter(raw => {
+        const o = Companion.parseLmJson(raw);
+        return !o || o.type !== 'tool' || !o.name || !Companion.registry().some(t => t.id === o.name);
+      });
+      return !bad.length || bad.join(' | ');
+    });
+    T('companion: repeated tool paragraphs are not shown twice', () => {
+      const steps = [{say:'Groceries — €479 a month.'}, {say:'Groceries — €479 a month.'}, {say:'Balances: …'}];
+      const j = Companion.joinSays(steps);
+      return (j === 'Groceries — €479 a month.\n\nBalances: …') || JSON.stringify(j);
+    });
+    T('companion: model narration that only restates the Engine is dropped', () => {
+      const g = 'Groceries — €479 a month on average over 12 months. Highest Jun 2026 €589.';
+      const echo = Companion.addsNothing(g, '€479 a month on average over 12 months.');
+      const reworded = Companion.addsNothing(g, 'On average, groceries ran €479 a month.');
+      const real = Companion.addsNothing(g, 'That is steady — no seasonal spike worth worrying about.');
+      const nav = Companion.addsNothing('Opening budget.', 'Opening budget.');
+      return (echo === true && reworded === true && real === false && nav === true) ||
+             JSON.stringify({echo, reworded, real, nav});
+    });
+    T('companion: a real final answer is not mistaken for a tool', () => {
+      const o = Companion.parseLmJson('{"type":"final","say":"You spent 412.30 on Groceries."}');
+      return (o && o.type === 'final' && /412.30/.test(o.say)) || JSON.stringify(o);
+    });
+    // ── model picker: only the hosted model is selectable (P8) ──
+    // These assert behaviour, not markup: a picker that still *lands on* Grok
+    // passes any structural check while sending the co-pilot to a provider that
+    // has no key and never answers.
+    T('model picker: coming-soon options are disabled in the DOM', () => {
+      const sel = document.getElementById('cp-provider');
+      if (!sel) return 'no #cp-provider';
+      const wrong = [...sel.options].filter(o => !!LM_OFFERED[o.value] === o.disabled);
+      return !wrong.length || wrong.map(o => o.value + (o.disabled ? ' disabled' : ' enabled')).join(', ');
+    });
+    T('model picker: every disabled option says Coming soon', () => {
+      const sel = document.getElementById('cp-provider');
+      if (!sel) return 'no #cp-provider';
+      const bad = [...sel.options].filter(o => o.disabled && !/coming soon/i.test(o.textContent));
+      return !bad.length || bad.map(o => o.value).join(', ') + ' lacks the label';
+    });
+    T('model picker: a saved Grok/Claude/GPT choice lands on Lithifyte', () => {
+      const sel = document.getElementById('cp-provider');
+      const keep = lmStore.provider;
+      try {
+        const bad = ['xai', 'anthropic', 'openai', 'openai_compat'].filter(p => {
+          lmStore.provider = p;
+          Companion.syncLmForm();
+          return lmStore.provider !== 'lithifyte' || (sel && sel.value !== 'lithifyte');
+        });
+        return !bad.length || bad.join(', ') + ' survived';
+      } finally { lmStore.provider = keep; Companion.syncLmForm(); }
+    });
+    T('model picker: Commands only still selectable', () => {
+      const keep = lmStore.provider;
+      try {
+        lmStore.provider = 'off';
+        Companion.syncLmForm();
+        return lmStore.provider === 'off' || 'off was coerced to ' + lmStore.provider;
+      } finally { lmStore.provider = keep; Companion.syncLmForm(); }
+    });
+    await AT('hosted model: request carries no key and no client model name', async () => {
+      const keep = {p: lmStore.provider, k: lmStore.apiKey, m: lmStore.model, f: window.fetch};
+      let seen = null;
+      try {
+        lmStore.provider = 'lithifyte';
+        lmStore.apiKey = 'sk-leftover-from-an-older-build';
+        lmStore.model = 'gpt-4o';
+        window.fetch = (url, opts) => {
+          seen = {url: String(url), headers: (opts && opts.headers) || {}, body: JSON.parse((opts && opts.body) || '{}')};
+          return Promise.resolve({ok: true, status: 200, json: () => Promise.resolve({content: 'ok'})});
+        };
+        await Companion.lmComplete([{role:'user', content:'hi'}]);
+      } catch (e) {
+        return 'lmComplete threw: ' + ((e && e.message) || e);
+      } finally {
+        window.fetch = keep.f; lmStore.provider = keep.p; lmStore.apiKey = keep.k; lmStore.model = keep.m;
+      }
+      if (!seen) return 'no request was made';
+      if (seen.body.provider !== 'lithifyte') return 'provider was ' + seen.body.provider;
+      if (seen.headers['X-Api-Key']) return 'a browser API key was sent to the relay';
+      if (seen.body.model) return 'client model "' + seen.body.model + '" overrode the hosted model';
+      return seen.url.indexOf('https://') === 0 || 'relay call was not https';
+    });
     return R;
   }
   async function renderSelfTest(){
@@ -15509,7 +15614,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     if (Array.isArray(st.nwlog)) nwLog = st.nwlog;
     if (st.merch && typeof st.merch === 'object'){ merchStore = {rules: st.merch.rules || [], keep: st.merch.keep || []}; merchCanon.clear(); }
     if (st.notes && typeof st.notes === 'object') noteStore = st.notes;
-    if (st.lm && typeof st.lm === 'object') lmStore = {endpoint: st.lm.endpoint || lmStore.endpoint, model: st.lm.model || '', dismissed: st.lm.dismissed || {}, provider: st.lm.provider || lmStore.provider || 'lithifyte', apiKey: st.lm.apiKey || '', relay: st.lm.relay || lmStore.relay, useLm: st.lm.useLm != null ? st.lm.useLm : true};
+    if (st.lm && typeof st.lm === 'object') lmStore = {endpoint: st.lm.endpoint || lmStore.endpoint, model: st.lm.model || '', dismissed: st.lm.dismissed || {}, provider: lmProviderOf(st.lm.provider || lmStore.provider || 'lithifyte'), apiKey: st.lm.apiKey || '', relay: st.lm.relay || lmStore.relay, useLm: st.lm.useLm != null ? st.lm.useLm : true};
     if (st.chats && Array.isArray(st.chats.items)) chatStore = st.chats;
     else if (st.chats && Array.isArray(st.chats)) chatStore = {items: st.chats};
     if (st.scenarios && Array.isArray(st.scenarios.items)) scenarioStore = st.scenarios;
@@ -16037,7 +16142,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
 
     function lmEnabled(){
-      const p = (lmStore.provider || 'off');
+      const p = lmProviderOf(lmStore.provider || 'off');
       if (p === 'off' || !lmStore.useLm) return false;
       if (p === 'lithifyte') return true;
       if (p === 'openai_compat') return !!(lmStore.endpoint || document.getElementById('cp-endpoint')?.value);
@@ -16045,22 +16150,48 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
 
     async function lmComplete(messages){
-      const provider = lmStore.provider || 'lithifyte';
+      const provider = lmProviderOf(lmStore.provider || 'lithifyte');
+      const hosted = provider === 'lithifyte';
       const relay = (lmStore.relay || RELAY_DEFAULT).replace(/\/$/, '');
       const body = {
         provider,
-        model: lmStore.model || undefined,
+        // The hosted model is chosen at the relay (its key, its allowlist), so
+        // a leftover BYOK model name must not ride along.
+        model: hosted ? undefined : (lmStore.model || undefined),
         messages,
         temperature: 0,
-        max_tokens: 900,
+        // The hosted model reasons before it answers and the reasoning counts
+        // against this budget — at 900 a long answer can run out mid-thought and
+        // come back empty. BYOK providers keep the old, cheaper ceiling.
+        max_tokens: hosted ? 1600 : 900,
         endpoint: provider === 'openai_compat' ? (lmStore.endpoint || '') : undefined
       };
       const headers = {'Content-Type': 'application/json'};
-      if (lmStore.apiKey) headers['X-Api-Key'] = lmStore.apiKey;
+      if (!hosted && lmStore.apiKey) headers['X-Api-Key'] = lmStore.apiKey;
       const res = await fetch(relay + '/chat', {method:'POST', headers, body: JSON.stringify(body), signal: AbortSignal.timeout(90000)});
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || data.message || ('HTTP ' + res.status));
       return String(data.content || '');
+    }
+
+    // Smaller models routinely collapse the envelope and put the TOOL NAME in
+    // "type" — {"type":"cat_monthly","args":{…}} instead of
+    // {"type":"tool","name":"cat_monthly","args":{…}}. Left unhandled that falls
+    // through to the final-answer branch and the user is shown raw JSON as their
+    // answer. Normalise it here rather than in the prompt: the prompt is advice,
+    // this is the guarantee, and it holds for every provider.
+    function normLmObj(o){
+      if (!o || typeof o !== 'object') return o;
+      if (o.type === 'tool' || o.type === 'final') return o;
+      const ids = registry().map(t => t.id);
+      if (typeof o.type === 'string' && ids.indexOf(o.type) >= 0)
+        return {type:'tool', name:o.type, args:o.args || {}};
+      if (typeof o.tool === 'string' && ids.indexOf(o.tool) >= 0)
+        return {type:'tool', name:o.tool, args:o.args || {}};
+      if (typeof o.name === 'string' && ids.indexOf(o.name) >= 0)
+        return {type:'tool', name:o.name, args:o.args || {}};
+      if (typeof o.say === 'string') return {type:'final', say:o.say};
+      return o;
     }
 
     function parseLmJson(text){
@@ -16092,7 +16223,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       try {
         const o = JSON.parse(s);
         if (o && o.name && !o.type) return {type:'tool', name:o.name, args:o.args||{}};
-        return o;
+        return normLmObj(o);
       } catch (e) {
         // bare tool name lines: TOOL cat_monthly {"category":"Groceries"}
         const tm = raw.match(/\b(help|nav|set_range|cashflow_summary|cat_monthly|balances|summary_outlook|notes_for|goals_status|propose_budget|propose_goal|run_scenario|apply_scenario)\b[\s\S]{0,200}/);
@@ -16119,12 +16250,49 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         '{"type":"tool","name":"<tool>","args":{...}}',
         '{"type":"final","say":"<plain language answer using ONLY numbers already returned by tools>"}',
         '',
+        '"type" is literally the word "tool" or "final" — never the tool name.',
+        'Correct:   {"type":"tool","name":"cat_monthly","args":{"category":"Groceries"}}',
+        'Wrong:     {"type":"cat_monthly","args":{"category":"Groceries"}}',
+        'Emit the JSON object only — no prose before or after it.',
+        '',
+        'Call the FEWEST tools that answer the question, then stop:',
+        '- As soon as a tool result answers the question, reply with type:final. Do not keep exploring.',
+        '- Never call the same tool twice; the result you already have is in the conversation.',
+        '- One tool is usually enough. "How has X done" is cat_monthly. "Open/show <section>" is nav and nothing else.',
+        '- Only use propose_budget / propose_goal when the user actually asks to design a budget or a goal.',
+        '',
         'Tools: ' + JSON.stringify(toolSchemasForPrompt()),
         'Known categories: ' + JSON.stringify(cats),
         'Current range: ' + rangeLabel(),
         'Household notes context (may be empty):',
         (typeof notesForPrompt === 'function' ? notesForPrompt() : '') || '(none)'
       ].join('\n');
+    }
+
+    // Tool paragraphs joined for the user, with repeats dropped. Two tools can
+    // legitimately return the same sentence (and a model that loops makes it
+    // likelier); showing it twice reads like a stutter.
+    function joinSays(steps){
+      const out = [];
+      for (const s of (steps || [])){
+        const say = s && s.say ? String(s.say).trim() : '';
+        if (say && out.indexOf(say) < 0) out.push(say);
+      }
+      return out.join('\n\n');
+    }
+
+    // True when `say` is a restatement of the grounded Engine text rather than
+    // commentary on it. Not an exact-subset test: a reworded echo ("on average
+    // groceries RAN €479 a month") drags in a filler word or two and would slip
+    // through. Real commentary is mostly new words, an echo is mostly not, so
+    // compare the proportion — a third is comfortably clear of both.
+    function addsNothing(grounded, say){
+      const words = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(w => w.length > 2);
+      const mine = words(say);
+      if (!mine.length) return true;
+      const have = new Set(words(grounded));
+      const fresh = mine.filter(w => !have.has(w));
+      return fresh.length / mine.length <= 1/3;
     }
 
     async function askLm(userText){
@@ -16136,11 +16304,24 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       }));
       let messages = [{role:'system', content: systemPrompt()}, ...history];
       const steps = [];
+      // A smaller model often keeps calling tools instead of committing to an
+      // answer, and re-calls one it already has. Running it twice appends the
+      // same paragraph to the reply, so remember what has been asked and answer
+      // a repeat from the result already in hand.
+      const seen = new Map();
       for (let round = 0; round < 5; round++){
         const raw = await lmComplete(messages);
         const parsed = parseLmJson(raw);
         if (parsed && parsed.type === 'tool' && parsed.name){
           const intent = {tool: parsed.name, args: parsed.args || {}};
+          const sig = parsed.name + ':' + JSON.stringify(intent.args || {});
+          if (seen.has(sig)){
+            messages.push({role:'assistant', content: raw});
+            messages.push({role:'user', content: 'You already ran ' + parsed.name +
+              ' and its result is above:\n' + seen.get(sig) +
+              '\n\nDo not call it again. Reply now with {"type":"final","say":"…"}.'});
+            continue;
+          }
           let result = run(intent);
           applyActions(result.actions || []);
           result = refill(result);
@@ -16149,6 +16330,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
             tool: result.tool, ok: result.ok, say: result.say,
             provenance: result.provenance, data: result.data
           });
+          seen.set(sig, toolText);
           appendMsg(chat, 'tool', toolText, {tool: result.tool, links: result.links || []});
           touchChat(chat, result.links || []);
           messages.push({role:'assistant', content: raw});
@@ -16159,14 +16341,18 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         let say = (parsed && parsed.say) ? parsed.say : String(raw).slice(0, 1500);
         // Prefer Engine tool wording when tools ran (model may mis-subtract)
         if (steps.length){
-          const grounded = steps.map(s => s.say).filter(Boolean).join('\n\n');
+          const grounded = joinSays(steps);
           if (grounded){
             // Only keep model prose if every currency-like amount it mentions appears in tool text
             const amts = (s) => [...String(s).matchAll(/(?:€|\$|£)?\s*\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+\.\d{2}/g)]
               .map(m => m[0].replace(/[€$£\s]/g,'').replace(/,/g,''));
             const gSet = new Set(amts(grounded));
             const bad = amts(say).some(a => a && !gSet.has(a) && !grounded.includes(a));
-            say = grounded + (bad || !say ? '' : ('\n\n' + say));
+            // …and only if it says something the Engine paragraph did not. A
+            // model asked to narrate a tool result usually restates it, and
+            // "Opening budget." twice reads like a stutter.
+            const echo = !bad && say && addsNothing(grounded, say);
+            say = grounded + (bad || echo || !say ? '' : ('\n\n' + say));
             if (bad) say = grounded + '\n\n(Model commentary omitted — it introduced figures not returned by tools.)';
           }
         }
@@ -16186,7 +16372,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
             appendMsg(chat, 'tool', JSON.stringify({tool:result.tool, say:result.say, provenance:result.provenance}), {tool:result.tool, links:result.links||[]});
             touchChat(chat, result.links || []);
           }
-          say = steps.map(s => s.say).filter(Boolean).join('\n\n')
+          say = joinSays(steps)
             + '\n\n(Answer rebuilt from Engine tools — the model is not allowed to invent euro amounts.)';
         }
         appendMsg(chat, 'assistant', say);
@@ -16195,7 +16381,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       }
       const last = steps[steps.length - 1];
       let say = (last && last.say) || 'I ran tools but did not finish — try a more specific ask.';
-      if (steps.length) say = steps.map(s => s.say).filter(Boolean).join('\n\n');
+      if (steps.length) say = joinSays(steps);
       appendMsg(chat, 'assistant', say);
       return {ok:true, tool:'lm_final', say, provenance:'Lithifyte AI · max tool rounds', data:{steps}, actions:[], suggestions:suggestions(), links: chat.links || [], apply: pendingApply, chatId: chat.id};
     }
@@ -16452,20 +16638,21 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
     // The composer button names whatever is actually answering. "Auto" is the
     // default (Lithifyte picks); anything else names the provider you chose.
-    const LM_LABEL = {off:'Commands only', lithifyte:'Auto', xai:'Grok',
+    const LM_LABEL = {off:'Commands only', lithifyte:'Lithifyte', xai:'Grok',
                       openai:'GPT', anthropic:'Claude', openai_compat:'Local'};
     function syncLmForm(){
       const p = document.getElementById('cp-provider');
       const m = document.getElementById('cp-model');
       const k = document.getElementById('cp-key');
       const e = document.getElementById('cp-endpoint');
-      const prov = lmStore.provider || 'lithifyte';
+      const prov = lmProviderOf(lmStore.provider || 'lithifyte');
+      lmStore.provider = prov;
       if (p) p.value = prov;
       if (m) m.value = lmStore.model || '';
       if (k) k.value = lmStore.apiKey || '';
       if (e) e.value = lmStore.endpoint || '';
       const lbl = document.getElementById('modelLbl');
-      if (lbl) lbl.textContent = LM_LABEL[prov] || 'Auto';
+      if (lbl) lbl.textContent = LM_LABEL[prov] || 'Lithifyte';
       // key/model/endpoint only exist for providers that need them (CSS-driven)
       const pop = document.getElementById('modelPop');
       if (pop){
@@ -16480,7 +16667,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const m = document.getElementById('cp-model');
       const k = document.getElementById('cp-key');
       const e = document.getElementById('cp-endpoint');
-      if (p) lmStore.provider = p.value;
+      if (p) lmStore.provider = lmProviderOf(p.value);
       if (m) lmStore.model = m.value.trim();
       if (k) lmStore.apiKey = k.value;
       if (e && lmStore.provider === 'openai_compat') lmStore.endpoint = e.value.trim();
@@ -16635,8 +16822,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       });
       if (saveBtn) saveBtn.addEventListener('click', saveLmForm);
       if (prov) prov.addEventListener('change', ()=>{
-        lmStore.provider = prov.value;
-        lmStore.useLm = prov.value !== 'off';
+        lmStore.provider = lmProviderOf(prov.value);
+        lmStore.useLm = lmStore.provider !== 'off';
         syncLmForm();
         save(LS.lm, lmStore);
       });
@@ -16751,7 +16938,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     return {
       ask, match, run, handle, askLm, applyActions, registry, suggestions, open, close, bind, isOpen,
       ensureChat, newChat, deleteChat, lmEnabled, lmComplete, chats: () => chatStore.items, scenarios: () => scenarioStore.items,
-      syncRangeLabel, SECTIONS, RELAY_DEFAULT,
+      syncRangeLabel, syncLmForm, parseLmJson, joinSays, addsNothing, SECTIONS, RELAY_DEFAULT,
       refreshChips: () => { if (bound) renderChips(); },   // called when insights recompute
       personalChips
     };
@@ -17253,8 +17440,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
        loc:'Message box — over the map, or docked in the rail',
        body:'Type a question and press Enter. Ask for a category (“how has groceries done”), your balances, next month’s outlook, or a section by name. Answers are computed by Lithifyte’s own Engine from your data — the model narrates, it never invents a number. The chips underneath are built from your actual figures, so they change as your data does.'},
       {part:8, dock:'map', target:'#modelBtn', title:'Which model answers',
-       loc:'Message box → Auto',
-       body:'Auto lets Lithifyte choose. Open it to pick Grok, Claude, GPT, a local endpoint, or Commands only (no model at all — the tools still work). Your key, model name and endpoint live in that popover and are saved in this browser only, never on a server.'},
+       loc:'Message box → Lithifyte',
+       body:'Lithifyte AI is hosted for you — nothing to set up, no key to paste. The other choices (Grok, Claude, GPT, your own local endpoint) are marked Coming soon and cannot be picked yet. You can also switch to Commands only, which uses no model at all — the tools still work.'},
       {part:8, dock:'map', target:'#spaceDock', title:'The conversation lives in the rail',
        loc:'Co-pilot rail',
        body:'Send a message and the rail becomes the thread, with the message box docked at its foot. ✦ New chat starts a fresh one; Recents lists the previous conversations and ✕ closes back to that list. ⬚ widens the rail when an answer needs room. Ask for a section and it opens on the right while the map stays live behind the glass — end of tour, explore freely.'}
