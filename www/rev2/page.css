@@ -29,6 +29,49 @@ nav.site a{
   text-transform:uppercase; padding:8px 10px; border-radius:999px;
 }
 nav.site a:hover{color:var(--cyan-hot); text-decoration:none}
+.nav-burger,.nav-menu,.nav-scrim{display:none}
+
+/* ── phone header ──────────────────────────────────────────────────────────
+   Six mono links wrapped to three rows on a 390px phone, making a 146px bar of
+   sub-40px tap targets before a word of the page was read. Below 760px they
+   collapse into a menu and the bar becomes one 56px row. */
+@media (max-width:760px){
+  header.site{flex-wrap:nowrap; height:56px; padding:0 14px; gap:10px;
+    position:sticky; top:0; z-index:40; background:rgba(2,11,26,.94);
+    backdrop-filter:blur(10px); border-bottom:1px solid rgba(56,189,248,.16)}
+  nav.site{display:none}
+  .brand{min-height:44px; min-width:44px}
+  .nav-burger{display:inline-flex; flex-direction:column; justify-content:center; gap:4px;
+    width:44px; height:44px; flex:0 0 auto; margin-left:auto; padding:0 11px; cursor:pointer;
+    border:1px solid rgba(56,189,248,.3); border-radius:11px; background:rgba(56,189,248,.08)}
+  .nav-burger > span{display:block; height:2px; border-radius:2px; background:var(--ink);
+    transition:transform .2s ease, opacity .2s ease}
+  .nav-burger[aria-expanded="true"] > span:nth-child(1){transform:translateY(6px) rotate(45deg)}
+  .nav-burger[aria-expanded="true"] > span:nth-child(2){opacity:0}
+  .nav-burger[aria-expanded="true"] > span:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+  /* Closed state is visibility + pointer-events, not just the hidden attribute:
+     a transparent panel across the top of the page would swallow taps. */
+  .nav-menu{display:flex; flex-direction:column; position:fixed; top:56px; left:10px; right:10px; z-index:41;
+    padding:8px; border-radius:16px; background:rgba(4,14,30,.98); backdrop-filter:blur(14px);
+    border:1px solid rgba(56,189,248,.32); box-shadow:0 24px 60px rgba(0,0,0,.6);
+    max-height:calc(100vh - 72px); overflow:auto;
+    opacity:0; visibility:hidden; pointer-events:none; transform:translateY(-8px);
+    transition:opacity .18s ease, transform .18s ease, visibility 0s linear .18s}
+  .nav-menu.open{opacity:1; visibility:visible; pointer-events:auto; transform:none; transition-delay:0s}
+  .nav-menu a{display:flex; align-items:center; min-height:48px; padding:0 14px; border-radius:10px;
+    color:var(--ink); font:500 13px var(--font-mono); letter-spacing:.06em; text-transform:uppercase}
+  .nav-menu a:hover{text-decoration:none}
+  .nav-menu a + a{border-top:1px solid rgba(56,189,248,.1)}
+  .nav-menu a[aria-current="page"]{color:var(--cyan-hot); background:rgba(56,189,248,.1)}
+  .nav-scrim{display:block; position:fixed; inset:56px 0 0; z-index:39; background:rgba(2,8,20,.55);
+    opacity:0; visibility:hidden; pointer-events:none; transition:opacity .18s ease, visibility 0s linear .18s}
+  .nav-scrim.open{opacity:1; visibility:visible; pointer-events:auto; transition-delay:0s}
+  header.site :focus-visible,.nav-menu :focus-visible{outline:2px solid var(--cyan-hot); outline-offset:3px}
+}
+@media (max-width:760px) and (prefers-reduced-motion:reduce){
+  .nav-menu{transition:none; transform:none}
+  .nav-burger > span{transition:none}
+}
 main.page{max-width:760px; margin:0 auto; padding:32px 22px 60px}
 main.page h1{font:800 clamp(30px,5vw,42px)/1.12 var(--font-display); letter-spacing:-.02em; margin:18px 0 6px}
 main.page .updated{font:500 12px var(--font-mono); color:var(--muted); letter-spacing:.05em; margin:0 0 28px}

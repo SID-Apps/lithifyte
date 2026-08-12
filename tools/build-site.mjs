@@ -232,7 +232,33 @@ ${JSON.stringify(schemaFor(page), null, 2)}
   <nav class="site" aria-label="Site">
 ${NAV.map(([href, label]) => `    <a href="${href}"${href === page.path ? ' aria-current="page"' : ''}>${label}</a>`).join('\n')}
   </nav>
-</header>`;
+  <button class="nav-burger" type="button" aria-expanded="false" aria-controls="siteMenu" aria-label="Menu">
+    <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+  </button>
+</header>
+<div class="nav-menu" id="siteMenu" hidden>
+${NAV.map(([href, label]) => `  <a href="${href}"${href === page.path ? ' aria-current="page"' : ''}>${label}</a>`).join('\n')}
+</div>
+<div class="nav-scrim" hidden></div>
+<script>
+/* Mobile menu — plain and self-contained; these are static content pages. */
+(function(){
+  var b=document.querySelector('.nav-burger'), m=document.getElementById('siteMenu'), s=document.querySelector('.nav-scrim');
+  if(!b||!m||!s) return;
+  m.removeAttribute('hidden'); s.removeAttribute('hidden');   /* CSS owns visibility */
+  function isOpen(){ return b.getAttribute('aria-expanded')==='true'; }
+  function set(open){
+    b.setAttribute('aria-expanded', open?'true':'false');
+    m.classList.toggle('open', open); s.classList.toggle('open', open);
+    document.body.style.overflow = open?'hidden':'';
+  }
+  b.addEventListener('click',function(e){ e.preventDefault(); e.stopPropagation(); set(!isOpen()); });
+  s.addEventListener('click',function(){ set(false); });
+  m.addEventListener('click',function(e){ if(e.target.closest('a')) set(false); });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&isOpen()){ set(false); b.focus(); } });
+  window.addEventListener('resize',function(){ if(isOpen()&&window.innerWidth>760) set(false); });
+})();
+</script>`;
 }
 
 function breadcrumbHtml(page) {

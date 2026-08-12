@@ -225,8 +225,80 @@
       #features [data-copy], section[data-hslide] [data-copy]{opacity:1 !important;transform:none !important}
       [data-rail]{display:none !important}
     }
-    @media (max-width:640px){
-      nav[aria-label="Primary"] a[href^="#"]{display:none}
+    /* ══ Header ══════════════════════════════════════════════════════════
+       Desktop is unchanged from the inline version it replaces. Below 900px —
+       where nine mono links stop fitting on one line — the nav collapses to a
+       Sign in pill and a menu button, and the bar becomes a single 58px row. */
+    .site-hd{position:fixed;top:0;left:0;right:0;z-index:40;display:flex;align-items:center;
+      justify-content:space-between;padding:16px 22px;gap:12px;
+      background:linear-gradient(180deg, rgba(2,11,26,.85), transparent)}
+    .hd-brand{display:flex;align-items:center;gap:10px;color:#e8f1ff;
+      font:800 15px 'Syne',sans-serif;letter-spacing:.04em}
+    .hd-brand:hover{color:#fff}
+    .hd-mark{position:relative;width:28px;height:28px;flex:0 0 auto;border-radius:8px;border:1px solid #38bdf8;
+      box-shadow:0 0 30px rgba(56,189,248,.35);
+      background:radial-gradient(circle at 35% 35%, #7dd3fc, transparent 55%),linear-gradient(135deg,#0ea5e9,#1d4ed8)}
+    .hd-mark > span{position:absolute;inset:7px;border-radius:50%;border:1.5px solid rgba(255,255,255,.85)}
+    .hd-nav{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+    .hd-nav a{color:#8fb0d0;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.06em;
+      text-transform:uppercase;padding:8px 10px;border-radius:999px}
+    .hd-nav a:hover{color:#e8f1ff;background:rgba(56,189,248,.1)}
+    .hd-cta{display:inline-flex;align-items:center;border-radius:999px;border:1px solid rgba(56,189,248,.28);
+      padding:9px 15px;font:600 13px 'IBM Plex Mono',monospace;letter-spacing:.03em;color:#e8f1ff;background:transparent}
+    .hd-cta.primary{border-color:rgba(125,211,252,.6);color:#fff;
+      background:linear-gradient(135deg, rgba(14,165,233,.95), rgba(29,78,216,.95))}
+    .hd-nav a.hd-cta{text-transform:none}
+    .hd-burger,.hd-signin-sm,.hd-menu,.hd-scrim{display:none}
+    .site-hd :focus-visible,.hd-menu :focus-visible{outline:2px solid #7dd3fc;outline-offset:3px;border-radius:8px}
+
+    @media (max-width:900px){
+      .site-hd{padding:0 14px;height:58px;gap:10px;background:rgba(2,11,26,.92);
+        border-bottom:1px solid rgba(56,189,248,.16);backdrop-filter:blur(10px)}
+      .hd-nav{display:none}
+      /* 44px minimum: every control in the old bar was a sub-40px target */
+      .hd-signin-sm{display:inline-flex;align-items:center;min-height:44px;margin-left:auto;
+        padding:0 15px;font-size:12px}
+      .hd-burger{display:inline-flex;flex-direction:column;justify-content:center;gap:4px;
+        width:44px;height:44px;flex:0 0 auto;padding:0 11px;cursor:pointer;
+        border:1px solid rgba(56,189,248,.3);border-radius:11px;background:rgba(56,189,248,.08)}
+      .hd-burger > span{display:block;height:2px;border-radius:2px;background:#cfe6ff;
+        transition:transform .2s ease, opacity .2s ease}
+      .hd-burger[aria-expanded="true"] > span:nth-child(1){transform:translateY(6px) rotate(45deg)}
+      .hd-burger[aria-expanded="true"] > span:nth-child(2){opacity:0}
+      .hd-burger[aria-expanded="true"] > span:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+      /* the panel, not a drawer: it belongs to the bar it drops from */
+      /* Closed state is visibility + pointer-events, NOT the hidden attribute.
+         This page is a Design Canvas document whose runtime re-renders the body
+         and strips `hidden` — which left a transparent panel across the top of
+         the page silently swallowing taps. Class-driven state survives that. */
+      .hd-menu{display:flex;flex-direction:column;position:fixed;top:58px;left:10px;right:10px;z-index:41;
+        padding:8px;border-radius:16px;background:rgba(4,14,30,.98);backdrop-filter:blur(14px);
+        border:1px solid rgba(56,189,248,.32);box-shadow:0 24px 60px rgba(0,0,0,.6);
+        max-height:calc(100vh - 74px);overflow:auto;
+        opacity:0;visibility:hidden;pointer-events:none;transform:translateY(-8px);
+        transition:opacity .18s ease, transform .18s ease, visibility 0s linear .18s}
+      .hd-menu.open{opacity:1;visibility:visible;pointer-events:auto;transform:none;transition-delay:0s}
+      /* 48px rows: every link in the old bar was under a 40px tap target */
+      .hd-menu a{display:flex;align-items:center;min-height:48px;padding:0 14px;border-radius:10px;
+        color:#cfe6ff;font:500 13px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase}
+      .hd-menu a + a{border-top:1px solid rgba(56,189,248,.1)}
+      .hd-menu a:active{background:rgba(56,189,248,.14)}
+      .hd-menu-cta{margin-top:8px;justify-content:center;border-top:0 !important;
+        background:linear-gradient(135deg, rgba(14,165,233,.95), rgba(29,78,216,.95));
+        color:#fff !important;font-weight:600 !important;text-transform:none !important}
+      .hd-scrim{display:block;position:fixed;inset:58px 0 0;z-index:39;background:rgba(2,8,20,.55);
+        opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s ease, visibility 0s linear .18s}
+      .hd-scrim.open{opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s}
+      .hd-brand{min-height:44px;min-width:44px}
+    }
+    @media (max-width:900px) and (prefers-reduced-motion:reduce){
+      .hd-menu{transition:none;transform:none}
+      .hd-burger > span{transition:none}
+    }
+    /* very small phones: the wordmark yields before the controls do */
+    @media (max-width:360px){
+      .hd-brand{font-size:0;gap:0}
+      .hd-signin-sm{padding:0 12px}
     }
   </style>
 </helmet>
@@ -243,23 +315,44 @@
 
   <div data-scrollhint aria-hidden="true"><i><b></b></i> Scroll</div>
 
-  <header style="position:fixed;top:0;left:0;right:0;z-index:40;display:flex;align-items:center;justify-content:space-between;padding:16px 22px;gap:12px;background:linear-gradient(180deg, rgba(2,11,26,.85), transparent)">
-    <div style="display:flex;align-items:center;gap:10px;font:800 15px 'Syne',sans-serif;letter-spacing:.04em">
-      <span aria-hidden="true" style="position:relative;width:28px;height:28px;border-radius:8px;border:1px solid #38bdf8;box-shadow:0 0 30px rgba(56,189,248,.35);background:radial-gradient(circle at 35% 35%, #7dd3fc, transparent 55%),linear-gradient(135deg,#0ea5e9,#1d4ed8)"><span style="position:absolute;inset:7px;border-radius:50%;border:1.5px solid rgba(255,255,255,.85)"></span></span>
+  <!-- Header markup is CLASSED, not inline-styled. It used to carry its layout
+       inline, which meant no media query could reduce it: on a 390px phone the
+       nine links wrapped to five rows, the bar grew to 188px, and the CTAs sat
+       on top of the hero headline. Inline styles win over stylesheets, so the
+       fix had to be a restructure rather than a breakpoint. -->
+  <header class="site-hd">
+    <a class="hd-brand" href="#top" aria-label="Lithifyte — home">
+      <span class="hd-mark" aria-hidden="true"><span></span></span>
       LITHIFYTE
-    </div>
-    <nav aria-label="Primary" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-      <a href="#map" style="color:#8fb0d0;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;border-radius:999px">Map</a>
-      <a href="#flow" style="color:#8fb0d0;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;border-radius:999px">Flow</a>
-      <a href="#privacy" style="color:#8fb0d0;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;border-radius:999px">Privacy</a>
-      <a href="#features" style="color:#8fb0d0;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;border-radius:999px">Inside</a>
-      <a href="/how-it-works" style="color:#8fb0d0;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;border-radius:999px">How it works</a>
-      <a href="/learn" style="color:#8fb0d0;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;border-radius:999px">Learn</a>
-      <a href="/faq" style="color:#8fb0d0;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;border-radius:999px">FAQ</a>
-      <a href="https://app.lithifyte.com/demo" style="display:inline-flex;align-items:center;border-radius:999px;border:1px solid rgba(56,189,248,.28);padding:9px 15px;font:600 13px 'IBM Plex Mono',monospace;letter-spacing:.03em;color:#e8f1ff;background:transparent">Sample</a>
-      <a href="https://access.lithifyte.com/" style="display:inline-flex;align-items:center;border-radius:999px;border:1px solid rgba(125,211,252,.6);padding:9px 15px;font:600 13px 'IBM Plex Mono',monospace;letter-spacing:.03em;color:#fff;background:linear-gradient(135deg, rgba(14,165,233,.95), rgba(29,78,216,.95))">Sign in</a>
+    </a>
+    <nav class="hd-nav" aria-label="Primary">
+      <a href="#map">Map</a>
+      <a href="#flow">Flow</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#features">Inside</a>
+      <a href="/how-it-works">How it works</a>
+      <a href="/learn">Learn</a>
+      <a href="/faq">FAQ</a>
+      <a class="hd-cta" href="https://app.lithifyte.com/demo">Sample</a>
+      <a class="hd-cta primary" href="https://access.lithifyte.com/">Sign in</a>
     </nav>
+    <!-- phone only: one tap target instead of nine -->
+    <a class="hd-cta primary hd-signin-sm" href="https://access.lithifyte.com/">Sign in</a>
+    <button class="hd-burger" type="button" aria-expanded="false" aria-controls="hdMenu" aria-label="Menu">
+      <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+    </button>
   </header>
+  <div class="hd-menu" id="hdMenu" hidden>
+    <a href="#map">Map</a>
+    <a href="#flow">Flow</a>
+    <a href="#privacy">Privacy</a>
+    <a href="#features">Inside</a>
+    <a href="/how-it-works">How it works</a>
+    <a href="/learn">Learn</a>
+    <a href="/faq">FAQ</a>
+    <a class="hd-menu-cta" href="https://app.lithifyte.com/demo">▶ Explore the sample</a>
+  </div>
+  <div class="hd-scrim" hidden></div>
 
   <nav data-rail aria-label="Chapters" style="position:fixed;right:18px;top:50%;transform:translateY(-50%);z-index:35;display:flex;flex-direction:column;gap:11px"></nav>
 
@@ -1476,6 +1569,46 @@ class Component extends DCLogic {
   renderVals(){ return {}; }
 }
 </script>
+<script>
+/* Mobile menu. Deliberately plain and outside the React runtime — the header
+   is static markup, and navigation must survive the CDN failing to deliver the
+   immersive bundle (which is exactly what the resilience script below is for). */
+(function(){
+  // DELEGATED on purpose. The immersive runtime re-renders the body, so a
+  // listener bound to the button at load ends up attached to a detached node
+  // and the menu stops responding. Nothing is cached: every handler looks the
+  // elements up when it fires, and the state lives in the DOM (aria-expanded),
+  // not in a closure that a re-render would leave stale.
+  function el(sel){ return document.querySelector(sel); }
+  function isOpen(){ var b = el('.hd-burger'); return !!b && b.getAttribute('aria-expanded') === 'true'; }
+  function set(open){
+    var b = el('.hd-burger'), m = el('.hd-menu'), s = el('.hd-scrim');
+    if (!b || !m || !s) return;
+    b.setAttribute('aria-expanded', open ? 'true' : 'false');
+    m.classList.toggle('open', open);
+    s.classList.toggle('open', open);
+    m.removeAttribute('hidden');            // CSS owns visibility, not the attribute
+    s.removeAttribute('hidden');
+    document.body.style.overflow = open ? 'hidden' : '';
+  }
+  document.addEventListener('click', function(e){
+    if (e.target.closest && e.target.closest('.hd-burger')){ e.preventDefault(); set(!isOpen()); return; }
+    if (!isOpen()) return;
+    // a chosen destination closes the menu — including "#map", which navigates
+    // without a page load and would otherwise leave the panel over the target
+    if (e.target.closest && e.target.closest('.hd-menu a')){ set(false); return; }
+    if (e.target.closest && e.target.closest('.hd-menu')) return;
+    set(false);                              // scrim or anywhere outside
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && isOpen()){ set(false); var b = el('.hd-burger'); if (b) b.focus(); }
+  });
+  // rotating to landscape can cross the breakpoint; a menu left open would then
+  // float over a desktop layout that already shows every link
+  window.addEventListener('resize', function(){ if (isOpen() && window.innerWidth > 900) set(false); });
+})();
+</script>
+
 <script>
 // Resilience: the immersive runtime needs React from a CDN. If it hasn't
 // booted within 4s (rail dots never rendered), reveal the copy so the page
