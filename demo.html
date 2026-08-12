@@ -1830,6 +1830,76 @@ So, when you change a stored shape:
   .details-body code{background:var(--chip); border-radius:4px; padding:1px 6px; font-size:12.5px}
   .prompt-box{background:var(--chip); border-radius:8px; padding:12px 14px; margin-top:10px; font-size:13px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; overflow-x:auto; white-space:pre-wrap; color:var(--ink)}
   .foot{margin-top:44px; font-size:12.5px; color:var(--muted); border-top:1px solid var(--border); padding-top:16px; max-width:80ch}
+
+  /* ══ Surface identity (Direction A) ═══════════════════════════════════════
+     The map already colour-codes these things — chat nodes violet, sandbox
+     drafts mint, money hubs cyan — and every panel then opened as the same
+     navy card with a cyan border, so the identity died at the canvas edge and
+     the co-pilot read as one more readout. A panel now wears the colour of the
+     node it came from.
+
+     Deliberately COLOUR-ONLY and last in the sheet, so it can win on equal
+     specificity without reaching into any layout the mobile shell sets.
+     Adding a surface later = give the item `surface:'plan'` and add its `k` to
+     the panel selector below; nothing else. */
+  body.space{
+    --s-chat:167,139,250;   /* the co-pilot — a voice, not a readout */
+    --s-plan:52,211,153;    /* sandbox drafts & the budget — intent, not record */
+  }
+
+  /* ── the co-pilot rail is the chat, so the whole rail carries it ── */
+  body.space #spaceDock{border-color:rgba(var(--s-chat),.34)}
+  body.space #spaceDock .dock-head{border-bottom-color:rgba(var(--s-chat),.2)}
+  body.space #spaceDock .ra-btn:hover{background:rgba(var(--s-chat),.14); color:#f1eaff}
+  body.space #spaceDock .ra-btn.primary{border-color:rgba(var(--s-chat),.45); background:rgba(var(--s-chat),.16); color:#f3edff}
+  body.space #spaceDock .dock-scroll::-webkit-scrollbar-thumb{background:rgba(var(--s-chat),.26)}
+  body.space #spaceDock .cp-hist button:hover{background:rgba(var(--s-chat),.13)}
+  body.space #spaceDock .cp-hist button.on{background:rgba(var(--s-chat),.2); box-shadow:inset 2px 0 0 rgb(var(--s-chat))}
+  body.space .dock-th-title:hover{background:rgba(var(--s-chat),.13); border-color:rgba(var(--s-chat),.36)}
+  body.space .dock-th-title[aria-expanded="true"]{background:rgba(var(--s-chat),.18); border-color:rgba(var(--s-chat),.5)}
+  body.space .dock-th-b{border-color:rgba(var(--s-chat),.3); background:rgba(var(--s-chat),.1)}
+  body.space .dock-th-b:hover{border-color:rgba(var(--s-chat),.7)}
+  body.space .chat-switch-pop{border-color:rgba(var(--s-chat),.45)}
+  body.space .cs-new{border-color:rgba(var(--s-chat),.36); background:rgba(var(--s-chat),.14); color:#efe8ff}
+  body.space .cs-new:hover{border-color:rgba(var(--s-chat),.75); background:rgba(var(--s-chat),.22)}
+  /* your own words in violet; the assistant stays neutral so figures read plainly */
+  body.space .cp-msg.user{background:rgba(var(--s-chat),.22); border-color:rgba(var(--s-chat),.42); color:#f3edff}
+  body.space .cp-msg.bot{border-color:rgba(var(--s-chat),.18)}
+  body.space .cp-msg.think{border-color:rgba(var(--s-chat),.2)}
+  body.space .cp-dots i{background:rgb(var(--s-chat))}
+  body.space .cp-sug{border-color:rgba(var(--s-chat),.3)}
+  body.space .cp-sug:hover{border-color:rgba(var(--s-chat),.7); background:rgba(var(--s-chat),.16)}
+  /* the composer is the co-pilot's mouth wherever it is docked */
+  body.space .cc-pill{border-color:rgba(var(--s-chat),.34)}
+  body.space .cc-pill:focus-within{border-color:rgba(var(--s-chat),.6)}
+  body.space .cc-btn:hover, body.space .model-btn:hover{border-color:rgba(var(--s-chat),.7); background:rgba(var(--s-chat),.16)}
+  body.space .cc-btn.primary{background:rgb(var(--s-chat)); border-color:rgba(var(--s-chat),.9); color:#160b2e}
+  body.space .cc-btn.primary:hover{background:#b9a2ff}
+  body.space .cc-chip:hover{border-color:rgba(var(--s-chat),.6)}
+
+  /* ── Budget: a plan you have not committed to, not a record of the past ── */
+  body.space #spacePanel.open[data-surface="plan"]{border-color:rgba(var(--s-plan),.45)}
+  body.space #spacePanel.open[data-surface="plan"] .panel-head{
+    border-bottom-color:rgba(var(--s-plan),.3);
+    background:linear-gradient(rgba(var(--s-plan),.14), rgba(var(--s-plan),0));
+  }
+  body.space #spacePanel.open[data-surface="plan"] .panel-head #panelTitle{color:#7ff0c4}
+  /* sandbox drafts in the rail already sit under the same mint */
+  body.space #dockDrafts .dock-list-lbl{color:rgba(var(--s-plan),.85)}
+  body.space #scenList button:hover{background:rgba(var(--s-plan),.13)}
+
+  @media (prefers-reduced-motion: no-preference){
+    body.space #spacePanel.open .panel-head{transition:background .2s ease, border-color .2s ease}
+  }
+
+  /* Toasts must never sit on top of an open panel. #alertStack is fixed at
+     z-index 26 against the panel's 20, so for the ~9s they live it covered the
+     panel's own toolbar — and being pointer-events:auto, a click aimed at
+     "Import budget CSV" navigated somewhere else instead. Behind the panel they
+     stay visible wherever the panel isn't, and steal nothing. They are not lost:
+     the same items are listed in Alerts. */
+  body.space.panel-open #alertStack{z-index:19; pointer-events:none}
+  body.space.panel-open #alertStack .alert-card{pointer-events:none}
 </style>
 
 <!-- since-your-last-visit digest (P3-15): lives outside .wrap so it shows in
@@ -13810,6 +13880,60 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // 2,520 is derived, not quoted, so it is still caught — but 300 must not be
       return (allowed.has('300') && rejected.indexOf('300') < 0) || JSON.stringify({allowed:[...allowed], rejected});
     });
+    // ── surface identity: a panel wears the colour of its node (P8) ──
+    T('surfaces: budget opens as a plan, categories as data', () => {
+      if (!window.__ddSpace || !document.body.classList.contains('space')) return true;
+      const panel = document.getElementById('spacePanel');
+      const seen = {};
+      for (const k of ['budget', 'cats', 'cash', 'leaks']){
+        window.__ddSpace.open(k);
+        seen[k] = panel.dataset.surface;
+      }
+      return (seen.budget === 'plan' && seen.cats === 'data' && seen.cash === 'data' && seen.leaks === 'data')
+             || JSON.stringify(seen);
+    });
+    T('surfaces: the three families are actually different colours', () => {
+      if (!document.body.classList.contains('space')) return true;
+      const cs = getComputedStyle(document.body);
+      const chat = cs.getPropertyValue('--s-chat').trim();
+      const plan = cs.getPropertyValue('--s-plan').trim();
+      if (!chat || !plan) return 'surface tokens missing';
+      const panel = document.getElementById('spacePanel');
+      window.__ddSpace.open('budget');
+      const planBorder = getComputedStyle(panel).borderColor;
+      window.__ddSpace.open('cats');
+      const dataBorder = getComputedStyle(panel).borderColor;
+      const dockBorder = getComputedStyle(document.getElementById('spaceDock')).borderColor;
+      // three surfaces, three distinct borders — that is the whole point
+      const all = new Set([planBorder, dataBorder, dockBorder]);
+      return all.size === 3 || JSON.stringify({planBorder, dataBorder, dockBorder});
+    });
+    T('composer: every placeholder fits without clipping', () => {
+      const inp = document.getElementById('ccInput');
+      if (!inp || !inp.clientWidth) return true;      // classic view / not mounted
+      const cs = getComputedStyle(inp);
+      const c = document.createElement('canvas').getContext('2d');
+      c.font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + '/' + cs.lineHeight + ' ' + cs.fontFamily;
+      const avail = inp.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+      const all = Companion.placeholders().concat(['Ask a follow-up…']);
+      const over = all.filter(t => c.measureText(t).width > avail)
+                      .map(t => t + ' (' + Math.round(c.measureText(t).width) + '/' + Math.round(avail) + 'px)');
+      return !over.length || over.join('; ');
+    });
+    T('surfaces: toasts never cover an open panel', () => {
+      if (!document.body.classList.contains('space')) return true;
+      const stack = document.getElementById('alertStack');
+      const panel = document.getElementById('spacePanel');
+      if (!stack || !panel) return 'missing elements';
+      const wasOpen = document.body.classList.contains('panel-open');
+      try {
+        window.__ddSpace.open('budget');
+        const sz = +getComputedStyle(stack).zIndex || 0;
+        const pz = +getComputedStyle(panel).zIndex || 0;
+        if (!(sz < pz)) return 'alert stack z=' + sz + ' is not below panel z=' + pz;
+        return getComputedStyle(stack).pointerEvents === 'none' || 'toasts still take clicks over the panel';
+      } finally { if (!wasOpen) window.__ddSpace.open('close'); }
+    });
     // ── model picker: only the hosted model is selectable (P8) ──
     // These assert behaviour, not markup: a picker that still *lands on* Grok
     // passes any structural check while sending the co-pilot to a provider that
@@ -16851,11 +16975,15 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     // ── UI ──
     let bound = false;
     let pendingFiles = [];
+    // Measured against the composer, not guessed: the rail gives the input
+    // ~254px, and two of these used to run to 267px and 292px — so the prompt
+    // clipped mid-sentence ("What's on your mind about your"). A self-test now
+    // measures every one of them against the real input width.
     const PLACEHOLDERS = [
       'How can I help with your finances?',
-      "What's on your mind about your money?",
+      "What's on your mind?",
       'What do you want to know?',
-      'Ask about cashflow, budgets, or a category…'
+      'Ask about cashflow or budgets…'
     ];
     let phI = 0;
 
@@ -17514,7 +17642,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       ensureChat, newChat, deleteChat, lmEnabled, lmComplete, chats: () => chatStore.items, scenarios: () => scenarioStore.items,
       deleteScenario, applyScenario, renderScenarios, scenSummary,
       renderThread, echoUser, appendMsg, amts, moneyish,
-      highlightChat, renderSwitcher, setSwitchPop,
+      highlightChat, renderSwitcher, setSwitchPop, placeholders: () => PLACEHOLDERS.slice(),
       echoPending: (v) => { pendingEcho = v; },
       setActiveChat: (id) => { activeChatId = id; },
       activeChat: () => activeChatId,
@@ -17604,7 +17732,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       {k:'cash',   ic:'📈', label:'Cashflow',   sel:['#sec-cashflow']},
       {k:'cats',   ic:'🧩', label:'Categories', sel:['#sec-cats']},
       {k:'leaks',  ic:'💧', label:'Leaks',      sel:['#sec-leaks']},
-      {k:'budget', ic:'💶', label:'Budget',     sel:['#sec-budget']},
+      // surface:'plan' — the budget is an intention, not a readout of the past,
+      // and it wears the same mint its sandbox drafts wear on the map
+      {k:'budget', ic:'💶', label:'Budget',     sel:['#sec-budget'], surface:'plan'},
       {k:'sim',    ic:'🎚️', label:'Simulate',   sel:['#sec-sim']},
       {k:'fcast',  ic:'🔮', label:'Forecast',   sel:['#sec-forecast']},
       {k:'plan',   ic:'🗺️', label:'Plan',       sel:['#sec-plan']},
@@ -17708,6 +17838,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         if (el){ take(el); pBody.appendChild(el); mounted.push(el); }
       }
       pBody.scrollTop = 0;
+      panel.dataset.surface = item.surface || 'data';
       panel.classList.toggle('center', item.mode === 'center');
       const stageEl = document.getElementById('spaceStage');
       if (stageEl) stageEl.classList.toggle('panel-dim', item.mode === 'center');
