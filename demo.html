@@ -11004,6 +11004,29 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
             onNode: cb => { onNodeCb = cb; },
             highlight: ids => { extHi = ids && ids.length ? new Set(ids) : null; draw(performance.now()); },
             highlighted: () => extHi,   // testing hook — what is illuminated right now
+            has: id => byId.has(id),
+            nodeIds: () => [...byId.keys()],   // testing hook
+            // Illuminate a node AND everything it is tethered to — the same
+            // neighbourhood hover lights. Callers must not build this set
+            // themselves: a chat stores links like 'cat:Groceries' while the map
+            // keys category nodes 'cat:<acct>:Groceries', so a hand-built set
+            // matched only the chat orb and dimmed the entire map.
+            // Returns how many nodes ended up lit; 0 means nothing was found and
+            // the map has been left alone rather than dimmed to nothing.
+            focusNeighbourhood: id => {
+              if (!id || !byId.has(id)){ extHi = null; draw(performance.now()); return 0; }
+              const set = new Set([id]);
+              for (const l of links){
+                if (l.a === id) set.add(l.b);
+                else if (l.b === id) set.add(l.a);
+              }
+              // a lone node with no tethers would dim the whole map to light one
+              // orb — not a view anybody asked for
+              if (set.size < 2){ extHi = null; draw(performance.now()); return 0; }
+              extHi = set;
+              draw(performance.now());
+              return set.size;
+            },
             setPaused: b => { paused = !!b; if (!paused) ensureAnim(); else draw(performance.now()); }};
   })();
 
@@ -13936,6 +13959,111 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // 2,520 is derived, not quoted, so it is still caught — but 300 must not be
       return (allowed.has('300') && rejected.indexOf('300') < 0) || JSON.stringify({allowed:[...allowed], rejected});
     });
+    // ── the map must not dim itself for nothing (P8) ──
+    T('map: a conversation with nothing linked leaves the map alone', () => {
+      if (!graph || !graph.highlighted) return true;
+      const keepChats = chatStore.items.slice();
+      const keepActive = Companion.activeChat();
+      try {
+        graph.highlight(null);
+        // this is the reported bug: starting a chat faded the WHOLE map, because
+        // one lone id was highlighted and everything else dimmed around it
+        Companion.newChat();
+        const afterNew = graph.highlighted();
+        if (afterNew) return 'new chat dimmed the map to ' + afterNew.size + ' node(s)';
+        // …and a chat whose links resolve to nothing must not either
+        const orphan = {id:'c_orphan', title:'Orphan', messages:[], links:['cat:NoSuchCategory']};
+        chatStore.items.unshift(orphan);
+        Companion.highlightChat('c_orphan');
+        const afterOrphan = graph.highlighted();
+        return !afterOrphan || 'an unlinked chat dimmed the map to ' + afterOrphan.size + ' node(s)';
+      } finally {
+        graph.highlight(null);
+        chatStore.items = keepChats; Companion.setActiveChat(keepActive);
+        try { if (typeof MapFilter !== 'undefined') MapFilter.set('chat', null); } catch (e) {}
+      }
+    });
+    T('map: focusing a node lights it AND what it is tethered to', () => {
+      if (!graph || !graph.focusNeighbourhood) return true;
+      try {
+        // pick any node that actually has a tether
+        const G = window.__ddGraph;
+        const ids = (G.nodeIds && G.nodeIds()) || [];
+        let found = null, lit = 0;
+        for (const probe of ids){
+          lit = G.focusNeighbourhood(probe);
+          if (lit > 1){ found = probe; break; }
+        }
+        if (!found) return true;                       // no tethered nodes in this build
+        const set = G.highlighted();
+        return (set && set.has(found) && set.size === lit && lit >= 2) ||
+               JSON.stringify({found, lit, size: set && set.size});
+      } finally { graph.highlight(null); }
+    });
+    T('map: a missing node clears rather than dimming everything', () => {
+      if (!graph || !graph.focusNeighbourhood) return true;
+      try {
+        const lit = graph.focusNeighbourhood('chat:does-not-exist');
+        return (lit === 0 && !graph.highlighted()) || 'lit=' + lit;
+      } finally { graph.highlight(null); }
+    });
+    T('companion: €188.00 and €188 are the same figure', () => {
+      // The Engine prints rounded euro ("€188"); a model writing "€188.00" was
+      // told its answer quoted a number the data did not support — and the
+      // notice then rounded it back to "€188".
+      const grounded = 'Work UK — €188 a month on average over 12 months. Highest Aug 2025 €1,049.';
+      const say = 'averages €188.00 a month, peaking at €1,049.00, and €74 elsewhere';
+      // the production helper, not a re-implementation of it
+      const unbacked = Companion.unbackedFigures(grounded, say, 'show me these transactions');
+      // only the genuinely invented 74 survives
+      if (!(unbacked.length === 1 && parseFloat(unbacked[0]) === 74)) return JSON.stringify(unbacked);
+      // and an amount the USER named is theirs to name
+      return Companion.unbackedFigures(grounded, 'a €300 sofa', 'can I afford a €300 sofa?').length === 0
+             || 'the user\'s own figure was called invented';
+    });
+    T('companion: a draft is only created when one was asked for', () => {
+      const asked = ['design a budget from my last 12 months', 'set up a savings goal for a car',
+                     'can you draft a budget?', 'plan a goal for the deposit'];
+      const notAsked = ['show me these transactions', 'how has groceries done',
+                        'show me my budget', 'what is my budget pace', 'can I afford €300 a month'];
+      const wrong = asked.filter(t => !Companion.wantsDraft(t))
+        .concat(notAsked.filter(t => Companion.wantsDraft(t)));
+      return !wrong.length || 'misjudged: ' + wrong.join(' | ');
+    });
+    T('companion: the exact figure behind a rounded one is still grounded', () => {
+      // The Engine prints "€589 total" but its data carries 588.65; a model
+      // reading the tool result quotes the exact number. Grounding against the
+      // prose alone struck that out and then rounded it back to €589 in the
+      // notice — the app rejecting a figure it had just computed.
+      const say = 'Groceries came to €588.65 in June.';
+      const prose = '10 spending transactions in Groceries in Jun 2026 · €589 total.';
+      const withData = prose + '\n' + JSON.stringify({total: 588.65, matched: 10});
+      if (Companion.unbackedFigures(prose, say, '').length !== 1) return 'the prose-only case should still flag it';
+      return Companion.unbackedFigures(withData, say, '').length === 0
+             || 'the exact figure was called invented even with the data present';
+    });
+    T('companion: find_transactions reports spending, not a nonsense net total', () => {
+      if (!TX.length) return true;
+      const r = Companion.run({tool:'find_transactions', args:{limit:5}});
+      if (!r.ok) return 'tool failed: ' + r.say;
+      // an unfiltered call summed debits AND credits and answered "€-30,235"
+      if (!(r.data.total > 0)) return 'total is not positive spending: ' + r.data.total;
+      if (/€-/.test(r.say)) return 'negative euro rendered in the answer';
+      const rows = r.data.rows || [];
+      return rows.every(x => x.amount > 0) || 'a non-spending row leaked in';
+    });
+    T('companion: "show me the transactions" has a tool that returns rows', () => {
+      if (!TX.length) return true;
+      const ids = Companion.registry().map(t => t.id);
+      if (ids.indexOf('find_transactions') < 0) return 'no find_transactions tool';
+      const r = Companion.run({tool:'find_transactions', args:{limit:5}});
+      if (!r.ok) return 'tool failed: ' + r.say;
+      const rows = (r.data && r.data.rows) || [];
+      if (!rows.length) return 'returned no rows';
+      const shaped = rows.every(x => x.date && x.merchant && typeof x.amount === 'number');
+      const ordered = rows.every((x, i) => i === 0 || Math.abs(rows[i-1].amount) >= Math.abs(x.amount) - 0.001);
+      return (shaped && ordered && rows.length <= 5) || JSON.stringify(rows.slice(0, 2));
+    });
     // ── surface identity: a panel wears the colour of its node (P8) ──
     T('surfaces: budget opens as a plan, categories as data', () => {
       if (!window.__ddSpace || !document.body.classList.contains('space')) return true;
@@ -16259,6 +16387,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         {id:'summary_outlook', title:'Next-month outlook', desc:'Engine.nextMonth', readOnly:true},
         {id:'affordability', title:'Can I afford it', desc:'Check a monthly commitment against income, spending and surplus', readOnly:true},
         {id:'spend_ranked', title:'Biggest spending', desc:'Categories ranked by monthly average — use for "where can I cut back"', readOnly:true},
+        {id:'find_transactions', title:'Find transactions', desc:'The actual rows — date, merchant, amount. Use whenever the user says "show me", "which ones", "list them"', readOnly:true},
         {id:'notes_for', title:'Notes', desc:'Engine.notesFor', readOnly:true},
         {id:'goals_status', title:'Goals', desc:'List goals', readOnly:true},
         {id:'propose_budget', title:'Propose budget (sandbox)', desc:'Draft budget lines from history', readOnly:false, sandbox:true},
@@ -16282,7 +16411,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
               t.id === 'apply_scenario' ? '{scenarioId: string, confirm: true}' :
               t.id === 'cashflow_summary' ? '{rangePreset?: string}' :
               t.id === 'affordability' ? '{monthly: number}' :
-              t.id === 'spend_ranked' ? '{limit?: number}' : '{}'
+              t.id === 'spend_ranked' ? '{limit?: number}' :
+              t.id === 'find_transactions' ? '{category?: string, merchant?: string, month?: "YYYY-MM", min?: number, limit?: number}' : '{}'
       }));
     }
     function norm(q){
@@ -16565,6 +16695,54 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
                 data:{monthly, income, spend, spare, after, fits: after >= 0},
                 actions:[{type:'nav', k:'cash', sec:'sec-cashflow'}],
                 suggestions:['where can I cut back', 'show cashflow'], links:[]};
+      }
+      // "Show me these transactions" had no tool at all — the co-pilot could
+      // only report monthly averages, so it navigated and then narrated numbers
+      // it had already been given. Every other tool returns aggregates; this is
+      // the one that returns the actual rows.
+      if (t === 'find_transactions'){
+        const cat = a.category ? String(a.category) : null;
+        const q = a.merchant || a.query ? String(a.merchant || a.query).toUpperCase() : null;
+        const mo = a.month ? String(a.month) : null;
+        const min = a.min != null ? +a.min : null;
+        const limit = Math.max(1, Math.min(40, +a.limit || 15));
+        const catL = cat ? cat.toLowerCase() : null;
+        // Spending unless asked otherwise. Summing debits and credits together
+        // produced a "total" of €-30,235 for an unfiltered call — arithmetically
+        // true, meaningless as an answer, and it prints as "€-30,235".
+        const wantIn = a.income === true || a.direction === 'in';
+        let hits = [];
+        for (const tx of TX){
+          if (!RANGE.has(tx.mo)) continue;
+          if (mo && tx.mo !== mo) continue;
+          if (tx.ec === INT_CAT) continue;                 // internal transfers are not spending
+          if (wantIn ? !(tx.cr > 0) : !(tx.de > 0)) continue;
+          if (catL && String(effCatFull(tx) || '').toLowerCase() !== catL) continue;
+          if (q && !(String(tx.m || '').toUpperCase().includes(q) || String(canonOf(tx.m) || '').toUpperCase().includes(q))) continue;
+          if (min != null && !(tx.de >= min || tx.cr >= min)) continue;
+          hits.push(tx);
+        }
+        if (!hits.length)
+          return {ok:true, tool:t, say:'No transactions match that in ' + rangeLabel() + '.', provenance:'Engine · no matches',
+                  data:{rows:[], total:0}, actions:[], suggestions:suggestions(), links:[]};
+        const amtOf = x => wantIn ? x.cr : x.de;
+        hits.sort((x, y) => amtOf(y) - amtOf(x));            // biggest money first
+        const total = hits.reduce((s, x) => s + amtOf(x), 0);
+        const rows = hits.slice(0, limit).map(x => ({
+          date: x.d, merchant: canonOf(x.m) || x.m, category: effCatFull(x),
+          amount: +( amtOf(x).toFixed(2) )
+        }));
+        const say = hits.length + (wantIn ? ' incoming' : ' spending') + ' transaction' + (hits.length === 1 ? '' : 's')
+          + (cat ? ' in ' + cat : '') + (q ? ' matching “' + (a.merchant || a.query) + '”' : '')
+          + (mo ? ' in ' + fmtMoLbl(mo) : '')
+          + ' · ' + eur(total) + ' total, ' + rangeLabel()
+          + (!cat && !q && !mo ? ' (everything — narrow it with a category, merchant or month)' : '') + ':\n'
+          + rows.map(r => '• ' + r.date + ' · ' + r.merchant + ' — ' + eur(r.amount) + (cat ? '' : ' (' + r.category + ')')).join('\n')
+          + (hits.length > rows.length ? '\n• …and ' + (hits.length - rows.length) + ' more' : '');
+        return {ok:true, tool:t, say, provenance:'Engine · transactions · ' + rangeLabel(),
+                data:{rows, total:+total.toFixed(2), matched:hits.length},
+                actions: cat ? [{type:'nav', k:'cats', sec:'sec-cats'}] : [],
+                suggestions:suggestions(), links: cat ? ['cat:' + cat] : []};
       }
       // "Where can I cut back" had no tool at all, so the model either guessed
       // or got a single category. Rank real spending instead.
@@ -16849,6 +17027,18 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         '- "Can I afford €X a month / a €X installment?" → affordability {"monthly":X}. It does the sum for you.',
         '- "Where can I cut back?" / "how do I save money?" → spend_ranked.',
         '- "How am I doing?" → cashflow_summary.',
+        '- "Show me / list / which ones / what did I spend on X" → find_transactions. This is the only tool',
+        '  that returns actual rows. Never answer "show me the transactions" by navigating.',
+        '',
+        'You are NOT a tax, legal or regulatory adviser, and you must never answer from general knowledge',
+        'about rules — you do not know this user\'s country, tax status or entity type, and guessing is worse',
+        'than useless. When asked something like "what can I claim tax back on":',
+        '1. Say plainly that the rules depend on their jurisdiction and status, and that you cannot rule on it.',
+        '2. Then be USEFUL with what you do have: call find_transactions / spend_ranked and show the spending',
+        '   that such a question usually concerns, so they have something concrete to take to an accountant.',
+        '3. Ask the one question that would sharpen it (e.g. sole trader or limited company?) — do not deliver',
+        '   a generic checklist of allowable expenses.',
+        'Never name a country or tax authority the user has not named themselves.',
         'Never answer a money question from memory: you do not know this household\'s numbers until a tool',
         'tells you, and you must not do the arithmetic yourself — the tool returns the result already worked out.',
         'You may repeat an amount the user named themselves. Every OTHER figure must come from a tool.',
@@ -16856,6 +17046,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         'Tools: ' + JSON.stringify(toolSchemasForPrompt()),
         'Known categories: ' + JSON.stringify(cats),
         'Current range: ' + rangeLabel(),
+        // the model answered a tax question with UK rules for a euro household;
+        // it should at least know what money it is looking at, and that the
+        // currency is NOT a country
+        'Figures are shown in EUR (€). That is the display currency only — it does',
+        'not tell you the user\'s country, tax residence or entity type. Do not infer one.',
+        'Accounts: ' + JSON.stringify(allAccounts().map(a => a.name).slice(0, 10)),
         'Household notes context (may be empty):',
         (typeof notesForPrompt === 'function' ? notesForPrompt() : '') || '(none)'
       ].join('\n');
@@ -16892,6 +17088,33 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
     function moneyish(s){ return /[€$£]|\d+[.,]\d{2}|\b\d{3,}\b/.test(String(s || '')); }
 
+    // Did the user actually ask for a budget or goal to be drafted? Deliberately
+    // generous on the verbs and strict on the nouns: "design/plan/set up a
+    // budget" yes, "show me my budget" no.
+    function wantsDraft(text){
+      const n = String(text || '').toLowerCase();
+      if (!/\b(budget|goal|save for|saving for|target)\b/.test(n)) return false;
+      return /\b(design|draft|propose|create|make|build|set ?up|start|plan|come up with|suggest)\b/.test(n);
+    }
+
+    // Figures in `say` that neither a tool nor the user's own question supports.
+    //
+    // Compares NUMBERS, not strings. The Engine prints rounded euro ("€188");
+    // a model writing the same figure as "€188.00" was being told its answer
+    // quoted a number the data did not support — and the notice then rounded it
+    // back to "€188", so the app appeared to reject a figure it had just
+    // printed itself. That is what struck out a correct answer about Work UK.
+    function unbackedFigures(grounded, say, userText){
+      const near = (a, b) => Math.abs(a - b) < 0.005;
+      const gNums = amts(grounded).map(parseFloat).filter(n => !isNaN(n));
+      const uNums = amts(userText).map(parseFloat).filter(n => !isNaN(n));
+      return amts(say).filter(a => {
+        const n = parseFloat(a);
+        if (isNaN(n)) return false;
+        return !gNums.some(g => near(g, n)) && !uNums.some(u => near(u, n));
+      });
+    }
+
     // True when `say` is a restatement of the grounded Engine text rather than
     // commentary on it. Not an exact-subset test: a reworded echo ("on average
     // groceries RAN €479 a month") drags in a filler word or two and would slip
@@ -16926,6 +17149,17 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         const parsed = parseLmJson(raw);
         if (parsed && parsed.type === 'tool' && parsed.name){
           const intent = {tool: parsed.name, args: parsed.args || {}};
+          // A sandbox draft is a thing the user then has to find and delete, so
+          // it may only be created when they actually asked for one. The prompt
+          // says so and the model still reached for propose_budget on "show me
+          // these transactions" — twice. Refuse it and point at a read tool.
+          if ((parsed.name === 'propose_budget' || parsed.name === 'propose_goal') && !wantsDraft(userText)){
+            messages.push({role:'assistant', content: raw});
+            messages.push({role:'user', content: 'No. The user did not ask you to design a budget or a goal, ' +
+              'and ' + parsed.name + ' creates a draft they would have to delete. Answer what was actually asked — ' +
+              'use find_transactions, spend_ranked or cat_monthly.'});
+            continue;
+          }
           const sig = parsed.name + ':' + JSON.stringify(intent.args || {});
           if (seen.has(sig)){
             messages.push({role:'assistant', content: raw});
@@ -16988,8 +17222,16 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
             // to a tool result, OR to the user's own question. A figure the user
             // typed ("a €300 installment") is theirs to name; treating it as an
             // invention is what made affordability questions unanswerable.
-            const gSet = new Set(amts(grounded).concat(amts(userText)));
-            const unbacked = amts(say).filter(a => a && !gSet.has(a) && !grounded.includes(a) && !String(userText).includes(a));
+            // Ground against everything the Engine returned, not just the prose
+            // it printed. A tool's `say` rounds ("€589 total") while its `data`
+            // carries the exact figure (588.65) — and the model, reading the
+            // tool result, quotes the exact one. Comparing only against the
+            // rounded prose struck out a correct answer and then rounded the
+            // rejected figure back to €589 in the notice.
+            const groundedAll = grounded + '\n' + steps.map(s => {
+              try { return JSON.stringify(s.data || ''); } catch (e) { return ''; }
+            }).join(' ');
+            const unbacked = unbackedFigures(groundedAll, say, userText);
             // …and only if it says something the Engine paragraph did not. A
             // model asked to narrate a tool result usually restates it, and
             // "Opening budget." twice reads like a stutter.
@@ -17155,14 +17397,29 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     // Selecting or starting a conversation lights its node — and the money
     // objects it touched — on the map, the same illumination hovering gives you.
     // Without it the map never reacts to what you are reading.
+    function clearChatFilter(){
+      try { if (graph && graph.highlight) graph.highlight(null); } catch (e) {}
+      try { if (typeof MapFilter !== 'undefined') MapFilter.set('chat', null); } catch (e) {}
+    }
     function highlightChat(id){
-      if (typeof graph === 'undefined' || !graph || !graph.highlight) return;
+      if (typeof graph === 'undefined' || !graph || !graph.focusNeighbourhood) return 0;
       const chat = id && chatStore.items.find(c => c.id === id);
-      if (!chat){ graph.highlight(null); return; }
-      const ids = ['chat:' + chat.id, ...(chat.links || [])];
-      // scenarios drafted in this conversation belong to the same thought
-      for (const s of (scenarioStore.items || [])) if (s.conversationId === chat.id) ids.push('scen:' + s.id);
-      graph.highlight(ids);
+      if (!chat){ clearChatFilter(); return 0; }
+      // The graph owns the resolution — see focusNeighbourhood. A conversation
+      // with nothing tethered to it lights nothing, because dimming the whole
+      // map to spotlight one orb is not a view anybody asked for. That is the
+      // bug this replaced: opening the co-pilot faded the entire map.
+      const lit = graph.focusNeighbourhood('chat:' + chat.id);
+      if (!lit){ clearChatFilter(); return 0; }
+      // dismissible, like every other map filter
+      try {
+        if (typeof MapFilter !== 'undefined') MapFilter.set('chat', {
+          ic: '💬',
+          label: 'Chat · <b>' + esc((chat.title || 'Conversation').slice(0, 28)) + '</b> · ' + (lit - 1) + ' linked',
+          clear: () => { try { if (graph && graph.highlight) graph.highlight(null); } catch (e) {} }
+        });
+      } catch (e) {}
+      return lit;
     }
     function chatRowHtml(c, activeId){
       const on = c.id === activeId ? ' class="on"' : '';
@@ -17385,7 +17642,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     function close(){
       setChatOpen(false);
       setSwitchPop(false);
-      highlightChat(null);   // the map goes back to its resting state
+      clearChatFilter();     // the map goes back to its resting state
     }
     // Sandbox drafts are real objects the user accumulates — they need the same
     // list-and-delete affordance conversations already have, or they pile up as
@@ -17452,7 +17709,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     function newChat(){
       activeChatId = null;
       ensureChat();
-      highlightChat(activeChatId);
+      // a brand-new conversation is tethered to nothing — highlighting it would
+      // dim the whole map to light a single orb
+      clearChatFilter();
       renderHist();
       renderScenarios();
       renderThread();
@@ -17733,7 +17992,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       ask, match, run, handle, askLm, applyActions, registry, suggestions, open, close, bind, isOpen,
       ensureChat, newChat, deleteChat, lmEnabled, lmComplete, chats: () => chatStore.items, scenarios: () => scenarioStore.items,
       deleteScenario, applyScenario, renderScenarios, scenSummary,
-      renderThread, echoUser, appendMsg, amts, moneyish,
+      renderThread, echoUser, appendMsg, amts, moneyish, unbackedFigures, wantsDraft,
       highlightChat, renderSwitcher, setSwitchPop, placeholders: () => PLACEHOLDERS.slice(),
       echoPending: (v) => { pendingEcho = v; },
       setActiveChat: (id) => { activeChatId = id; },
