@@ -1900,6 +1900,62 @@ So, when you change a stored shape:
      the same items are listed in Alerts. */
   body.space.panel-open #alertStack{z-index:19; pointer-events:none}
   body.space.panel-open #alertStack .alert-card{pointer-events:none}
+
+  /* ══ Surface material (Direction C) ═══════════════════════════════════════
+     Colour said WHICH thing a panel is (Direction A above). Material says what
+     KIND of thing it is, and it is the part colour cannot do: opening a chat
+     used to hide the money you were asking about.
+
+       chat  → the lightest glass. Borderless, deeply blurred, the map moving
+               behind the conversation. It floats.
+       plan  → an opaque slab with a hard mint edge and no blur at all. A
+               document you are drafting; it sits ON the world, not in it.
+       data  → unchanged glass card with its cyan border. Already right.
+
+     backdrop-filter is not new here — the rail has carried blur(10px) over the
+     live canvas since the Space rebuild, so this changes values, not cost. */
+  body.space.chat-open:not(.mobile) #spaceDock{
+    background:linear-gradient(rgba(6,16,34,.50), rgba(3,10,24,.66));
+    border-color:transparent;
+    box-shadow:inset 0 1px 0 rgba(199,183,255,.20), 0 18px 48px rgba(0,0,0,.5);
+    backdrop-filter:blur(16px) saturate(1.2);
+    border-radius:18px;
+  }
+  /* the thread keeps its own faint scrim: glass must not cost legibility, and
+     the map behind it is bright in places */
+  body.space.chat-open:not(.mobile) #dockThread{
+    background:linear-gradient(rgba(3,11,26,.34), rgba(3,11,26,.52));
+    border-radius:13px;
+  }
+  body.space.chat-open:not(.mobile) .dock-thread-head{
+    background:linear-gradient(rgba(6,16,34,.92), rgba(6,16,34,.66));
+  }
+  /* a message is the one thing that must stay perfectly readable, so bubbles
+     get MORE opacity as the panel around them loses it */
+  body.space.chat-open:not(.mobile) .cp-msg.bot{background:rgba(8,18,36,.82)}
+  body.space.chat-open:not(.mobile) .cp-msg.tool{background:rgba(8,26,26,.80)}
+  body.space.chat-open:not(.mobile) .cp-msg.think{background:rgba(8,18,36,.72)}
+
+  /* plan = slab. No blur, no glass: it is the only opaque surface in Space. */
+  body.space #spacePanel.open[data-surface="plan"]{
+    background:#08182c;
+    backdrop-filter:none;
+    border-color:transparent;
+    border-left:3px solid rgb(var(--s-plan));
+    border-radius:6px 14px 14px 6px;
+    box-shadow:0 22px 60px rgba(0,0,0,.6);
+  }
+  body.space #spacePanel.open[data-surface="plan"] .panel-head{
+    background:linear-gradient(rgba(var(--s-plan),.12), rgba(var(--s-plan),0));
+    border-bottom-color:rgba(var(--s-plan),.26);
+  }
+  /* drafts in the rail are the same material, in miniature */
+  body.space #scenList button{background:#0a1c30; border:1px solid transparent; border-left:2px solid rgb(var(--s-plan))}
+  body.space #scenList button:hover{background:#0d2540}
+
+  @media (prefers-reduced-motion: no-preference){
+    body.space #spaceDock{transition:background .22s ease, box-shadow .22s ease}
+  }
 </style>
 
 <!-- since-your-last-visit digest (P3-15): lives outside .wrap so it shows in
@@ -13974,6 +14030,42 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // three surfaces, three distinct borders — that is the whole point
       const all = new Set([planBorder, dataBorder, dockBorder]);
       return all.size === 3 || JSON.stringify({planBorder, dataBorder, dockBorder});
+    });
+    T('surfaces: three materials — chat floats, plan sits, data holds', () => {
+      if (!document.body.classList.contains('space') || document.body.classList.contains('mobile')) return true;
+      // Chrome resolves color-mix() to `color(srgb r g b / a)`, not `rgba()` —
+      // reading only rgba() reported a 55%-transparent panel as fully opaque.
+      const alpha = (c) => {
+        const s = String(c);
+        if (s === 'transparent') return 0;
+        const slash = s.match(/\/\s*([\d.]+%?)\s*\)/);        // color(srgb … / a)
+        if (slash) return slash[1].endsWith('%') ? parseFloat(slash[1]) / 100 : parseFloat(slash[1]);
+        const m = s.match(/rgba?\(([^)]+)\)/);
+        if (!m) return 1;
+        const p = m[1].split(/[,\s]+/).filter(Boolean);
+        return p.length > 3 ? parseFloat(p[3]) : 1;
+      };
+      const wasOpen = Companion.isOpen();
+      try {
+        Companion.open();
+        const dock = getComputedStyle(document.getElementById('spaceDock'));
+        // chat: blurred, borderless, and genuinely see-through
+        if (!/blur/.test(dock.backdropFilter || dock.webkitBackdropFilter || '')) return 'chat rail lost its blur';
+        if (alpha(dock.borderTopColor) > 0.01) return 'chat rail still has a visible border';
+        const panel = document.getElementById('spacePanel');
+        window.__ddSpace.open('budget');
+        const plan = getComputedStyle(panel);
+        // plan: opaque slab, no blur, mint edge
+        if (/blur/.test(plan.backdropFilter || plan.webkitBackdropFilter || '')) return 'plan panel is still glass';
+        if (alpha(plan.backgroundColor) < 0.99) return 'plan panel is not opaque (' + plan.backgroundColor + ')';
+        if (parseFloat(plan.borderLeftWidth) < 2) return 'plan panel has no slab edge';
+        window.__ddSpace.open('cats');
+        const data = getComputedStyle(panel);
+        // data: unchanged glass
+        if (!/blur/.test(data.backdropFilter || data.webkitBackdropFilter || '')) return 'data panel lost its glass';
+        if (alpha(data.backgroundColor) > 0.99) return 'data panel went opaque';
+        return true;
+      } finally { if (!wasOpen) Companion.close(); window.__ddSpace.open('close'); }
     });
     T('composer: every placeholder fits without clipping', () => {
       const inp = document.getElementById('ccInput');
