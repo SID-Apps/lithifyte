@@ -63,7 +63,7 @@
       "publisher": {
         "@id": "https://lithifyte.com/#organization"
       },
-      "dateModified": "2026-08-09",
+      "dateModified": "2026-08-12",
       "@type": "FAQPage",
       "mainEntity": [
         {
@@ -71,7 +71,7 @@
           "name": "Is Lithifyte free?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. The core application is free forever under the AGPL-3.0-or-later licence. There is no trial, no card, no feature held back behind a payment. Optional hosted conveniences may be sold later — things like scheduled email digests or backup sync — but the application that analyses your money is the free part and stays that way."
+            "text": "The application that analyses your money is free forever under the AGPL-3.0-or-later licence: import, categorise, budgets, forecasts, the map, Commands-only co-pilot, and full export. Hosted Lithifyte AI is the paid lane — 7 days unlimited after you sign in, then 20 questions a week on Free, or unlimited on Plus (€9/month or €90/year). Your own model (Ollama, a fine-tuned Qwen, any compatible URL) is always free. We never gate export of your data."
           }
         },
         {
@@ -95,7 +95,7 @@
           "name": "Does Lithifyte see my bank data?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "No. Financial data is parsed and stored in your browser and never transmitted to us. There is no finance backend to receive it — not an encrypted one, not a temporary one. The only personal datum any Lithifyte server holds is the email address you use for the magic-link sign-in on the hosted app. The one exception is the AI co-pilot, which is off until you connect a model. When you use it, the app sends the model the context for your question — figures computed on your device, relevant note excerpts and the conversation — and where that goes depends on the model you picked. A local model means nothing leaves your machine. See security and privacy for the full account."
+            "text": "We never store your statements. There is no finance backend. The hosted app holds the email you sign in with (Google or magic link), a plan/quota counter, and privacy-safe product events. The exception is hosted AI. When you ask Lithifyte AI a question, the slice that question needs is sent to the model provider for that request — not the ledger. Notes are not dumped wholesale; account names are aliased. Commands-only and a local/your-own model send nothing. Optional Google Drive backup writes an encrypted snapshot to a private app folder only this app can see. See security and privacy."
           }
         },
         {
@@ -135,7 +135,7 @@
           "name": "What is the AI co-pilot, and do I have to use it?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "It is a chat panel inside the app, opened with Ctrl/Cmd+K. You can ask about your money in plain language, have it open any section for you, and design a budget or goal in a sandbox that changes nothing until you press Apply. It is entirely optional and does nothing until you connect a model."
+            "text": "It is a chat panel inside the app, opened with Ctrl/Cmd+K. You can ask about your money in plain language, have it open any section for you, and design a budget or goal in a sandbox that changes nothing until you press Apply. Commands-only works with no model. Hosted Lithifyte AI is optional and metered."
           }
         },
         {
@@ -143,7 +143,7 @@
           "name": "Which AI models can I use?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Your own API key with Anthropic, OpenAI or xAI; any OpenAI-compatible endpoint including a local Ollama or LM Studio model; or Lithifyte AI, the hosted convenience that needs no key. A local model is the option where nothing about your finances leaves your machine."
+            "text": "Lithifyte AI (hosted, metered); your own model via an OpenAI-compatible URL (Ollama, LM Studio, a fine-tuned Qwen — this is how we will swap the hosted brain later); or Commands-only. Grok / ChatGPT / Claude BYOK is built at the relay and marked Coming soon in the picker. A local or self-hosted model is the option where nothing about your finances leaves your machine."
           }
         },
         {
@@ -167,7 +167,7 @@
           "name": "Which banks does it support?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Any bank that lets you export a statement, which is effectively all of them. Lithifyte reads CSV, tab- and semicolon-separated files, and Excel .xlsx — the spreadsheet is unzipped and parsed in your browser, so nothing is uploaded for that either. Press Prepare & preview and it works out which column is which, shows you every finished transaction beside your raw file, and lets you correct any decision it got wrong — date order, decimal mark, which column is money in, which rows to hold back. Known exports are recognised outright; a Revolut statement maps in one click. Where the file carries a running balance it walks it, which proves the mapping was read correctly rather than assuming, and offers the opening balance it can derive. Nothing is saved until you approve the preview, and no row is ever dropped in silence."
+            "text": "Any bank that lets you export a statement, which is effectively all of them. Lithifyte reads CSV, tab- and semicolon-separated files, Excel .xlsx, and text-layer PDFs — parsed in your browser. You can also pick a file you already saved in Google Drive. Scanned (image-only) PDFs are not supported yet. Press Prepare & preview and it works out which column is which, shows you every finished transaction beside your raw file, and lets you correct any decision it got wrong — date order, decimal mark, which column is money in, which rows to hold back. Known exports are recognised outright; a Revolut statement maps in one click. Where the file carries a running balance it walks it, which proves the mapping was read correctly rather than assuming, and offers the opening balance it can derive. Nothing is saved until you approve the preview, and no row is ever dropped in silence."
           }
         },
         {
@@ -335,20 +335,20 @@
 <main class="page">
 <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span class="sep">/</span> <span aria-current="page">FAQ</span></nav>
   <h1>Frequently asked questions</h1>
-  <p class="updated">Updated 9 August 2026</p>
+  <p class="updated">Updated 12 August 2026</p>
   <p class="lede">Short, direct answers. If a question you have is not here, the <a href="/guide">guide</a> goes deeper and the <a href="https://github.com/SID-Apps/lithifyte" rel="noopener">source code</a> settles any argument about what the software actually does.</p>
 
 <h2 id="cost-and-licensing">Cost and licensing</h2>
 <h3 id="is-lithifyte-free">Is Lithifyte free?</h3>
-<p>Yes. The core application is free forever under the AGPL-3.0-or-later licence. There is no trial, no card, no feature held back behind a payment. Optional hosted conveniences may be sold later — things like scheduled email digests or backup sync — but the application that analyses your money is the free part and stays that way.</p>
+<p>The application that analyses your money is free forever under the AGPL-3.0-or-later licence: import, categorise, budgets, forecasts, the map, Commands-only co-pilot, and full export. Hosted Lithifyte AI is the paid lane — 7 days unlimited after you sign in, then 20 questions a week on Free, or unlimited on Plus (€9/month or €90/year). Your own model (Ollama, a fine-tuned Qwen, any compatible URL) is always free. We never gate export of your data.</p>
 <h3 id="what-is-the-catch">What is the catch?</h3>
 <p>There is no advertising, no data sale and no lock-in, because there is no data on our side to sell and every store can be exported. The honest trade-off is different: Lithifyte does not connect to your bank for you by default, so you export a statement yourself. That is the price of nobody else holding your credentials.</p>
 <h3 id="can-i-use-it-commercially-or-modify-it">Can I use it commercially or modify it?</h3>
 <p>Yes, under the terms of the AGPL-3.0-or-later. You can read it, change it, run it and redistribute it. If you run a modified version as a network service, the licence requires you to offer that modified source to its users. See <a href="/open-source">open source</a>.</p>
 <h2 id="privacy-and-security">Privacy and security</h2>
 <h3 id="does-lithifyte-see-my-bank-data">Does Lithifyte see my bank data?</h3>
-<p>No. Financial data is parsed and stored in your browser and never transmitted to us. There is no finance backend to receive it — not an encrypted one, not a temporary one. The only personal datum any Lithifyte server holds is the email address you use for the magic-link sign-in on the hosted app.</p>
-<p>The one exception is the AI co-pilot, which is off until you connect a model. When you use it, the app sends the model the context for your question — figures computed on your device, relevant note excerpts and the conversation — and where that goes depends on the model you picked. A local model means nothing leaves your machine. See <a href="/security-and-privacy">security and privacy</a> for the full account.</p>
+<p>We never store your statements. There is no finance backend. The hosted app holds the email you sign in with (Google or magic link), a plan/quota counter, and privacy-safe product events.</p>
+<p>The exception is hosted AI. When you ask Lithifyte AI a question, <strong>the slice that question needs</strong> is sent to the model provider for that request — not the ledger. Notes are not dumped wholesale; account names are aliased. Commands-only and a local/your-own model send nothing. Optional Google Drive backup writes an encrypted snapshot to a private app folder only this app can see. See <a href="/security-and-privacy">security and privacy</a>.</p>
 <h3 id="what-happens-if-lithifyte-disappears-tomorrow">What happens if Lithifyte disappears tomorrow?</h3>
 <p>Your data is unaffected, because it was never on our infrastructure. Keep the <code>index.html</code> file and it keeps working offline, indefinitely, with no licence check to fail. This is the main practical argument for a single-file application.</p>
 <h3 id="is-my-data-encrypted">Is my data encrypted?</h3>
@@ -358,16 +358,16 @@
 <h3 id="do-you-track-me">Do you track me?</h3>
 <p>The hosted app records privacy-safe product events — that a section was opened, that an import happened — never amounts, merchants or any financial content. Self-hosted copies report nothing at all and have no code path that could. The details are in the <a href="/privacy">privacy policy</a>.</p>
 <h3 id="what-is-the-ai-co-pilot-and-do-i-have-to-use-it">What is the AI co-pilot, and do I have to use it?</h3>
-<p>It is a chat panel inside the app, opened with Ctrl/Cmd+K. You can ask about your money in plain language, have it open any section for you, and design a budget or goal in a <strong>sandbox</strong> that changes nothing until you press Apply. It is entirely optional and does nothing until you connect a model.</p>
+<p>It is a chat panel inside the app, opened with Ctrl/Cmd+K. You can ask about your money in plain language, have it open any section for you, and design a budget or goal in a <strong>sandbox</strong> that changes nothing until you press Apply. Commands-only works with no model. Hosted Lithifyte AI is optional and metered.</p>
 <h3 id="which-ai-models-can-i-use">Which AI models can I use?</h3>
-<p>Your own API key with Anthropic, OpenAI or xAI; any OpenAI-compatible endpoint including a local Ollama or LM Studio model; or <strong>Lithifyte AI</strong>, the hosted convenience that needs no key. A local model is the option where nothing about your finances leaves your machine.</p>
+<p><strong>Lithifyte AI</strong> (hosted, metered); <strong>your own model</strong> via an OpenAI-compatible URL (Ollama, LM Studio, a fine-tuned Qwen — this is how we will swap the hosted brain later); or Commands-only. Grok / ChatGPT / Claude BYOK is built at the relay and marked Coming soon in the picker. A local or self-hosted model is the option where nothing about your finances leaves your machine.</p>
 <h3 id="can-the-ai-make-up-numbers">Can the AI make up numbers?</h3>
 <p>No, by construction. The model resolves what you are asking for, the <code>Engine</code> computes the figures on your device, and the answer renders from those computed values. The model is not permitted to recall or calculate a euro amount — one hallucinated figure would discredit every real figure in the app.</p>
 <h3 id="can-the-ai-change-my-data-without-asking">Can the AI change my data without asking?</h3>
 <p>No. Budgets, goals and forecasts it designs live in a sandbox alongside your real data, and nothing is written until you press Apply. Conversations and scenarios are kept like notes — re-openable, linkable, and included in your backups.</p>
 <h2 id="data-and-compatibility">Data and compatibility</h2>
 <h3 id="which-banks-does-it-support">Which banks does it support?</h3>
-<p>Any bank that lets you export a statement, which is effectively all of them. Lithifyte reads CSV, tab- and semicolon-separated files, and Excel <code>.xlsx</code> — the spreadsheet is unzipped and parsed in your browser, so nothing is uploaded for that either.</p>
+<p>Any bank that lets you export a statement, which is effectively all of them. Lithifyte reads CSV, tab- and semicolon-separated files, Excel <code>.xlsx</code>, and text-layer PDFs — parsed in your browser. You can also pick a file you already saved in Google Drive. Scanned (image-only) PDFs are not supported yet.</p>
 <p>Press <strong>Prepare &amp; preview</strong> and it works out which column is which, shows you every finished transaction beside your raw file, and lets you correct any decision it got wrong — date order, decimal mark, which column is money in, which rows to hold back. Known exports are recognised outright; a Revolut statement maps in one click. Where the file carries a running balance it walks it, which <em>proves</em> the mapping was read correctly rather than assuming, and offers the opening balance it can derive. Nothing is saved until you approve the preview, and no row is ever dropped in silence.</p>
 <h3 id="can-it-connect-to-my-bank-automatically">Can it connect to my bank automatically?</h3>
 <p>There is a separate open-banking feeder tool in the repository, built against the GoCardless Bank Account Data API, but new signups for that API have been unavailable since July 2026, so statement import is the supported path. It is also the more private one: no third party ever holds a credential.</p>

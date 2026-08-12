@@ -1,10 +1,10 @@
 # Lithifyte
 
-**Household finance mission control in a single HTML file. Your bank data never leaves your browser.**
+**Household finance mission control in a single HTML file. We never store your ledger.**
 
-Lithifyte turns your bank statements into a **full financial neural map** of your household's money patterns: people, accounts and merchants; goal planning with honest feasibility dates; a pace-based budget; cautious forecasting; debt, investment and net-worth tracking (with an optional **Ireland** locale pack for local tax depth); and a financial-health dial over it all. It is one self-contained file — **your bank data never leaves the browser**. There is no finance backend. The hosted app may use email sign-in and privacy-safe product usage events only (see `docs/product-analytics.md`); self-hosted builds phone home with nothing.
+Lithifyte turns your bank statements into a **full financial neural map** of your household's money patterns: people, accounts and merchants; goal planning with honest feasibility dates; a pace-based budget; cautious forecasting; debt, investment and net-worth tracking (with an optional **Ireland** locale pack for local tax depth); and a financial-health dial over it all. It is one self-contained file. **There is no finance backend.** The hosted app uses Google or email sign-in, privacy-safe product events, and optional metered Lithifyte AI (see `docs/product-analytics.md`); self-hosted builds phone home with nothing.
 
-> **The privacy promise, bluntly:** everything is computed in your browser from statements you upload. Your data lives in your browser's local storage (optionally encrypted at rest with a passphrase) and in backup files you export yourself. The page makes zero network requests with your data. You can read this file's source and verify every word of that.
+> **The privacy promise, bluntly:** statements are parsed in your browser. We never store them. Asking hosted Lithifyte AI sends *the slice that question needs* to the model provider for that request — not the ledger. Commands-only and your own model (Ollama / Qwen) send nothing. You can read this file's source and verify every word of that.
 
 **Try it first:** [the sample household](https://app.lithifyte.com/demo) is a fully loaded sample household — two earners, four accounts, two years of invented transactions — so you can explore everything without uploading a thing. The sample keeps its own separate storage and can never touch data you later add to the real app.
 
@@ -19,7 +19,7 @@ Lithifyte turns your bank statements into a **full financial neural map** of you
 ## Quick start
 
 1. **Open the app** — either the hosted page, or download `index.html` and open it locally (the local file unlocks a couple of extras, see below).
-2. The four-step onboarding takes over: your name → your first account → upload a statement → set a goal. The money map is alive from step one.
+2. Drop a statement to start. We will create a household for you if you skip the labels. A goal is optional.
 3. **Statements** are your bank's own export — CSV, tab-separated or Excel `.xlsx`, whatever shape it comes in. Press **Prepare & preview**: the importer works out which column is which, you correct anything it got wrong, and it shows you every finished transaction beside your raw file *before* anything is saved. See [Reading your statement](#reading-your-statement).
 4. Re-uploading is always safe: duplicates are detected and skipped.
 5. **Export a backup** (Settings → Backup) once you have real data in. That file is your durability story — optionally encrypted with a passphrase.

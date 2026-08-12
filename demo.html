@@ -4,11 +4,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lithifyte — household finance mission control</title>
 <script>
-/* Hosted sign-in gate — app.lithifyte.com only. This is identity, not
-   security: the app is open source and all data is client-side, so the gate
-   just asks visitors to sign in (free, email magic link) before using the
-   hosted blank shell. The sample path stays open, and file:// / self-hosted copies
-   are never gated. Fails open if the identity service is unreachable. */
+/* Hosted sign-in gate — app.lithifyte.com only. Identity, not a finance
+   lock: the app is open source and all data is client-side. The hosted blank
+   shell asks visitors to sign in (Google or email) so we can retain them and
+   meter hosted AI. The sample path stays open. file:// / self-hosted copies
+   are never gated. Hosted fails CLOSED if identity is down — we would rather
+   show the gate than give away an unmetered shell. */
 (function(){
   /* Hosted product analytics + sign-in gate.
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
@@ -22,6 +23,8 @@
   window.__lfSignedIn = false;
   window.__lfMe = null;
   window.__lfAppVer = APP_VER;
+  window.__lfConfig = { google: false, stripe: false, googleClientId: '', googleApiKey: '' };
+  window.__lfEntitlement = null;
 
   function viewportBucket(){
     var w = window.innerWidth || 0;
@@ -102,47 +105,85 @@
     ov = null;
     window.__lfTrack('gate_open', { path: 'app' });
   }
-  function prompt(){
+  function bindGateForm(){
+    var form = document.getElementById('lfGateForm');
+    if (!form) return;
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      var email = (document.getElementById('lfGateEmail').value || '').trim().toLowerCase();
+      var st = document.getElementById('lfGateStatus');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { st.textContent = 'Enter a valid email.'; return; }
+      st.textContent = 'Sending link…';
+      fetch(ACCESS + '/waitlist', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, source: 'gate' })
+      }).then(function(r){ return r.json().then(function(d){ return {ok:r.ok, d:d}; }); })
+        .then(function(x){
+          if (!x.ok) throw new Error(x.d.error || 'Could not send');
+          st.style.color = '#34d399';
+          st.textContent = x.d.message || 'Check your inbox.';
+          if (x.d.devLink) st.textContent += ' Dev link: ' + x.d.devLink;
+        })
+        .catch(function(err){ st.style.color = '#f87171'; st.textContent = err.message || String(err); });
+    });
+    var d = document.getElementById('lfGateDemo');
+    if (d) d.addEventListener('click', function(){ window.__lfTrack('demo_click', { from: 'gate' }); });
+  }
+  function prompt(cfg){
     if (state === 'open') return;
     state = 'prompt';
     show();
     window.__lfTrack('gate_shown', { path: 'app' });
     var justTried = /[?&]signedIn=1\b/.test(location.search);
+    var google = cfg && cfg.google;
     var lead = justTried
-      ? 'We could not see a session cookie after your sign-in link. Open the link in <b style="color:#e8f1ff">Chrome or Safari</b> (not only the email app’s built-in browser), or request a new link. If you see a browser “HTTP ERROR 403” page, that is blocked by network/Cloudflare settings — not by Lithifyte’s free access list.'
-      : 'Free — magic link, no password. Your ledger stays in this browser. We only use your email for identity and privacy-safe product usage (never transactions). Hosted AI, if you use it, sends only the slice that question needs.';
+      ? 'We could not see a session cookie after your sign-in. Open the link in <b style="color:#e8f1ff">Chrome or Safari</b> (not only the email app’s built-in browser).'
+      : 'Free to start. Your ledger stays in this browser. Sign in so we can remember you and so hosted AI can be metered — we never store statements.';
     ov.innerHTML =
-      '<div style="width:min(420px,100%);background:rgba(4,18,36,.85);border:1px solid rgba(56,189,248,.28);border-radius:16px;padding:30px 26px;box-shadow:0 0 60px rgba(56,189,248,.12)">' +
-        '<div style="display:flex;align-items:center;justify-content:center;gap:10px;font-weight:800;font-size:14px;letter-spacing:.06em;margin-bottom:18px">' +
+      '<div style="width:min(420px,100%);background:rgba(4,18,36,.85);border:1px solid rgba(56,189,248,.28);border-radius:16px;padding:30px 26px;box-shadow:0 0 60px rgba(56,189,248,.12);text-align:left">' +
+        '<div style="display:flex;align-items:center;justify-content:center;gap:10px;font-weight:800;font-size:14px;letter-spacing:.06em;margin-bottom:18px;text-align:center">' +
           '<span style="position:relative;width:26px;height:26px;border-radius:7px;border:1px solid #38bdf8;background:linear-gradient(135deg,#0ea5e9,#1d4ed8);display:inline-block"><span style="position:absolute;inset:6px;border-radius:50%;border:1.5px solid rgba(255,255,255,.85)"></span></span>LITHIFYTE</div>' +
-        '<h1 style="margin:0 0 8px;font-size:24px;line-height:1.15;letter-spacing:-.01em">' + (justTried ? 'Almost there — finish sign-in' : 'Sign in to open your money map') + '</h1>' +
-        '<p style="margin:0 0 20px;color:#8fb0d0;font-size:13.5px;line-height:1.55">' + lead + '</p>' +
-        '<a href="https://access.lithifyte.com/" style="display:block;padding:13px 16px;border-radius:10px;background:linear-gradient(135deg,#0ea5e9,#1d4ed8);color:#fff;font-weight:600;font-size:14px;text-decoration:none;border:1px solid rgba(125,211,252,.55)">' + (justTried ? 'Request a new sign-in link' : 'Sign in free') + '</a>' +
-        '<a href="/demo" id="lfGateDemo" style="display:block;margin-top:10px;padding:12px 16px;border-radius:10px;background:rgba(2,11,26,.5);color:#e8f1ff;font-weight:600;font-size:13.5px;text-decoration:none;border:1px solid rgba(56,189,248,.3)">Explore the sample household instead</a>' +
-        '<p style="margin:16px 0 0;color:#5a7694;font-size:11.5px"><a href="https://lithifyte.com/privacy" style="color:#5a7694">Privacy</a> · <a href="https://lithifyte.com/terms" style="color:#5a7694">Terms</a> · <a href="https://github.com/SID-Apps/lithifyte" style="color:#5a7694">Source</a></p>' +
+        '<h1 style="margin:0 0 8px;font-size:24px;line-height:1.15;letter-spacing:-.01em;text-align:center">' + (justTried ? 'Almost there — finish sign-in' : 'Sign in to open your money map') + '</h1>' +
+        '<p style="margin:0 0 18px;color:#8fb0d0;font-size:13.5px;line-height:1.55;text-align:center">' + lead + '</p>' +
+        (google
+          ? '<a href="https://access.lithifyte.com/auth/google" style="display:block;padding:13px 16px;border-radius:10px;background:#fff;color:#111;font-weight:600;font-size:14px;text-decoration:none;border:1px solid #dadce0;text-align:center;margin-bottom:10px">Continue with Google</a>' +
+            '<p style="margin:0 0 12px;text-align:center;color:#5a7694;font-size:11.5px">or use email</p>'
+          : '') +
+        '<form id="lfGateForm">' +
+          '<input id="lfGateEmail" type="email" required placeholder="you@example.com" autocomplete="email" style="width:100%;box-sizing:border-box;padding:12px 14px;border-radius:10px;border:1px solid rgba(56,189,248,.28);background:rgba(2,11,26,.65);color:#e8f1ff;font-size:15px">' +
+          '<button type="submit" style="width:100%;margin-top:10px;padding:13px 16px;border-radius:10px;background:linear-gradient(135deg,#0ea5e9,#1d4ed8);color:#fff;font-weight:600;font-size:14px;border:1px solid rgba(125,211,252,.55);cursor:pointer">Email me a sign-in link</button>' +
+        '</form>' +
+        '<p id="lfGateStatus" style="margin:10px 0 0;color:#8fb0d0;font-size:12.5px;min-height:1.3em"></p>' +
+        '<a href="/demo" id="lfGateDemo" style="display:block;margin-top:10px;padding:12px 16px;border-radius:10px;background:rgba(2,11,26,.5);color:#e8f1ff;font-weight:600;font-size:13.5px;text-decoration:none;border:1px solid rgba(56,189,248,.3);text-align:center">Explore the sample household instead</a>' +
+        '<p style="margin:16px 0 0;color:#5a7694;font-size:11.5px;text-align:center"><a href="https://lithifyte.com/privacy" style="color:#5a7694">Privacy</a> · <a href="https://lithifyte.com/terms" style="color:#5a7694">Terms</a> · <a href="https://github.com/SID-Apps/lithifyte" style="color:#5a7694">Source</a></p>' +
       '</div>';
-    var d = document.getElementById('lfGateDemo');
-    if (d) d.addEventListener('click', function(){ window.__lfTrack('demo_click', { from: 'gate' }); });
+    bindGateForm();
   }
   if (document.body) show();
   else document.addEventListener('DOMContentLoaded', show);
-  fetch(ACCESS + '/me', { credentials: 'include' })
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      if (d && d.email) {
-        window.__lfSignedIn = true;
-        window.__lfMe = d;
-        open();
-        window.__lfTrack('session_start', {
-          app_ver: APP_VER,
-          locale: localeStored(),
-          viewport: viewportBucket(),
-          demo: '0'
-        });
-      } else prompt();
-    })
-    .catch(open);
-  setTimeout(function(){ if (state === 'waiting') open(); }, 6000);
+  Promise.all([
+    fetch(ACCESS + '/me', { credentials: 'include' }).then(function(r){ return r.json(); }).catch(function(){ return {}; }),
+    fetch(ACCESS + '/config', { credentials: 'include' }).then(function(r){ return r.json(); }).catch(function(){ return {}; })
+  ]).then(function(pair){
+    var d = pair[0] || {}, cfg = pair[1] || {};
+    window.__lfConfig = cfg;
+    if (d && d.email) {
+      window.__lfSignedIn = true;
+      window.__lfMe = d;
+      open();
+      fetch(ACCESS + '/entitlement', { credentials: 'include' })
+        .then(function(r){ return r.json(); })
+        .then(function(e){ window.__lfEntitlement = e; })
+        .catch(function(){});
+      window.__lfTrack('session_start', {
+        app_ver: APP_VER,
+        locale: localeStored(),
+        viewport: viewportBucket(),
+        demo: '0'
+      });
+    } else prompt(cfg);
+  }).catch(function(){ prompt({}); });
 })();
 </script>
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMGVhNWU5Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzFkNGVkOCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iaGwiIGN4PSIwLjM1IiBjeT0iMC4zNSIgcj0iMC41NSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzdkZDNmYyIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3ZGQzZmMiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICA8L2RlZnM+CiAgPHJlY3QgeD0iMTAiIHk9IjEwIiB3aWR0aD0iNDkyIiBoZWlnaHQ9IjQ5MiIgcng9IjE0MCIgZmlsbD0idXJsKCNiZykiLz4KICA8cmVjdCB4PSIxMCIgeT0iMTAiIHdpZHRoPSI0OTIiIGhlaWdodD0iNDkyIiByeD0iMTQwIiBmaWxsPSJ1cmwoI2hsKSIvPgogIDxyZWN0IHg9IjEwIiB5PSIxMCIgd2lkdGg9IjQ5MiIgaGVpZ2h0PSI0OTIiIHJ4PSIxNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzM4YmRmOCIgc3Ryb2tlLXdpZHRoPSIyMCIvPgogIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjI1NiIgcj0iMTIyIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS1vcGFjaXR5PSIwLjkiIHN0cm9rZS13aWR0aD0iMjciLz4KPC9zdmc+Cg==">
@@ -1718,6 +1759,9 @@ So, when you change a stored shape:
   #aiConsentOverlay{position:fixed; inset:0; z-index:98; display:flex; align-items:center; justify-content:center; padding:20px;
     background:color-mix(in srgb, var(--page) 58%, transparent); backdrop-filter:blur(14px) saturate(1.1); -webkit-backdrop-filter:blur(14px) saturate(1.1)}
   #aiConsentOverlay[hidden]{display:none}
+  #plusOverlay{position:fixed; inset:0; z-index:99; display:flex; align-items:center; justify-content:center; padding:20px;
+    background:color-mix(in srgb, var(--page) 58%, transparent); backdrop-filter:blur(14px) saturate(1.1); -webkit-backdrop-filter:blur(14px) saturate(1.1)}
+  #plusOverlay[hidden]{display:none}
   .imp-box{width:min(1080px, 97vw); max-height:93vh; display:flex; flex-direction:column;
     background:var(--surface); border:1px solid var(--border-strong,#334155); border-radius:14px;
     padding:16px 20px 18px; box-shadow:0 18px 60px rgba(0,0,0,.42)}
@@ -2018,7 +2062,7 @@ So, when you change a stored shape:
   <div class="goal-hero" id="onboarding" style="display:none">
     <div class="eyebrow">Welcome</div>
     <h1 style="font-size:clamp(22px,3vw,30px); margin:6px 0 4px">Let's light up your money map</h1>
-    <p class="sub">Five small steps. Name the <b>household</b>, then the <b>people</b> in it — everything stays on this device.</p>
+    <p class="sub">Drop a statement to start. We will name a household for you if you skip the labels — everything stays on this device.</p>
     <p class="sub" id="obDemoLine" style="display:none">Want a feel for it first? <a href="demo.html"><b>Explore the sample household</b></a> — fully loaded invented data, nothing to upload. Prefer a guided walkthrough? <a href="demo.html?tutorial=1"><b>Open the Tutorial guide</b></a>.</p>
     <!-- Phone first run. Step 4 asks for a bank's CSV export, which on a phone
          means digging a file out of a banking app — the point most people give
@@ -2048,12 +2092,14 @@ So, when you change a stored shape:
         <select id="ob-kind" class="inp"><option value="current">Current</option><option value="credit">Credit card</option><option value="savings">Savings</option><option value="cash">Cash</option></select>
         <button class="btn primary" id="ob-acct-go" type="button">Add account</button>
         <span class="hint num" id="ob-acct-done"></span></li>
-      <li class="ob-step" id="obs4"><span class="ob-num">4</span><b>Your first statement</b>
+      <li class="ob-step" id="obs4"><span class="ob-num">1</span><b>Drop a statement — this is the whole start</b>
         <input type="file" id="ob-file" class="inp" accept=".csv,.tsv,.txt,.xlsx,.pdf,text/csv,application/pdf">
         <button class="btn primary" id="ob-file-go" type="button">Prepare &amp; preview →</button>
-        <span class="hint">Your bank's own CSV or Excel export is fine — you'll be shown the columns it found and every transaction before anything is saved</span>
+        <button class="btn small" id="ob-drive-pick" type="button" hidden>Pick from Google Drive</button>
+        <span class="hint">CSV, Excel or a text-layer PDF from your bank. On a Chromebook or phone, the file picker can open Google Drive. You will see every row before anything is saved.</span>
         <span class="hint" id="ob-file-status"></span></li>
-      <li class="ob-step" id="obs5"><span class="ob-num">5</span><b>Your first goal</b>
+      <li class="ob-step" id="obs5"><span class="ob-num">5</span><b>A goal (optional — skip anytime)</b>
+        <button class="btn" id="ob-goal-skip" type="button">Skip for now</button>
         <button class="btn primary" id="ob-goal-wiz" type="button">Set up my first goal</button>
         <span class="hint">a few short questions — or fill it in yourself below</span>
         <details style="margin-top:6px">
@@ -2912,6 +2958,22 @@ So, when you change a stored shape:
     <h3 style="margin:18px 0 8px">Tutorial &amp; Ask</h3>
     <p class="hint" style="margin:0 0 10px">Long-form written guide and product Q&amp;A from a local help corpus — not your bank data. For a live walkthrough of this app, use <b>Guided Space tutorial</b> above (or open the sample with the tutorial from onboarding).</p>
     <a class="btn" href="tutorial" id="setTutorialAskLink">📘 Tutorial &amp; Ask</a>
+    <h3 style="margin:18px 0 8px">Your account</h3>
+    <p class="hint" style="margin:0 0 8px" id="acctWho">Not signed in on this copy — self-hosted and downloaded files never phone home.</p>
+    <div class="filter-row" style="margin:0 0 8px; flex-wrap:wrap; gap:8px">
+      <button class="btn primary" id="plusOpenBtn" type="button">Lithifyte Plus</button>
+      <button class="btn" id="acctSignOut" type="button">Sign out</button>
+    </div>
+    <h3 style="margin:18px 0 8px">Google Drive</h3>
+    <p class="hint" style="margin:0 0 8px">Back up an encrypted snapshot to a private app folder only this app can see, or pick a statement you already saved in Drive. We never ask to read your whole Drive.</p>
+    <div class="filter-row" style="margin:0 0 8px; flex-wrap:wrap; gap:8px">
+      <button class="btn" id="driveConnect" type="button">Connect Google Drive</button>
+      <button class="btn primary" id="driveBackup" type="button">Back up to Drive</button>
+      <button class="btn" id="driveRestore" type="button">Restore from Drive</button>
+      <button class="btn" id="drivePickStmt" type="button">Import a statement from Drive</button>
+    </div>
+    <div id="driveStatus" class="hint"></div>
+    <div id="driveList" class="hint" style="max-height:140px;overflow:auto;margin-top:6px"></div>
     <h3 style="margin:18px 0 8px">AI &amp; what left this device</h3>
     <p class="hint" style="margin:0 0 10px">The ledger never lives on our servers. Asking Lithifyte AI sends only the slice that question needs through a pass-through relay. Commands-only and a local model send nothing. Hosted intelligence is the paid lane later; the Engine stays free forever, and export is never gated.</p>
     <div class="filter-row" style="margin:0 0 8px; flex-wrap:wrap; gap:8px">
@@ -3155,7 +3217,7 @@ rewrite the static advice cards if the picture has changed.</div>
       <option value="xai" disabled>Grok (xAI) — Coming soon</option>
       <option value="openai" disabled>ChatGPT (OpenAI) — Coming soon</option>
       <option value="anthropic" disabled>Claude — Coming soon</option>
-      <option value="openai_compat" disabled>Custom / local — Coming soon</option>
+      <option value="openai_compat">Your own model (Ollama / Qwen)</option>
     </select>
     <div id="modelExtra">
       <input id="cp-model" class="inp" placeholder="Model name (optional)" aria-label="Model name">
@@ -3294,6 +3356,26 @@ rewrite the static advice cards if the picture has changed.</div>
 
 <div class="tip" id="tip"></div>
 
+<div id="plusOverlay" hidden>
+  <div class="wiz-box" role="dialog" aria-modal="true" aria-labelledby="plusTitle">
+    <div class="wiz-kicker">Lithifyte Plus</div>
+    <h3 id="plusTitle">Hosted intelligence, when you want it</h3>
+    <p class="wiz-sub" id="plusWhy">The Engine, import, budgets, export and Commands-only stay free forever. Plus is for hosted Lithifyte AI — conversational answers, PDF parse, and no weekly cap.</p>
+    <ul class="hint" style="padding-left:18px;line-height:1.55;margin:0 0 12px">
+      <li>7 days unlimited after you first sign in</li>
+      <li>Then 20 hosted questions a week on Free</li>
+      <li>€9 / month, or €90 / year (11 months)</li>
+      <li>Your own model (Ollama / Qwen) is always free</li>
+    </ul>
+    <p class="wiz-err" id="plusStatus"></p>
+    <div class="wiz-nav">
+      <button class="btn" id="plusClose" type="button">Not now</button>
+      <span class="wiz-spacer"></span>
+      <button class="btn" id="plusYear" type="button">€90 / year</button>
+      <button class="btn primary" id="plusMonth" type="button">€9 / month</button>
+    </div>
+  </div>
+</div>
 <div id="aiConsentOverlay" hidden>
   <div class="wiz-box" role="dialog" aria-modal="true" aria-labelledby="aiConsentTitle">
     <div class="wiz-kicker">Before this request leaves the device</div>
@@ -3826,7 +3908,7 @@ rewrite the static advice cards if the picture has changed.</div>
   // one. Anyone carrying a saved BYOK choice from an older build (or hand-editing
   // storage) lands back on the hosted model rather than a provider that silently
   // never answers.
-  const LM_OFFERED = {off:true, lithifyte:true, xai:false, openai:false, anthropic:false, openai_compat:false};
+  const LM_OFFERED = {off:true, lithifyte:true, xai:false, openai:false, anthropic:false, openai_compat:true};
   function lmProviderOf(p){ return LM_OFFERED[p] ? p : 'lithifyte'; }
   lmStore.provider = lmProviderOf(lmStore.provider);
   let chatStore = load(LS.chats, {items:[]});
@@ -14602,7 +14684,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const sel = document.getElementById('cp-provider');
       const keep = lmStore.provider;
       try {
-        const bad = ['xai', 'anthropic', 'openai', 'openai_compat'].filter(p => {
+        const bad = ['xai', 'anthropic', 'openai'].filter(p => {
           lmStore.provider = p;
           Companion.syncLmForm();
           return lmStore.provider !== 'lithifyte' || (sel && sel.value !== 'lithifyte');
@@ -14689,10 +14771,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       el.classList.toggle('locked', !!locked);
     };
     step('obs1', hhNamed, false);
-    step('obs2', hasPerson, !hhNamed);
-    step('obs3', hasAcct, !hasPerson);
-    step('obs4', false, !hasAcct);
-    step('obs5', goalSet, !hasPerson);
+    step('obs2', hasPerson, false);
+    step('obs3', hasAcct, false);
+    step('obs4', false, false);
+    step('obs5', goalSet, false);
     document.getElementById('ob-hh-done').textContent = hhNamed ? '✓ ' + org.householdName : '';
     document.getElementById('ob-name-done').textContent = namedPeople.length
       ? '✓ ' + namedPeople.map(u => u.name).join(', ') : '';
@@ -14751,12 +14833,25 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     renderAll();
     if (graph) setTimeout(()=>graph.flyToNode('acct:' + acctId, 1.5), 120);
   });
+  function ensureStarterHousehold(){
+    if (!org.householdName) org.householdName = 'My household';
+    let person = allUsers().find(u => u && u.name);
+    if (!person){
+      const id = (typeof addOrgUser === 'function') ? addOrgUser('Me', 'personal') : null;
+      person = id ? allUsers().find(u => u.id === id) : allUsers()[0];
+    }
+    if (!allAccounts().length && person){
+      org.accounts.push({id: uid('a'), name: 'Current account', userId: person.id, kind: 'current'});
+    }
+    save(LS.org, org);
+    return allAccounts()[0];
+  }
   document.getElementById('ob-file-go').addEventListener('click', ()=>{
     const f = document.getElementById('ob-file').files[0];
     const status = document.getElementById('ob-file-status');
     if (!f){ status.textContent = 'Choose a file first.'; return; }
-    const acct = allAccounts()[0];
-    if (!acct){ status.textContent = 'Add an account first.'; return; }
+    const acct = allAccounts()[0] || ensureStarterHousehold();
+    if (!acct){ status.textContent = 'Could not create a starter account.'; return; }
     // Same importer as the main upload path — a first-time user is the LEAST
     // likely to spot half a statement going missing, so they get the preview too.
     document.getElementById('upAccount').value = acct.id;
@@ -14784,6 +14879,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         window.__lfTrack('action', { action: 'goal_set' });
       }
     } catch (e) {}
+    renderAll();
+  });
+  const skipGoal = document.getElementById('ob-goal-skip');
+  if (skipGoal) skipGoal.addEventListener('click', ()=>{
+    FCONF.onbGoal = true;
+    save(LS.fcast, FCONF);
     renderAll();
   });
   // testing hook: feed the onboarding upload with a CSV string
@@ -16930,11 +17031,54 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     aiRenderDisclose();
     aiRenderConsentHint();
   }
+  async function refreshEntitlement(){
+    if (!window.__lfHosted) return window.__lfEntitlement;
+    try {
+      const e = await fetch('https://access.lithifyte.com/entitlement', {credentials:'include'}).then(r => r.json());
+      window.__lfEntitlement = e;
+      return e;
+    } catch (e) { return window.__lfEntitlement; }
+  }
+  function plusOpen(reason){
+    const el = document.getElementById('plusOverlay');
+    const why = document.getElementById('plusWhy');
+    if (why) why.textContent = reason || 'Hosted Lithifyte AI is included in your 7-day trial, then 20 questions a week on Free, or unlimited on Plus.';
+    if (el) el.hidden = false;
+  }
+  async function startCheckout(period){
+    const st = document.getElementById('plusStatus');
+    if (st) st.textContent = 'Opening checkout…';
+    try {
+      const res = await fetch('https://access.lithifyte.com/billing/checkout', {
+        method:'POST', credentials:'include',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({period: period || 'month'})
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.url) { location.href = data.url; return; }
+      if (st) st.textContent = data.message || data.error || 'Checkout is not attached yet. Email signin@lithifyte.com and we will turn Plus on.';
+    } catch (e) {
+      if (st) st.textContent = String(e.message || e);
+    }
+  }
   async function aiRelayChat(messages, opts){
     opts = opts || {};
     const provider = lmProviderOf(lmStore.provider || 'lithifyte');
     const hosted = provider === 'lithifyte' || opts.forceHosted;
     const relay = (lmStore.relay || 'https://lithifyte-ai.sidethecomputer.workers.dev').replace(/\/$/, '');
+    const purpose = opts.purpose || 'chat';
+    let ent = window.__lfEntitlement;
+    if (hosted && window.__lfHosted){
+      ent = await refreshEntitlement();
+      if (ent && purpose === 'chat' && ent.remaining === 0){
+        plusOpen('This week’s free hosted questions are used up.');
+        throw new Error('Hosted quota used — switch to Commands only, your own model, or Plus.');
+      }
+      if (ent && purpose === 'pdf' && ent.lanes && !ent.lanes.pdf){
+        plusOpen('PDF parse with Lithifyte AI is a Plus feature (or included in your trial).');
+        throw new Error('PDF parse needs Plus or an active trial.');
+      }
+    }
     const body = {
       provider: hosted ? 'lithifyte' : provider,
       model: hosted ? undefined : (lmStore.model || undefined),
@@ -16942,15 +17086,224 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       temperature: 0,
       max_tokens: hosted ? 1600 : 900,
       endpoint: provider === 'openai_compat' ? (lmStore.endpoint || '') : undefined,
-      purpose: opts.purpose || 'chat'
+      purpose,
+      entitlement: ent && ent.token ? ent.token : undefined
     };
     const headers = {'Content-Type': 'application/json'};
     if (!hosted && lmStore.apiKey) headers['X-Api-Key'] = lmStore.apiKey;
+    if (hosted && ent && ent.token) headers['X-Entitlement'] = ent.token;
     const res = await fetch(relay + '/chat', {method:'POST', headers, body: JSON.stringify(body), signal: AbortSignal.timeout(90000)});
     const data = await res.json().catch(() => ({}));
+    if (res.status === 402){
+      plusOpen(data.error || 'Upgrade to continue using hosted AI.');
+      throw new Error(data.error || 'Plus required');
+    }
     if (!res.ok) throw new Error(data.error || data.message || ('HTTP ' + res.status));
+    if (hosted && window.__lfHosted && purpose === 'chat'){
+      fetch('https://access.lithifyte.com/ai/consume', {
+        method:'POST', credentials:'include',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({lane:'chat'})
+      }).then(r => r.json()).then(e => { window.__lfEntitlement = e; }).catch(()=>{});
+    }
     return {content: String(data.content || ''), usage: data.usage || null, fallback: !!data.fallback, model: data.model || ''};
   }
+  const CloudDrive = (function(){
+    let token = null, tokenExp = 0;
+    function cfg(){ return window.__lfConfig || {}; }
+    function status(msg){ const el = document.getElementById('driveStatus'); if (el) el.textContent = msg || ''; }
+    function loadGis(){
+      return new Promise((resolve, reject) => {
+        if (window.google && google.accounts && google.accounts.oauth2) return resolve();
+        const s = document.createElement('script');
+        s.src = 'https://accounts.google.com/gsi/client';
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error('Could not load Google sign-in'));
+        document.head.appendChild(s);
+      });
+    }
+    function connect(scopes){
+      return new Promise(async (resolve, reject) => {
+        const id = cfg().googleClientId;
+        if (!id) return reject(new Error('Google is not attached to this app yet. Add GOOGLE_CLIENT_ID on the access worker.'));
+        try { await loadGis(); } catch (e) { return reject(e); }
+        if (token && Date.now() < tokenExp - 15000) return resolve(token);
+        const client = google.accounts.oauth2.initTokenClient({
+          client_id: id,
+          scope: scopes || 'https://www.googleapis.com/auth/drive.appdata',
+          callback: (resp) => {
+            if (resp && resp.access_token){
+              token = resp.access_token;
+              tokenExp = Date.now() + ((resp.expires_in || 3500) * 1000);
+              resolve(token);
+            } else reject(new Error((resp && resp.error) || 'Google did not grant Drive access'));
+          }
+        });
+        client.requestAccessToken({prompt: token ? '' : 'consent'});
+      });
+    }
+    async function api(path, opts){
+      const t = await connect();
+      const res = await fetch('https://www.googleapis.com' + path, Object.assign({}, opts, {
+        headers: Object.assign({'Authorization':'Bearer ' + t}, (opts && opts.headers) || {})
+      }));
+      return res;
+    }
+    async function backupNow(){
+      status('Preparing encrypted backup…');
+      const pass = (document.getElementById('bkPass') || {}).value || '';
+      if (!pass){ status('Set a passphrase above first — Drive backups are encrypted so a Drive leak is not a finance leak.'); return; }
+      let payload;
+      try { payload = JSON.stringify(await encryptJSON(buildBackup(), pass)); }
+      catch (e) { status('Could not encrypt: ' + (e.message || e)); return; }
+      status('Uploading to your private Drive app folder…');
+      const meta = {name: 'lithifyte-backup-' + new Date().toISOString().slice(0,10) + '.encrypted.json', parents: ['appDataFolder']};
+      const boundary = 'lithifyte' + Date.now();
+      const body =
+        '--' + boundary + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' +
+        JSON.stringify(meta) + '\r\n--' + boundary + '\r\nContent-Type: application/json\r\n\r\n' +
+        payload + '\r\n--' + boundary + '--';
+      const res = await api('/upload/drive/v3/files?uploadType=multipart', {
+        method: 'POST',
+        headers: {'Content-Type': 'multipart/related; boundary=' + boundary},
+        body
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok){ status('Drive refused the upload: ' + (data.error && data.error.message ? data.error.message : res.status)); return; }
+      status('Backed up as ' + meta.name + ' in Lithifyte’s private Drive folder.');
+      try { if (window.__lfTrack) window.__lfTrack('action', {action:'drive_backup'}); } catch (e) {}
+      await list();
+    }
+    async function list(){
+      const res = await api('/drive/v3/files?spaces=appDataFolder&orderBy=modifiedTime desc&pageSize=12&fields=files(id,name,modifiedTime,size)');
+      const data = await res.json().catch(() => ({}));
+      const box = document.getElementById('driveList');
+      if (!box) return data.files || [];
+      const files = data.files || [];
+      if (!files.length){ box.textContent = 'No Lithifyte backups in Drive yet.'; return files; }
+      box.innerHTML = files.map(f =>
+        '<div><button type="button" class="btn small drv-res" data-id="'+esc(f.id)+'" data-name="'+esc(f.name)+'">Restore</button> ' +
+        esc(f.name) + ' · ' + esc((f.modifiedTime||'').slice(0,16).replace('T',' ')) + '</div>').join('');
+      box.querySelectorAll('.drv-res').forEach(b => b.addEventListener('click', () => restore(b.dataset.id, b.dataset.name)));
+      return files;
+    }
+    async function restore(id, name){
+      const pass = (document.getElementById('bkPass') || {}).value || '';
+      if (!pass){ status('Enter the same passphrase you used when backing up.'); return; }
+      status('Downloading ' + (name || 'backup') + '…');
+      const res = await api('/drive/v3/files/' + encodeURIComponent(id) + '?alt=media');
+      const text = await res.text();
+      if (!res.ok){ status('Could not read that file from Drive.'); return; }
+      let obj;
+      try { obj = JSON.parse(text); } catch (e) { status('That file is not JSON.'); return; }
+      try {
+        if (obj && obj.kind === 'household-finance-backup-encrypted')
+          obj = await decryptJSON(obj, pass);
+        importBackup(obj);
+        status('Restored. The co-pilot can now see this household again.');
+        try { if (window.__lfTrack) window.__lfTrack('action', {action:'drive_restore'}); } catch (e) {}
+      } catch (e) {
+        status('Restore failed: ' + (e.message || e));
+      }
+    }
+    async function pickStatement(){
+      // Native picker first — on Chrome signed into Google this includes Drive
+      // with no extra scope. GIS Picker is used when an API key is configured.
+      const key = cfg().googleApiKey;
+      if (!key || !cfg().googleClientId){
+        const inp = document.getElementById('upFile') || document.getElementById('ob-file');
+        if (inp){ inp.click(); status('Pick a statement — on many devices this dialog includes Google Drive.'); }
+        else status('Open People → import and choose a file from Drive.');
+        return;
+      }
+      await connect('https://www.googleapis.com/auth/drive.file');
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://apis.google.com/js/api.js';
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error('Could not load Google Picker'));
+        document.head.appendChild(s);
+      });
+      await new Promise((resolve) => gapi.load('picker', resolve));
+      return new Promise((resolve) => {
+        const view = new google.picker.DocsView(google.picker.ViewId.DOCS)
+          .setIncludeFolders(true)
+          .setSelectFolderEnabled(false)
+          .setMimeTypes('text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/pdf');
+        const picker = new google.picker.PickerBuilder()
+          .addView(view)
+          .setOAuthToken(token)
+          .setDeveloperKey(key)
+          .setCallback(async (data) => {
+            if (data.action !== google.picker.Action.PICKED) { resolve(); return; }
+            const doc = data.docs && data.docs[0];
+            if (!doc) { resolve(); return; }
+            status('Fetching ' + doc.name + ' from Drive…');
+            const res = await fetch('https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(doc.id) + '?alt=media', {
+              headers: {Authorization: 'Bearer ' + token}
+            });
+            const blob = await res.blob();
+            const file = new File([blob], doc.name || 'drive-statement', {type: blob.type || 'application/octet-stream'});
+            try {
+              const acct = (typeof ensureStarterHousehold === 'function' ? ensureStarterHousehold() : null) || (allAccounts()[0]);
+              if (acct && document.getElementById('upAccount')) document.getElementById('upAccount').value = acct.id;
+              Importer.open(file, {status: {textContent:''}});
+              status('Opened in the importer — confirm the preview before anything is saved.');
+            } catch (e) { status(String(e.message || e)); }
+            resolve();
+          })
+          .build();
+        picker.setVisible(true);
+      });
+    }
+    function bind(){
+      const c = document.getElementById('driveConnect');
+      const b = document.getElementById('driveBackup');
+      const r = document.getElementById('driveRestore');
+      const p = document.getElementById('drivePickStmt');
+      const op = document.getElementById('ob-drive-pick');
+      if (c) c.addEventListener('click', () => connect().then(() => { status('Drive connected. Backups go to a private app folder.'); return list(); }).catch(e => status(e.message || e)));
+      if (b) b.addEventListener('click', () => backupNow().catch(e => status(e.message || e)));
+      if (r) r.addEventListener('click', () => list().then(files => {
+        if (files && files[0]) return restore(files[0].id, files[0].name);
+        status('No backup in Drive yet.');
+      }).catch(e => status(e.message || e)));
+      if (p) p.addEventListener('click', () => pickStatement().catch(e => status(e.message || e)));
+      if (op){
+        op.hidden = false;
+        op.addEventListener('click', () => pickStatement().catch(e => {
+          const s = document.getElementById('ob-file-status');
+          if (s) s.textContent = e.message || e;
+        }));
+      }
+      const plusBtn = document.getElementById('plusOpenBtn');
+      const plusX = document.getElementById('plusClose');
+      const plusM = document.getElementById('plusMonth');
+      const plusY = document.getElementById('plusYear');
+      if (plusBtn) plusBtn.addEventListener('click', () => plusOpen());
+      if (plusX) plusX.addEventListener('click', () => { const el = document.getElementById('plusOverlay'); if (el) el.hidden = true; });
+      if (plusM) plusM.addEventListener('click', () => startCheckout('month'));
+      if (plusY) plusY.addEventListener('click', () => startCheckout('year'));
+      const so = document.getElementById('acctSignOut');
+      if (so) so.addEventListener('click', () => {
+        fetch('https://access.lithifyte.com/logout', {method:'POST', credentials:'include'}).finally(() => {
+          window.__lfSignedIn = false; window.__lfMe = null;
+          if (window.__lfHosted) location.reload();
+        });
+      });
+      const who = document.getElementById('acctWho');
+      if (who && window.__lfMe && window.__lfMe.email){
+        const p = window.__lfMe.plan || 'free';
+        const rem = window.__lfMe.remaining;
+        who.textContent = window.__lfMe.email + ' · ' + p +
+          (rem === -1 ? ' · hosted AI unlimited' : (typeof rem === 'number' ? ' · ' + rem + ' hosted questions left this week' : ''));
+      }
+      if (/[?&]plus=1\b/.test(location.search)){
+        refreshEntitlement().then(() => { if (who && window.__lfEntitlement) who.textContent = (window.__lfEntitlement.email || '') + ' · ' + (window.__lfEntitlement.plan || ''); });
+      }
+    }
+    return {bind, connect, backupNow, list, restore, pickStatement};
+  })();
   window.__ddMinimise = Engine.minimise;
   window.__ddDisclose = () => (discloseStore.items || []).slice();
   window.__ddAiConsent = () => JSON.parse(JSON.stringify(lmStore.consent || {}));
@@ -18483,6 +18836,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     function bind(){
       if (bound) return; bound = true;
       try { aiBindConsentUi(); } catch (e) {}
+      try { CloudDrive.bind(); } catch (e) {}
       const inp = document.getElementById('ccInput');
       const send = document.getElementById('ccSend');
       const plus = document.getElementById('ccPlus');
@@ -19157,7 +19511,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
        body:'Type a question and press Enter. Ask for a category (“how has groceries done”), your balances, next month’s outlook, or a section by name. Answers are computed by Lithifyte’s own Engine from your data — the model narrates, it never invents a number. The chips underneath are built from your actual figures, so they change as your data does.'},
       {part:8, dock:'map', target:'#modelBtn', title:'Which model answers',
        loc:'Message box → Lithifyte',
-       body:'Lithifyte AI is hosted for you — nothing to set up, no key to paste. The other choices (Grok, Claude, GPT, your own local endpoint) are marked Coming soon and cannot be picked yet. You can also switch to Commands only, which uses no model at all — the tools still work.'},
+       body:'Lithifyte AI is hosted for you — nothing to set up, no key to paste. You can also point the picker at your own model (Ollama, a fine-tuned Qwen, any OpenAI-compatible URL). Grok, Claude and GPT are still Coming soon. Commands only uses no model at all — the tools still work.'},
       {part:8, dock:'map', target:'#spaceDock', title:'The conversation lives in the rail',
        loc:'Co-pilot rail',
        body:'Send a message and the rail becomes the thread, with the message box docked at its foot. ✦ New chat starts a fresh one; Recents lists the previous conversations and ✕ closes back to that list. ⬚ widens the rail when an answer needs room. Ask for a section and it opens on the right while the map stays live behind the glass — end of tour, explore freely.'}
