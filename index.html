@@ -730,6 +730,8 @@ So, when you change a stored shape:
     background:none; border:0; color:#cfe9ff; font:500 11.5px system-ui,sans-serif; padding:6px 9px; border-radius:8px; cursor:pointer}
   .cp-hist button > span:first-child{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .cp-hist button:hover{background:rgba(56,189,248,.1)}
+  /* the conversation you are actually in, in both homes of this list */
+  .cp-hist button.on{background:rgba(56,189,248,.16); box-shadow:inset 2px 0 0 #38bdf8; color:#fff}
   .cp-hist .del{margin-left:auto; color:#f87171; font-size:11px; border:1px solid rgba(248,113,113,.35);
     border-radius:6px; padding:1px 6px; background:rgba(248,113,113,.08)}
   /* a draft row carries a second line (what is in it), so its label stacks */
@@ -965,7 +967,23 @@ So, when you change a stored shape:
   .dock-thread-head{display:flex; align-items:center; gap:6px; padding:9px 9px 6px;
     font:700 11.5px system-ui,sans-serif; color:#e8f4ff; position:sticky; top:0; z-index:2;
     background:linear-gradient(rgba(2,11,26,.97), rgba(2,11,26,.86))}
-  .dock-thread-head #companionTitle{flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .dock-thread-head #companionTitle{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  /* the title IS the switcher — a dropdown, not a label */
+  .dock-th-title{flex:1; min-width:0; display:flex; align-items:center; gap:5px; cursor:pointer; text-align:left;
+    border:1px solid transparent; border-radius:8px; padding:3px 6px; margin:-3px -2px;
+    background:none; color:inherit; font:inherit}
+  .dock-th-title:hover{background:rgba(56,189,248,.1); border-color:rgba(56,189,248,.3)}
+  .dock-th-title[aria-expanded="true"]{background:rgba(56,189,248,.14); border-color:rgba(56,189,248,.45)}
+  .dock-th-title .caret{flex:0 0 auto; font-size:9px; opacity:.7}
+  .chat-switch-pop{position:absolute; z-index:14; left:8px; right:8px; margin-top:2px; padding:7px;
+    border:1px solid rgba(56,189,248,.4); border-radius:11px; background:rgba(4,14,30,.98);
+    box-shadow:0 16px 40px rgba(0,0,0,.6); max-height:min(52vh,340px); overflow:auto}
+  .chat-switch-pop .pop-label{margin:0 0 5px; padding:0 3px; font:600 10px system-ui,sans-serif;
+    letter-spacing:.06em; text-transform:uppercase; color:#7fa5cc}
+  .cs-new{width:100%; margin-top:5px; padding:6px; cursor:pointer; border-radius:8px;
+    border:1px solid rgba(56,189,248,.3); background:rgba(56,189,248,.1); color:#cfe9ff; font:600 11.5px system-ui,sans-serif}
+  .cs-new:hover{border-color:rgba(56,189,248,.7); background:rgba(56,189,248,.18)}
+  .cs-empty{padding:6px 8px; font-size:11px; color:#7fa5cc}
   .dock-th-b{flex:0 0 auto; width:24px; height:24px; border-radius:7px; padding:0; cursor:pointer;
     border:1px solid rgba(56,189,248,.28); background:rgba(56,189,248,.08); color:#cfe9ff; font-size:11px; line-height:1}
   .dock-th-b:hover{border-color:rgba(56,189,248,.65); color:#fff}
@@ -2865,9 +2883,20 @@ rewrite the static advice cards if the picture has changed.</div>
     <!-- chatting: the live conversation, in the rail rather than a floating card -->
     <div id="dockThread" hidden>
       <div class="dock-thread-head">
-        <span id="companionTitle">Co-pilot</span>
+        <!-- The title doubles as the conversation switcher. Recents live in
+             #dockRecents, which is HIDDEN while chatting — so once you were in a
+             conversation there was no way to reach another one without leaving. -->
+        <button type="button" class="dock-th-title" id="chatSwitch" aria-expanded="false" aria-haspopup="true"
+                title="Switch conversation">
+          <span id="companionTitle">Co-pilot</span><span class="caret" aria-hidden="true">▾</span>
+        </button>
         <button type="button" class="dock-th-b" id="chatMax" title="Widen the rail" aria-label="Widen the rail">⤢</button>
         <button type="button" class="dock-th-b" id="companionClose" title="Back to sections" aria-label="Close conversation">✕</button>
+      </div>
+      <div class="chat-switch-pop" id="chatSwitchPop" hidden role="menu" aria-label="Recent conversations">
+        <p class="pop-label">Recent conversations</p>
+        <div class="cp-hist" id="chatSwitchList"></div>
+        <button type="button" class="cs-new" id="chatSwitchNew">✦ New chat</button>
       </div>
       <div id="companionThread" aria-live="polite"></div>
       <div id="companionOut"></div>
@@ -10671,8 +10700,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         const gh = document.querySelector('.graph-hint');
         if (gh) gh.style.display = 'none';
       } catch (e) {}
+      // chatId/scenId travel with the node or the card cannot tell WHICH chat or
+      // draft was clicked — it was silently opening whatever chat happened to be
+      // active, and reporting a live draft as "no longer in the sandbox".
       if (onNodeCb) onNodeCb({id:n.id, type:n.type, label:n.label, full:n.full || n.label,
         val:n.val, n:n.n, inc:n.inc, out:n.out, expanded: expanded.has(n.id),
+        chatId:n.chatId, scenId:n.scenId,
         progress:n.progress, target:n.target, payoffMonth:n.payoffMonth,
         rec: n.rec ? {avgMo:n.rec.avgMo, conf:n.rec.conf, endMonth:n.rec.endMonth} : null});
     }
@@ -10911,6 +10944,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
                                       : {x: view.x, y: view.y, k: view.k}}),
             onNode: cb => { onNodeCb = cb; },
             highlight: ids => { extHi = ids && ids.length ? new Set(ids) : null; draw(performance.now()); },
+            highlighted: () => extHi,   // testing hook — what is illuminated right now
             setPaused: b => { paused = !!b; if (!paused) ensureAnim(); else draw(performance.now()); }};
   })();
 
@@ -13686,6 +13720,95 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         // only the two drafts — an applied scenario is history, not a draft
         return (!wrap.hidden && rows === 2 && dels === 2) || JSON.stringify({hidden:wrap.hidden, rows, dels});
       } finally { scenarioStore.items = keep; Companion.renderScenarios(); }
+    });
+    // These drive `window.__graphClick` — the SAME path a user's click takes.
+    // The earlier card tests built the info object by hand, so they passed while
+    // the real click was losing the id and the card said a live draft was gone.
+    await AT('map: clicking a chat node reopens THAT conversation', async () => {
+      if (typeof window.__graphClick !== 'function') return 'no graph click hook';
+      const keepChats = chatStore.items.slice();
+      const keepActive = Companion.activeChat();
+      try {
+        const a = {id:'chat_selftest_a', title:'Older chat', messages:[{id:'x', role:'user', content:'hi'}], links:[], updated:new Date().toISOString()};
+        const b = {id:'chat_selftest_b', title:'Newer chat', messages:[{id:'y', role:'user', content:'yo'}], links:[], updated:new Date().toISOString()};
+        chatStore.items.unshift(a, b);
+        Companion.setActiveChat(b.id);          // we are sitting in the NEWER one
+        if (graph && graph.rebuild){ graph.rebuild(); graph.draw(); }
+        await new Promise(r => setTimeout(r, 0));
+        window.__graphClick('chat:' + a.id);    // click the OLDER one on the map
+        const btn = document.querySelector('#ncActions button[data-act="companion"]');
+        if (!btn) return 'chat node card has no reopen button';
+        if (btn.dataset.chat !== a.id) return 'button carries "' + btn.dataset.chat + '", wanted ' + a.id;
+        btn.click();
+        return Companion.activeChat() === a.id || 'opened ' + Companion.activeChat() + ' instead of ' + a.id;
+      } finally {
+        chatStore.items = keepChats; Companion.setActiveChat(keepActive);
+        hideNodeCard();
+        try { if (graph && graph.rebuild){ graph.rebuild(); graph.draw(); } } catch (e) {}
+      }
+    });
+    await AT('map: clicking a draft node shows that draft, not "no longer here"', async () => {
+      if (typeof window.__graphClick !== 'function') return 'no graph click hook';
+      const keep = scenarioStore.items.slice();
+      try {
+        scenarioStore.items = [{id:'scen_selftest', title:'Draft under test', status:'draft', kind:'budget',
+          created:'2026-08-01T10:00:00.000Z', conversationId:null,
+          payload:{lines:[{category:'Groceries', amount:432}]}, links:[]}];
+        if (graph && graph.rebuild){ graph.rebuild(); graph.draw(); }
+        await new Promise(r => setTimeout(r, 0));
+        window.__graphClick('scen:scen_selftest');
+        const body = document.getElementById('ncBody').textContent;
+        const acts = document.getElementById('ncActions').innerHTML;
+        if (/no longer in the sandbox/i.test(body)) return 'card lost the draft id';
+        return (/Groceries/.test(body) && /432/.test(body) && /data-act="scendel"/.test(acts)) ||
+               JSON.stringify({body: body.slice(0, 140)});
+      } finally {
+        scenarioStore.items = keep; saveScenarios(); hideNodeCard();
+        try { if (graph && graph.rebuild){ graph.rebuild(); graph.draw(); } } catch (e) {}
+      }
+    });
+    T('chat panel: the conversation switcher lists chats while you are chatting', () => {
+      const keepChats = chatStore.items.slice();
+      const keepActive = Companion.activeChat();
+      try {
+        chatStore.items = [
+          {id:'c1', title:'First', messages:[], links:[]},
+          {id:'c2', title:'Second', messages:[], links:[]}
+        ];
+        Companion.setActiveChat('c2');
+        Companion.setSwitchPop(true);
+        const pop = document.getElementById('chatSwitchPop');
+        const rows = document.querySelectorAll('#chatSwitchList button[data-id]');
+        const onRow = document.querySelector('#chatSwitchList button[data-id].on');
+        // the rail's Recents is hidden while chatting — this is the only way through
+        const recentsHidden = !!document.getElementById('dockRecents').hidden;
+        if (pop.hidden) return 'switcher did not open';
+        if (rows.length !== 2) return 'listed ' + rows.length + ' conversations';
+        if (!onRow || onRow.dataset.id !== 'c2') return 'active conversation not marked';
+        // and picking one switches to it
+        [...rows].find(r => r.dataset.id === 'c1').click();
+        return (Companion.activeChat() === 'c1' && recentsHidden === document.getElementById('dockRecents').hidden) ||
+               'switch did not take: ' + Companion.activeChat();
+      } finally {
+        Companion.setSwitchPop(false);
+        chatStore.items = keepChats; Companion.setActiveChat(keepActive);
+      }
+    });
+    T('chat panel: selecting a conversation illuminates it on the map', () => {
+      if (!graph || !graph.highlight) return true;   // classic view has no map
+      const keepChats = chatStore.items.slice();
+      const keepActive = Companion.activeChat();
+      try {
+        chatStore.items = [{id:'c9', title:'Lit', messages:[], links:['cat:Groceries']}];
+        Companion.setActiveChat('c9');
+        Companion.highlightChat('c9');
+        const hi = graph.highlighted && graph.highlighted();
+        if (!hi) return true;                        // no read-back available
+        return (hi.has('chat:c9') && hi.has('cat:Groceries')) || JSON.stringify([...hi]);
+      } finally {
+        Companion.highlightChat(null);
+        chatStore.items = keepChats; Companion.setActiveChat(keepActive);
+      }
     });
     T('scenarios: the node card shows what is inside a draft', () => {
       const keep = scenarioStore.items.slice();
@@ -16876,6 +16999,71 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const sc = el.closest('.dock-scroll') || el;
       sc.scrollTop = sc.scrollHeight;
     }
+    // Selecting or starting a conversation lights its node — and the money
+    // objects it touched — on the map, the same illumination hovering gives you.
+    // Without it the map never reacts to what you are reading.
+    function highlightChat(id){
+      if (typeof graph === 'undefined' || !graph || !graph.highlight) return;
+      const chat = id && chatStore.items.find(c => c.id === id);
+      if (!chat){ graph.highlight(null); return; }
+      const ids = ['chat:' + chat.id, ...(chat.links || [])];
+      // scenarios drafted in this conversation belong to the same thought
+      for (const s of (scenarioStore.items || [])) if (s.conversationId === chat.id) ids.push('scen:' + s.id);
+      graph.highlight(ids);
+    }
+    function chatRowHtml(c, activeId){
+      const on = c.id === activeId ? ' class="on"' : '';
+      return '<button type="button" data-id="' + esc(c.id) + '"' + on + '><span>💬 ' + esc((c.title || 'Chat').slice(0, 36)) + '</span>'
+        + '<span class="del" data-del="' + esc(c.id) + '" title="Delete chat">Delete</span></button>';
+    }
+    // one wiring for both homes of the list: the idle rail and the in-chat
+    // dropdown. They drifted apart otherwise.
+    function bindChatList(el, after){
+      el.querySelectorAll('button[data-id]').forEach(b => b.addEventListener('click', e => {
+        if (e.target && e.target.dataset && e.target.dataset.del) return;
+        activeChatId = b.dataset.id;
+        highlightChat(activeChatId);
+        renderHist(); renderThread(); setChatOpen(true);
+        if (after) after();
+      }));
+      el.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', e => {
+        e.stopPropagation();
+        const id = b.dataset.del;
+        const i = chatStore.items.findIndex(c => c.id === id);
+        if (i < 0) return;
+        const removed = chatStore.items.splice(i, 1)[0];
+        if (activeChatId === id) activeChatId = (chatStore.items[0] && chatStore.items[0].id) || null;
+        saveChats();
+        try { if (graph && graph.rebuild){ graph.rebuild(); graph.draw(); } } catch (err) {}
+        highlightChat(activeChatId);
+        renderHist(); renderThread();
+        if (after) after();
+        if (typeof undoToast === 'function'){
+          undoToast('Deleted chat “' + (removed.title || 'Chat') + '”', ()=>{
+            chatStore.items.splice(Math.min(i, chatStore.items.length), 0, removed);
+            saveChats();
+            try { if (graph && graph.rebuild){ graph.rebuild(); graph.draw(); } } catch (err) {}
+            renderHist(); renderThread(); renderSwitcher();
+          });
+        }
+      }));
+    }
+    function renderSwitcher(){
+      const el = document.getElementById('chatSwitchList');
+      if (!el) return;
+      const items = (chatStore.items || []).slice(0, 15);
+      if (!items.length){ el.innerHTML = '<p class="cs-empty">No conversations yet.</p>'; return; }
+      el.innerHTML = items.map(c => chatRowHtml(c, activeChatId)).join('');
+      bindChatList(el, () => setSwitchPop(false));
+    }
+    function setSwitchPop(open){
+      const pop = document.getElementById('chatSwitchPop');
+      const btn = document.getElementById('chatSwitch');
+      if (!pop || !btn) return;
+      if (open) renderSwitcher();
+      pop.hidden = !open;
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
     function renderHist(){
       const el = document.getElementById('chatHist');
       if (!el) return;
@@ -16890,37 +17078,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         return;
       }
       el.hidden = false;
-      el.innerHTML = items.map(c => {
-        const on = c.id === activeChatId ? ' style="background:rgba(56,189,248,.12)"' : '';
-        return '<button type="button" data-id="' + esc(c.id) + '"' + on + '><span>💬 ' + esc((c.title || 'Chat').slice(0, 36)) + '</span>'
-          + '<span class="del" data-del="' + esc(c.id) + '" title="Delete chat">Delete</span></button>';
-      }).join('');
-      el.querySelectorAll('button[data-id]').forEach(b => {
-        b.addEventListener('click', e => {
-          if (e.target && e.target.dataset && e.target.dataset.del) return;
-          activeChatId = b.dataset.id;
-          renderHist(); renderThread(); setChatOpen(true);
-        });
-      });
-      el.querySelectorAll('[data-del]').forEach(b => {
-        b.addEventListener('click', e => {
-          e.stopPropagation();
-          const id = b.dataset.del;
-          const i = chatStore.items.findIndex(c => c.id === id);
-          if (i < 0) return;
-          const removed = chatStore.items.splice(i, 1)[0];
-          if (activeChatId === id) activeChatId = (chatStore.items[0] && chatStore.items[0].id) || null;
-          saveChats();
-          try { if (graph && graph.rebuild){ graph.rebuild(); graph.draw(); } } catch (err) {}
-          renderHist(); renderThread();
-          if (typeof undoToast === 'function'){
-            undoToast('Deleted chat “' + (removed.title || 'Chat') + '”', ()=>{
-              chatStore.items.splice(Math.min(i, chatStore.items.length), 0, removed);
-              saveChats(); renderHist(); renderThread();
-            });
-          }
-        });
-      });
+      // same rows, same wiring as the in-chat switcher — see bindChatList
+      el.innerHTML = items.map(c => chatRowHtml(c, activeChatId)).join('');
+      bindChatList(el);
     }
     function renderResult(result){
       const out = document.getElementById('companionOut');
@@ -17062,6 +17222,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // the wrong one makes the tether on the map a lie
       if (chatId && chatStore.items.some(c => c.id === chatId)) activeChatId = chatId;
       if (!activeChatId) ensureChat();
+      highlightChat(activeChatId);
       renderHist();
       renderScenarios();
       renderThread();
@@ -17070,6 +17231,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
     function close(){
       setChatOpen(false);
+      setSwitchPop(false);
+      highlightChat(null);   // the map goes back to its resting state
     }
     // Sandbox drafts are real objects the user accumulates — they need the same
     // list-and-delete affordance conversations already have, or they pile up as
@@ -17136,6 +17299,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     function newChat(){
       activeChatId = null;
       ensureChat();
+      highlightChat(activeChatId);
       renderHist();
       renderScenarios();
       renderThread();
@@ -17227,6 +17391,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       try {
         const result = await handle(q);
         thinking = false;
+        highlightChat(activeChatId);
         renderHist();
         renderScenarios();
         renderThread();
@@ -17269,6 +17434,22 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
 
       if (closeBtn) closeBtn.addEventListener('click', close);
       if (newBtn) newBtn.addEventListener('click', newChat);
+      // conversation switcher inside the chat panel
+      const swBtn = document.getElementById('chatSwitch');
+      const swPop = document.getElementById('chatSwitchPop');
+      const swNew = document.getElementById('chatSwitchNew');
+      if (swBtn && swPop){
+        swBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          setSwitchPop(swPop.hidden);
+        });
+        swPop.addEventListener('click', e => e.stopPropagation());
+        document.addEventListener('click', ()=> setSwitchPop(false));
+        document.addEventListener('keydown', e => {
+          if (e.key === 'Escape' && !swPop.hidden){ e.stopPropagation(); setSwitchPop(false); swBtn.focus(); }
+        });
+      }
+      if (swNew) swNew.addEventListener('click', ()=>{ setSwitchPop(false); newChat(); });
       if (maxBtn) maxBtn.addEventListener('click', ()=>{
         const d = document.getElementById('spaceDock');
         if (!d) return;
@@ -17400,6 +17581,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       ensureChat, newChat, deleteChat, lmEnabled, lmComplete, chats: () => chatStore.items, scenarios: () => scenarioStore.items,
       deleteScenario, applyScenario, renderScenarios, scenSummary,
       renderThread, echoUser, appendMsg, amts, moneyish,
+      highlightChat, renderSwitcher, setSwitchPop,
       echoPending: (v) => { pendingEcho = v; },
       setActiveChat: (id) => { activeChatId = id; },
       activeChat: () => activeChatId,
@@ -18505,15 +18687,23 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     } else if (info.type === 'chat'){
       color = '#a78bfa';
       title = info.full || info.label;
+      // never trust the payload alone for identity — the id carries it too
+      const cid = info.chatId || (String(info.id || '').slice(0, 5) === 'chat:' ? info.id.slice(5) : '');
+      const conv = (typeof chatStore !== 'undefined' && chatStore.items || []).find(c => c.id === cid);
+      const when = conv && conv.updated ? new Date(conv.updated) : null;
       html = row('Kind', 'Conversation') +
-             row('Links', String((info.links && info.links.length) || '—'));
-      act = `<button class="btn small" data-act="companion" data-chat="${esc(info.chatId || '')}" type="button">Open co-pilot</button>`;
+             (conv ? row('Messages', (conv.messages || []).filter(m => m.role !== 'tool').length) : '') +
+             (when && !isNaN(when) ? row('Last active', when.toLocaleDateString(undefined, {day:'numeric', month:'short'}) +
+               ' · ' + when.toLocaleTimeString(undefined, {hour:'2-digit', minute:'2-digit'})) : '') +
+             row('Links', String((info.links && info.links.length) || (conv && conv.links && conv.links.length) || '—'));
+      act = `<button class="btn small primary" data-act="companion" data-chat="${esc(cid)}" type="button">Reopen this chat</button>`;
     } else if (info.type === 'scen'){
       // A draft used to inspect as "Kind: Sandbox scenario" and nothing else —
       // six identical green orbs with no way to tell them apart, no way to see
       // what was in one, and no way to get rid of it. Show the contents.
       color = '#34d399';
-      const scen = (typeof scenarioStore !== 'undefined' && scenarioStore.items || []).find(s => s.id === info.scenId);
+      const sid = info.scenId || (String(info.id || '').slice(0, 5) === 'scen:' ? info.id.slice(5) : '');
+      const scen = (typeof scenarioStore !== 'undefined' && scenarioStore.items || []).find(s => s.id === sid);
       title = (scen && scen.title) || info.full || info.label;
       if (!scen){
         html = row('Kind', 'Sandbox draft') + '<div class="rule-meta">This draft is no longer in the sandbox.</div>';
