@@ -110,7 +110,7 @@
     var justTried = /[?&]signedIn=1\b/.test(location.search);
     var lead = justTried
       ? 'We could not see a session cookie after your sign-in link. Open the link in <b style="color:#e8f1ff">Chrome or Safari</b> (not only the email app’s built-in browser), or request a new link. If you see a browser “HTTP ERROR 403” page, that is blocked by network/Cloudflare settings — not by Lithifyte’s free access list.'
-      : 'Free — magic link, no password. Your financial data stays in this browser. We only use your email for identity and privacy-safe product usage (never transactions).';
+      : 'Free — magic link, no password. Your ledger stays in this browser. We only use your email for identity and privacy-safe product usage (never transactions). Hosted AI, if you use it, sends only the slice that question needs.';
     ov.innerHTML =
       '<div style="width:min(420px,100%);background:rgba(4,18,36,.85);border:1px solid rgba(56,189,248,.28);border-radius:16px;padding:30px 26px;box-shadow:0 0 60px rgba(56,189,248,.12)">' +
         '<div style="display:flex;align-items:center;justify-content:center;gap:10px;font-weight:800;font-size:14px;letter-spacing:.06em;margin-bottom:18px">' +
@@ -153,7 +153,7 @@ you may use, study, modify and share this file, but any published or hosted
 derivative must remain open under the same license, with this notice intact.
 Rebranding and republishing this as a closed or proprietary product violates
 the license. Source + license text: see the project repository (README.md).
-Your financial data stays in YOUR browser — never uploaded. On the hosted app only, privacy-safe product usage events (no amounts/merchants) may be sent for sign-in and product improvement; self-hosted builds send nothing.
+Your ledger stays in YOUR browser — we never store statements. Asking a hosted AI sends only the slice that question needs (see Engine.minimise); Commands-only and a local model send nothing. On the hosted app only, privacy-safe product usage events (no amounts/merchants) may be sent for sign-in and product improvement; self-hosted builds send nothing.
 ════════════════════════════════════════════════════════════════════════════
 FOR AI ASSISTANTS UPDATING THIS DASHBOARD
 ════════════════════════════════════════════════════════════════════════════
@@ -206,8 +206,11 @@ shows a visible "Data integrity" warning when they fail):
      COMPANION / CO-PILOT: command bar ⌘/Ctrl+K + window.__ddCompanion — tool
      registry over Engine (read + navigate only). The model must never produce a
      number; Companion.ask() returns Engine figures only. Do not add recommend/
-     optimise tools. Later phases: LM intent, sandbox, map chat nodes — see
-     Obsidian "Lithifyte - In-App LM Co-Pilot".
+     optimise tools. OUTBOUND AI CONTEXT: every request goes through
+     Engine.minimise (shape | aggregate | detail). The model has no write path
+     that mutates statements. Notes and real account names are not in the
+     system prompt. Consent is per lane (chat / categorise / pdf). See
+     Obsidian "Lithifyte - AI Data Architecture".
      ARCHITECTURE NOTE: pure computation lives in the `Engine` object (no DOM,
      no app-state reads — everything parameterised); the app binds it via thin
      wrappers; renderers read the derived-state surface `D`. Keep new logic in
@@ -363,10 +366,14 @@ breakdown, each with a "＋ Note why" button that opens the editor with those
 links pre-ticked. Linked notes also surface on the matching money-map node
 (people, accounts, categories) and mark it with 📝 — nodeLinkId() is the ONE
 place that maps a map-node id to a link id. Engine.noteContext groups them for
-the LLM handoff: notesForPrompt() feeds both "Copy re-assess prompt" and the
-local-AI categoriser's context, which is the whole point of the feature — a
-model that knows WHY beats one that only sees WHAT. Distinct from
-stores.notes (dd-notes-v1), the one-liners pinned to a single map node.
+the LLM handoff: notesForPrompt() is for the user-facing "Copy re-assess
+prompt" and for a truly local categoriser. Hosted / remote models must NOT
+receive the whole notes block — they call the notes_for tool, scoped, after
+Engine.minimise.scrub. Distinct from stores.notes (dd-notes-v1), the
+one-liners pinned to a single map node.
+stores.disclose = {items:[{id, at, lane, tier, provider, dest, bytes,
+purpose}]} — the user-visible log of what left the device (browser store
+dd-disclose-v1). Never holds a prompt or a response; only metadata. Cap 200.
 When re-assessing, READ THESE and let them shape the advice.
 stores.merch = {rules:[{contains, name}], keep:[raw]}
 — merchant-normalisation overrides (browser store dd-merch-v1). Statement
@@ -1708,6 +1715,9 @@ So, when you change a stored shape:
   #impOverlay{position:fixed; inset:0; z-index:97; display:flex; align-items:center; justify-content:center; padding:18px;
     background:color-mix(in srgb, var(--page) 58%, transparent); backdrop-filter:blur(14px) saturate(1.1); -webkit-backdrop-filter:blur(14px) saturate(1.1)}
   #impOverlay[hidden]{display:none}
+  #aiConsentOverlay{position:fixed; inset:0; z-index:98; display:flex; align-items:center; justify-content:center; padding:20px;
+    background:color-mix(in srgb, var(--page) 58%, transparent); backdrop-filter:blur(14px) saturate(1.1); -webkit-backdrop-filter:blur(14px) saturate(1.1)}
+  #aiConsentOverlay[hidden]{display:none}
   .imp-box{width:min(1080px, 97vw); max-height:93vh; display:flex; flex-direction:column;
     background:var(--surface); border:1px solid var(--border-strong,#334155); border-radius:14px;
     padding:16px 20px 18px; box-shadow:0 18px 60px rgba(0,0,0,.42)}
@@ -2039,7 +2049,7 @@ So, when you change a stored shape:
         <button class="btn primary" id="ob-acct-go" type="button">Add account</button>
         <span class="hint num" id="ob-acct-done"></span></li>
       <li class="ob-step" id="obs4"><span class="ob-num">4</span><b>Your first statement</b>
-        <input type="file" id="ob-file" class="inp" accept=".csv,.tsv,.txt,.xlsx,text/csv">
+        <input type="file" id="ob-file" class="inp" accept=".csv,.tsv,.txt,.xlsx,.pdf,text/csv,application/pdf">
         <button class="btn primary" id="ob-file-go" type="button">Prepare &amp; preview →</button>
         <span class="hint">Your bank's own CSV or Excel export is fine — you'll be shown the columns it found and every transaction before anything is saved</span>
         <span class="hint" id="ob-file-status"></span></li>
@@ -2289,12 +2299,12 @@ So, when you change a stored shape:
       <h3>Upload a statement</h3>
       <p class="hint" id="uploadPrompt" style="margin:0 0 12px"></p>
       <div class="upload-form">
-        <div><label for="upFile">Statement file</label><input id="upFile" type="file" accept=".csv,.tsv,.txt,.xlsx,text/csv" class="inp"></div>
+        <div><label for="upFile">Statement file</label><input id="upFile" type="file" accept=".csv,.tsv,.txt,.xlsx,.pdf,text/csv,application/pdf" class="inp"></div>
         <div><label for="upAccount">Account</label><select id="upAccount" class="inp"></select></div>
         <div id="upNewWrap" style="display:none"><label for="upNewName">New account name</label><input id="upNewName" class="inp" placeholder="e.g. Sally · BOI credit card"></div>
         <div><button class="btn primary" id="upGo" type="button">Prepare &amp; preview →</button></div>
       </div>
-      <p class="hint" style="margin:8px 0 0">CSV, tab-separated or Excel <code>.xlsx</code> — including a bank's own export. Your columns are matched for you (Revolut exports are recognised outright), you correct anything wrong, and <b>you see every transaction before it reaches your dashboard</b>. Nothing is saved until you say so, and the file never leaves this browser.</p>
+      <p class="hint" style="margin:8px 0 0">CSV, tab-separated, Excel <code>.xlsx</code> or a text-layer PDF. Your columns are matched for you (Revolut exports are recognised outright), you correct anything wrong, and <b>you see every transaction before it reaches your dashboard</b>. Nothing is saved until you say so. The file is read in this browser; a PDF with no selectable text is not supported yet (no scan/OCR at launch).</p>
       <div class="upload-form" id="upOwnerRow" style="display:none; margin-top:8px">
         <div><label for="upOwner">Who does this account belong to?</label><select id="upOwner" class="inp"></select></div>
         <div id="upNewOwnerWrap" style="display:none"><label for="upOwnerName">Name (person or business)</label><input id="upOwnerName" class="inp" placeholder="e.g. Sally, or Sally's Bakery Ltd"></div>
@@ -2356,14 +2366,15 @@ So, when you change a stored shape:
     </div>
     <div class="card" style="margin-top:14px" id="lmCard">
       <div class="section-head" style="margin-bottom:8px">
-        <h2 style="font-size:17px">AI categoriser — your local model</h2>
-        <p>Point this at any OpenAI-compatible server running on your own machine (Ollama, LM Studio, llama.cpp) and it will suggest categories for whatever the auto-categoriser couldn't handle — biggest money first. <b>Nothing is applied automatically:</b> every suggestion you accept becomes an ordinary rule (first in line, yours to reorder or delete), and nothing ever leaves your machine. Savings, rent and anything gambling-shaped are flagged for your judgement rather than trusted. Ollama users: start with <code>OLLAMA_ORIGINS=*</code> so the browser may call it. The hosted artifact blocks external requests — open the downloaded file instead.</p>
+        <h2 style="font-size:17px">AI categoriser</h2>
+        <p><b>Nothing is applied automatically</b> — every suggestion you accept becomes an ordinary rule you can reorder or delete. Savings, rent and anything gambling-shaped are flagged for your judgement. <b>Lithifyte AI</b> (hosted) sees merchant names and your category list only — no amounts, no dates, no notes. A local model (Ollama, LM Studio) stays on this machine and may use richer context. Ollama: start with <code>OLLAMA_ORIGINS=*</code>. The hosted artifact blocks localhost — open the downloaded file for a local model.</p>
       </div>
       <div class="filter-row" style="align-items:center">
-        <input id="lm-endpoint" class="inp" placeholder="http://localhost:11434/v1/chat/completions" style="min-width:280px" aria-label="Local model endpoint URL">
+        <button class="btn primary" id="lm-run-hosted" type="button">Suggest with Lithifyte AI</button>
+        <input id="lm-endpoint" class="inp" placeholder="http://localhost:11434/v1/chat/completions" style="min-width:240px" aria-label="Local model endpoint URL">
         <input id="lm-model" class="inp" placeholder="model, e.g. llama3.1:8b" style="max-width:170px" aria-label="Model name">
-        <button class="btn small" id="lm-test" type="button">Test</button>
-        <button class="btn" id="lm-run" type="button">Suggest categories</button>
+        <button class="btn small" id="lm-test" type="button">Test local</button>
+        <button class="btn" id="lm-run" type="button">Suggest locally</button>
       </div>
       <div class="hint" id="lm-status" style="margin-top:8px"></div>
       <div style="overflow-x:auto">
@@ -2878,7 +2889,7 @@ So, when you change a stored shape:
           <span class="copied" id="ndStatus"></span>
         </div>
       </div>
-      <p class="rule-hint" style="margin-top:12px">Notes are included in <b>Copy re-assess prompt</b> and in the local-AI categoriser's context, and they travel in your backup. <button class="btn small" id="ndCopy" type="button">Copy notes for an AI</button></p>
+      <p class="rule-hint" style="margin-top:12px">Notes travel in your backup. <b>Copy re-assess prompt</b> and a local categoriser can include them; the hosted co-pilot does not get them wholesale — it asks for a scoped note if it needs one. <button class="btn small" id="ndCopy" type="button">Copy notes for an AI</button></p>
     </div>
   </div>
 
@@ -2901,6 +2912,14 @@ So, when you change a stored shape:
     <h3 style="margin:18px 0 8px">Tutorial &amp; Ask</h3>
     <p class="hint" style="margin:0 0 10px">Long-form written guide and product Q&amp;A from a local help corpus — not your bank data. For a live walkthrough of this app, use <b>Guided Space tutorial</b> above (or open the sample with the tutorial from onboarding).</p>
     <a class="btn" href="tutorial" id="setTutorialAskLink">📘 Tutorial &amp; Ask</a>
+    <h3 style="margin:18px 0 8px">AI &amp; what left this device</h3>
+    <p class="hint" style="margin:0 0 10px">The ledger never lives on our servers. Asking Lithifyte AI sends only the slice that question needs through a pass-through relay. Commands-only and a local model send nothing. Hosted intelligence is the paid lane later; the Engine stays free forever, and export is never gated.</p>
+    <div class="filter-row" style="margin:0 0 8px; flex-wrap:wrap; gap:8px">
+      <button class="btn" id="aiConsentRevoke" type="button">Revoke AI consent</button>
+      <button class="btn small" id="aiDiscloseClear" type="button">Clear this log</button>
+      <span class="hint" id="aiConsentHint"></span>
+    </div>
+    <div id="aiDiscloseList" class="hint" style="max-height:180px; overflow:auto; margin-top:6px">No hosted requests yet.</div>
   </div>
 
   <!-- ═══ UPDATE ME ═══ -->
@@ -3112,7 +3131,7 @@ rewrite the static advice cards if the picture has changed.</div>
     <textarea id="ccInput" rows="1" placeholder="How can I help with your finances?" aria-label="Message the co-pilot"></textarea>
     <div class="cc-tools">
       <button type="button" class="cc-btn" id="ccPlus" title="Attach a file (CSV, Excel, text) for the model or import">＋</button>
-      <input type="file" id="ccFile" accept=".csv,.xlsx,.xls,.txt,.md,.json,text/*,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" hidden multiple>
+      <input type="file" id="ccFile" accept=".csv,.xlsx,.xls,.txt,.md,.json,.pdf,text/*,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" hidden multiple>
       <button type="button" class="model-btn" id="modelBtn" aria-expanded="false" aria-haspopup="true"
               title="Which model answers — Lithifyte AI is hosted for you">
         <span id="modelLbl">Auto</span><span class="caret" aria-hidden="true">▾</span>
@@ -3145,7 +3164,7 @@ rewrite the static advice cards if the picture has changed.</div>
     </div>
     <!-- kept for the saveLmForm() binding; the popover saves as you type -->
     <button type="button" id="cp-saveLm" hidden aria-hidden="true">Save</button>
-    <p class="pop-note"><span id="cp-lmStatus">Saved in this browser only — never on a server.</span></p>
+    <p class="pop-note"><span id="cp-lmStatus">Lithifyte AI is hosted: the question’s slice is sent for that request, not stored by us. Commands only never leaves this device.</span></p>
   </div>
 </div>
 <!-- legacy id for tests -->
@@ -3275,6 +3294,20 @@ rewrite the static advice cards if the picture has changed.</div>
 
 <div class="tip" id="tip"></div>
 
+<div id="aiConsentOverlay" hidden>
+  <div class="wiz-box" role="dialog" aria-modal="true" aria-labelledby="aiConsentTitle">
+    <div class="wiz-kicker">Before this request leaves the device</div>
+    <h3 id="aiConsentTitle">Send this to Lithifyte AI?</h3>
+    <p class="wiz-sub" id="aiConsentBody"></p>
+    <ul id="aiConsentPoints" class="hint" style="margin:0 0 14px; padding-left:18px; line-height:1.55"></ul>
+    <div class="wiz-nav">
+      <button class="btn" id="aiConsentNo" type="button">Not now</button>
+      <span class="wiz-spacer"></span>
+      <button class="btn" id="aiConsentOff" type="button">Commands only</button>
+      <button class="btn primary" id="aiConsentYes" type="button">Send this request</button>
+    </div>
+  </div>
+</div>
 <div id="wizOverlay" hidden>
   <div class="wiz-box" role="dialog" aria-modal="true" aria-labelledby="wizTitle">
     <div class="wiz-kicker" id="wizKicker">Guided setup</div>
@@ -3451,7 +3484,7 @@ rewrite the static advice cards if the picture has changed.</div>
   const MAP_LEGEND = false;
 
   // ══ persistent stores (all in this browser — self-hosted) ══
-  const LS = {rules:'dd-rules-v2', cats:'dd-cats-v2', goals:'dd-goals-v1', org:'dd-org-v1', recur:'dd-recur-v1', uploads:'dd-uploads-v1', xfers:'dd-xfers-v1', manrec:'dd-manrec-v1', fcast:'dd-fcast-v1', cuts:'dd-cuts-v1', visit:'dd-visit-v1', budget:'dd-budget-v1', priv:'dd-privacy-v1', debts:'dd-debts-v1', holds:'dd-holdings-v1', assets:'dd-assets-v1', nwlog:'dd-nwlog-v1', merch:'dd-merch-v1', notes:'dd-notes-v1', lm:'dd-lm-v1', cash:'dd-cash-v1', alerts:'dd-alerts-v1', txcat:'dd-txcat-v1', docs:'dd-docs-v1', imports:'dd-imports-v1', chats:'dd-chats-v1', scenarios:'dd-scenarios-v1'};
+  const LS = {rules:'dd-rules-v2', cats:'dd-cats-v2', goals:'dd-goals-v1', org:'dd-org-v1', recur:'dd-recur-v1', uploads:'dd-uploads-v1', xfers:'dd-xfers-v1', manrec:'dd-manrec-v1', fcast:'dd-fcast-v1', cuts:'dd-cuts-v1', visit:'dd-visit-v1', budget:'dd-budget-v1', priv:'dd-privacy-v1', debts:'dd-debts-v1', holds:'dd-holdings-v1', assets:'dd-assets-v1', nwlog:'dd-nwlog-v1', merch:'dd-merch-v1', notes:'dd-notes-v1', lm:'dd-lm-v1', cash:'dd-cash-v1', alerts:'dd-alerts-v1', txcat:'dd-txcat-v1', docs:'dd-docs-v1', imports:'dd-imports-v1', chats:'dd-chats-v1', scenarios:'dd-scenarios-v1', disclose:'dd-disclose-v1'};
   // demo build (raw.demo:true in the data block): every store gets its own
   // namespace — the sample household shares an origin with the real app, and
   // playing with sample data must never be able to touch someone's real data
@@ -3853,6 +3886,7 @@ rewrite the static advice cards if the picture has changed.</div>
   if (!lmStore.provider) lmStore.provider = 'lithifyte';
   if (lmStore.apiKey == null) lmStore.apiKey = '';
   if (lmStore.useLm == null) lmStore.useLm = true;
+  if (!lmStore.consent || typeof lmStore.consent !== 'object') lmStore.consent = {};
   // Which providers the picker may actually select. The BYOK ones are built and
   // still work at the relay, but read "Coming soon" until they are turned on —
   // flip a value here and drop the matching `disabled` in #cp-provider to ship
@@ -3866,6 +3900,8 @@ rewrite the static advice cards if the picture has changed.</div>
   if (!Array.isArray(chatStore.items)) chatStore = {items:[]};
   let scenarioStore = load(LS.scenarios, {items:[]});
   if (!Array.isArray(scenarioStore.items)) scenarioStore = {items:[]};
+  let discloseStore = load(LS.disclose, {items:[]});
+  if (!Array.isArray(discloseStore.items)) discloseStore = {items:[]};
   // Manual cash ledger: items on kind=cash accounts (ATM→spend links, notes, edit/delete)
   let cashStore = load(LS.cash, {items:[]}); // {id, acctId, d, m, c, s, de, cr, note, link:{acctId,d,m,de,cr}|null}
   // Alerts & reminders: user-set reminders (once / monthly / yearly, with a
@@ -4456,6 +4492,145 @@ rewrite the static advice cards if the picture has changed.</div>
         if (MU.includes(U)) over.push(m);
       }
       return {ok:true, over};
+    },
+    // ── AI data minimiser ──
+    // One chokepoint: every payload that may leave the device is built here.
+    // Tiers: shape (merchant strings + category names) · aggregate (totals,
+    // ratios, aliases) · detail (individual rows the user asked to see).
+    // leaks(tier, payload) is what the self-test asserts — a future tool that
+    // smuggles an IBAN or a Shape-tier amount shows up red, not in production.
+    minimise: {
+      IBAN: /\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b/g,
+      EMAIL: /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
+      // 13–19 digits with optional spaces/dashes — a card or account number.
+      // Amounts like 104.69 do not match (too short, have a decimal).
+      CARD: /\b(?:\d[ \-]?){13,19}\b/g,
+      scrub(text){
+        return String(text == null ? '' : text)
+          .replace(Engine.minimise.IBAN, '[IBAN]')
+          .replace(Engine.minimise.EMAIL, '[email]')
+          .replace(Engine.minimise.CARD, '[number]');
+      },
+      accounts(list){
+        const fwd = {}, rev = {}, aliases = [];
+        (list || []).forEach((a, i) => {
+          if (!a) return;
+          const alias = 'acct_' + (i + 1);
+          aliases.push(alias);
+          if (a.id) fwd[String(a.id)] = alias;
+          if (a.name) fwd[String(a.name)] = alias;
+          rev[alias] = a.name || a.id || alias;
+        });
+        return {fwd, rev, aliases};
+      },
+      aliasText(text, map){
+        let s = String(text == null ? '' : text);
+        if (!map || !map.fwd) return s;
+        const names = Object.keys(map.fwd).sort((a, b) => b.length - a.length);
+        for (const name of names){
+          if (!name || name.length < 2) continue;
+          if (name.indexOf(map.fwd[name]) === 0 && name.length < 10) continue;
+          s = s.split(name).join(map.fwd[name]);
+        }
+        return s;
+      },
+      revealText(text, map){
+        let s = String(text == null ? '' : text);
+        if (!map || !map.rev) return s;
+        for (const alias of Object.keys(map.rev))
+          s = s.split(alias).join(map.rev[alias]);
+        return s;
+      },
+      shape({merchants, categories}){
+        const merchantsOut = [];
+        const seen = new Set();
+        for (const m of (merchants || [])){
+          const s = Engine.minimise.scrub(String(m || '')).replace(/\s+/g, ' ').trim().slice(0, 80);
+          if (!s || seen.has(s)) continue;
+          seen.add(s);
+          merchantsOut.push(s);
+          if (merchantsOut.length >= 40) break;
+        }
+        const cats = [];
+        for (const c of (categories || [])){
+          const s = String(c || '').trim();
+          if (s && cats.indexOf(s) < 0) cats.push(s);
+          if (cats.length >= 40) break;
+        }
+        return {tier:'shape', merchants: merchantsOut, categories: cats};
+      },
+      aggregate({range, currency, cats, income, spend, save, accountAliases}){
+        return {
+          tier: 'aggregate',
+          range: String(range || ''),
+          currency: String(currency || 'EUR'),
+          incomeAvg: income == null ? null : Math.round(+income),
+          spendAvg: spend == null ? null : Math.round(+spend),
+          saveAvg: save == null ? null : Math.round(+save),
+          categories: (cats || []).slice(0, 20).map(c => ({
+            name: c.name || c.category || '',
+            avg: Math.round(+(c.avg != null ? c.avg : (c.avgMonth != null ? c.avgMonth : c.amount)) || 0)
+          })).filter(c => c.name),
+          accounts: (accountAliases || []).slice(0, 12)
+        };
+      },
+      detail({rows, accountAliases}){
+        return {
+          tier: 'detail',
+          accounts: (accountAliases || []).slice(0, 12),
+          rows: (rows || []).slice(0, 40).map(r => ({
+            date: r.date || r.d || '',
+            merchant: Engine.minimise.scrub(r.merchant || r.m || '').slice(0, 80),
+            category: r.category || r.c || '',
+            amount: +(Number(r.amount != null ? r.amount : (r.de || r.cr || 0)).toFixed(2))
+          }))
+        };
+      },
+      leaks(tier, payload){
+        const s = typeof payload === 'string' ? payload : JSON.stringify(payload || {});
+        const found = [];
+        Engine.minimise.IBAN.lastIndex = 0;
+        Engine.minimise.EMAIL.lastIndex = 0;
+        if (Engine.minimise.IBAN.test(s)) found.push('iban');
+        if (Engine.minimise.EMAIL.test(s)) found.push('email');
+        if (tier === 'shape'){
+          if (/[€$£]/.test(s)) found.push('currency');
+          if (/\b\d+[.,]\d{2}\b/.test(s)) found.push('amount');
+          if (/\b20\d{2}-\d{2}-\d{2}\b/.test(s)) found.push('iso-date');
+        }
+        return found;
+      }
+    },
+    // Heuristic: turn extracted statement text into a Date/Merchant/Debit/Credit
+    // grid the existing importer can preview. Returns [] when it cannot prove
+    // three dated, amount-bearing lines — the caller then offers AI parse.
+    pdfGuessGrid(text){
+      const lines = String(text || '').split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
+      const rows = [['Date', 'Merchant', 'Debit', 'Credit']];
+      const dateRe = /\b(\d{1,2}[./-]\d{1,2}[./-]\d{2,4}|\d{4}-\d{2}-\d{2})\b/;
+      const amtRe = /(?:€|EUR|\$|£)?\s*(-?(?:\d{1,3}(?:[.,]\d{3})+[.,]\d{2}|\d+[.,]\d{2}))\s*(?:€|EUR|\$|£)?/g;
+      for (const line of lines){
+        const dm = line.match(dateRe);
+        if (!dm) continue;
+        const amounts = [];
+        amtRe.lastIndex = 0;
+        let m;
+        while ((m = amtRe.exec(line))) amounts.push(m[1]);
+        if (!amounts.length) continue;
+        let rest = line.replace(dm[0], ' ').replace(/(?:€|EUR|\$|£)?\s*-?(?:\d{1,3}(?:[.,]\d{3})+[.,]\d{2}|\d+[.,]\d{2})\s*(?:€|EUR|\$|£)?/g, ' ');
+        rest = Engine.minimise.scrub(rest).replace(/\s+/g, ' ').trim();
+        if (rest.length < 2) continue;
+        const rawAmt = String(amounts[amounts.length - 1]);
+        const lastComma = rawAmt.lastIndexOf(','), lastDot = rawAmt.lastIndexOf('.');
+        const normalised = lastComma > lastDot
+          ? rawAmt.replace(/\./g, '').replace(',', '.')
+          : rawAmt.replace(/,/g, '');
+        const n = Math.abs(parseFloat(normalised) || 0);
+        if (!(n > 0)) continue;
+        const credit = /\b(cr|credit|deposit|lodgement|in)\b/i.test(line);
+        rows.push([dm[1], rest.slice(0, 80), credit ? '' : n.toFixed(2), credit ? n.toFixed(2) : '']);
+      }
+      return rows.length > 3 ? rows : [];
     },
     // P7-34 goal + wealth constellation: shape goals/holdings/assets/debts
     // into map-node descriptors. Pure shaping only — the map owns geometry.
@@ -7945,36 +8120,64 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
       lmStatus('✗ Couldn’t reach it — is the server running? Ollama needs <code>OLLAMA_ORIGINS=*</code>, and the hosted artifact blocks external requests (open the downloaded file instead).');
     }
   });
+  async function lmApplyParsed(cands, parsed){
+    const byName = new Map(cands.map(c => [c.merchant, Object.assign({}, c, {allRaws: [...new Set(TX.filter(t => canonOf(t.m) === c.merchant).map(t => t.m))]})]));
+    lmSugs = parsed.items.filter(s => byName.has(s.merchant))
+      .map(s => Object.assign(s, {group: byName.get(s.merchant)}))
+      .filter(s => s.category !== s.group.cat);
+    const skipped = parsed.items.length - lmSugs.length;
+    lmStatus('The model suggested ' + lmSugs.length + ' change' + (lmSugs.length === 1 ? '' : 's') +
+      (skipped > 0 ? ' (' + skipped + ' agreed with the current category or didn’t match)' : '') +
+      '. <b>Nothing is applied until you accept it</b> — each acceptance becomes a normal rule you can reorder or delete.');
+    renderLmSugs();
+  }
   document.getElementById('lm-run').addEventListener('click', async ()=>{
     lmSaveCfg();
     const cands = lmCandidatesLive();
     if (!cands.length){ lmStatus('Nothing needs categorising right now — everything is covered by the feed, your rules, or was dismissed. 🎉'); return; }
-    lmStatus('Asking your model about ' + cands.length + ' merchant group' + (cands.length === 1 ? '' : 's') + '… (local models can take a minute)');
+    lmStatus('Asking your local model about ' + cands.length + ' merchant group' + (cands.length === 1 ? '' : 's') + '…');
     const allowed = A.allCats.filter(c => c !== INT_CAT);
-    // the household's own context goes with the numbers — it is exactly what a
-    // categoriser working from merchant strings alone cannot know
+    const shape = Engine.minimise.shape({merchants: cands.map(c => c.merchant), categories: allowed});
+    const leaks = Engine.minimise.leaks('shape', shape);
+    if (leaks.length){ lmStatus('✗ Shape payload failed the leak check (' + leaks.join(', ') + ').'); return; }
+    // Local model stays on this machine, so notes may go with it. Amounts do not —
+    // the same Shape contract, even locally, so a mis-pointed endpoint cannot leak.
     const ctx = notesForPrompt();
-    const user = 'Allowed categories (use EXACTLY these strings): ' + JSON.stringify(allowed) + '\n' +
-      (ctx ? 'Context about this household from the user\'s own notes (use it when it bears on a category, ignore it otherwise):\n' + ctx + '\n' : '') +
-      'Merchant groups to categorise:\n' + JSON.stringify(cands.map(c => ({merchant: c.merchant,
-        currentCategory: c.cat, totalEUR: c.total, transactions: c.n, monthsSeen: c.months,
-        mostlyCredits: c.credit, statementNames: c.raws})), null, 1) +
+    const user = 'Allowed categories (use EXACTLY these strings): ' + JSON.stringify(shape.categories) + '\n' +
+      (ctx ? 'Context about this household from the user\'s own notes (use it when it bears on a category, ignore it otherwise):\n' + Engine.minimise.scrub(ctx) + '\n' : '') +
+      'Merchant names to categorise:\n' + JSON.stringify(shape.merchants) +
       '\nReply with the JSON array only.';
     try{
       const txt = await lmChat([{role:'system', content: LM_SYS}, {role:'user', content: user}]);
       const parsed = Engine.lmParse({text: txt, allowed});
       if (!parsed.ok){ lmStatus('✗ The model replied but ' + esc(parsed.error) + ' — try again or a stronger model.'); return; }
-      const byName = new Map(cands.map(c => [c.merchant, Object.assign({}, c, {allRaws: [...new Set(TX.filter(t => canonOf(t.m) === c.merchant).map(t => t.m))]})]));
-      lmSugs = parsed.items.filter(s => byName.has(s.merchant))
-        .map(s => Object.assign(s, {group: byName.get(s.merchant)}))
-        .filter(s => s.category !== s.group.cat);
-      const skipped = parsed.items.length - lmSugs.length;
-      lmStatus('The model suggested ' + lmSugs.length + ' change' + (lmSugs.length === 1 ? '' : 's') +
-        (skipped > 0 ? ' (' + skipped + ' agreed with the current category or didn’t match)' : '') +
-        '. <b>Nothing is applied until you accept it</b> — each acceptance becomes a normal rule you can reorder or delete.');
-      renderLmSugs();
+      await lmApplyParsed(cands, parsed);
     }catch(e){
       lmStatus('✗ Couldn’t reach the model — is the server running? Ollama needs <code>OLLAMA_ORIGINS=*</code>; the hosted artifact blocks external requests (open the downloaded file instead).');
+    }
+  });
+  const hostedBtn = document.getElementById('lm-run-hosted');
+  if (hostedBtn) hostedBtn.addEventListener('click', async ()=>{
+    const cands = lmCandidatesLive();
+    if (!cands.length){ lmStatus('Nothing needs categorising right now — everything is covered by the feed, your rules, or was dismissed. 🎉'); return; }
+    if (!(await aiAskConsent('categorise'))){ lmStatus('Not sent — consent declined.'); return; }
+    const allowed = A.allCats.filter(c => c !== INT_CAT);
+    const shape = Engine.minimise.shape({merchants: cands.map(c => c.merchant), categories: allowed});
+    const leaks = Engine.minimise.leaks('shape', shape);
+    if (leaks.length){ lmStatus('✗ Shape payload failed the leak check (' + leaks.join(', ') + ').'); return; }
+    lmStatus('Asking Lithifyte AI about ' + shape.merchants.length + ' merchant name' + (shape.merchants.length === 1 ? '' : 's') + '… (no amounts sent)');
+    const user = 'Allowed categories (use EXACTLY these strings): ' + JSON.stringify(shape.categories) + '\n' +
+      'Merchant names to categorise:\n' + JSON.stringify(shape.merchants) +
+      '\nReply with the JSON array only.';
+    const messages = [{role:'system', content: LM_SYS}, {role:'user', content: user}];
+    try{
+      const out = await aiRelayChat(messages, {forceHosted:true, purpose:'categorise'});
+      aiDisclose({lane:'categorise', tier:'shape', provider:'lithifyte-hosted', dest: out.fallback ? 'workers-ai' : 'openrouter', bytes: JSON.stringify(messages).length, purpose:'categorise'});
+      const parsed = Engine.lmParse({text: out.content, allowed});
+      if (!parsed.ok){ lmStatus('✗ The model replied but ' + esc(parsed.error) + ' — try again.'); return; }
+      await lmApplyParsed(cands, parsed);
+    }catch(e){
+      lmStatus('✗ Lithifyte AI is unavailable: ' + esc(e.message || e));
     }
   });
 
@@ -9384,6 +9587,69 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     while (grid.length && grid[grid.length - 1].every(c => String(c).trim() === '')) grid.pop();
     return grid;
   }
+  // Best-effort text-layer PDF reader. No library, nothing uploaded. Scanned
+  // (image-only) PDFs return empty text — that is a refusal, not a guess.
+  async function inflateRaw(bytes){
+    const s = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate'));
+    return new Uint8Array(await new Response(s).arrayBuffer());
+  }
+  async function inflateRawOrZlib(bytes){
+    try { return await inflateRaw(bytes); } catch (e) {}
+    const s = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return new Uint8Array(await new Response(s).arrayBuffer());
+  }
+  function pdfDecodeLiteral(s){
+    return String(s || '')
+      .replace(/\\n/g, '\n').replace(/\\r/g, '\r').replace(/\\t/g, '\t')
+      .replace(/\\\(/g, '(').replace(/\\\)/g, ')').replace(/\\\\/g, '\\')
+      .replace(/\\(\d{1,3})/g, (_, o) => String.fromCharCode(parseInt(o, 8) & 255));
+  }
+  function pdfStringsFromContent(bin){
+    const t = typeof bin === 'string' ? bin : new TextDecoder('latin1').decode(bin);
+    const out = [];
+    const lit = /\((?:\\.|[^\\)])*\)\s*(?:Tj|TJ|'|")/g;
+    let m;
+    while ((m = lit.exec(t))){
+      const inner = m[0].slice(1, m[0].lastIndexOf(')'));
+      const s = pdfDecodeLiteral(inner).trim();
+      if (s) out.push(s);
+    }
+    const arr = /\[(.*?)\]\s*TJ/g;
+    while ((m = arr.exec(t))){
+      const parts = [];
+      const inn = /\((?:\\.|[^\\)])*\)/g;
+      let p;
+      while ((p = inn.exec(m[1]))) parts.push(pdfDecodeLiteral(p[0].slice(1, -1)));
+      const s = parts.join('').trim();
+      if (s) out.push(s);
+    }
+    return out.join(' ');
+  }
+  async function pdfExtractText(buf){
+    const b = new Uint8Array(buf);
+    const latin = new TextDecoder('latin1').decode(b);
+    if (latin.slice(0, 5) !== '%PDF-') return {ok:false, text:'', reason:'not a PDF'};
+    const chunks = [];
+    const re = /stream\r?\n/g;
+    let m;
+    while ((m = re.exec(latin))){
+      const start = m.index + m[0].length;
+      const end = latin.indexOf('endstream', start);
+      if (end < 0) continue;
+      const dictFrom = Math.max(0, m.index - 400);
+      const dict = latin.slice(dictFrom, m.index);
+      const raw = b.subarray(start, end);
+      let bytes = raw;
+      if (/\/FlateDecode/.test(dict)){
+        try { bytes = await inflateRawOrZlib(raw); }
+        catch (e) { continue; }
+      }
+      const piece = pdfStringsFromContent(bytes);
+      if (piece) chunks.push(piece);
+    }
+    const text = chunks.join('\n').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+    return {ok: !!text, text, chars: text.length, reason: text ? '' : 'no selectable text (scanned PDFs are not supported yet)'};
+  }
   // One row of cells per file row, whatever the file was. Two quirks are handled
   // here because both turn up in real bank exports: a spreadsheet whose rows are
   // whole CSV lines crammed into column A (Revolut's own .xlsx does this), and a
@@ -9399,6 +9665,14 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         if (re.length && re[0].length > 1) grid = re;
       }
       return grid;
+    }
+    if (/\.pdf$/i.test(file.name) || (file.type && file.type === 'application/pdf')){
+      const extracted = await pdfExtractText(await file.arrayBuffer());
+      if (!extracted.ok) throw extracted.reason || 'Could not read text from that PDF.';
+      const guessed = Engine.pdfGuessGrid(extracted.text);
+      if (guessed.length) return guessed;
+      file._pdfText = extracted.text;
+      throw {code:'pdf-no-table', text: extracted.text, message:'This PDF has selectable text but no obvious transaction table. Use “Parse with Lithifyte AI” to propose rows, then confirm them.'};
     }
     const text = await file.text();
     return parseDelim(text, sniffDelim(text));
@@ -9578,7 +9852,76 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         $('impOverlay').hidden = false;
         document.body.style.overflow = 'hidden';
         render();
-      }).catch(err => { setStatus('✗ ' + (err && err.message ? err.message : err)); });
+      }).catch(err => {
+        if (err && err.code === 'pdf-no-table' && err.text){
+          setStatus(err.message + ' ');
+          const go = document.createElement('button');
+          go.type = 'button';
+          go.className = 'btn small';
+          go.textContent = 'Parse with Lithifyte AI';
+          go.addEventListener('click', () => parsePdfWithAi(file, err.text, setStatus));
+          if (status) { status.appendChild(go); }
+          return;
+        }
+        setStatus('✗ ' + (err && err.message ? err.message : err));
+      });
+    }
+    function openFromGrid(file, grid, opts){
+      const status = (opts && opts.status) || null;
+      if (!grid || !grid.length) throw 'That file has no rows in it.';
+      const headerRow = guessHeaderRow(grid);
+      const saved = savedFor(grid, headerRow);
+      st = {file, grid, headerRow, step: 0, remember: true,
+            spec: saved ? Engine.impSpec(Object.assign({}, saved.spec, {headerRow})) : Engine.impDetect(grid, headerRow),
+            savedLabel: saved ? saved.label : 'PDF (proposed)',
+            acctId: $('upAccount').value,
+            newAcct: {name: $('upNewName').value, ownerId: $('upOwner').value,
+                      ownerName: $('upOwnerName').value, ownerType: $('upOwnerType').value, kind: $('upKind').value},
+            setOpening: true, status, onDone: (opts && opts.onDone) || null};
+      $('impOverlay').hidden = false;
+      document.body.style.overflow = 'hidden';
+      render();
+    }
+    async function parsePdfWithAi(file, text, setStatus){
+      if (!(await aiAskConsent('pdf'))){ setStatus('Not sent — consent declined.'); return; }
+      setStatus('Sending scrubbed statement text to Lithifyte AI…');
+      const scrubbed = Engine.minimise.scrub(String(text || '')).slice(0, 12000);
+      const leaks = Engine.minimise.leaks('detail', scrubbed);
+      if (leaks.indexOf('iban') >= 0 || leaks.indexOf('email') >= 0){
+        setStatus('✗ Scrub left an IBAN or email in the payload — refusing to send.');
+        return;
+      }
+      const messages = [
+        {role:'system', content:'You extract bank-statement rows. Reply with a JSON array only, no prose: [{"date":"YYYY-MM-DD or as printed","merchant":"payee","debit":0,"credit":0}]. Debit is money out, credit is money in. Skip balances, headers, addresses. Never invent rows. If a line is unreadable, omit it.'},
+        {role:'user', content: 'Extract transactions from this scrubbed statement text:\n\n' + scrubbed}
+      ];
+      try{
+        const out = await aiRelayChat(messages, {forceHosted:true, purpose:'pdf'});
+        aiDisclose({lane:'pdf', tier:'detail', provider:'lithifyte-hosted', dest: out.fallback ? 'workers-ai' : 'openrouter', bytes: JSON.stringify(messages).length, purpose:'pdf-parse'});
+        let arr;
+        const s = String(out.content || '');
+        const a0 = s.indexOf('['), a1 = s.lastIndexOf(']');
+        if (a0 < 0 || a1 <= a0) throw new Error('the model did not return a JSON array');
+        arr = JSON.parse(s.slice(a0, a1 + 1));
+        if (!Array.isArray(arr) || !arr.length) throw new Error('no rows in the reply');
+        const grid = [['Date', 'Merchant', 'Debit', 'Credit']];
+        for (const r of arr){
+          if (!r) continue;
+          const merch = Engine.minimise.scrub(r.merchant || r.name || r.description || '').slice(0, 80);
+          if (!merch) continue;
+          grid.push([
+            String(r.date || r.d || ''),
+            merch,
+            r.debit != null && +r.debit ? String(r.debit) : '',
+            r.credit != null && +r.credit ? String(r.credit) : ''
+          ]);
+        }
+        if (grid.length < 2) throw new Error('no usable rows after scrubbing');
+        setStatus('');
+        openFromGrid(file, grid, {status: {textContent:''}});
+      }catch(e){
+        setStatus('✗ Could not parse that PDF: ' + (e.message || e));
+      }
     }
     function close(){
       st = null;
@@ -9897,7 +10240,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     $('impClose').addEventListener('click', close);
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && st) close(); });
 
-    return {open, close, isOpen: () => !!st,
+    return {open, openFromGrid, parsePdfWithAi, close, isOpen: () => !!st,
             // testing hook: run a file's worth of rows through the real mapper
             __state: () => st && {spec: st.spec, headerRow: st.headerRow, step: st.step}};
   })();
@@ -12085,6 +12428,91 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       return (r.over.length === 1 && r.over[0] === '365 ONLINE SAVERREF' && ok2.over.length === 0 &&
               E.lmTokenCheck({token:'AB', merchants:[], group:[]}).ok === false)
              || JSON.stringify({r, ok2});
+    });
+    T('minimise: shape never emits amounts, dates or IBANs', () => {
+      const p = E.minimise.shape({
+        merchants:['SUPERVALU RANELAGH', 'IE29AIBK93115212345678 ALDI', 'a@b.com Tesco'],
+        categories:['Groceries', 'Bills & Utilities']
+      });
+      const leaks = E.minimise.leaks('shape', p);
+      return (p.tier === 'shape' && p.merchants.length >= 1 && p.categories[0] === 'Groceries' &&
+              leaks.length === 0 && p.merchants.every(m => m.indexOf('IE29') < 0 && m.indexOf('@') < 0))
+             || JSON.stringify({p, leaks});
+    });
+    T('minimise: leaks() flags a Shape payload that smuggles an amount', () => {
+      const bad = {tier:'shape', merchants:['SUPERVALU RANELAGH — 104.69']};
+      const leaks = E.minimise.leaks('shape', bad);
+      return leaks.indexOf('amount') >= 0 || JSON.stringify(leaks);
+    });
+    T('minimise: accounts are aliased and reversible', () => {
+      const m = E.minimise.accounts([{id:'a1', name:'Ava — AIB current'}, {id:'a2', name:'Joint savings'}]);
+      const aliased = E.minimise.aliasText('Ava — AIB current is low', m);
+      const back = E.minimise.revealText(aliased, m);
+      return (m.aliases[0] === 'acct_1' && aliased.indexOf('Ava') < 0 && aliased.indexOf('acct_1') >= 0 &&
+              back.indexOf('Ava — AIB current') >= 0) || JSON.stringify({m, aliased, back});
+    });
+    T('minimise: detail scrubs IBAN from a merchant string', () => {
+      const d = E.minimise.detail({rows:[{date:'2026-01-02', merchant:'SEPA IE64IRCE92050112345678 SUPERVALU', category:'Groceries', amount:12.3}]});
+      const leaks = E.minimise.leaks('detail', d);
+      return (d.rows[0].merchant.indexOf('IE64') < 0 && d.rows[0].merchant.indexOf('[IBAN]') >= 0 &&
+              d.rows[0].amount === 12.3 && leaks.indexOf('iban') < 0) || JSON.stringify({d, leaks});
+    });
+    T('minimise: aggregate has rounded totals and no row-level merchants', () => {
+      const a = E.minimise.aggregate({range:'Jan – Mar', currency:'EUR', income:6120.4, spend:3600.2, save:900,
+        cats:[{category:'Groceries', avgMonth:479.2}], accountAliases:['acct_1']});
+      const s = JSON.stringify(a);
+      return (a.tier === 'aggregate' && a.incomeAvg === 6120 && a.categories[0].avg === 479 &&
+              s.indexOf('SUPERVALU') < 0 && E.minimise.leaks('aggregate', a).length === 0) || JSON.stringify(a);
+    });
+    T('pdfGuessGrid: dated amount lines become a preview grid', () => {
+      const g = E.pdfGuessGrid('nonsense\n02/07/2026 SUPERVALU RANELAGH 104.69\n03/07/2026 BUS EIREANN 3.35\n03/07/2026 SALARY CREDIT 2500.00\nfooter');
+      return (g.length >= 4 && g[0][0] === 'Date' && g[1][1].indexOf('SUPERVALU') >= 0 && g[1][2] === '104.69' &&
+              g.some(r => r[3] === '2500.00')) || JSON.stringify(g);
+    });
+    T('pdfGuessGrid: fewer than three dated lines is a refusal, not a guess', () => {
+      const g = E.pdfGuessGrid('Hello this is a letter.\nKind regards');
+      return (Array.isArray(g) && g.length === 0) || JSON.stringify(g);
+    });
+    T('companion: system prompt does not include household notes or real account names', () => {
+      if (!window.__ddCompanion || !window.__ddCompanion.systemPrompt) return 'no systemPrompt hook';
+      const keep = (typeof docStore !== 'undefined' && docStore.items) ? docStore.items.slice() : [];
+      try {
+        if (typeof docStore !== 'undefined'){
+          docStore.items = [{id:'n1', title:'Secret', body:'Ben hours drop in January, IBAN IE11AAAA11111111111111', links:[], tags:[]}];
+        }
+        const p = window.__ddCompanion.systemPrompt();
+        if (p.indexOf('Ben hours') >= 0 || p.indexOf('IE11') >= 0) return p.slice(0, 400);
+        if (p.indexOf('Household notes context') >= 0) return 'notes still dumped into the prompt';
+        if (p.indexOf('notes_for') < 0) return 'prompt never mentions notes_for';
+        return true;
+      } finally {
+        if (typeof docStore !== 'undefined') docStore.items = keep;
+      }
+    });
+    T('companion: outbound balances hide real account names', () => {
+      if (!window.__ddCompanion || !window.__ddCompanion.outboundFor) return 'no outboundFor hook';
+      const map = Engine.minimise.accounts([{id:'a1', name:'Ava — AIB current'}]);
+      const ob = window.__ddCompanion.outboundFor({
+        tool:'balances', ok:true, say:'• Ava — AIB current: €10', provenance:'x',
+        data:{runs:[{id:'a1', name:'Ava — AIB current', endBal:10, relative:false}]}
+      }, map);
+      const s = JSON.stringify(ob);
+      return (s.indexOf('Ava') < 0 && s.indexOf('acct') >= 0) || s;
+    });
+    T('disclose: a log entry never stores a prompt or a response', () => {
+      const keep = (discloseStore.items || []).slice();
+      try {
+        discloseStore.items = [];
+        aiDisclose({lane:'chat', tier:'aggregate', provider:'test', dest:'none', bytes:12, purpose:'self-test'});
+        const row = discloseStore.items[0];
+        const keys = Object.keys(row || {});
+        const forbidden = keys.filter(k => /prompt|response|content|messages|body/i.test(k));
+        return (row && row.lane === 'chat' && row.bytes === 12 && !forbidden.length &&
+                JSON.stringify(row).indexOf('how much') < 0) || JSON.stringify(row);
+      } finally {
+        discloseStore.items = keep;
+        save(LS.disclose, discloseStore);
+      }
     });
     T('wealthNodes: shapes all four types, drops zeros/done, clamps progress', () => {
       const w = E.wealthNodes({
@@ -16084,7 +16512,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       base: {txCount: raw.transactions.length, checksum: BASE_SUM,
              from: raw.transactions.length ? raw.transactions[0][0] : null,
              to: raw.transactions.length ? raw.transactions[raw.transactions.length-1][0] : null},
-      stores: {rules, cats: catStore, goals, org, recur: recurStore, uploads, xfers: xferStore, manrec, fcast: FCONF, budget: budgetStore, debts: debtStore, holdings: holdStore, assets: assetStore, nwlog: nwLog, merch: merchStore, notes: noteStore, lm: lmStore, cash: cashStore, alerts: alertStore, txcat: txCatStore, docs: docStore, imports: impStore, chats: chatStore, scenarios: scenarioStore},
+      stores: {rules, cats: catStore, goals, org, recur: recurStore, uploads, xfers: xferStore, manrec, fcast: FCONF, budget: budgetStore, debts: debtStore, holdings: holdStore, assets: assetStore, nwlog: nwLog, merch: merchStore, notes: noteStore, lm: lmStore, cash: cashStore, alerts: alertStore, txcat: txCatStore, docs: docStore, imports: impStore, chats: chatStore, scenarios: scenarioStore, disclose: discloseStore},
       ui: {cuts: {...cutStore}, rangeFrom, rangeTo, privacy: {...PRIV}}
     };
   }
@@ -16328,7 +16756,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     if (Array.isArray(st.nwlog)) nwLog = st.nwlog;
     if (st.merch && typeof st.merch === 'object'){ merchStore = {rules: st.merch.rules || [], keep: st.merch.keep || []}; merchCanon.clear(); }
     if (st.notes && typeof st.notes === 'object') noteStore = st.notes;
-    if (st.lm && typeof st.lm === 'object') lmStore = {endpoint: st.lm.endpoint || lmStore.endpoint, model: st.lm.model || '', dismissed: st.lm.dismissed || {}, provider: lmProviderOf(st.lm.provider || lmStore.provider || 'lithifyte'), apiKey: st.lm.apiKey || '', relay: st.lm.relay || lmStore.relay, useLm: st.lm.useLm != null ? st.lm.useLm : true};
+    if (st.lm && typeof st.lm === 'object') lmStore = {endpoint: st.lm.endpoint || lmStore.endpoint, model: st.lm.model || '', dismissed: st.lm.dismissed || {}, provider: lmProviderOf(st.lm.provider || lmStore.provider || 'lithifyte'), apiKey: st.lm.apiKey || '', relay: st.lm.relay || lmStore.relay, useLm: st.lm.useLm != null ? st.lm.useLm : true, consent: st.lm.consent && typeof st.lm.consent === 'object' ? st.lm.consent : (lmStore.consent || {})};
+    if (st.disclose && Array.isArray(st.disclose.items)) discloseStore = {items: st.disclose.items.slice(0, 200)};
     if (st.chats && Array.isArray(st.chats.items)) chatStore = st.chats;
     else if (st.chats && Array.isArray(st.chats)) chatStore = {items: st.chats};
     if (st.scenarios && Array.isArray(st.scenarios.items)) scenarioStore = st.scenarios;
@@ -16344,7 +16773,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     save(LS.org, org); save(LS.recur, recurStore); save(LS.uploads, uploads);
     save(LS.xfers, xferStore); save(LS.manrec, manrec); save(LS.fcast, FCONF);
     save(LS.debts, debtStore); save(LS.holds, holdStore);
-    save(LS.assets, assetStore); save(LS.nwlog, nwLog); save(LS.merch, merchStore); save(LS.notes, noteStore); save(LS.lm, lmStore); save(LS.alerts, alertStore); save(LS.txcat, txCatStore); save(LS.docs, docStore); save(LS.imports, impStore); save(LS.chats, chatStore); save(LS.scenarios, scenarioStore);
+    save(LS.assets, assetStore); save(LS.nwlog, nwLog); save(LS.merch, merchStore); save(LS.notes, noteStore); save(LS.lm, lmStore); save(LS.alerts, alertStore); save(LS.txcat, txCatStore); save(LS.docs, docStore); save(LS.imports, impStore); save(LS.chats, chatStore); save(LS.scenarios, scenarioStore); save(LS.disclose, discloseStore);
     if (budgetStore) save(LS.budget, budgetStore);
     if (b.ui && b.ui.cuts){
       const legacy = {groc:'Groceries', dine:'Dining', shop:'Shopping', bills:'Bills & Utilities', ent:'Entertainment', misc:'Uncategorized'};
@@ -16408,6 +16837,190 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   window.__ddXfers = () => XFERS;
   window.__ddRec = () => REC;
   window.__ddFc = () => FC;
+
+  // ══ AI data plane — consent, disclosure, one outbound chokepoint ══
+  // Spec: Lithifyte - AI Data Architecture. The model proposes, Engine
+  // computes, the user applies. Every request that may leave the device is
+  // assembled by Engine.minimise and recorded (metadata only) in discloseStore.
+  const AI_LANES = {
+    chat: {
+      title: 'Ask Lithifyte AI about this household',
+      dest: 'OpenRouter (hosted model) via the Lithifyte relay, or Cloudflare Workers AI if that route is unavailable',
+      points: [
+        'We send the question, a short system prompt (category names, date range, account aliases — not real account names), and only the tool results needed to answer.',
+        'Household notes are not sent unless the model asks for a scoped note.',
+        'We never store the prompt or the answer. The disclosure log below records that a request happened, not what it said.',
+        'The hosted router is asked not to use providers that train on inputs. If none can answer, we fall back to Cloudflare Workers AI rather than a training-allowed free model.',
+        'Commands only and a local model (Ollama on this machine) send nothing off the device.'
+      ]
+    },
+    categorise: {
+      title: 'Suggest categories with Lithifyte AI',
+      dest: 'OpenRouter via the Lithifyte relay (merchant names + category list only)',
+      points: [
+        'Only uncategorised merchant names and your existing category list leave the device. No amounts, dates, balances or notes.',
+        'Suggestions become ordinary rules only when you accept them.',
+        'You can revoke this independently of chat.'
+      ]
+    },
+    pdf: {
+      title: 'Parse this statement with Lithifyte AI',
+      dest: 'OpenRouter via the Lithifyte relay (scrubbed statement text)',
+      points: [
+        'The PDF is read in this browser. Account numbers, IBANs and emails are stripped before anything is sent.',
+        'The original file never leaves the device. The model only proposes rows; you confirm them in the same preview as a CSV.',
+        'Scanned (image-only) PDFs are not supported — there is no OCR at launch.'
+      ]
+    }
+  };
+  function aiProviderLabel(){
+    const p = lmProviderOf(lmStore.provider || 'lithifyte');
+    if (p === 'off') return 'commands-only';
+    if (p === 'lithifyte') return 'lithifyte-hosted';
+    if (p === 'openai_compat'){
+      const ep = String(lmStore.endpoint || '');
+      if (/^https?:\/\/(localhost|127\.0\.0\.1)/i.test(ep)) return 'local';
+      return 'custom-endpoint';
+    }
+    return p;
+  }
+  function aiLeavesDevice(lane){
+    const p = lmProviderOf(lmStore.provider || 'lithifyte');
+    if (p === 'off' && lane !== 'pdf' && lane !== 'categorise') return false;
+    if (lane === 'categorise' || lane === 'pdf') return true; // hosted buttons are remote
+    if (p === 'openai_compat'){
+      const ep = String(lmStore.endpoint || '');
+      return !/^https?:\/\/(localhost|127\.0\.0\.1)/i.test(ep);
+    }
+    return p !== 'off';
+  }
+  function aiConsentGranted(lane){
+    const c = lmStore.consent && lmStore.consent[lane];
+    return !!(c && c.at);
+  }
+  function aiGrantConsent(lane){
+    if (!lmStore.consent || typeof lmStore.consent !== 'object') lmStore.consent = {};
+    lmStore.consent[lane] = {at: new Date().toISOString(), provider: aiProviderLabel()};
+    save(LS.lm, lmStore);
+    aiRenderConsentHint();
+  }
+  function aiRevokeConsent(){
+    lmStore.consent = {};
+    save(LS.lm, lmStore);
+    aiRenderConsentHint();
+    if (typeof feedback === 'function') feedback('AI consent revoked — the next hosted request will ask again');
+  }
+  function aiDisclose(entry){
+    if (!discloseStore.items) discloseStore.items = [];
+    discloseStore.items.unshift({
+      id: 'd_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      at: new Date().toISOString(),
+      lane: entry.lane || 'chat',
+      tier: entry.tier || 'aggregate',
+      provider: entry.provider || aiProviderLabel(),
+      dest: entry.dest || 'relay',
+      bytes: Math.max(0, +entry.bytes || 0),
+      purpose: String(entry.purpose || '').slice(0, 120)
+    });
+    if (discloseStore.items.length > 200) discloseStore.items.length = 200;
+    save(LS.disclose, discloseStore);
+    aiRenderDisclose();
+  }
+  function aiRenderDisclose(){
+    const el = document.getElementById('aiDiscloseList');
+    if (!el) return;
+    const items = discloseStore.items || [];
+    if (!items.length){ el.textContent = 'No hosted requests yet.'; return; }
+    el.innerHTML = items.slice(0, 24).map(d => {
+      const when = (d.at || '').replace('T', ' ').slice(0, 16);
+      return '<div>' + esc(when) + ' · ' + esc(d.lane) + ' · ' + esc(d.tier) +
+        ' · ' + esc(d.provider) + ' · ' + (d.bytes || 0) + ' bytes' +
+        (d.purpose ? ' · ' + esc(d.purpose) : '') + '</div>';
+    }).join('');
+  }
+  function aiRenderConsentHint(){
+    const el = document.getElementById('aiConsentHint');
+    if (!el) return;
+    const c = lmStore.consent || {};
+    const bits = ['chat', 'categorise', 'pdf'].filter(k => c[k] && c[k].at);
+    el.textContent = bits.length ? ('Granted: ' + bits.join(', ')) : 'No hosted AI consent granted yet.';
+  }
+  let aiConsentWaiter = null;
+  function aiAskConsent(lane){
+    return new Promise(resolve => {
+      if (!aiLeavesDevice(lane) || aiConsentGranted(lane)) return resolve(true);
+      const spec = AI_LANES[lane] || AI_LANES.chat;
+      const ov = document.getElementById('aiConsentOverlay');
+      const title = document.getElementById('aiConsentTitle');
+      const body = document.getElementById('aiConsentBody');
+      const pts = document.getElementById('aiConsentPoints');
+      if (!ov || !title){ resolve(false); return; }
+      title.textContent = spec.title;
+      body.textContent = 'This goes to ' + spec.dest + '. We do not store the content. You can revoke in Settings.';
+      pts.innerHTML = spec.points.map(p => '<li>' + esc(p) + '</li>').join('');
+      aiConsentWaiter = {lane, resolve};
+      ov.hidden = false;
+    });
+  }
+  function aiCloseConsent(ok, off){
+    const ov = document.getElementById('aiConsentOverlay');
+    if (ov) ov.hidden = true;
+    const w = aiConsentWaiter;
+    aiConsentWaiter = null;
+    if (!w) return;
+    if (off){
+      lmStore.provider = 'off';
+      lmStore.useLm = false;
+      save(LS.lm, lmStore);
+      try { if (window.__ddCompanion && window.__ddCompanion.syncLmForm) window.__ddCompanion.syncLmForm(); } catch (e) {}
+      w.resolve(false);
+      return;
+    }
+    if (ok){ aiGrantConsent(w.lane); w.resolve(true); }
+    else w.resolve(false);
+  }
+  function aiBindConsentUi(){
+    const yes = document.getElementById('aiConsentYes');
+    const no = document.getElementById('aiConsentNo');
+    const off = document.getElementById('aiConsentOff');
+    if (yes) yes.addEventListener('click', () => aiCloseConsent(true, false));
+    if (no) no.addEventListener('click', () => aiCloseConsent(false, false));
+    if (off) off.addEventListener('click', () => aiCloseConsent(false, true));
+    const rev = document.getElementById('aiConsentRevoke');
+    if (rev) rev.addEventListener('click', aiRevokeConsent);
+    const clr = document.getElementById('aiDiscloseClear');
+    if (clr) clr.addEventListener('click', () => {
+      discloseStore.items = [];
+      save(LS.disclose, discloseStore);
+      aiRenderDisclose();
+    });
+    aiRenderDisclose();
+    aiRenderConsentHint();
+  }
+  async function aiRelayChat(messages, opts){
+    opts = opts || {};
+    const provider = lmProviderOf(lmStore.provider || 'lithifyte');
+    const hosted = provider === 'lithifyte' || opts.forceHosted;
+    const relay = (lmStore.relay || 'https://lithifyte-ai.sidethecomputer.workers.dev').replace(/\/$/, '');
+    const body = {
+      provider: hosted ? 'lithifyte' : provider,
+      model: hosted ? undefined : (lmStore.model || undefined),
+      messages,
+      temperature: 0,
+      max_tokens: hosted ? 1600 : 900,
+      endpoint: provider === 'openai_compat' ? (lmStore.endpoint || '') : undefined,
+      purpose: opts.purpose || 'chat'
+    };
+    const headers = {'Content-Type': 'application/json'};
+    if (!hosted && lmStore.apiKey) headers['X-Api-Key'] = lmStore.apiKey;
+    const res = await fetch(relay + '/chat', {method:'POST', headers, body: JSON.stringify(body), signal: AbortSignal.timeout(90000)});
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || data.message || ('HTTP ' + res.status));
+    return {content: String(data.content || ''), usage: data.usage || null, fallback: !!data.fallback, model: data.model || ''};
+  }
+  window.__ddMinimise = Engine.minimise;
+  window.__ddDisclose = () => (discloseStore.items || []).slice();
+  window.__ddAiConsent = () => JSON.parse(JSON.stringify(lmStore.consent || {}));
 
   // ══ Companion / In-App LM Co-Pilot (P1 tools + LLM tool loop + chats + sandbox) ══
   // Spec: Lithifyte - In-App LM Co-Pilot. Engine owns every euro figure.
@@ -16859,7 +17472,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         if (a.category) links.push('cat:'+a.category);
         if (a.month) links.push('mo:'+a.month);
         if (!hits.length) return {ok:true, tool:t, say:'No notes for ' + (scope||'that') + ' yet.', provenance:'Notes', data:{hits:[]}, actions, suggestions:suggestions(), links};
-        return {ok:true, tool:t, say:hits.map(h => '• ' + (h.note.title ? h.note.title + ': ' : '') + h.note.body).join('\n'), provenance:'Notes · ' + scope, data:{hits}, actions, suggestions:suggestions(), links};
+        const clean = hits.map(h => ({
+          title: Engine.minimise.scrub(h.note.title || ''),
+          body: Engine.minimise.scrub(h.note.body || '')
+        }));
+        return {ok:true, tool:t, say:clean.map(h => '• ' + (h.title ? h.title + ': ' : '') + h.body).join('\n'), provenance:'Notes · ' + scope, data:{hits:clean}, actions, suggestions:suggestions(), links};
       }
       if (t === 'goals_status'){
         if (!goals.length) return {ok:true, tool:t, say:'No goals yet.', provenance:'goals', data:{goals:[]}, actions:[{type:'nav', k:'goals', sec:'goalHero'}], suggestions:suggestions(), links:[]};
@@ -16978,29 +17595,43 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       return !!(lmStore.apiKey);
     }
 
-    async function lmComplete(messages){
-      const provider = lmProviderOf(lmStore.provider || 'lithifyte');
-      const hosted = provider === 'lithifyte';
-      const relay = (lmStore.relay || RELAY_DEFAULT).replace(/\/$/, '');
-      const body = {
-        provider,
-        // The hosted model is chosen at the relay (its key, its allowlist), so
-        // a leftover BYOK model name must not ride along.
-        model: hosted ? undefined : (lmStore.model || undefined),
-        messages,
-        temperature: 0,
-        // The hosted model reasons before it answers and the reasoning counts
-        // against this budget — at 900 a long answer can run out mid-thought and
-        // come back empty. BYOK providers keep the old, cheaper ceiling.
-        max_tokens: hosted ? 1600 : 900,
-        endpoint: provider === 'openai_compat' ? (lmStore.endpoint || '') : undefined
-      };
-      const headers = {'Content-Type': 'application/json'};
-      if (!hosted && lmStore.apiKey) headers['X-Api-Key'] = lmStore.apiKey;
-      const res = await fetch(relay + '/chat', {method:'POST', headers, body: JSON.stringify(body), signal: AbortSignal.timeout(90000)});
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || data.message || ('HTTP ' + res.status));
-      return String(data.content || '');
+    function acctMap(){
+      return Engine.minimise.accounts(typeof allAccounts === 'function' ? allAccounts() : []);
+    }
+    // What the model is allowed to see of a tool result. The user still sees
+    // result.say with real names; this is the outbound copy.
+    function outboundFor(result, map){
+      const M = map || acctMap();
+      const tool = result && result.tool;
+      let tier = 'aggregate';
+      if (tool === 'find_transactions') tier = 'detail';
+      if (tool === 'notes_for' || tool === 'help' || tool === 'nav') tier = 'shape';
+      const say = Engine.minimise.aliasText(Engine.minimise.scrub((result && result.say) || ''), M);
+      let data = result && result.data;
+      if (tool === 'balances' && data && Array.isArray(data.runs)){
+        data = {runs: data.runs.map(r => ({alias: (M.fwd[r.id] || M.fwd[r.name] || 'acct'), endBal: r.endBal, relative: !!r.relative}))};
+      } else if (tool === 'find_transactions' && data && Array.isArray(data.rows)){
+        data = Engine.minimise.detail({rows: data.rows, accountAliases: M.aliases});
+      } else if (data && typeof data === 'object'){
+        try { data = JSON.parse(Engine.minimise.aliasText(Engine.minimise.scrub(JSON.stringify(data)), M)); }
+        catch (e) { data = null; }
+      }
+      return {tool, ok: !!(result && result.ok), say, provenance: result && result.provenance, data, tier};
+    }
+    async function lmComplete(messages, meta){
+      const out = await aiRelayChat(messages, {purpose: (meta && meta.purpose) || 'chat'});
+      const bytes = JSON.stringify(messages).length;
+      if (aiLeavesDevice('chat')){
+        aiDisclose({
+          lane: 'chat',
+          tier: (meta && meta.tier) || 'aggregate',
+          provider: aiProviderLabel(),
+          dest: out.fallback ? 'workers-ai' : 'openrouter',
+          bytes,
+          purpose: (meta && meta.purpose) || 'co-pilot'
+        });
+      }
+      return String(out.content || '');
     }
 
     // Smaller models routinely collapse the envelope and put the TOOL NAME in
@@ -17055,7 +17686,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         return normLmObj(o);
       } catch (e) {
         // bare tool name lines: TOOL cat_monthly {"category":"Groceries"}
-        const tm = raw.match(/\b(help|nav|set_range|cashflow_summary|cat_monthly|balances|summary_outlook|notes_for|goals_status|propose_budget|propose_goal|run_scenario|apply_scenario)\b[\s\S]{0,200}/);
+        const tm = raw.match(/\b(help|nav|set_range|cashflow_summary|cat_monthly|balances|summary_outlook|affordability|spend_ranked|find_transactions|notes_for|goals_status|propose_budget|propose_goal|run_scenario|apply_scenario)\b[\s\S]{0,200}/);
         if (tm){
           try {
             const am = tm[0].match(/\{[\s\S]*\}/);
@@ -17118,9 +17749,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         // currency is NOT a country
         'Figures are shown in EUR (€). That is the display currency only — it does',
         'not tell you the user\'s country, tax residence or entity type. Do not infer one.',
-        'Accounts: ' + JSON.stringify(allAccounts().map(a => a.name).slice(0, 10)),
-        'Household notes context (may be empty):',
-        (typeof notesForPrompt === 'function' ? notesForPrompt() : '') || '(none)'
+        'Accounts are aliased as ' + JSON.stringify(acctMap().aliases) +
+          ' — never use a real account name, person name or IBAN. Call notes_for if you need household context; notes are not in this prompt.'
       ].join('\n');
     }
 
@@ -17239,9 +17869,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           applyActions(result.actions || []);
           result = refill(result);
           steps.push(result);
+          const outbound = outboundFor(result);
           const toolText = JSON.stringify({
-            tool: result.tool, ok: result.ok, say: result.say,
-            provenance: result.provenance, data: result.data
+            tool: outbound.tool, ok: outbound.ok, say: outbound.say,
+            provenance: outbound.provenance, data: outbound.data
           });
           seen.set(sig, toolText);
           appendMsg(chat, 'tool', toolText, {tool: result.tool, links: result.links || []});
@@ -17268,7 +17899,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
             applyActions(result.actions || []);
             result = refill(result);
             steps.push(result);
-            const tt = JSON.stringify({tool:result.tool, ok:result.ok, say:result.say, provenance:result.provenance});
+            const ob = outboundFor(result);
+            const tt = JSON.stringify({tool:ob.tool, ok:ob.ok, say:ob.say, provenance:ob.provenance, data:ob.data});
             seen.set(forced.tool + ':{}', tt);
             appendMsg(chat, 'tool', tt, {tool:result.tool, links:result.links||[]});
             touchChat(chat, result.links || []);
@@ -17311,6 +17943,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
             else say = grounded + (echo || !say ? '' : ('\n\n' + say));
           }
         }
+        say = Engine.minimise.revealText(say, acctMap());
         appendMsg(chat, 'assistant', say);
         touchChat(chat, []);
         return {ok:true, tool:'lm_final', say, provenance: 'Lithifyte AI · tools: ' + (steps.map(s=>s.tool).join(', ') || 'none'), data:{steps}, actions:[], suggestions:suggestions(), links: chat.links || [], apply: pendingApply, chatId: chat.id};
@@ -17318,6 +17951,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const last = steps[steps.length - 1];
       let say = (last && last.say) || 'I ran tools but did not finish — try a more specific ask.';
       if (steps.length) say = joinSays(steps);
+      say = Engine.minimise.revealText(say, acctMap());
       appendMsg(chat, 'assistant', say);
       return {ok:true, tool:'lm_final', say, provenance:'Lithifyte AI · max tool rounds', data:{steps}, actions:[], suggestions:suggestions(), links: chat.links || [], apply: pendingApply, chatId: chat.id};
     }
@@ -17350,6 +17984,14 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       }
       if (lmEnabled()){
         try {
+          if (!(await aiAskConsent('chat'))){
+            let result = ask(text);
+            const chat = ensureChat();
+            echoUser(chat, text);
+            appendMsg(chat, 'assistant', (result.say || 'Commands only.') +
+              '\n\nHosted AI was not sent — use Commands only, or allow the request next time.');
+            return result;
+          }
           return await askLm(text);
         } catch (e) {
           // fall back to deterministic
@@ -17687,7 +18329,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (!lmStore.relay) lmStore.relay = RELAY_DEFAULT;
       save(LS.lm, lmStore);
       const st = document.getElementById('cp-lmStatus');
-      if (st) st.textContent = 'Saved in this browser only — never on a server.';
+      if (st) st.textContent = lmStore.provider === 'off'
+        ? 'Commands only — nothing leaves this device.'
+        : 'Saved in this browser. Hosted AI sends the slice each question needs; we do not store it.';
       if (resync !== false) syncLmForm();
     }
     function open(prefill, chatId){
@@ -17812,6 +18456,14 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         if (/\.(csv|xlsx|xls)$/.test(lower)){
           // Offer import path: stash and open people/import
           pendingFiles.push({name, kind:'statement', file:f});
+        } else if (/\.pdf$/i.test(lower) || (f.type && f.type === 'application/pdf')){
+          try {
+            const extracted = await pdfExtractText(await f.arrayBuffer());
+            if (!extracted.ok) pendingFiles.push({name, kind:'meta', text:'(PDF has no selectable text — scanned statements are not supported yet)'});
+            else pendingFiles.push({name, kind:'text', text: Engine.minimise.scrub(extracted.text).slice(0, 8000)});
+          } catch (e) {
+            pendingFiles.push({name, kind:'meta', text:'(could not read PDF)'});
+          }
         } else if (/\.(txt|md|json|log)$/.test(lower) || (f.type && f.type.startsWith('text/'))){
           try {
             const text = (await readFileAsText(f)).slice(0, 12000);
@@ -17897,6 +18549,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
     function bind(){
       if (bound) return; bound = true;
+      try { aiBindConsentUi(); } catch (e) {}
       const inp = document.getElementById('ccInput');
       const send = document.getElementById('ccSend');
       const plus = document.getElementById('ccPlus');
@@ -18057,6 +18710,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
     return {
       ask, match, run, handle, askLm, applyActions, registry, suggestions, open, close, bind, isOpen,
+      systemPrompt, outboundFor, acctMap,
       ensureChat, newChat, deleteChat, lmEnabled, lmComplete, chats: () => chatStore.items, scenarios: () => scenarioStore.items,
       deleteScenario, applyScenario, renderScenarios, scenSummary,
       renderThread, echoUser, appendMsg, amts, moneyish, unbackedFigures, wantsDraft,

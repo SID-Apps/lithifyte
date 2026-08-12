@@ -6,7 +6,7 @@ section: product
 description: The full technical privacy model behind Lithifyte — what is stored, where, how it is encrypted, what the servers hold, and the residual risks we cannot solve for you.
 summary: The claim is narrow and testable: your financial data is never transmitted to us, because there is no server that receives it. The one exception is the AI co-pilot, which you switch on yourself and which sends what it needs to the model you chose — that is set out in full below, along with the parts we cannot fix.
 keywords: [local first finance app, browser storage encryption, financial data privacy, AES-GCM PBKDF2, zero server finance]
-updated: 2026-08-09
+updated: 2026-08-12
 priority: 0.8
 related: [open-source, how-it-works, faq]
 ---
@@ -17,9 +17,9 @@ Lithifyte is delivered as a single HTML file containing the interface and the en
 
 There is no finance API. Not an encrypted one, not a temporary one, not one that "only processes and discards". The absence is the design: a service that never receives data cannot leak it, be subpoenaed for it, change its mind about it in a future privacy policy, or lose it in a breach.
 
-You do not have to take this on faith. Open your browser's network tab and use the app. Nothing carrying financial content goes out.
+You do not have to take this on faith. Open your browser's network tab and import a statement. Nothing carrying the file goes out.
 
-**One deliberate exception, and it is yours to switch on: the AI co-pilot.** A language model cannot answer a question about your money without being told something about your money. That section is below, in full, because a privacy claim with a quiet asterisk is worse than no claim at all.
+**One deliberate exception, and it is yours to switch on: hosted AI.** A language model cannot answer a question about your money without being told something about your money. That section is below, in full, because a privacy claim with a quiet asterisk is worse than no claim at all. The honest sentence is: **we never store your data, and when you ask the AI a question, the part needed to answer it is sent to the model provider for that request.** Commands-only and a local model send nothing.
 
 ## What is stored, and where
 
@@ -37,19 +37,32 @@ Self-hosted copies write nothing to the email or product-event rows. The code th
 
 ## The AI co-pilot, stated without spin
 
-The co-pilot is a chat panel inside the app that can answer questions about your finances and operate the app for you. It is **off until you connect a model**. If you never connect one, nothing in this section applies to you and the rest of the page stands unqualified.
+The co-pilot is a chat panel inside the app that can answer questions about your finances and operate the app for you. **Commands-only** works with no model at all. Lithifyte AI is the hosted convenience; a local model stays on your machine.
 
-**What is sent, when you use it.** Not your ledger. The app assembles the context for each message: the results of the tools the co-pilot ran (figures computed by `Engine` on your device), excerpts from notes relevant to what you asked, and the conversation you are having. That assembled context goes to the model provider you selected.
+**What is sent, when you use hosted AI.** Not your ledger. Every request is assembled by one function (`Engine.minimise`) at one of three tiers:
+
+| Tier | Leaves the device | Used for |
+|---|---|---|
+| Shape | merchant names and category names — no amounts, dates or balances | hosted categorisation |
+| Aggregate | category totals, ratios, date range, account *aliases* (`acct_1`) | “how am I doing”, affordability |
+| Detail | individual rows (date, merchant, amount) the user asked to see | “show me these transactions”, PDF parse after scrubbing |
+
+Household notes are **not** sent on every turn. The model can ask for a scoped note. Real account names are replaced with aliases at the boundary. IBANs, emails and long account numbers are stripped. Settings shows a **disclosure log**: what left, when, to which provider, at which tier — never the prompt itself.
+
+**Consent is per capability.** Chat, categorisation and PDF parse each ask once, and each can be revoked in Settings.
 
 **Who receives it depends entirely on which model you chose:**
 
 | Your choice | Where your context goes |
 |---|---|
+| Commands only | Nowhere |
 | A local model — Ollama, LM Studio, any OpenAI-compatible endpoint on your machine | Nowhere. It stays on your computer. This is the private option |
-| Your own API key — Anthropic, OpenAI, xAI | To that provider, under your own account and their terms |
-| **Lithifyte AI** (the hosted convenience) | Through our relay worker to a model provider |
+| Your own API key — Anthropic, OpenAI, xAI (built, marked Coming soon in the picker) | To that provider, under your own account and their terms |
+| **Lithifyte AI** (the hosted convenience) | Through our relay worker. The relay asks OpenRouter not to route to providers that store or train on inputs (`data_collection: deny`). If no such route can answer, it falls back to Cloudflare Workers AI rather than a training-allowed free model |
 
-**What the relay is, and is not.** For the hosted and bring-your-own-key paths it is a pass-through: it forwards the request to the provider and returns the answer. It is **not** a finance database, it does not store your ledger, and it is not a step toward one. If that ever changed it would be a different product and this page would say so.
+**What the relay is, and is not.** It is a pass-through: it forwards the request and returns the answer. It counts tokens to meter usage later. It does **not** store your ledger, the prompt, or the answer. It is not a step toward a finance database. If that ever changed it would be a different product and this page would say so.
+
+**Free software, paid intelligence.** Import, categorise, budgets, forecasts, export and Commands-only stay free forever and self-hostable. Hosted conversational AI is the lane that costs real money per question and will be a subscription; export of *your* data is never gated.
 
 **The rule that makes the answers trustworthy.** The model never produces a number. It decides what you are asking for, `Engine` computes the figures on your device, and the answer renders from those computed values. A model that could recall or calculate a euro amount would eventually state a wrong one, and one hallucinated figure discredits every real figure in the app.
 

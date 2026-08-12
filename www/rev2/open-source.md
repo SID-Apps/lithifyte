@@ -4,7 +4,7 @@ Source: https://lithifyte.com/open-source
 Updated: 2026-08-09
 Licence: content CC-BY-4.0 · software AGPL-3.0-or-later
 
-A privacy promise you cannot verify is marketing. Lithifyte is published under the AGPL-3.0-or-later as a single readable file, so the claim that your data never leaves your browser is something you can check rather than something you have to believe.
+A privacy promise you cannot verify is marketing. Lithifyte is published under the AGPL-3.0-or-later as a single readable file, so the claim that we never store your ledger — and that hosted AI only receives the slice a question needs — is something you can check rather than something you have to believe.
 
 ## The licence
 

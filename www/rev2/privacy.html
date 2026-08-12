@@ -60,7 +60,7 @@
   <p class="updated">Last updated: 18 July 2026 (digest)</p>
 
   <div class="callout">
-    <p><strong>The short version:</strong> your financial data — statements, transactions, balances, merchants, goals — never leaves your browser. There is no finance backend that could receive it. On the hosted app we store your <strong>email</strong> for sign-in, and may record <strong>privacy-safe product usage events</strong> (for example “opened budgets”, not “spent €42 at a shop”). Self-hosted copies send nothing.</p>
+    <p><strong>The short version:</strong> we never store your statements, transactions, balances or merchants. There is no finance backend that could receive them. Asking the optional hosted AI sends <em>the slice that question needs</em> to a model provider for that request — not the ledger, and we do not keep the prompt. Commands-only and a local model send nothing. On the hosted app we store your <strong>email</strong> for sign-in, and may record <strong>privacy-safe product usage events</strong> (for example “opened budgets”, not “spent €42 at a shop”). Self-hosted copies send nothing.</p>
   </div>
 
   <h2>Who we are</h2>
@@ -72,7 +72,7 @@
     <li>There is <strong>no application backend</strong> and no API that accepts financial data.</li>
     <li>Bank statements you import are parsed locally and never uploaded.</li>
     <li>Optional encrypted backups use your browser's built-in Web Crypto; the passphrase never leaves your device.</li>
-    <li>The optional AI categoriser talks to a model <strong>you run</strong> (for example Ollama or LM Studio on your own machine). Pointing it elsewhere is your choice, not a default.</li>
+    <li>The optional <strong>local</strong> AI categoriser talks to a model you run (Ollama, LM Studio). The optional <strong>hosted</strong> Lithifyte AI sends merchant names only (no amounts) after you consent, through a pass-through relay that does not store the prompt.</li>
     <li>You can confirm all of this by watching your browser's network tab while using the app.</li>
   </ul>
 

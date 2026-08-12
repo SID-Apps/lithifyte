@@ -4,7 +4,7 @@ shortTitle: Open source
 slug: open-source
 section: product
 description: Lithifyte is AGPL-3.0-or-later. The whole application is one readable HTML file you can audit, fork, self-host and keep — which is what makes its privacy claim checkable rather than promised.
-summary: A privacy promise you cannot verify is marketing. Lithifyte is published under the AGPL-3.0-or-later as a single readable file, so the claim that your data never leaves your browser is something you can check rather than something you have to believe.
+summary: A privacy promise you cannot verify is marketing. Lithifyte is published under the AGPL-3.0-or-later as a single readable file, so the claim that we never store your ledger — and that hosted AI only receives the slice a question needs — is something you can check rather than something you have to believe.
 keywords: [open source budgeting app, AGPL finance software, self-hosted personal finance, auditable financial software]
 updated: 2026-08-09
 priority: 0.8
