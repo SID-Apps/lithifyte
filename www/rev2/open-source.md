@@ -1,10 +1,10 @@
 # Open source, and why it matters here
 
 Source: https://lithifyte.com/open-source
-Updated: 2026-08-09
+Updated: 2026-08-13
 Licence: content CC-BY-4.0 · software AGPL-3.0-or-later
 
-A privacy promise you cannot verify is marketing. Lithifyte is published under the AGPL-3.0-or-later as a single readable file, so the claim that we never store your ledger — and that hosted AI only receives the slice a question needs — is something you can check rather than something you have to believe.
+A privacy promise you cannot verify is marketing. The Engine is published under AGPL-3.0-or-later as a single readable file, so the claim that we never store your ledger is something you can check. Official Lithifyte also sells hosted intelligence and maintained packs — those are not required to run the file.
 
 ## The licence
 
@@ -33,9 +33,9 @@ There is no build step and no dependency tree.
 2. Open it — from your disk, a USB stick, a private server, whatever you like.
 3. That is the whole procedure.
 
-It runs offline. It reports nothing. It is the same file the hosted app serves, not a reduced version, and the hosted app has no features the file lacks. The only thing you give up is the magic-link sign-in that lets the hosted copy recognise you across devices — which is identity plumbing, not functionality.
+It runs offline. It reports nothing. The Engine, importer, map, budgets, forecast, wealth, export and Commands-only are the same as the hosted app. What you give up is the **living product**: magic-link / Google sign-in, Lithifyte AI, the encrypted cloud vault, and maintained Ireland tax / bank-preset packs. Those are Lithifyte Plus on the official host. They are conveniences, not a lock on your numbers.
 
-The project deliberately keeps no count of self-hosted installs. There is no telemetry to strip out because there is none to begin with.
+The project keeps no count of self-hosted installs. Telemetry is hostname-gated and does not run from a file.
 
 ## What is in the repository
 
@@ -46,9 +46,12 @@ The project deliberately keeps no count of self-hosted installs. There is no tel
 | `tutorial.html` | Long-form written guide with a retrieval-backed Ask box |
 | `feeder/` | Optional open-banking feeder CLI and price fetcher |
 | `tools/` | Release tooling — data swapping, sample generation, this site |
-| `www/` | The marketing site and the Cloudflare Workers behind sign-in |
-| `docs/` | Product analytics spec, email digest spec, tutorial corpus |
+| `www/` | The marketing site (landing + money library) |
+| `docs/` | Tutorial corpus, repo split, public analytics note |
+| `COMMERCIAL-LICENSE.md` | How to license the Engine without AGPL obligations |
 | `SECURITY.md` | Threat model, scope, and how to report a vulnerability |
+
+Identity, billing, the AI relay and the vault are **not** in this repository. See [the repo split](https://github.com/SID-Apps/lithifyte/blob/main/docs/REPO-SPLIT.md).
 
 ## Self-tests as a trust mechanism
 
@@ -58,9 +61,9 @@ An honest limitation, learned the hard way: a check that asserts on something a 
 
 ## Contributing
 
-Issues and pull requests are welcome at [github.com/SID-Apps/lithifyte](https://github.com/SID-Apps/lithifyte). Two constraints shape what can be accepted, and they are not negotiable:
+Issues and pull requests are welcome at [github.com/SID-Apps/lithifyte](https://github.com/SID-Apps/lithifyte). Read [CONTRIBUTING.md](https://github.com/SID-Apps/lithifyte/blob/main/CONTRIBUTING.md). Two constraints are not negotiable:
 
-- **No feature may require sending financial data to a server.** Not for convenience, not for AI, not for sync. If it needs a server, it needs a different product.
-- **A shipped update must never destroy a user's data.** There is no server-side copy to restore from, so the upgrade path — snapshot, migrate, or refuse to run — is the entire safety net.
+- **No feature may require sending financial data to a server in the clear.** An encrypted vault blob the server cannot read is allowed. A finance backend is a different product.
+- **A shipped update must never destroy a user's data.** There is no server-side copy of the ledger to restore from.
 
-Security reports go through the process in `SECURITY.md` rather than a public issue.
+A commercial licence of the Engine (white-label, closed embed) is [documented separately](/commercial). Security reports go through `SECURITY.md` rather than a public issue.

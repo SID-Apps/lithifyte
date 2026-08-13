@@ -63,7 +63,7 @@ python3 -m http.server 8788 --directory www/rev2
 | Start account | `https://app.lithifyte.com/` |
 | Source | `https://github.com/SID-Apps/lithifyte` |
 
-Email waitlist / magic-link Worker is **not** wired in Rev 2 yet (Rev 1 has the form + `www/workers/` stub).
+Email waitlist / magic-link is handled by the private Cloud (`access.lithifyte.com`), not this marketing tree.
 
 ## Files
 

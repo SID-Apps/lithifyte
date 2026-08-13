@@ -287,6 +287,7 @@ const FOOTER = `<footer class="site">
   <a href="/faq">FAQ</a>
   <a href="/security-and-privacy">Security</a>
   <a href="/open-source">Open source</a>
+  <a href="/commercial">Plus</a>
   <a href="/privacy">Privacy</a>
   <a href="/terms">Terms</a>
   <a href="https://github.com/SID-Apps/lithifyte">Source (AGPL-3.0)</a>
@@ -594,7 +595,7 @@ Key facts, stated plainly for retrieval:
 - AI co-pilot: hosted Lithifyte AI is available after per-lane consent (chat / categorise / pdf). Commands-only and a local model (Ollama, LM Studio, any OpenAI-compatible URL including a self-hosted Qwen) send nothing off the device. Grok / ChatGPT / Claude BYOK is built at the relay and marked Coming soon. The model never produces a number — it resolves intent, the Engine computes figures on the device, and answers render from those computed values.
 - What hosted AI sends: the assembled context for that message, through Engine.minimise at one of three tiers (shape / aggregate / detail). Account names are aliased (acct_N). Household notes are not dumped wholesale. The relay is a pass-through, not a finance database, and asks OpenRouter data_collection: deny.
 - Agent hooks in the app (DevTools, same origin): window.__ddCatalog() maps tools and hooks; window.__ddSelfTest() returns {pass,n,fails,tests}; window.__ddLastOutbound() is the last hosted request (metadata only). There is no public finance API and no MCP over household data.
-- Cost: €0 for the core application (import, map, budgets, forecasts, export, Commands-only). Hosted Lithifyte AI: 7-day trial, then 20 chats/week on Free, or Plus €9/mo / €90/yr. Export of your data is never gated.
+- Cost: €0 for the core Engine (import, map, budgets, forecasts, export, Commands-only). Lithifyte Plus (€9/mo or €90/yr) is hosted AI, an encrypted vault, and maintained Ireland tax/bank packs. Commercial licence of the Engine: https://lithifyte.com/commercial. Export of your data is never gated.
 - Made by: Lithifyte (SID Labs), Ireland. Global product; Ireland is an optional locale pack for local tax depth.
 
 ## Product

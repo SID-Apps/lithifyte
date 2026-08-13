@@ -32,15 +32,7 @@ Rev 2.1 (2026-07-17) added: favicon set (`favicon.*`, `icon-*.png`,
 `sitemap.xml`, `og.png` social card, SEO/OG/JSON-LD head, a "What's inside"
 features chapter, hero CTAs, and a no-JS / CDN-failure copy fallback.
 
-### Waitlist admin (who asked for access)
-
-Emails live in the `WAITLIST` KV namespace under `user:` keys:
-
-```bash
-cd www/workers
-wrangler kv key list --binding=WAITLIST --remote --prefix=user: | jq -r '.[].name'
-wrangler kv key get --binding=WAITLIST --remote "user:someone@example.com"
-```
+Identity, billing and the waitlist live in the **private Cloud** repository (`SID-Apps/lithifyte-cloud`), not in this tree. See [`docs/REPO-SPLIT.md`](../docs/REPO-SPLIT.md).
 
 See [`rev2/README.md`](rev2/README.md) for the Rev 2 chapter map and preview commands.
 
@@ -108,7 +100,7 @@ Browser
 **Stack that matches your ethics:**
 
 1. **Cloudflare Pages** — static landing + static app (static assets served straight from the edge).
-2. **Cloudflare Worker + KV** — waitlist + magic-link tokens + sessions (`workers/access.js`).
+2. **Cloudflare Worker + KV** — waitlist + magic-link tokens + sessions (private Cloud, not this repo).
 3. **Email delivery** — Resend, Postmark, or Mailchannels from the Worker (send only the magic link).
 4. Optional later: **Cloudflare Access** / Zero Trust if you want enterprise SSO in front of a private staging app — overkill for free consumer access.
 
@@ -138,17 +130,9 @@ const WAITLIST_URL = 'https://lithifyte-access.<you>.workers.dev/waitlist';
 
 Until that is set, the form stores emails in **localStorage only** (dev fallback) and invites the user to the sample.
 
-### Deploy the Worker
+### Deploy the access Worker
 
-```bash
-cd www/workers
-npx wrangler login
-npx wrangler kv:namespace create WAITLIST
-# paste id into wrangler.toml
-npx wrangler deploy
-```
-
-Turn off `DEV_RETURN_LINK` in production; implement `sendMagicLinkEmail` with your mail provider.
+That Worker is not in this repository. Deploy it from the private Cloud repo (`access/` → `access.lithifyte.com`).
 
 ## Brand notes
 

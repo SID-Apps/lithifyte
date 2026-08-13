@@ -205,12 +205,11 @@ done
 
 ## 6 · Two gates that are not SEO but block on the same deploys
 
-**Mail from-address.** `www/workers/wrangler.toml` now sets
-`MAIL_FROM = "Lithifyte <signin@lithifyte.com>"`. **`lithifyte.com` is not yet a
-verified domain in Resend.** Deploying the access worker before verifying it
-means Resend refuses every send, `/waitlist` returns 502, and nobody can sign
-in. Verify first: Resend → Domains → add `lithifyte.com` → add the DKIM and SPF
-records it prints to Cloudflare DNS → wait for *Verified*. Confirm with:
+**Mail from-address.** The private Cloud access worker sends from
+`Lithifyte <signin@lithifyte.com>`. **`lithifyte.com` must be a verified domain
+in Resend** or `/waitlist` returns 502 and nobody can sign in. Verify first:
+Resend → Domains → add `lithifyte.com` → add the DKIM and SPF records it prints
+to Cloudflare DNS → wait for *Verified*. Confirm with:
 
 ```bash
 dig +short TXT resend._domainkey.lithifyte.com

@@ -1,7 +1,7 @@
 # Frequently asked questions
 
 Source: https://lithifyte.com/faq
-Updated: 2026-08-12
+Updated: 2026-08-13
 Licence: content CC-BY-4.0 · software AGPL-3.0-or-later
 
 Short, direct answers. If a question you have is not here, the [guide](/guide) goes deeper and the [source code](https://github.com/SID-Apps/lithifyte) settles any argument about what the software actually does.
@@ -18,7 +18,7 @@ There is no advertising, no data sale and no lock-in, because there is no data o
 
 ### Can I use it commercially or modify it?
 
-Yes, under the terms of the AGPL-3.0-or-later. You can read it, change it, run it and redistribute it. If you run a modified version as a network service, the licence requires you to offer that modified source to its users. See [open source](/open-source).
+Yes, under the AGPL-3.0-or-later: read it, change it, run it, redistribute it. If you run a modified version as a network service, you must offer that modified source to its users. Organisations that need to embed the Engine in a closed product can buy a [commercial licence](/commercial). The Lithifyte name is not included. See [open source](/open-source).
 
 ## Privacy and security
 

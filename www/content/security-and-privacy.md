@@ -31,6 +31,7 @@ You do not have to take this on faith. Open your browser's network tab and impor
 | Backups you export | Wherever you save the file | Only if you move it |
 | Your email address (hosted sign-in only) | Cloudflare KV, on our side | It is already ours to hold |
 | Product events: section opened, import happened (hosted only) | Cloudflare KV, on our side | Names of features, never amounts |
+| Optional Plus vault (encrypted backup envelope) | Cloudflare KV, ciphertext only | Only if you press Cloud vault; we cannot decrypt it |
 | Co-pilot conversations and sandbox scenarios | `localStorage` in your browser | Only the context of a message you send, and only to the model you chose — see below |
 
 Self-hosted copies write nothing to the email or product-event rows. The code that reports product events checks the hostname and does not run from a file or from a domain that is not ours.
@@ -84,14 +85,16 @@ Two consequences worth being blunt about. First, the passphrase is not recoverab
 
 ## What the servers actually do
 
-Four small Cloudflare Workers, all of them open source in the same repository:
+The Engine in the public repository is one file. The official host adds a small private Cloud next to it:
 
 - **The site** serves static pages. No account, no cookie required to read anything.
-- **Sign-in** issues a magic link to your email address and sets a session cookie so the hosted app recognises you across devices. It handles identity, never finance. Rate-limited; tokens are single-purpose.
-- **Digest mail** takes an email that your *browser* has already composed and posts it to a mail provider. The body is not stored. Amounts are masked by default, and you can uncheck that if you would rather they were not.
-- **The AI relay** forwards a co-pilot request to the model provider and returns the answer. Pass-through only; no ledger, no transcript store. It does nothing at all unless you have connected a model.
+- **Sign-in** issues a magic link (or Google) and sets a session cookie so the hosted app recognises you. Identity, never a ledger. Rate-limited; tokens are single-purpose.
+- **Digest mail** takes an email that your *browser* has already composed and posts it to a mail provider. The body is not stored.
+- **The AI relay** forwards a co-pilot request to the model provider and returns the answer. Pass-through only.
+- **The encrypted vault** (Plus) stores a backup envelope you already encrypted in the browser. We do not have the passphrase and cannot read it.
+- **Packs** (Plus) are Ireland tax parameters and extra bank column maps — public figures, delivered as a maintained update channel.
 
-The endpoints exposed are sign-in, session, sign-out, product events, digest, AI relay and health. There is deliberately no endpoint that stores your finances, and adding one would be a design change requiring a rewrite of this page.
+There is deliberately no endpoint that accepts a statement or a plaintext ledger. Adding one would be a different product and this page would say so. The Cloud workers are not published in the Engine repository.
 
 ## Verifying any of this yourself
 
@@ -103,4 +106,4 @@ The endpoints exposed are sign-in, session, sign-out, product events, digest, AI
 
 ## Data protection
 
-Lithifyte is built in Ireland and the design is deliberately compatible with the GDPR principle of data minimisation: the lawful basis question is straightforward when the only personal data processed is an email address you volunteered for sign-in. You can request deletion of that address at any time, which removes everything we hold about you, because it is everything we hold about you.
+Lithifyte is built in Ireland and the design is deliberately compatible with the GDPR principle of data minimisation. On our side we hold an email address, a plan/quota counter, privacy-safe event names, and — if you use Plus vault — an encrypted blob we cannot read. You can request deletion of that address at any time; we then delete the user record and any vault blob. We never had your ledger.

@@ -2,7 +2,7 @@
 
 **Household finance mission control in a single HTML file. We never store your ledger.**
 
-Lithifyte turns your bank statements into a **full financial neural map** of your household's money patterns: people, accounts and merchants; goal planning with honest feasibility dates; a pace-based budget; cautious forecasting; debt, investment and net-worth tracking (with an optional **Ireland** locale pack for local tax depth); and a financial-health dial over it all. It is one self-contained file. **There is no finance backend.** The hosted app uses Google or email sign-in, privacy-safe product events, and optional metered Lithifyte AI (see `docs/product-analytics.md`); self-hosted builds phone home with nothing.
+Lithifyte turns your bank statements into a **full financial neural map** of your household's money patterns: people, accounts and merchants; goal planning with honest feasibility dates; a pace-based budget; cautious forecasting; debt, investment and net-worth tracking (with an optional **Ireland** locale pack for local tax depth); and a financial-health dial over it all. It is one self-contained file. **There is no finance backend.** The hosted app uses Google or email sign-in, privacy-safe product events, and optional Lithifyte Plus (metered AI, encrypted vault, maintained tax/bank packs — see `docs/REPO-SPLIT.md`); self-hosted builds phone home with nothing.
 
 > **The privacy promise, bluntly:** statements are parsed in your browser. We never store them. Asking hosted Lithifyte AI sends *the slice that question needs* to the model provider for that request — not the ledger. Commands-only and your own model (Ollama / Qwen) send nothing. You can read this file's source and verify every word of that.
 
@@ -12,9 +12,9 @@ Lithifyte turns your bank statements into a **full financial neural map** of you
 
 **New here?** The [Tutorial & Ask guide](https://app.lithifyte.com/tutorial) walks every feature in order of use (name → CSV → goals → budgets → wealth → backup) and includes an **Ask** box backed by a local RAG corpus (`docs/rag/chunks.json`). Optional: point Ask at your own local model for prose answers.
 
-**Home is [lithifyte.com](https://lithifyte.com)** — the product site, with the [guide](https://lithifyte.com/guide), the [FAQ](https://lithifyte.com/faq) and a plain-language [money library](https://lithifyte.com/learn). The app itself runs at **[app.lithifyte.com](https://app.lithifyte.com)** on a Cloudflare Worker that auto-deploys from `main`. Those two hosts are the only official ones.
+**Home is [lithifyte.com](https://lithifyte.com)** — the product site, with the [guide](https://lithifyte.com/guide), the [FAQ](https://lithifyte.com/faq), [Plus / commercial](https://lithifyte.com/commercial) and a plain-language [money library](https://lithifyte.com/learn). The app itself runs at **[app.lithifyte.com](https://app.lithifyte.com)** on a Cloudflare Worker that auto-deploys from `main`. Those two hosts are the only official ones.
 
-**Marketing site** for the product domain lives in [`www/`](www/) — immersive first-person / Tron-grid landing, email-only free access (Cloudflare Worker stub), CTAs into sample and app. **Rev 1** is `www/index.html`; **Rev 2** (Claude Design Canvas — interactive money map + Sankey) is [`www/rev2/`](www/rev2/). See [`www/README.md`](www/README.md) for deploy layout (`lithifyte.com` → landing, app/sample path (`demo.html`) on subpaths or subdomains).
+**Marketing site** for the product domain lives in [`www/`](www/). Identity, billing, the AI relay and the encrypted vault are **not** in this repository — they live in the private Cloud (see [`docs/REPO-SPLIT.md`](docs/REPO-SPLIT.md)).
 
 ## Quick start
 
@@ -112,6 +112,8 @@ Prefer [private vulnerability reporting](https://github.com/SID-Apps/lithifyte/s
 
 ## License
 
-**AGPL-3.0-or-later** — see [LICENSE](LICENSE). Plain-language summary: use it, study it, modify it, share it, self-host it for your household freely. But if you publish or host a derivative, it must remain open source under this same license with attribution intact. Stripping this notice and selling Lithifyte as your own closed product is a license violation, and the kind we would pursue.
+**AGPL-3.0-or-later** — see [LICENSE](LICENSE). Use it, study it, modify it, share it, self-host it for your household. If you publish or host a derivative, it must remain open under this same licence with attribution intact. The Lithifyte name is a trademark; a fork cannot call itself Lithifyte.
+
+Organisations that cannot take AGPL obligations can buy a [commercial licence](COMMERCIAL-LICENSE.md). Hosted Plus (AI, vault, pack updates) is a separate subscription on the official app, not a lock on this file.
 
 Copyright © 2026 the Lithifyte project (SID Labs).

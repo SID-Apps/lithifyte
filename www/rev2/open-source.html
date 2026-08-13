@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Open source, and why it matters here — Lithifyte</title>
-<meta name="description" content="Lithifyte is AGPL-3.0-or-later. The whole application is one readable HTML file you can audit, fork, self-host and keep — which is what makes its privacy claim checkable rather than promised.">
+<meta name="description" content="Lithifyte's Engine is AGPL-3.0-or-later. The calculator is one readable HTML file you can audit, fork, self-host and keep. Hosted Plus (AI, vault, pack updates) is a separate living product.">
 <link rel="canonical" href="https://lithifyte.com/open-source">
 <meta name="theme-color" content="#020b1a">
 <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
@@ -16,11 +16,11 @@
 <meta property="og:site_name" content="Lithifyte">
 <meta property="og:url" content="https://lithifyte.com/open-source">
 <meta property="og:title" content="Open source, and why it matters here">
-<meta property="og:description" content="Lithifyte is AGPL-3.0-or-later. The whole application is one readable HTML file you can audit, fork, self-host and keep — which is what makes its privacy claim checkable rather than promised.">
+<meta property="og:description" content="Lithifyte's Engine is AGPL-3.0-or-later. The calculator is one readable HTML file you can audit, fork, self-host and keep. Hosted Plus (AI, vault, pack updates) is a separate living product.">
 <meta property="og:image" content="https://lithifyte.com/og.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Open source, and why it matters here">
-<meta name="twitter:description" content="Lithifyte is AGPL-3.0-or-later. The whole application is one readable HTML file you can audit, fork, self-host and keep — which is what makes its privacy claim checkable rather than promised.">
+<meta name="twitter:description" content="Lithifyte's Engine is AGPL-3.0-or-later. The calculator is one readable HTML file you can audit, fork, self-host and keep. Hosted Plus (AI, vault, pack updates) is a separate living product.">
 <meta name="twitter:image" content="https://lithifyte.com/og.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,7 +52,7 @@
       "@id": "https://lithifyte.com/open-source#page",
       "url": "https://lithifyte.com/open-source",
       "name": "Open source, and why it matters here",
-      "description": "Lithifyte is AGPL-3.0-or-later. The whole application is one readable HTML file you can audit, fork, self-host and keep — which is what makes its privacy claim checkable rather than promised.",
+      "description": "Lithifyte's Engine is AGPL-3.0-or-later. The calculator is one readable HTML file you can audit, fork, self-host and keep. Hosted Plus (AI, vault, pack updates) is a separate living product.",
       "inLanguage": "en",
       "isPartOf": {
         "@id": "https://lithifyte.com/#website"
@@ -63,7 +63,7 @@
       "publisher": {
         "@id": "https://lithifyte.com/#organization"
       },
-      "dateModified": "2026-08-09",
+      "dateModified": "2026-08-13",
       "@type": "WebPage"
     }
   ]
@@ -117,8 +117,8 @@
 <main class="page">
 <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span class="sep">/</span> <span aria-current="page">Open source</span></nav>
   <h1>Open source, and why it matters here</h1>
-  <p class="updated">Updated 9 August 2026</p>
-  <p class="lede">A privacy promise you cannot verify is marketing. Lithifyte is published under the AGPL-3.0-or-later as a single readable file, so the claim that we never store your ledger — and that hosted AI only receives the slice a question needs — is something you can check rather than something you have to believe.</p>
+  <p class="updated">Updated 13 August 2026</p>
+  <p class="lede">A privacy promise you cannot verify is marketing. The Engine is published under AGPL-3.0-or-later as a single readable file, so the claim that we never store your ledger is something you can check. Official Lithifyte also sells hosted intelligence and maintained packs — those are not required to run the file.</p>
 
 <h2 id="the-licence">The licence</h2>
 <p>Lithifyte is licensed <strong>AGPL-3.0-or-later</strong>. In practical terms:</p>
@@ -131,17 +131,18 @@
 <h2 id="self-hosting">Self-hosting</h2>
 <p>There is no build step and no dependency tree.</p>
 <ol><li>Download <code>index.html</code> from <a href="https://github.com/SID-Apps/lithifyte" rel="noopener">the repository</a>.</li><li>Open it — from your disk, a USB stick, a private server, whatever you like.</li><li>That is the whole procedure.</li></ol>
-<p>It runs offline. It reports nothing. It is the same file the hosted app serves, not a reduced version, and the hosted app has no features the file lacks. The only thing you give up is the magic-link sign-in that lets the hosted copy recognise you across devices — which is identity plumbing, not functionality.</p>
-<p>The project deliberately keeps no count of self-hosted installs. There is no telemetry to strip out because there is none to begin with.</p>
+<p>It runs offline. It reports nothing. The Engine, importer, map, budgets, forecast, wealth, export and Commands-only are the same as the hosted app. What you give up is the <strong>living product</strong>: magic-link / Google sign-in, Lithifyte AI, the encrypted cloud vault, and maintained Ireland tax / bank-preset packs. Those are Lithifyte Plus on the official host. They are conveniences, not a lock on your numbers.</p>
+<p>The project keeps no count of self-hosted installs. Telemetry is hostname-gated and does not run from a file.</p>
 <h2 id="what-is-in-the-repository">What is in the repository</h2>
-<div class="tablewrap"><table><thead><tr><th>Path</th><th>What it is</th></tr></thead><tbody><tr><td><code>index.html</code></td><td>The whole application: interface, engine, self-tests</td></tr><tr><td><code>demo.html</code></td><td>The sample household — invented data, isolated storage</td></tr><tr><td><code>tutorial.html</code></td><td>Long-form written guide with a retrieval-backed Ask box</td></tr><tr><td><code>feeder/</code></td><td>Optional open-banking feeder CLI and price fetcher</td></tr><tr><td><code>tools/</code></td><td>Release tooling — data swapping, sample generation, this site</td></tr><tr><td><code>www/</code></td><td>The marketing site and the Cloudflare Workers behind sign-in</td></tr><tr><td><code>docs/</code></td><td>Product analytics spec, email digest spec, tutorial corpus</td></tr><tr><td><code>SECURITY.md</code></td><td>Threat model, scope, and how to report a vulnerability</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>Path</th><th>What it is</th></tr></thead><tbody><tr><td><code>index.html</code></td><td>The whole application: interface, engine, self-tests</td></tr><tr><td><code>demo.html</code></td><td>The sample household — invented data, isolated storage</td></tr><tr><td><code>tutorial.html</code></td><td>Long-form written guide with a retrieval-backed Ask box</td></tr><tr><td><code>feeder/</code></td><td>Optional open-banking feeder CLI and price fetcher</td></tr><tr><td><code>tools/</code></td><td>Release tooling — data swapping, sample generation, this site</td></tr><tr><td><code>www/</code></td><td>The marketing site (landing + money library)</td></tr><tr><td><code>docs/</code></td><td>Tutorial corpus, repo split, public analytics note</td></tr><tr><td><code>COMMERCIAL-LICENSE.md</code></td><td>How to license the Engine without AGPL obligations</td></tr><tr><td><code>SECURITY.md</code></td><td>Threat model, scope, and how to report a vulnerability</td></tr></tbody></table></div>
+<p>Identity, billing, the AI relay and the vault are <strong>not</strong> in this repository. See <a href="https://github.com/SID-Apps/lithifyte/blob/main/docs/REPO-SPLIT.md" rel="noopener">the repo split</a>.</p>
 <h2 id="self-tests-as-a-trust-mechanism">Self-tests as a trust mechanism</h2>
 <p>The application ships hundreds of behavioural checks that you can run yourself, in your browser, against your own data. They exist for the usual engineering reasons, but they serve a second purpose here: they let a stranger confirm the engine's arithmetic without reading the whole file or trusting the author.</p>
 <p>An honest limitation, learned the hard way: a check that asserts on something a user is entitled to change will turn red on a perfectly healthy install, and a red self-test tells someone not to trust the numbers. Assertions are written against invariants, not preferences.</p>
 <h2 id="contributing">Contributing</h2>
-<p>Issues and pull requests are welcome at <a href="https://github.com/SID-Apps/lithifyte" rel="noopener">github.com/SID-Apps/lithifyte</a>. Two constraints shape what can be accepted, and they are not negotiable:</p>
-<ul><li><strong>No feature may require sending financial data to a server.</strong> Not for convenience, not for AI, not for sync. If it needs a server, it needs a different product.</li><li><strong>A shipped update must never destroy a user's data.</strong> There is no server-side copy to restore from, so the upgrade path — snapshot, migrate, or refuse to run — is the entire safety net.</li></ul>
-<p>Security reports go through the process in <code>SECURITY.md</code> rather than a public issue.</p>
+<p>Issues and pull requests are welcome at <a href="https://github.com/SID-Apps/lithifyte" rel="noopener">github.com/SID-Apps/lithifyte</a>. Read <a href="https://github.com/SID-Apps/lithifyte/blob/main/CONTRIBUTING.md" rel="noopener">CONTRIBUTING.md</a>. Two constraints are not negotiable:</p>
+<ul><li><strong>No feature may require sending financial data to a server in the clear.</strong> An encrypted vault blob the server cannot read is allowed. A finance backend is a different product.</li><li><strong>A shipped update must never destroy a user's data.</strong> There is no server-side copy of the ledger to restore from.</li></ul>
+<p>A commercial licence of the Engine (white-label, closed embed) is <a href="/commercial">documented separately</a>. Security reports go through <code>SECURITY.md</code> rather than a public issue.</p>
 <aside class="cta"><h2>Try it</h2><p>The sample household is fully populated with invented data — no sign-up, nothing to upload. When you are ready to use your own statements, sign-in is a magic link and holds no financial data.</p><p><a class="btn" href="https://app.lithifyte.com/demo">Explore the sample household</a> <a class="btn ghost" href="https://access.lithifyte.com/">Sign in free</a></p></aside>
 <aside class="related"><h2>Keep reading</h2><ul><li><a href="/security-and-privacy">Security and privacy, in technical terms</a> <span class="rel-d">The claim is narrow and testable: there is no finance backend, so statements are never stored by us. The one exception is hosted AI, which you consent to per lane and which sends only the slice that question needs — that is set out in full below, along with the parts we cannot fix.</span></li><li><a href="/how-it-works">How Lithifyte works</a> <span class="rel-d">You upload a bank statement to a web page. The page reads it in your browser, works out who spent what and where it went, and draws the result as a living map. No file is transmitted, because there is no server on the other end to receive it.</span></li><li><a href="/guide">The Lithifyte guide</a> <span class="rel-d">A complete feature reference, ordered the way you actually encounter things: get data in, make it trustworthy, understand it, then plan with it. There is also an interactive version inside the app with an Ask box.</span></li></ul></aside>
 </main>
@@ -153,6 +154,7 @@
   <a href="/faq">FAQ</a>
   <a href="/security-and-privacy">Security</a>
   <a href="/open-source">Open source</a>
+  <a href="/commercial">Plus</a>
   <a href="/privacy">Privacy</a>
   <a href="/terms">Terms</a>
   <a href="https://github.com/SID-Apps/lithifyte">Source (AGPL-3.0)</a>

@@ -6,10 +6,51 @@ Every page on lithifyte.com as plain markdown, generated 2026-08-13. Canonical H
 
 ---
 
+# Plus and commercial licensing
+
+URL: https://lithifyte.com/commercial
+Updated: 2026-08-13
+
+The calculator is free forever. Official Lithifyte sells the living product — AI, vault, pack updates — and a commercial licence of the Engine for white-label use.
+
+## Two different things
+
+**Lithifyte Plus** is a subscription on [app.lithifyte.com](https://app.lithifyte.com). Households pay for hosted conveniences. The file you can download does not need it.
+
+**A commercial licence** is a contract with SID Labs to use the Engine in a closed product. Banks, advisors, and anyone who cannot take AGPL obligations need this. Households do not.
+
+## What stays free
+
+Import, categorise, the money map, budgets, forecast, wealth, full export, Commands-only, and a model you run yourself (Ollama, LM Studio, any OpenAI-compatible URL). That is [the public repository](https://github.com/SID-Apps/lithifyte), AGPL-3.0-or-later.
+
+## Lithifyte Plus — €9 / month or €90 / year
+
+| Included | Free / self-hosted | Plus (and 7-day trial) |
+|---|---|---|
+| Engine, map, budgets, export | Yes | Yes |
+| Hosted Lithifyte AI | 20 questions / week after trial | Unlimited |
+| PDF statement parse via Lithifyte AI | No | Yes |
+| Encrypted cloud vault | No (local + Drive still work) | Yes — ciphertext we cannot read |
+| Ireland tax-pack updates | Last snapshot baked into the file | Live, when Revenue figures change |
+| Extra bank presets (AIB, BOI, PTSB, N26) | Revolut only + manual mapper | Maintained maps, still overridable |
+
+Start from the hosted app → Settings → Lithifyte Plus. Your own model is always free.
+
+## Commercial licence of the Engine
+
+If you want to white-label the calculator, embed it in an advisor portal, or host a modified copy without publishing your changes, email **signin@lithifyte.com** with who you are, what you will ship, and an approximate user count.
+
+A commercial licence covers the Engine. It does not include the Lithifyte name, the official host, or anyone’s household data.
+
+Terms: [COMMERCIAL-LICENSE.md](https://github.com/SID-Apps/lithifyte/blob/main/COMMERCIAL-LICENSE.md).
+
+
+---
+
 # Frequently asked questions
 
 URL: https://lithifyte.com/faq
-Updated: 2026-08-12
+Updated: 2026-08-13
 
 Short, direct answers. If a question you have is not here, the [guide](/guide) goes deeper and the [source code](https://github.com/SID-Apps/lithifyte) settles any argument about what the software actually does.
 
@@ -25,7 +66,7 @@ There is no advertising, no data sale and no lock-in, because there is no data o
 
 ### Can I use it commercially or modify it?
 
-Yes, under the terms of the AGPL-3.0-or-later. You can read it, change it, run it and redistribute it. If you run a modified version as a network service, the licence requires you to offer that modified source to its users. See [open source](/open-source).
+Yes, under the AGPL-3.0-or-later: read it, change it, run it, redistribute it. If you run a modified version as a network service, you must offer that modified source to its users. Organisations that need to embed the Engine in a closed product can buy a [commercial licence](/commercial). The Lithifyte name is not included. See [open source](/open-source).
 
 ## Privacy and security
 
@@ -250,7 +291,7 @@ You upload a bank statement to a web page. The page reads it in your browser, wo
 
 Most finance apps work by connecting to your bank, copying your transactions onto their servers, and showing you a view of that copy. Lithifyte inverts it. The analysis engine is delivered to you as a web page, and your data stays where it already is: on your device.
 
-That single decision explains nearly everything else about the product — why there is no sign-up wall, why it costs nothing, why it is one file you can download and keep, and why nobody at Lithifyte can look at your spending even if asked to.
+That single decision explains nearly everything else about the product — why the Engine costs nothing, why it is one file you can download and keep, and why nobody at Lithifyte can look at your spending even if asked to. Sign-in on the hosted app is identity only. Plus is hosted intelligence and maintained packs, not a lock on your numbers.
 
 ## What actually happens when you use it
 
@@ -287,7 +328,7 @@ Two things make it worth trusting. The model never produces a number — it work
 
 ## What it does not do
 
-It does not connect to your bank by default. It does not give financial advice, recommend products, or take a commission from anyone. It does not have a premium tier that unlocks your own numbers. There is no finance backend. The one place anything about your money can leave the browser is hosted AI, after you consent, and only the slice that question needs.
+It does not connect to your bank by default. It does not give financial advice, recommend products, or take a commission from anyone. It does not have a premium tier that unlocks your own numbers — Plus is hosted AI, an encrypted vault, and pack updates. There is no finance backend. The places anything about your money can leave the browser are: hosted AI (after you consent, only the slice that question needs) and an optional encrypted backup you choose to store on Drive or in the Plus vault (ciphertext we cannot read).
 
 Statement import is the supported path in, and it is deliberate rather than a limitation to apologise for: a file you exported yourself is a file no third party had to be trusted with.
 
@@ -295,9 +336,9 @@ Commands-only and a local model keep even the co-pilot on your own machine.
 
 ## Two ways to run it
 
-**Hosted** — open [app.lithifyte.com](https://app.lithifyte.com). Sign-in is a magic link to your email address, which exists so the app can recognise you across devices; it holds no financial data. The hosted build records privacy-safe product events (which sections get used, never amounts) so the project can tell what is worth building next.
+**Hosted** — open [app.lithifyte.com](https://app.lithifyte.com). Sign-in is Google or a magic link, so the official app can recognise you, meter Lithifyte AI, and offer Plus. It holds no financial data in the clear. Privacy-safe product events (which sections get used, never amounts) stay on the hosted build.
 
-**Self-hosted** — download `index.html` from [the repository](https://github.com/SID-Apps/lithifyte) and open it from your own disk, a USB stick, or a server you control. It works offline. It reports nothing to anyone, and there is no mechanism by which it could. This is the same file, not a cut-down version.
+**Self-hosted** — download `index.html` from [the repository](https://github.com/SID-Apps/lithifyte) and open it from your own disk, a USB stick, or a server you control. It works offline. It reports nothing. The Engine is the same file. You do not get hosted AI, the cloud vault, or live tax/bank-pack updates — those are the official product, not a crippled calculator.
 
 ## Getting your data back out
 
@@ -309,9 +350,9 @@ Everything exports. Encrypted backups, plain CSV and Excel packs, and a full JSO
 # Open source, and why it matters here
 
 URL: https://lithifyte.com/open-source
-Updated: 2026-08-09
+Updated: 2026-08-13
 
-A privacy promise you cannot verify is marketing. Lithifyte is published under the AGPL-3.0-or-later as a single readable file, so the claim that we never store your ledger — and that hosted AI only receives the slice a question needs — is something you can check rather than something you have to believe.
+A privacy promise you cannot verify is marketing. The Engine is published under AGPL-3.0-or-later as a single readable file, so the claim that we never store your ledger is something you can check. Official Lithifyte also sells hosted intelligence and maintained packs — those are not required to run the file.
 
 ## The licence
 
@@ -340,9 +381,9 @@ There is no build step and no dependency tree.
 2. Open it — from your disk, a USB stick, a private server, whatever you like.
 3. That is the whole procedure.
 
-It runs offline. It reports nothing. It is the same file the hosted app serves, not a reduced version, and the hosted app has no features the file lacks. The only thing you give up is the magic-link sign-in that lets the hosted copy recognise you across devices — which is identity plumbing, not functionality.
+It runs offline. It reports nothing. The Engine, importer, map, budgets, forecast, wealth, export and Commands-only are the same as the hosted app. What you give up is the **living product**: magic-link / Google sign-in, Lithifyte AI, the encrypted cloud vault, and maintained Ireland tax / bank-preset packs. Those are Lithifyte Plus on the official host. They are conveniences, not a lock on your numbers.
 
-The project deliberately keeps no count of self-hosted installs. There is no telemetry to strip out because there is none to begin with.
+The project keeps no count of self-hosted installs. Telemetry is hostname-gated and does not run from a file.
 
 ## What is in the repository
 
@@ -353,9 +394,12 @@ The project deliberately keeps no count of self-hosted installs. There is no tel
 | `tutorial.html` | Long-form written guide with a retrieval-backed Ask box |
 | `feeder/` | Optional open-banking feeder CLI and price fetcher |
 | `tools/` | Release tooling — data swapping, sample generation, this site |
-| `www/` | The marketing site and the Cloudflare Workers behind sign-in |
-| `docs/` | Product analytics spec, email digest spec, tutorial corpus |
+| `www/` | The marketing site (landing + money library) |
+| `docs/` | Tutorial corpus, repo split, public analytics note |
+| `COMMERCIAL-LICENSE.md` | How to license the Engine without AGPL obligations |
 | `SECURITY.md` | Threat model, scope, and how to report a vulnerability |
+
+Identity, billing, the AI relay and the vault are **not** in this repository. See [the repo split](https://github.com/SID-Apps/lithifyte/blob/main/docs/REPO-SPLIT.md).
 
 ## Self-tests as a trust mechanism
 
@@ -365,12 +409,12 @@ An honest limitation, learned the hard way: a check that asserts on something a 
 
 ## Contributing
 
-Issues and pull requests are welcome at [github.com/SID-Apps/lithifyte](https://github.com/SID-Apps/lithifyte). Two constraints shape what can be accepted, and they are not negotiable:
+Issues and pull requests are welcome at [github.com/SID-Apps/lithifyte](https://github.com/SID-Apps/lithifyte). Read [CONTRIBUTING.md](https://github.com/SID-Apps/lithifyte/blob/main/CONTRIBUTING.md). Two constraints are not negotiable:
 
-- **No feature may require sending financial data to a server.** Not for convenience, not for AI, not for sync. If it needs a server, it needs a different product.
-- **A shipped update must never destroy a user's data.** There is no server-side copy to restore from, so the upgrade path — snapshot, migrate, or refuse to run — is the entire safety net.
+- **No feature may require sending financial data to a server in the clear.** An encrypted vault blob the server cannot read is allowed. A finance backend is a different product.
+- **A shipped update must never destroy a user's data.** There is no server-side copy of the ledger to restore from.
 
-Security reports go through the process in `SECURITY.md` rather than a public issue.
+A commercial licence of the Engine (white-label, closed embed) is [documented separately](/commercial). Security reports go through `SECURITY.md` rather than a public issue.
 
 
 ---
@@ -402,6 +446,7 @@ You do not have to take this on faith. Open your browser's network tab and impor
 | Backups you export | Wherever you save the file | Only if you move it |
 | Your email address (hosted sign-in only) | Cloudflare KV, on our side | It is already ours to hold |
 | Product events: section opened, import happened (hosted only) | Cloudflare KV, on our side | Names of features, never amounts |
+| Optional Plus vault (encrypted backup envelope) | Cloudflare KV, ciphertext only | Only if you press Cloud vault; we cannot decrypt it |
 | Co-pilot conversations and sandbox scenarios | `localStorage` in your browser | Only the context of a message you send, and only to the model you chose — see below |
 
 Self-hosted copies write nothing to the email or product-event rows. The code that reports product events checks the hostname and does not run from a file or from a domain that is not ours.
@@ -455,14 +500,16 @@ Two consequences worth being blunt about. First, the passphrase is not recoverab
 
 ## What the servers actually do
 
-Four small Cloudflare Workers, all of them open source in the same repository:
+The Engine in the public repository is one file. The official host adds a small private Cloud next to it:
 
 - **The site** serves static pages. No account, no cookie required to read anything.
-- **Sign-in** issues a magic link to your email address and sets a session cookie so the hosted app recognises you across devices. It handles identity, never finance. Rate-limited; tokens are single-purpose.
-- **Digest mail** takes an email that your *browser* has already composed and posts it to a mail provider. The body is not stored. Amounts are masked by default, and you can uncheck that if you would rather they were not.
-- **The AI relay** forwards a co-pilot request to the model provider and returns the answer. Pass-through only; no ledger, no transcript store. It does nothing at all unless you have connected a model.
+- **Sign-in** issues a magic link (or Google) and sets a session cookie so the hosted app recognises you. Identity, never a ledger. Rate-limited; tokens are single-purpose.
+- **Digest mail** takes an email that your *browser* has already composed and posts it to a mail provider. The body is not stored.
+- **The AI relay** forwards a co-pilot request to the model provider and returns the answer. Pass-through only.
+- **The encrypted vault** (Plus) stores a backup envelope you already encrypted in the browser. We do not have the passphrase and cannot read it.
+- **Packs** (Plus) are Ireland tax parameters and extra bank column maps — public figures, delivered as a maintained update channel.
 
-The endpoints exposed are sign-in, session, sign-out, product events, digest, AI relay and health. There is deliberately no endpoint that stores your finances, and adding one would be a design change requiring a rewrite of this page.
+There is deliberately no endpoint that accepts a statement or a plaintext ledger. Adding one would be a different product and this page would say so. The Cloud workers are not published in the Engine repository.
 
 ## Verifying any of this yourself
 
@@ -474,7 +521,7 @@ The endpoints exposed are sign-in, session, sign-out, product events, digest, AI
 
 ## Data protection
 
-Lithifyte is built in Ireland and the design is deliberately compatible with the GDPR principle of data minimisation: the lawful basis question is straightforward when the only personal data processed is an email address you volunteered for sign-in. You can request deletion of that address at any time, which removes everything we hold about you, because it is everything we hold about you.
+Lithifyte is built in Ireland and the design is deliberately compatible with the GDPR principle of data minimisation. On our side we hold an email address, a plan/quota counter, privacy-safe event names, and — if you use Plus vault — an encrypted blob we cannot read. You can request deletion of that address at any time; we then delete the user record and any vault blob. We never had your ledger.
 
 
 ---

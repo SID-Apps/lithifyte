@@ -198,7 +198,10 @@ Copyright © 2026 the Lithifyte project (SID Labs). Licensed under AGPL-3.0-or-l
 you may use, study, modify and share this file, but any published or hosted
 derivative must remain open under the same license, with this notice intact.
 Rebranding and republishing this as a closed or proprietary product violates
-the license. Source + license text: see the project repository (README.md).
+the license. The Lithifyte name is a trademark. Organisations that cannot take
+AGPL obligations can buy a commercial licence (see COMMERCIAL-LICENSE.md).
+Official hosted extras (AI, encrypted vault, pack updates) are Lithifyte Plus
+and live outside this file. Source + license: the public repository (README.md).
 Your ledger stays in YOUR browser — we never store statements. Asking a hosted AI sends only the slice that question needs (see Engine.minimise); Commands-only and a local model send nothing. On the hosted app only, privacy-safe product usage events (no amounts/merchants) may be sent for sign-in and product improvement; self-hosted builds send nothing.
 ════════════════════════════════════════════════════════════════════════════
 FOR AI ASSISTANTS UPDATING THIS DASHBOARD
@@ -2996,7 +2999,7 @@ So, when you change a stored shape:
     <button class="btn" id="setClassicBtn" type="button">🖥️ Switch to classic view</button>
     <button class="btn" id="setTourBtn" type="button" style="margin-left:8px">▶ Guided Space tutorial</button>
     <h3 style="margin:18px 0 8px">Region &amp; locale pack</h3>
-    <p class="hint" style="margin:0 0 10px">Lithifyte is global — the money map, budgets and forecasts work everywhere. <b>Ireland</b> unlocks deeper local tax and scheme depth (CGT, funds exit tax, HTB-style planning). More packs later; core stays free.</p>
+    <p class="hint" style="margin:0 0 10px">Lithifyte is global — the money map, budgets and forecasts work everywhere. <b>Ireland</b> unlocks deeper local tax and scheme depth (CGT, funds exit tax, HTB-style planning). The snapshot in this file stays free. Plus on the official host keeps the rates and extra bank presets current.</p>
     <div class="filter-row" style="margin:0 0 8px">
       <span class="filter-label">Locale</span>
       <select id="lfLocaleSel" class="inp" aria-label="Locale pack" style="max-width:220px">
@@ -3005,6 +3008,7 @@ So, when you change a stored shape:
       </select>
       <span class="hint" id="lfLocaleHint"></span>
     </div>
+    <p class="hint" id="lfPackStatus"></p>
     <h3 style="margin:18px 0 8px">Tutorial &amp; Ask</h3>
     <p class="hint" style="margin:0 0 10px">Long-form written guide and product Q&amp;A from a local help corpus — not your bank data. For a live walkthrough of this app, use <b>Guided Space tutorial</b> above (or open the sample with the tutorial from onboarding).</p>
     <a class="btn" href="tutorial" id="setTutorialAskLink">📘 Tutorial &amp; Ask</a>
@@ -3024,8 +3028,18 @@ So, when you change a stored shape:
     </div>
     <div id="driveStatus" class="hint"></div>
     <div id="driveList" class="hint" style="max-height:140px;overflow:auto;margin-top:6px"></div>
+    <div id="cloudVaultBlock">
+      <h3 style="margin:18px 0 8px">Cloud vault (Plus)</h3>
+      <p class="hint" style="margin:0 0 8px">Store one encrypted backup on Lithifyte’s host so a new browser can restore it. We receive the same ciphertext envelope as a local encrypted export — not the passphrase, not the ledger. Self-hosted copies never use this.</p>
+      <div class="filter-row" style="margin:0 0 8px; flex-wrap:wrap; gap:8px">
+        <button class="btn primary" id="vaultBackup" type="button">Save encrypted vault</button>
+        <button class="btn" id="vaultRestore" type="button">Restore from vault</button>
+        <button class="btn" id="vaultDelete" type="button">Delete cloud copy</button>
+      </div>
+      <div id="vaultStatus" class="hint"></div>
+    </div>
     <h3 style="margin:18px 0 8px">AI &amp; what left this device</h3>
-    <p class="hint" style="margin:0 0 10px">The ledger never lives on our servers. Asking Lithifyte AI sends only the slice that question needs through a pass-through relay. Commands-only and a local model send nothing. Hosted intelligence is the paid lane later; the Engine stays free forever, and export is never gated.</p>
+    <p class="hint" style="margin:0 0 10px">The ledger never lives on our servers. Asking Lithifyte AI sends only the slice that question needs through a pass-through relay. Commands-only and a local model send nothing. Hosted intelligence, the encrypted vault and live tax/bank packs are Plus; the Engine stays free forever, and export is never gated.</p>
     <div class="filter-row" style="margin:0 0 8px; flex-wrap:wrap; gap:8px">
       <button class="btn" id="aiConsentRevoke" type="button">Revoke AI consent</button>
       <button class="btn small" id="aiDiscloseClear" type="button">Clear this log</button>
@@ -3410,10 +3424,11 @@ rewrite the static advice cards if the picture has changed.</div>
   <div class="wiz-box" role="dialog" aria-modal="true" aria-labelledby="plusTitle">
     <div class="wiz-kicker">Lithifyte Plus</div>
     <h3 id="plusTitle">Hosted intelligence, when you want it</h3>
-    <p class="wiz-sub" id="plusWhy">The Engine, import, budgets, export and Commands-only stay free forever. Plus is for hosted Lithifyte AI — conversational answers, PDF parse, and no weekly cap.</p>
+    <p class="wiz-sub" id="plusWhy">The Engine, import, budgets, export and Commands-only stay free forever. Plus is the living product: hosted Lithifyte AI, PDF parse, an encrypted cloud vault we cannot read, and Ireland tax / bank-preset updates.</p>
     <ul class="hint" style="padding-left:18px;line-height:1.55;margin:0 0 12px">
       <li>7 days unlimited after you first sign in</li>
       <li>Then 20 hosted questions a week on Free</li>
+      <li>Encrypted cloud vault + live Ireland tax pack + extra bank presets</li>
       <li>€9 / month, or €90 / year (11 months)</li>
       <li>Your own model (Ollama / Qwen) is always free</li>
     </ul>
@@ -3586,7 +3601,9 @@ rewrite the static advice cards if the picture has changed.</div>
     growthNominal: 0.05, mortgageRate: 0.035, cashRate: 0.02,
     cgtRate: 0.33, cgtExemption: 1270
   }, raw.fiscal || {});
-  const fiscalAgeDays = FISCAL.verifiedOn ? Math.floor((Date.now() - Date.parse(FISCAL.verifiedOn)) / 86400000) : null;
+  function fiscalAgeDays(){
+    return FISCAL.verifiedOn ? Math.floor((Date.now() - Date.parse(FISCAL.verifiedOn)) / 86400000) : null;
+  }
 
   // privacy (P5-20): PRIV.global masks every € figure app-wide through the
   // shared formatters (eur here + eurShort on the map canvas); PRIV.maskCash
@@ -5629,6 +5646,58 @@ rewrite the static advice cards if the picture has changed.</div>
                 dateFormat: 'ymd', decimal: 'dot', feeMode: 'fold', clean: 'revolut', filters};
       }
     }],
+    applyFiscalPack(pack, target){
+      const dest = target || {};
+      if (!pack || typeof pack !== 'object') return false;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(pack.verifiedOn || '')) return false;
+      const keys = ['verifiedOn','country','netToGross','payeShareOfGross','pensionReliefRate',
+        'fundsExitTax','dirtRate','htbCap','htbYears','pensionAgeBands','capacityPerThousand',
+        'depositRateLow','depositRateHigh','growthNominal','mortgageRate','cashRate','cgtRate','cgtExemption'];
+      for (const k of keys){
+        if (pack[k] !== undefined) dest[k] = pack[k];
+      }
+      dest.packVersion = pack.version || pack.id || '';
+      dest.packNotes = pack.notes || '';
+      return true;
+    },
+    impRegisterDeclarative(presets){
+      if (!Array.isArray(presets)) return 0;
+      let n = 0;
+      for (const p of presets){
+        if (!p || !p.id || !Array.isArray(p.matchAll) || !p.build) continue;
+        if (Engine.IMP_PRESETS.some(x => x.id === p.id)) continue;
+        const need = p.matchAll.map(s => String(s).toLowerCase());
+        const spec = p.build;
+        Engine.IMP_PRESETS.push({
+          id: p.id,
+          label: p.label || p.id,
+          note: p.note || '',
+          match: h => need.every(tok => h.includes(tok)),
+          build(h, rows, hr){
+            const at = n => {
+              const i = h.indexOf(n);
+              return i;
+            };
+            const col = name => {
+              if (name == null) return -1;
+              const want = String(name).toLowerCase();
+              const i = h.indexOf(want);
+              return i;
+            };
+            return {
+              preset: p.id, label: p.label || p.id, headerRow: hr,
+              date: col(spec.date), merchant: col(spec.merchant),
+              amount: col(spec.amount), debit: col(spec.debit), credit: col(spec.credit),
+              fee: col(spec.fee), balance: col(spec.balance),
+              dateFormat: spec.dateFormat || 'dmy', decimal: spec.decimal || 'dot',
+              feeMode: spec.feeMode || '', clean: spec.clean || '', filters: spec.filters || []
+            };
+          }
+        });
+        n++;
+      }
+      return n;
+    },
     // distinct values of a column, commonest first
     impTally(rows, col, headerRow){
       const seen = new Map();
@@ -11742,7 +11811,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     const fn = document.getElementById('fiscalNote');
     if (fn){
       if (!FISCAL.verifiedOn) fn.innerHTML = ' <span class="flag warm">Tax assumptions undated — verify them</span>';
-      else if (fiscalAgeDays > 365) fn.innerHTML = ' <span class="flag warm">Tax assumptions verified ' + FISCAL.verifiedOn + ' — over a year old, re-verify before acting</span>';
+      else if (fiscalAgeDays() > 365) fn.innerHTML = ' <span class="flag warm">Tax assumptions verified ' + FISCAL.verifiedOn + ' — over a year old, re-verify before acting</span>';
       else fn.innerHTML = ' <span class="hint">Tax &amp; scheme assumptions (' + FISCAL.country + ') verified ' + FISCAL.verifiedOn + '.</span>';
     }
     // (net worth renders in its own card — renderNetWorth, P5-23)
@@ -14220,6 +14289,27 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       JSON.parse(JSON.stringify(buildBackup())).schema === BACKUP_SCHEMA || 'backup broken');
     T('fiscal: dated parameter block present', () =>
       (FISCAL && /^\d{4}-\d{2}-\d{2}$/.test(FISCAL.verifiedOn || '') && FISCAL.pensionAgeBands.length >= 4) || 'fiscal block missing/undated');
+    T('fiscal: applyFiscalPack refuses an undated blob', () =>
+      Engine.applyFiscalPack({cgtRate: 0.5}, {}) === false);
+    T('fiscal: applyFiscalPack writes a newer verifiedOn', () => {
+      const t = {verifiedOn: '2020-01-01', cgtRate: 0.33};
+      const ok = Engine.applyFiscalPack({verifiedOn: '2026-08-13', cgtRate: 0.33, version: 'test'}, t);
+      return (ok && t.verifiedOn === '2026-08-13' && t.packVersion === 'test') || 'pack did not apply';
+    });
+    T('importer: declarative pack registers once', () => {
+      const before = Engine.IMP_PRESETS.length;
+      const added = Engine.impRegisterDeclarative([{
+        id: '__selftest_bank', label: 'Selftest', matchAll: ['selftest-date', 'selftest-desc'],
+        build: {date: 'selftest-date', merchant: 'selftest-desc', dateFormat: 'dmy'}
+      }]);
+      const again = Engine.impRegisterDeclarative([{
+        id: '__selftest_bank', label: 'Selftest', matchAll: ['selftest-date', 'selftest-desc'],
+        build: {date: 'selftest-date', merchant: 'selftest-desc'}
+      }]);
+      const idx = Engine.IMP_PRESETS.findIndex(p => p.id === '__selftest_bank');
+      if (idx >= 0) Engine.IMP_PRESETS.splice(idx, 1);
+      return (added === 1 && again === 0 && Engine.IMP_PRESETS.length === before) || 'declarative preset register failed';
+    });
     // ── crypto (skipped cleanly where WebCrypto is unavailable) ──
     await AT('crypto: AES-GCM backup round-trip', async () => {
       if (!CRYPTO_OK) return true;
@@ -17554,6 +17644,101 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
     return {bind, connect, backupNow, list, restore, pickStatement};
   })();
+  const CloudVault = (function(){
+    const ACCESS = 'https://access.lithifyte.com';
+    function status(msg){ const el = document.getElementById('vaultStatus'); if (el) el.textContent = msg || ''; }
+    function hideIfOffline(){
+      const box = document.getElementById('cloudVaultBlock');
+      if (box && !window.__lfHosted) box.hidden = true;
+    }
+    async function info(){
+      const res = await fetch(ACCESS + '/vault', {credentials:'include'});
+      return res.json();
+    }
+    async function refresh(){
+      if (!window.__lfHosted) return;
+      try {
+        const data = await info();
+        if (data.present) status('Cloud copy from ' + String(data.updatedAt || '').slice(0, 16).replace('T',' ') + ' · ' + (data.bytes || 0) + ' bytes (ciphertext).');
+        else status('No cloud copy yet. Set a passphrase above, then save.');
+      } catch (e) { status('Vault unreachable.'); }
+    }
+    async function save(){
+      const pass = (document.getElementById('bkPass') || {}).value || '';
+      if (!pass){ status('Set a passphrase above first — we only store ciphertext.'); return; }
+      status('Encrypting…');
+      let envelope;
+      try { envelope = await encryptJSON(buildBackup(), pass); }
+      catch (e) { status('Could not encrypt: ' + (e.message || e)); return; }
+      const res = await fetch(ACCESS + '/vault', {
+        method:'PUT', credentials:'include',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({envelope})
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 402){ plusOpen('The encrypted cloud vault is a Plus feature (included in your trial).'); status('Plus required for the cloud vault.'); return; }
+      if (!res.ok){ status(data.error || data.message || ('Save failed (' + res.status + ')')); return; }
+      status('Saved encrypted vault (' + (data.bytes || '') + ' bytes). We cannot read it.');
+      try { if (window.__lfTrack) window.__lfTrack('action', {action:'vault_backup'}); } catch (e) {}
+    }
+    async function restore(){
+      const pass = (document.getElementById('bkPass') || {}).value || '';
+      if (!pass){ status('Enter the passphrase you used when saving.'); return; }
+      status('Downloading ciphertext…');
+      const data = await info();
+      if (!data.present || !data.envelope){ status('No cloud copy to restore.'); return; }
+      try {
+        const obj = await decryptJSON(data.envelope, pass);
+        importBackup(obj);
+        status('Restored from the cloud vault.');
+        try { if (window.__lfTrack) window.__lfTrack('action', {action:'vault_restore'}); } catch (e) {}
+      } catch (e) { status('Restore failed: ' + (e.message || e)); }
+    }
+    async function remove(){
+      if (!confirm('Delete the encrypted cloud copy? Local data is untouched.')) return;
+      const res = await fetch(ACCESS + '/vault', {method:'DELETE', credentials:'include'});
+      if (!res.ok){ status('Could not delete.'); return; }
+      status('Cloud copy deleted.');
+    }
+    function bind(){
+      hideIfOffline();
+      const b = document.getElementById('vaultBackup');
+      const r = document.getElementById('vaultRestore');
+      const d = document.getElementById('vaultDelete');
+      if (b) b.addEventListener('click', () => save().catch(e => status(e.message || e)));
+      if (r) r.addEventListener('click', () => restore().catch(e => status(e.message || e)));
+      if (d) d.addEventListener('click', () => remove().catch(e => status(e.message || e)));
+      if (window.__lfHosted && window.__lfSignedIn) refresh();
+    }
+    return {bind, refresh, save, restore, remove};
+  })();
+  async function applyHostedPacks(){
+    if (!window.__lfHosted || window.__lfDemo) return;
+    const hint = document.getElementById('lfPackStatus');
+    const ent = window.__lfEntitlement;
+    if (!ent || !ent.lanes || !ent.lanes.packs){
+      if (hint) hint.textContent = 'Tax snapshot in this file: ' + (FISCAL.verifiedOn || 'unknown') + (FISCAL.packVersion ? ' · pack ' + FISCAL.packVersion : '') + '. Plus keeps Ireland rates and extra bank presets current.';
+      return;
+    }
+    try {
+      const [fiscalRes, impRes] = await Promise.all([
+        fetch('https://access.lithifyte.com/packs/ie-fiscal', {credentials:'include'}).then(r => r.json()),
+        fetch('https://access.lithifyte.com/packs/importers', {credentials:'include'}).then(r => r.json())
+      ]);
+      if (fiscalRes && fiscalRes.pack && Engine.applyFiscalPack(fiscalRes.pack, FISCAL)){
+        const fn = document.getElementById('fiscalNote');
+        if (fn) fn.innerHTML = ' <span class="flag">Tax pack ' + (FISCAL.packVersion || '') + ' · verified ' + FISCAL.verifiedOn + '</span>';
+        try { if (window.__lfTrack) window.__lfTrack('action', {action:'pack_applied'}); } catch (e) {}
+      }
+      let extra = 0;
+      if (impRes && impRes.pack && Array.isArray(impRes.pack.presets))
+        extra = Engine.impRegisterDeclarative(impRes.pack.presets);
+      if (hint) hint.textContent = 'Plus packs applied: Ireland tax ' + (FISCAL.verifiedOn || '') +
+        (extra ? ' · ' + extra + ' extra bank presets' : '') + '.';
+    } catch (e) {
+      if (hint) hint.textContent = 'Could not refresh Plus packs — using the snapshot in this file (' + (FISCAL.verifiedOn || '') + ').';
+    }
+  }
   window.__ddMinimise = Engine.minimise;
   window.__ddDisclose = () => (discloseStore.items || []).slice();
   window.__ddAiConsent = () => JSON.parse(JSON.stringify(lmStore.consent || {}));
@@ -19233,6 +19418,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (bound) return; bound = true;
       try { aiBindConsentUi(); } catch (e) {}
       try { CloudDrive.bind(); } catch (e) {}
+      try { CloudVault.bind(); } catch (e) {}
+      try { refreshEntitlement().then(applyHostedPacks); } catch (e) {}
       const inp = document.getElementById('ccInput');
       const send = document.getElementById('ccSend');
       const plus = document.getElementById('ccPlus');

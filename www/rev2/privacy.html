@@ -83,14 +83,16 @@
     <li><strong>A session token</strong> (cookie <code>lf_session</code>) so you stay signed in for up to 30 days.</li>
     <li><strong>Privacy-safe product events</strong> from the hosted app only — allowlisted names such as sign-in, session start, onboarding step completed, section opened (e.g. map / budget), and actions like “CSV uploaded” or “backup exported”. Events carry short enums only (never amounts, merchants, descriptions, account names, or statement contents).</li>
     <li><strong>Optional locale preference</strong> you choose in Settings (<code>IE</code> or <code>GLOBAL</code>) so we know which region pack to improve.</li>
+    <li><strong>Optional Plus vault blob</strong> — an encrypted backup envelope you created in the browser. We store the ciphertext. We do not have the passphrase and cannot read the contents.</li>
+    <li><strong>Plan and quota counters</strong> (free / trial / Plus, hosted-AI question count). No amounts.</li>
   </ul>
-  <p>Sign-in uses magic links — we never ask for or store a password, and we never ask for bank credentials. Email and usage data are used to operate access, understand activation and retention, send product emails you opt into later, and improve the product. They are not sold. Downloaded or self-hosted copies of the app do not phone home.</p>
+  <p>Sign-in uses Google or magic links — we never ask for or store a password, and we never ask for bank credentials. Email and usage data are used to operate access, understand activation and retention, send product emails you opt into later, and improve the product. They are not sold. Downloaded or self-hosted copies of the app do not phone home.</p>
 
   <h2>Cookies</h2>
   <p>We set one first-party cookie: <code>lf_session</code>, an HttpOnly session cookie scoped to lithifyte.com, used to keep you signed in. There are no advertising cookies and no third-party analytics cookies.</p>
 
   <h2>Analytics and tracking</h2>
-  <p>We do <strong>not</strong> use Google Analytics, advertising pixels, or fingerprinting. On <code>app.lithifyte.com</code> only, the app may send the allowlisted product events above to our Cloudflare Worker at <code>access.lithifyte.com</code>. That is first-party product analytics for retention and product decisions — not a finance data pipeline. See the open-source worker and <code>docs/product-analytics.md</code> in the repository for the exact allowlist.</p>
+  <p>We do <strong>not</strong> use Google Analytics, advertising pixels, or fingerprinting. On <code>app.lithifyte.com</code> only, the app may send the allowlisted product events above to our Worker at <code>access.lithifyte.com</code>. That is first-party product analytics for retention and product decisions — not a finance data pipeline. The Engine repository describes the public allowlist; operator endpoints are not published there.</p>
 
   <h2>Optional money digest email</h2>
   <p>If you use <strong>Alerts → Email me a money digest</strong>, the app composes a newsletter-style summary <strong>in your browser</strong> (overview, reminders, upcoming bills, goal pace). When you click send:</p>
@@ -109,7 +111,7 @@
   <p>Your email record is kept while you have access. To have it deleted, open an issue at <a href="https://github.com/SID-Apps/lithifyte/issues">github.com/SID-Apps/lithifyte/issues</a> (or use the contact route in the repository's SECURITY.md) and we will remove it. Your financial data needs no deletion request — it is on your device, and the app's own <em>erase all</em> / <em>delete account</em> controls remove it locally.</p>
 
   <h2>Changes</h2>
-  <p>If this policy changes, the new version will be published here with an updated date. Because the sites and the sign-in worker are open source, the history of every change is public in the repository.</p>
+  <p>If this policy changes, the new version will be published here with an updated date. The Engine and this site are open source; hosted identity and billing are not published in the Engine repository.</p>
 
   <p style="margin-top:34px"><a href="/terms">Terms of use →</a></p>
 </main>
