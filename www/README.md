@@ -55,7 +55,7 @@ See [`rev2/README.md`](rev2/README.md) for the Rev 2 chapter map and preview com
 | Sankey | Flows that balance to the cent |
 | Budget | Pace engine + rule groups |
 | Plan | Goals, forecast, pulse, wealth |
-| Privacy | Bank data never leaves the browser |
+| Privacy | Statements stay in the browser; hosted AI sends only the slice a question needs |
 | Dock | Email free access + sample / blank app CTAs |
 
 Tech (Rev 1): single `index.html`, canvas starfield + node graph driven by scroll, smooth-scroll lerp, reduced-motion fallback, no analytics, no bank data.

@@ -63,7 +63,7 @@
       "publisher": {
         "@id": "https://lithifyte.com/#organization"
       },
-      "dateModified": "2026-08-12",
+      "dateModified": "2026-08-13",
       "@type": "WebPage"
     }
   ]
@@ -117,14 +117,14 @@
 <main class="page">
 <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span class="sep">/</span> <span aria-current="page">Security</span></nav>
   <h1>Security and privacy, in technical terms</h1>
-  <p class="updated">Updated 12 August 2026</p>
-  <p class="lede">The claim is narrow and testable: your financial data is never transmitted to us, because there is no server that receives it. The one exception is the AI co-pilot, which you switch on yourself and which sends what it needs to the model you chose — that is set out in full below, along with the parts we cannot fix.</p>
+  <p class="updated">Updated 13 August 2026</p>
+  <p class="lede">The claim is narrow and testable: there is no finance backend, so statements are never stored by us. The one exception is hosted AI, which you consent to per lane and which sends only the slice that question needs — that is set out in full below, along with the parts we cannot fix.</p>
 
 <h2 id="the-architecture-stated-plainly">The architecture, stated plainly</h2>
 <p>Lithifyte is delivered as a single HTML file containing the interface and the entire calculation engine. When you import a statement, your browser reads the file from your disk and parses it in memory on your machine. The results are written to that browser's own storage.</p>
 <p>There is no finance API. Not an encrypted one, not a temporary one, not one that "only processes and discards". The absence is the design: a service that never receives data cannot leak it, be subpoenaed for it, change its mind about it in a future privacy policy, or lose it in a breach.</p>
 <p>You do not have to take this on faith. Open your browser's network tab and import a statement. Nothing carrying the file goes out.</p>
-<p><strong>One deliberate exception, and it is yours to switch on: hosted AI.</strong> A language model cannot answer a question about your money without being told something about your money. That section is below, in full, because a privacy claim with a quiet asterisk is worse than no claim at all. The honest sentence is: <strong>we never store your data, and when you ask the AI a question, the part needed to answer it is sent to the model provider for that request.</strong> Commands-only and a local model send nothing.</p>
+<p><strong>One deliberate exception, and it is yours to consent to per lane: hosted AI.</strong> A language model cannot answer a question about your money without being told something about your money. That section is below, in full, because a privacy claim with a quiet asterisk is worse than no claim at all. The honest sentence is: <strong>we never store your data, and when you ask the AI a question, the part needed to answer it is sent to the model provider for that request.</strong> Commands-only and a local model send nothing.</p>
 <h2 id="what-is-stored-and-where">What is stored, and where</h2>
 <div class="tablewrap"><table><thead><tr><th>Data</th><th>Location</th><th>Leaves your device?</th></tr></thead><tbody><tr><td>Transactions, accounts, people, categories, rules</td><td><code>localStorage</code> in your browser</td><td>No</td></tr><tr><td>Uploaded statement files, encrypted vault blob</td><td>IndexedDB in your browser</td><td>No</td></tr><tr><td>Budgets, goals, debts, holdings, assets, notes</td><td><code>localStorage</code> in your browser</td><td>No</td></tr><tr><td>Backups you export</td><td>Wherever you save the file</td><td>Only if you move it</td></tr><tr><td>Your email address (hosted sign-in only)</td><td>Cloudflare KV, on our side</td><td>It is already ours to hold</td></tr><tr><td>Product events: section opened, import happened (hosted only)</td><td>Cloudflare KV, on our side</td><td>Names of features, never amounts</td></tr><tr><td>Co-pilot conversations and sandbox scenarios</td><td><code>localStorage</code> in your browser</td><td>Only the context of a message you send, and only to the model you chose — see below</td></tr></tbody></table></div>
 <p>Self-hosted copies write nothing to the email or product-event rows. The code that reports product events checks the hostname and does not run from a file or from a domain that is not ours.</p>

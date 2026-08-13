@@ -1,7 +1,7 @@
 # How Lithifyte works
 
 Source: https://lithifyte.com/how-it-works
-Updated: 2026-08-09
+Updated: 2026-08-13
 Licence: content CC-BY-4.0 · software AGPL-3.0-or-later
 
 You upload a bank statement to a web page. The page reads it in your browser, works out who spent what and where it went, and draws the result as a living map. No file is transmitted, because there is no server on the other end to receive it.
@@ -43,15 +43,15 @@ You can search it, drag it, isolate a person, and watch it redraw as you change 
 
 There is a co-pilot in the app — Ctrl/Cmd+K — that you can ask in plain language: *how have groceries gone this year*, *show me the cashflow*, *design a wedding budget from the last twelve months*. It answers, it opens the right section for you, and it can draft a budget or goal in a **sandbox** that changes nothing until you press Apply.
 
-Two things make it worth trusting. The model never produces a number — it works out what you asked for, the engine computes the figures on your device, and the answer renders from those. And it is **optional**: it does nothing until you connect a model, and you can connect one running on your own machine so that nothing about your finances leaves it. What is sent, and to whom, is set out plainly in [security and privacy](/security-and-privacy).
+Two things make it worth trusting. The model never produces a number — it works out what you asked for, the engine computes the figures on your device, and the answer renders from those. Hosted Lithifyte AI is available after you consent per lane (chat, categorise, PDF). Commands-only and a model running on your own machine send nothing. What is sent, and to whom, is set out plainly in [security and privacy](/security-and-privacy).
 
 ## What it does not do
 
-It does not connect to your bank by default. It does not give financial advice, recommend products, or take a commission from anyone. It does not have a premium tier that unlocks your own numbers. And outside the co-pilot, which you switch on yourself, nothing about your money reaches Lithifyte — because there is no endpoint for it to arrive at.
+It does not connect to your bank by default. It does not give financial advice, recommend products, or take a commission from anyone. It does not have a premium tier that unlocks your own numbers. There is no finance backend. The one place anything about your money can leave the browser is hosted AI, after you consent, and only the slice that question needs.
 
 Statement import is the supported path in, and it is deliberate rather than a limitation to apologise for: a file you exported yourself is a file no third party had to be trusted with.
 
-The co-pilot is the one place where anything about your money can leave the browser, it is off until you switch it on, and a local model keeps even that on your own machine.
+Commands-only and a local model keep even the co-pilot on your own machine.
 
 ## Two ways to run it
 

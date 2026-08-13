@@ -1,6 +1,6 @@
 # Lithifyte
 
-Free, open-source household finance software that runs as a single HTML file in your browser. It imports bank statements, draws a live map of people, accounts, categories and merchants, and computes budgets, forecasts, debt payoff plans and net worth locally. Financial data is never sent to a server — there is no finance backend to send it to.
+Free, open-source household finance software that runs as a single HTML file in your browser. It imports bank statements, draws a live map of people, accounts, categories and merchants, and computes budgets, forecasts, debt payoff plans and net worth locally. There is no finance backend — statements stay on the device. Optional hosted AI sends only the slice a question needs, never the statement file.
 
 - Application: https://app.lithifyte.com/
 - Sample household (no sign-up): https://app.lithifyte.com/demo
@@ -13,7 +13,7 @@ Free, open-source household finance software that runs as a single HTML file in 
 - [The Lithifyte guide](https://lithifyte.com/guide) — A complete feature reference, ordered the way you actually encounter things: get data in, make it trustworthy, understand it, then plan with it. There is also an interactive version inside the app with an Ask box.
 - [How Lithifyte works](https://lithifyte.com/how-it-works) — You upload a bank statement to a web page. The page reads it in your browser, works out who spent what and where it went, and draws the result as a living map. No file is transmitted, because there is no server on the other end to receive it.
 - [Open source, and why it matters here](https://lithifyte.com/open-source) — A privacy promise you cannot verify is marketing. Lithifyte is published under the AGPL-3.0-or-later as a single readable file, so the claim that we never store your ledger — and that hosted AI only receives the slice a question needs — is something you can check rather than something you have to believe.
-- [Security and privacy, in technical terms](https://lithifyte.com/security-and-privacy) — The claim is narrow and testable: your financial data is never transmitted to us, because there is no server that receives it. The one exception is the AI co-pilot, which you switch on yourself and which sends what it needs to the model you chose — that is set out in full below, along with the parts we cannot fix.
+- [Security and privacy, in technical terms](https://lithifyte.com/security-and-privacy) — The claim is narrow and testable: there is no finance backend, so statements are never stored by us. The one exception is hosted AI, which you consent to per lane and which sends only the slice that question needs — that is set out in full below, along with the parts we cannot fix.
 
 ## Learn
 

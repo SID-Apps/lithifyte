@@ -4,9 +4,9 @@ shortTitle: Security
 slug: security-and-privacy
 section: product
 description: The full technical privacy model behind Lithifyte — what is stored, where, how it is encrypted, what the servers hold, and the residual risks we cannot solve for you.
-summary: The claim is narrow and testable: your financial data is never transmitted to us, because there is no server that receives it. The one exception is the AI co-pilot, which you switch on yourself and which sends what it needs to the model you chose — that is set out in full below, along with the parts we cannot fix.
+summary: The claim is narrow and testable: there is no finance backend, so statements are never stored by us. The one exception is hosted AI, which you consent to per lane and which sends only the slice that question needs — that is set out in full below, along with the parts we cannot fix.
 keywords: [local first finance app, browser storage encryption, financial data privacy, AES-GCM PBKDF2, zero server finance]
-updated: 2026-08-12
+updated: 2026-08-13
 priority: 0.8
 related: [open-source, how-it-works, faq]
 ---
@@ -19,7 +19,7 @@ There is no finance API. Not an encrypted one, not a temporary one, not one that
 
 You do not have to take this on faith. Open your browser's network tab and import a statement. Nothing carrying the file goes out.
 
-**One deliberate exception, and it is yours to switch on: hosted AI.** A language model cannot answer a question about your money without being told something about your money. That section is below, in full, because a privacy claim with a quiet asterisk is worse than no claim at all. The honest sentence is: **we never store your data, and when you ask the AI a question, the part needed to answer it is sent to the model provider for that request.** Commands-only and a local model send nothing.
+**One deliberate exception, and it is yours to consent to per lane: hosted AI.** A language model cannot answer a question about your money without being told something about your money. That section is below, in full, because a privacy claim with a quiet asterisk is worse than no claim at all. The honest sentence is: **we never store your data, and when you ask the AI a question, the part needed to answer it is sent to the model provider for that request.** Commands-only and a local model send nothing.
 
 ## What is stored, and where
 

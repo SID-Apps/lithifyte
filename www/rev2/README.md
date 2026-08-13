@@ -17,7 +17,7 @@ chapters and force-directed nodes.
 | 03 | Merchants | Category hubs bloom into shops; transaction pulses on links |
 | 04 | Goals & debts | Progress rings on goals; hollow debt nodes |
 | 05 | Flow | Animated Sankey — €6,000 income splits by category |
-| 06 | Privacy | Vault ring — bank data never leaves the browser |
+| 06 | Privacy | Vault ring — statements stay on the device; hosted AI is optional |
 | 07 | Enter | Sample + start account CTAs + footer (no extra scroll past this page) |
 
 ### Interaction (beyond Rev 1)

@@ -20,6 +20,11 @@
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
   window.__lfHosted = isHostedApp;
+  /* Sample household: hosted /demo, or a file built with demo:true.
+     Hosted AI quota must not fire here — the self-test and visitors share
+     the same origin as the real app, and a fire-and-forget /ai/consume after
+     /chat made the hosted-model probe see the wrong last request. */
+  window.__lfDemo = isDemoPath;
   window.__lfSignedIn = false;
   window.__lfMe = null;
   window.__lfAppVer = APP_VER;
@@ -242,16 +247,21 @@ shows a visible "Data integrity" warning when they fail):
      array is valid — see below); no duplicate ids.
   5. Open the page: the "Self-test" line must show ALL tests passing
      (~150 behavioural checks on pure Engine kernels + live invariants; also
-     callable as window.__ddSelfTest()). A failure means your edit changed
-     behaviour — fix it before returning the file to the user.
-     COMPANION / CO-PILOT: command bar ⌘/Ctrl+K + window.__ddCompanion — tool
-     registry over Engine (read + navigate only). The model must never produce a
-     number; Companion.ask() returns Engine figures only. Do not add recommend/
-     optimise tools. OUTBOUND AI CONTEXT: every request goes through
-     Engine.minimise (shape | aggregate | detail). The model has no write path
-     that mutates statements. Notes and real account names are not in the
-     system prompt. Consent is per lane (chat / categorise / pdf). See
-     Obsidian "Lithifyte - AI Data Architecture".
+     callable as window.__ddSelfTest()). It resolves to an envelope
+     {pass, n, fails, tests} that is also still an array of {name,pass,detail}
+     so older callers that .filter / .some keep working. A failure means your
+     edit changed behaviour — fix it before returning the file to the user.
+     AGENT HOOKS: window.__ddCatalog() is the machine-readable map of tools and
+     hooks; window.__ddLastOutbound() is the last hosted request (provider,
+     purpose, bytes — never the prompt). COMPANION / CO-PILOT: command bar
+     ⌘/Ctrl+K + window.__ddCompanion — tool registry over Engine (read +
+     navigate only; sandbox propose_* never mutates live stores until Apply).
+     The model must never produce a number; Companion.ask() returns Engine
+     figures only. Do not add recommend/optimise tools. OUTBOUND AI CONTEXT:
+     every request goes through Engine.minimise (shape | aggregate | detail).
+     The model has no write path that mutates statements. Notes and real
+     account names are not in the system prompt. Consent is per lane
+     (chat / categorise / pdf). See Obsidian "Lithifyte - AI Data Architecture".
      ARCHITECTURE NOTE: pure computation lives in the `Engine` object (no DOM,
      no app-state reads — everything parameterised); the app binds it via thin
      wrappers; renderers read the derived-state surface `D`. Keep new logic in
@@ -1057,15 +1067,12 @@ So, when you change a stored shape:
     backdrop-filter:blur(16px) saturate(1.15); box-shadow:0 18px 50px rgba(0,0,0,.5)}
   body.space #miniPanel .panel-body .card, body.space #miniPanel .panel-body .range-bar{
     background:color-mix(in srgb, var(--surface) 72%, transparent)}
-  /* P6: first-run onboarding lives ON the map — one step at a time */
+  /* P6: first-run onboarding lives ON the map — drop a statement is the start */
   #spaceOb{display:none}
   body.space #spaceOb{display:block; position:fixed; top:18px; right:18px; z-index:22;
     width:min(540px, calc(100vw - 36px)); max-height:92vh; overflow:auto; scrollbar-width:none}
   body.space #spaceOb #onboarding{margin-top:0; background:color-mix(in srgb, var(--page) 60%, transparent);
     border:1px solid rgba(56,189,248,.4); backdrop-filter:blur(14px)}
-  body.space .ob-step.done, body.space .ob-step.locked{display:none}
-  /* strictly one card at a time: everything after the first live step waits */
-  body.space .ob-step:not(.done):not(.locked) ~ .ob-step{display:none}
   #obClassic{display:none}
   body.space #obClassic{display:inline-flex}
   body.fresh #mobHome, body.fresh #mapExpand, body.fresh #mapCollapse,
@@ -1530,6 +1537,20 @@ So, when you change a stored shape:
   .ob-num{width:26px; height:26px; border-radius:50%; background:var(--chip); flex:0 0 auto;
     display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:13px}
   .ob-step.done .ob-num{background:var(--good); color:#fff}
+  .ob-drop{position:relative; border:1.5px dashed rgba(56,189,248,.45); border-radius:14px;
+    padding:22px 16px 16px; background:rgba(56,189,248,.06); text-align:center; cursor:pointer;
+    margin:16px 0 8px}
+  .ob-drop.drag{border-color:#38bdf8; background:rgba(56,189,248,.14)}
+  .ob-drop-visual{display:flex; flex-direction:column; gap:4px; pointer-events:none}
+  .ob-drop-visual b{font:650 16px system-ui,sans-serif}
+  .ob-drop-visual span{font:400 12.5px/1.45 system-ui,sans-serif; color:var(--muted)}
+  .ob-drop .ob-file-input{position:absolute; width:1px; height:1px; opacity:0; overflow:hidden}
+  .ob-drop-actions{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:12px}
+  .ob-more{margin-top:10px; border:1px solid var(--border); border-radius:10px; padding:8px 12px 10px;
+    background:var(--surface)}
+  .ob-more > summary{cursor:pointer; font:650 13px system-ui,sans-serif; list-style:none}
+  .ob-more > summary::-webkit-details-marker{display:none}
+  .ob-more[open] > summary{margin-bottom:8px}
 
   /* ── goal edit mode ── */
   .gf-editbar{display:none; margin-top:14px; padding:8px 12px; border-radius:8px; font-size:13px;
@@ -1666,6 +1687,20 @@ So, when you change a stored shape:
   .bg-mode-card:hover,.bg-mode-card.on{border-color:#38bdf8; box-shadow:0 0 0 1px #38bdf8}
   .bg-mode-card h4{margin:0 0 4px; font-size:14px}
   .bg-mode-card p{margin:0; font-size:12.5px; opacity:.85; line-height:1.4}
+  /* Budget create is a 2-col grid with an xl-bar of four buttons — on a 390px
+     phone that clips. Space panels are not .wrap, so the classic 720px rules
+     never reach them. */
+  @media (max-width:720px){
+    #sec-budget .rule-form{grid-template-columns:1fr !important}
+    #sec-budget .xl-bar{flex-direction:column; align-items:stretch}
+    #sec-budget .xl-bar .btn{width:100%; min-height:44px}
+    #sec-budget .bg-mode-pick{grid-template-columns:1fr !important}
+  }
+  body.mobile #sec-budget .rule-form{grid-template-columns:1fr !important}
+  body.mobile #sec-budget .xl-bar{flex-direction:column; align-items:stretch}
+  body.mobile #sec-budget .xl-bar .btn{width:100%; min-height:44px}
+  body.mobile #sec-budget .bg-mode-pick{grid-template-columns:1fr !important}
+  body.mobile #bgSetupCategory .rule-actions{flex-direction:column}
   .bg-kw-list{display:flex; flex-wrap:wrap; gap:4px; margin-top:6px}
   .bg-kw{font:600 11px system-ui,sans-serif; background:rgba(56,189,248,.15); border:1px solid rgba(56,189,248,.4);
     border-radius:999px; padding:2px 8px}
@@ -2064,41 +2099,53 @@ So, when you change a stored shape:
     <h1 style="font-size:clamp(22px,3vw,30px); margin:6px 0 4px">Let's light up your money map</h1>
     <p class="sub">Drop a statement to start. We will name a household for you if you skip the labels — everything stays on this device.</p>
     <p class="sub" id="obDemoLine" style="display:none">Want a feel for it first? <a href="demo.html"><b>Explore the sample household</b></a> — fully loaded invented data, nothing to upload. Prefer a guided walkthrough? <a href="demo.html?tutorial=1"><b>Open the Tutorial guide</b></a>.</p>
-    <!-- Phone first run. Step 4 asks for a bank's CSV export, which on a phone
-         means digging a file out of a banking app — the point most people give
-         up. These are the three things that actually work from a phone; the
-         five steps stay below for anyone who wants them. -->
+    <!-- Phone first run. Exporting a bank CSV on a phone is the point most
+         people give up. These three things actually work from a phone. -->
     <div id="obMobile">
       <a class="ob-m-btn primary" href="demo.html">🪐 <span><b>Explore the sample household</b><small>Fully loaded invented data — nothing to upload</small></span></a>
       <a class="ob-m-btn" href="https://access.lithifyte.com/">✉️ <span><b>Sign in</b><small>Already set up on a computer? Pick up where you left off</small></span></a>
       <button class="ob-m-btn" type="button" id="obMobRestore">⬆ <span><b>Restore a backup</b><small>Bring a backup file over from another device</small></span></button>
       <p class="ob-m-note">Starting from scratch? Adding your bank's statement export is much easier on a computer — this page works the same there, and everything stays on the device you use.</p>
     </div>
-    <ol class="ob-steps">
-      <li class="ob-step" id="obs1"><span class="ob-num">1</span><b>Name your household</b>
-        <input id="ob-hh" class="inp" placeholder="e.g. The Byrnes, or My household" style="min-width:200px" aria-label="Household name">
-        <button class="btn primary" id="ob-hh-go" type="button">Next</button>
-        <span class="hint num" id="ob-hh-done"></span>
-        <span class="hint" style="flex-basis:100%">This is the root of the money map — people and accounts hang under it (like the sample).</span></li>
-      <li class="ob-step" id="obs2"><span class="ob-num">2</span><b>Who's in it?</b>
-        <input id="ob-name" class="inp" placeholder="Your name (person or business)" style="min-width:180px" aria-label="Person name">
-        <select id="ob-type" class="inp" aria-label="Person type"><option value="personal">Personal</option><option value="business">Business</option></select>
-        <button class="btn primary" id="ob-name-go" type="button">Add person</button>
-        <span class="hint num" id="ob-name-done"></span>
-        <span class="hint" style="flex-basis:100%" id="ob-name-extra">Add yourself first. You can add a partner or co-owner next (optional).</span></li>
-      <li class="ob-step" id="obs3"><span class="ob-num">3</span><b>Your first account</b>
-        <select id="ob-owner" class="inp" aria-label="Account owner" style="max-width:160px"></select>
-        <input id="ob-acct" class="inp" placeholder="e.g. AIB current account" style="min-width:180px">
-        <select id="ob-kind" class="inp"><option value="current">Current</option><option value="credit">Credit card</option><option value="savings">Savings</option><option value="cash">Cash</option></select>
-        <button class="btn primary" id="ob-acct-go" type="button">Add account</button>
-        <span class="hint num" id="ob-acct-done"></span></li>
-      <li class="ob-step" id="obs4"><span class="ob-num">1</span><b>Drop a statement — this is the whole start</b>
-        <input type="file" id="ob-file" class="inp" accept=".csv,.tsv,.txt,.xlsx,.pdf,text/csv,application/pdf">
+    <div class="ob-drop" id="obDrop" role="button" tabindex="0" aria-label="Drop a bank statement here, or click to choose a file">
+      <input type="file" id="ob-file" class="ob-file-input" accept=".csv,.tsv,.txt,.xlsx,.pdf,text/csv,application/pdf" aria-label="Bank statement file">
+      <div class="ob-drop-visual">
+        <b>Drop a statement here</b>
+        <span>CSV, Excel or a text-layer PDF. Click to choose. You will see every row before anything is saved.</span>
+      </div>
+      <div class="ob-drop-actions">
         <button class="btn primary" id="ob-file-go" type="button">Prepare &amp; preview →</button>
         <button class="btn small" id="ob-drive-pick" type="button" hidden>Pick from Google Drive</button>
-        <span class="hint">CSV, Excel or a text-layer PDF from your bank. On a Chromebook or phone, the file picker can open Google Drive. You will see every row before anything is saved.</span>
-        <span class="hint" id="ob-file-status"></span></li>
-      <li class="ob-step" id="obs5"><span class="ob-num">5</span><b>A goal (optional — skip anytime)</b>
+      </div>
+      <span class="hint" id="ob-file-status"></span>
+    </div>
+    <!-- ids obs1–obs5 kept for renderFresh / tests. Labels are optional —
+         dropping a file creates a starter household if none exists. -->
+    <details class="ob-more" id="obLabels">
+      <summary>Optional — name the household, people, accounts</summary>
+      <ol class="ob-steps">
+        <li class="ob-step" id="obs1"><span class="ob-num">1</span><b>Name your household</b>
+          <input id="ob-hh" class="inp" placeholder="e.g. The Byrnes, or My household" style="min-width:200px" aria-label="Household name">
+          <button class="btn primary" id="ob-hh-go" type="button">Save name</button>
+          <span class="hint num" id="ob-hh-done"></span>
+          <span class="hint" style="flex-basis:100%">The root of the money map — people and accounts hang under it. Skip and we call it “My household”.</span></li>
+        <li class="ob-step" id="obs2"><span class="ob-num">2</span><b>Who's in it?</b>
+          <input id="ob-name" class="inp" placeholder="Your name (person or business)" style="min-width:180px" aria-label="Person name">
+          <select id="ob-type" class="inp" aria-label="Person type"><option value="personal">Personal</option><option value="business">Business</option></select>
+          <button class="btn primary" id="ob-name-go" type="button">Add person</button>
+          <span class="hint num" id="ob-name-done"></span>
+          <span class="hint" style="flex-basis:100%" id="ob-name-extra">Add yourself first. You can add a partner or co-owner next (optional).</span></li>
+        <li class="ob-step" id="obs3"><span class="ob-num">3</span><b>Your first account</b>
+          <select id="ob-owner" class="inp" aria-label="Account owner" style="max-width:160px"></select>
+          <input id="ob-acct" class="inp" placeholder="e.g. AIB current account" style="min-width:180px">
+          <select id="ob-kind" class="inp"><option value="current">Current</option><option value="credit">Credit card</option><option value="savings">Savings</option><option value="cash">Cash</option></select>
+          <button class="btn primary" id="ob-acct-go" type="button">Add account</button>
+          <span class="hint num" id="ob-acct-done"></span></li>
+      </ol>
+    </details>
+    <details class="ob-more" id="obGoalBox">
+      <summary>Optional — a goal</summary>
+      <div class="ob-step" id="obs5" style="border:0; padding:8px 0 0; background:transparent">
         <button class="btn" id="ob-goal-skip" type="button">Skip for now</button>
         <button class="btn primary" id="ob-goal-wiz" type="button">Set up my first goal</button>
         <span class="hint">a few short questions — or fill it in yourself below</span>
@@ -2111,9 +2158,12 @@ So, when you change a stored shape:
             <button class="btn" id="ob-goal-go" type="button">Set goal</button>
           </div>
         </details>
-        <span class="hint num" id="ob-goal-done"></span></li>
-    </ol>
-    <div class="callout" style="margin-top:16px">Watch the map as you go — the <b>household</b> appears at step 1, <b>people</b> at step 2, an <b>account</b> at step 3, and your <b>money</b> lights it up at step 4. Manage people anytime from <b>Data → People</b>. Restoring instead? Use <b>Backup &amp; restore</b> in Settings. <button class="btn small" id="obClassic" type="button">🖥️ prefer the classic page?</button></div>
+        <span class="hint num" id="ob-goal-done"></span>
+      </div>
+    </details>
+    <!-- obs4 kept as a hidden hook so renderFresh and older tests still resolve -->
+    <div id="obs4" hidden></div>
+    <div class="callout" style="margin-top:16px">Drop the file — the map lights up. Labels and a goal can wait. Manage people anytime from <b>Data → People</b>. Restoring instead? Use <b>Backup &amp; restore</b> in Settings. <button class="btn small" id="obClassic" type="button">🖥️ prefer the classic page?</button></div>
   </div>
 
   <!-- ═══ SUMMARY — the front screen: everything at a glance, every card a door ═══ -->
@@ -3450,6 +3500,7 @@ rewrite the static advice cards if the picture has changed.</div>
   try{
     raw = JSON.parse(document.getElementById('finance-data').textContent);
     if (!Array.isArray(raw.transactions)) throw new Error('transactions array is missing');
+    if (raw.demo) window.__lfDemo = true;
   }catch(err){
     const d = document.createElement('div');
     d.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99;background:#d03b3b;color:#fff;padding:14px 20px;font:600 14px/1.4 system-ui,sans-serif';
@@ -14708,7 +14759,13 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         lmStore.apiKey = 'sk-leftover-from-an-older-build';
         lmStore.model = 'gpt-4o';
         window.fetch = (url, opts) => {
-          seen = {url: String(url), headers: (opts && opts.headers) || {}, body: JSON.parse((opts && opts.body) || '{}')};
+          const u = String(url);
+          /* Only the /chat body is the contract. A later /ai/consume (or any
+             other fire-and-forget) must not steal the assertion. */
+          if (/\/chat(?:\?|$)/.test(u) || u.indexOf('/chat') >= 0 && u.indexOf('/ai/consume') < 0){
+            if (!seen || /\/chat/.test(u))
+              seen = {url: u, headers: (opts && opts.headers) || {}, body: JSON.parse((opts && opts.body) || '{}')};
+          }
           return Promise.resolve({ok: true, status: 200, json: () => Promise.resolve({content: 'ok'})});
         };
         await Companion.lmComplete([{role:'user', content:'hi'}]);
@@ -14717,35 +14774,104 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       } finally {
         window.fetch = keep.f; lmStore.provider = keep.p; lmStore.apiKey = keep.k; lmStore.model = keep.m;
       }
-      if (!seen) return 'no request was made';
+      if (!seen) return 'no /chat request was made';
       if (seen.body.provider !== 'lithifyte') return 'provider was ' + seen.body.provider;
       if (seen.headers['X-Api-Key']) return 'a browser API key was sent to the relay';
       if (seen.body.model) return 'client model "' + seen.body.model + '" overrode the hosted model';
+      const lo = window.__ddLastOutbound && window.__ddLastOutbound();
+      if (lo && lo.provider && lo.provider !== 'lithifyte') return 'lastOutbound provider was ' + lo.provider;
       return seen.url.indexOf('https://') === 0 || 'relay call was not https';
     });
+    T('onboarding: first-run is a single drop zone', () => {
+      const drop = document.getElementById('obDrop');
+      const file = document.getElementById('ob-file');
+      if (!drop || !file) return 'missing #obDrop or #ob-file';
+      return drop.contains(file) || 'file input is not inside the drop zone';
+    });
+    T('space: section labels default on', () => {
+      if (FCONF.navLabels === false) return true;
+      return document.body.classList.contains('nav-labels') || 'rail has no section names';
+    });
+    T('agent: catalog lists tools and hooks', () => {
+      const c = window.__ddCatalog && window.__ddCatalog();
+      if (!c) return 'no __ddCatalog';
+      const ids = (c.tools || []).map(t => t.id);
+      const need = ['help','net_worth','pulse','leaks','find_transactions','propose_rules'];
+      const missing = need.filter(id => ids.indexOf(id) < 0);
+      if (missing.length) return 'missing tools: ' + missing.join(',');
+      if (!c.hooks || !c.hooks.__ddSelfTest || !c.hooks.__ddLastOutbound) return 'hooks: ' + JSON.stringify(c.hooks);
+      return true;
+    });
+    T('companion: net_worth / pulse / leaks tools match Engine', () => {
+      if (!TX.length || !A) return true;
+      const nw = Companion.run({tool:'net_worth', args:{}});
+      if (!nw.ok || !nw.data) return 'net_worth failed';
+      if (NW && Math.abs((nw.data.total || 0) - (NW.total || 0)) > 0.5) return 'net_worth total ' + nw.data.total + ' vs ' + NW.total;
+      const pu = Companion.run({tool:'pulse', args:{}});
+      if (!pu.ok || !pu.data) return 'pulse failed';
+      const pc = pulseCompute();
+      const hs = Engine.healthScore(pc.inputs);
+      if (hs.score != null && pu.data.score !== hs.score) return 'pulse score ' + pu.data.score + ' vs ' + hs.score;
+      const lk = Companion.run({tool:'leaks', args:{}});
+      if (!lk.ok || !lk.data) return 'leaks failed';
+      const n = (A.leaks || []).length;
+      if ((lk.data.rows || []).length !== Math.min(8, n) && n > 0) return 'leaks row count';
+      return true;
+    });
+    T('companion: help names the new read tools', () => {
+      const r = Companion.run({tool:'help', args:{}});
+      const say = String(r && r.say || '');
+      const ids = (r.data && r.data.tools) || [];
+      const need = ['net_worth','pulse','leaks'];
+      return (need.every(id => ids.indexOf(id) >= 0) && /net worth/i.test(say) && /pulse/i.test(say) && /leak/i.test(say))
+        || say.slice(0, 200);
+    });
+    T('companion: propose_rules is sandbox and restores', () => {
+      if (!TX.length) return true;
+      const keepR = rules.slice();
+      const keepS = scenarioStore.items.slice();
+      try {
+        const r = Companion.run({tool:'propose_rules', args:{}});
+        if (!r.ok) return r.say || 'failed';
+        if (r.apply && !r.apply.scenarioId) return 'apply payload missing id';
+        return true;
+      } finally {
+        rules.length = 0; rules.push.apply(rules, keepR);
+        scenarioStore.items = keepS;
+        try { saveScenarios(); } catch (e) {}
+      }
+    });
+    // Envelope last so every test above is counted in n.
+    const fails = R.filter(r => !r.pass);
+    R.pass = fails.length === 0;
+    R.n = R.length;
+    R.fails = fails;
+    R.tests = R;
     return R;
   }
   async function renderSelfTest(){
     const res = await runSelfTest();
-    const fails = res.filter(r => !r.pass);
+    const tests = Array.isArray(res) ? res : (res.tests || []);
+    const fails = res.fails || tests.filter(r => !r.pass);
+    const n = res.n || tests.length;
     const st = document.getElementById('stStatus');
     const list = document.getElementById('stList');
     const btn = document.getElementById('stToggle');
     st.innerHTML = fails.length
-      ? '<span class="flag hot">' + fails.length + ' of ' + res.length + ' failing</span> <span class="hint">behaviour has changed — do not trust the numbers until this is green</span>'
-      : '<span class="flag ok">' + res.length + '/' + res.length + '</span> <span class="hint">engine behaviour verified on fixtures + live invariants</span>';
+      ? '<span class="flag hot">' + fails.length + ' of ' + n + ' failing</span> <span class="hint">behaviour has changed — do not trust the numbers until this is green</span>'
+      : '<span class="flag ok">' + n + '/' + n + '</span> <span class="hint">engine behaviour verified on fixtures + live invariants</span>';
     btn.style.display = fails.length ? '' : 'none';
     list.innerHTML = fails.map(f => '<li>' + esc(f.name) + (f.detail ? ' — ' + esc(f.detail) : '') + '</li>').join('');
     if (!fails.length) list.style.display = 'none';
     try {
-      if (window.__lfTrack && window.__lfHosted && !window.__lfSelfTestSent) {
+      if (window.__lfTrack && window.__lfHosted && !window.__lfDemo && !window.__lfSelfTestSent) {
         window.__lfSelfTestSent = true;
         window.__lfTrack('self_test', { pass: fails.length ? '0' : '1' });
       }
     } catch (e) {}
     return res;
   }
-  document.getElementById('stRun').addEventListener('click', async ()=>{ const r = await renderSelfTest(); if (r.some(x=>!x.pass)) document.getElementById('stList').style.display = ''; });
+  document.getElementById('stRun').addEventListener('click', async ()=>{ const r = await renderSelfTest(); const tests = Array.isArray(r) ? r : (r.tests || []); if (tests.some(x=>!x.pass)) document.getElementById('stList').style.display = ''; });
   document.getElementById('stToggle').addEventListener('click', ()=>{
     const list = document.getElementById('stList');
     list.style.display = list.style.display === 'none' ? '' : 'none';
@@ -14755,7 +14881,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   window.__ddLock = () => ({locked: lockedMode, vault: !!localStorage.getItem(VAULT_KEY)});
 
   // ══ blank-slate onboarding — shown only while TX is empty ══
-  // Steps: household → people → account → statement → goal
+  // Start is a single drop zone. Household / people / account / goal are optional.
   function renderFresh(){
     const hhNamed = !!(org.householdName && String(org.householdName).trim());
     const people = allUsers().filter(u => u.name && u.name !== 'Me');
@@ -14846,6 +14972,42 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     save(LS.org, org);
     return allAccounts()[0];
   }
+  (function bindObDrop(){
+    const zone = document.getElementById('obDrop');
+    const input = document.getElementById('ob-file');
+    const status = document.getElementById('ob-file-status');
+    if (!zone || !input) return;
+    const arm = f => {
+      if (!f) return;
+      try {
+        const dt = new DataTransfer();
+        dt.items.add(f);
+        input.files = dt.files;
+      } catch (e) {}
+      if (status) status.textContent = f.name;
+    };
+    zone.addEventListener('click', e => {
+      if (e.target.closest('button')) return;
+      input.click();
+    });
+    zone.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); input.click(); }
+    });
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('drag');
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!f) return;
+      arm(f);
+      const go = document.getElementById('ob-file-go');
+      if (go) go.click();
+    });
+    input.addEventListener('change', () => {
+      if (input.files[0] && status) status.textContent = input.files[0].name;
+    });
+  })();
   document.getElementById('ob-file-go').addEventListener('click', ()=>{
     const f = document.getElementById('ob-file').files[0];
     const status = document.getElementById('ob-file-status');
@@ -17061,14 +17223,24 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (st) st.textContent = String(e.message || e);
     }
   }
+  let lastOutbound = null;
+  function recordOutbound(entry){
+    lastOutbound = Object.assign({at: new Date().toISOString()}, entry || {});
+    return lastOutbound;
+  }
+  window.__ddLastOutbound = () => lastOutbound;
   async function aiRelayChat(messages, opts){
     opts = opts || {};
     const provider = lmProviderOf(lmStore.provider || 'lithifyte');
     const hosted = provider === 'lithifyte' || opts.forceHosted;
     const relay = (lmStore.relay || 'https://lithifyte-ai.sidethecomputer.workers.dev').replace(/\/$/, '');
     const purpose = opts.purpose || 'chat';
+    const sample = !!window.__lfDemo;
     let ent = window.__lfEntitlement;
-    if (hosted && window.__lfHosted){
+    /* Sample household shares the hosted origin. Do not spend (or even
+       fetch) entitlement — visitors are playing with invented data, and the
+       self-test's fetch mock must see /chat, not a later /ai/consume. */
+    if (hosted && window.__lfHosted && !sample){
       ent = await refreshEntitlement();
       if (ent && purpose === 'chat' && ent.remaining === 0){
         plusOpen('This week’s free hosted questions are used up.');
@@ -17087,11 +17259,22 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       max_tokens: hosted ? 1600 : 900,
       endpoint: provider === 'openai_compat' ? (lmStore.endpoint || '') : undefined,
       purpose,
-      entitlement: ent && ent.token ? ent.token : undefined
+      entitlement: (!sample && ent && ent.token) ? ent.token : undefined
     };
     const headers = {'Content-Type': 'application/json'};
     if (!hosted && lmStore.apiKey) headers['X-Api-Key'] = lmStore.apiKey;
-    if (hosted && ent && ent.token) headers['X-Entitlement'] = ent.token;
+    if (!sample && hosted && ent && ent.token) headers['X-Entitlement'] = ent.token;
+    recordOutbound({
+      kind: 'chat',
+      url: relay + '/chat',
+      provider: body.provider,
+      purpose,
+      hasKey: !!headers['X-Api-Key'],
+      hasModel: !!body.model,
+      bytes: JSON.stringify(body).length,
+      hosted: !!hosted,
+      demo: sample
+    });
     const res = await fetch(relay + '/chat', {method:'POST', headers, body: JSON.stringify(body), signal: AbortSignal.timeout(90000)});
     const data = await res.json().catch(() => ({}));
     if (res.status === 402){
@@ -17099,7 +17282,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       throw new Error(data.error || 'Plus required');
     }
     if (!res.ok) throw new Error(data.error || data.message || ('HTTP ' + res.status));
-    if (hosted && window.__lfHosted && purpose === 'chat'){
+    if (hosted && window.__lfHosted && !sample && purpose === 'chat'){
       fetch('https://access.lithifyte.com/ai/consume', {
         method:'POST', credentials:'include',
         headers:{'Content-Type':'application/json'},
@@ -17354,9 +17537,13 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         {id:'affordability', title:'Can I afford it', desc:'Check a monthly commitment against income, spending and surplus', readOnly:true},
         {id:'spend_ranked', title:'Biggest spending', desc:'Categories ranked by monthly average — use for "where can I cut back"', readOnly:true},
         {id:'find_transactions', title:'Find transactions', desc:'The actual rows — date, merchant, amount. Use whenever the user says "show me", "which ones", "list them"', readOnly:true},
+        {id:'net_worth', title:'Net worth', desc:'Engine.netWorth — cash, pots, holdings, assets, liabilities', readOnly:true},
+        {id:'pulse', title:'Financial pulse', desc:'Engine.healthScore — 0–100 household health against absolute benchmarks', readOnly:true},
+        {id:'leaks', title:'Leaks', desc:'Recurring leak groups (supermarkets, dining, Amazon…) with monthly averages', readOnly:true},
         {id:'notes_for', title:'Notes', desc:'Engine.notesFor', readOnly:true},
         {id:'goals_status', title:'Goals', desc:'List goals', readOnly:true},
         {id:'propose_budget', title:'Propose budget (sandbox)', desc:'Draft budget lines from history', readOnly:false, sandbox:true},
+        {id:'propose_rules', title:'Propose rules (sandbox)', desc:'Draft categorisation rules for uncategorised merchants', readOnly:false, sandbox:true},
         {id:'propose_goal', title:'Propose goal (sandbox)', desc:'Draft savings goal', readOnly:false, sandbox:true},
         {id:'run_scenario', title:'Run scenario', desc:'Compare draft vs live figures', readOnly:true, sandbox:true},
         {id:'apply_scenario', title:'Apply scenario', desc:'Commit sandbox to live (needs confirm)', readOnly:false}
@@ -17378,7 +17565,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
               t.id === 'cashflow_summary' ? '{rangePreset?: string}' :
               t.id === 'affordability' ? '{monthly: number}' :
               t.id === 'spend_ranked' ? '{limit?: number}' :
-              t.id === 'find_transactions' ? '{category?: string, merchant?: string, month?: "YYYY-MM", min?: number, limit?: number}' : '{}'
+              t.id === 'find_transactions' ? '{category?: string, merchant?: string, month?: "YYYY-MM", min?: number, limit?: number}' :
+              t.id === 'propose_rules' ? '{limit?: number}' :
+              t.id === 'net_worth' || t.id === 'pulse' || t.id === 'leaks' ? '{}' : '{}'
       }));
     }
     function norm(q){
@@ -17471,6 +17660,14 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       }
       if (/\b(cut back|cut down|save money|spend less|savings? opportunit|where.*(money|spending) go|biggest (spend|expense))\b/.test(n))
         return {tool:'spend_ranked', args:{}, score:0.88};
+      if (/\bnet\s*worth\b/.test(n) || (/\bwealth\b/.test(n) && /\b(how|what|show|total)\b/.test(n)))
+        return {tool:'net_worth', args:{}, score:0.9};
+      if (/\b(financial )?pulse\b/.test(n) || /\bhealth score\b/.test(n))
+        return {tool:'pulse', args:{}, score:0.9};
+      if (n === 'leaks' || n === 'leak' || /\b(money )?leaks?\b/.test(n) && /\b(show|find|biggest|where|list)\b/.test(n))
+        return {tool:'leaks', args:{}, score:0.88};
+      if (/\b(propose|suggest|draft|make)\b/.test(n) && /\brules?\b/.test(n))
+        return {tool:'propose_rules', args:{}, score:0.86};
       if (/\b(balance|balances|how much.*(account|have)|what.?s in|carried forward)\b/.test(n))
         return {tool:'balances', args:{}, score:0.9};
       if (/\b(next month|outlook|predict|prediction|what.?s coming)\b/.test(n))
@@ -17608,14 +17805,18 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const t = intent.tool, a = intent.args || {};
       if (t === 'help'){
         return {ok:true, tool:t, say:[
-          'Co-pilot commands (work offline):',
+          'Co-pilot commands (work offline — Commands only sends nothing off this device):',
           '• show cashflow / categories / budget / forecast / goals',
           '• last 12 months · balances · next month outlook',
-          '• how has <category> done',
+          '• how has <category> done · show me the transactions',
+          '• net worth · pulse · leaks',
+          '• can I afford €X a month · where can I cut back',
           '• design a budget from my last 12 months (sandbox)',
+          '• propose rules for uncategorised merchants (sandbox)',
           '',
-          'With Lithifyte AI (or your API key): ask freely — I call the same tools.',
-          'Numbers always come from Lithifyte’s Engine, never invented.'
+          'Hosted Lithifyte AI asks once per lane (chat / categorise / pdf) and sends only the slice that question needs — never the statement file. A local model or Commands only send nothing.',
+          'Numbers always come from Lithifyte’s Engine, never invented.',
+          'Inspect: window.__ddCatalog() · window.__ddLastOutbound() · window.__ddSelfTest()'
         ].join('\n'), provenance:'help', data:{tools:registry().map(x=>x.id)}, actions:[], suggestions:suggestions(), links:[]};
       }
       if (t === 'nav'){
@@ -17860,7 +18061,131 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           try { renderAll(); } catch (e) {}
           return {ok:true, tool:t, say:'Applied goal “' + g.name + '” — target ' + eur(g.target) + (g.targetMonth ? ' by ' + fmtMoLbl(g.targetMonth) : '') + '.', provenance:'Applied · live goals', data:{goalId:g.id}, actions:[{type:'nav', k:'goals', sec:'goalHero'}], suggestions:['goals'], links:['goal:'+g.id]};
         }
+        if (scen.kind === 'rules'){
+          const added = [];
+          for (const r of (scen.payload.rules || [])){
+            const needle = String(r.merchantContains || '').trim();
+            const cat = String(r.setCategory || '').trim();
+            if (!needle || !cat) continue;
+            const exists = rules.some(x => String(x.merchantContains || '').toUpperCase() === needle.toUpperCase() && x.setCategory === cat);
+            if (exists) continue;
+            rules.unshift({
+              label: r.label || (needle + ' → ' + cat),
+              merchantContains: needle, amountEquals: null,
+              setCategory: cat, note: r.note || 'from co-pilot sandbox', enabled: true
+            });
+            added.push(needle);
+          }
+          try { if (typeof onRulesChanged === 'function') onRulesChanged(); else save(LS.rules, rules); } catch (e) { save(LS.rules, rules); }
+          scen.status = 'applied'; scen.updated = new Date().toISOString();
+          saveScenarios();
+          try { renderAll(); } catch (e) {}
+          return {ok:true, tool:t, say:'Applied ' + added.length + ' categorisation rule' + (added.length === 1 ? '' : 's') + (added.length ? ': ' + added.join(', ') : '') + '. Open Rules to edit.',
+                  provenance:'Applied · live rules', data:{added}, actions:[{type:'nav', k:'rules', sec:'sec-rules'}], suggestions:['show leaks'], links:[]};
+        }
         return {ok:false, tool:t, say:'Unknown scenario kind.', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
+      }
+      if (t === 'net_worth'){
+        if (!NW) return {ok:true, tool:t, say:'No net-worth figure yet — add an opening balance or a statement first.', provenance:'net worth', data:null, actions:[{type:'nav', k:'wealth', sec:'nwCard'}], suggestions:suggestions(), links:[]};
+        const flags = (NW.flags || []).slice();
+        const say = 'Net worth ' + (NW.total < 0 ? '−' : '') + eur(Math.abs(NW.total))
+          + ' (assets ' + eur(NW.gross) + ' − liabilities ' + eur(NW.liab) + ').'
+          + '\n• Cash ' + eur(NW.cash) + ' · pots ' + eur(NW.pots) + ' · holdings ' + eur(NW.holdings)
+          + (NW.assetSum ? ' · other assets ' + eur(NW.assetSum) : '')
+          + (flags.length ? '\n• Honesty flags: ' + flags.join(', ') : '');
+        return {ok:true, tool:t, say, provenance:'Engine.netWorth',
+                data:{total:NW.total, gross:NW.gross, cash:NW.cash, pots:NW.pots, holdings:NW.holdings, assetSum:NW.assetSum, liab:NW.liab, flags},
+                actions:[{type:'nav', k:'wealth', sec:'nwCard'}], suggestions:['pulse', 'show cashflow'], links:[]};
+      }
+      if (t === 'pulse'){
+        if (!TX.length || !A) return {ok:true, tool:t, say:'No history to score a pulse against yet.', provenance:'pulse', data:null, actions:[{type:'nav', k:'pulse', sec:'pulseCard'}], suggestions:suggestions(), links:[]};
+        const pc = pulseCompute();
+        const hs = Engine.healthScore(pc.inputs);
+        const bits = (hs.comps || []).filter(c => !c.excluded).map(c => '• ' + (c.k) + ' ' + c.score);
+        const say = (hs.score == null ? 'Pulse not scored — nothing to measure yet.'
+          : 'Pulse ' + hs.score + ' — ' + (hs.zone || '') + ' (' + hs.active + ' of 7 measures).')
+          + (bits.length ? '\n' + bits.join('\n') : '');
+        return {ok:true, tool:t, say, provenance:'Engine.healthScore',
+                data:{score:hs.score, zone:hs.zone, active:hs.active, comps:hs.comps, best:hs.best},
+                actions:[{type:'nav', k:'pulse', sec:'pulseCard'}], suggestions:['net worth', 'leaks'], links:[]};
+      }
+      if (t === 'leaks'){
+        const rows = ((A && A.leaks) || []).slice(0, 8).map(l => ({
+          name: l.name, note: l.note, verdict: l.verdict,
+          avgMonth: +((l.avgMonth || 0).toFixed(2)), txCount: l.txCount, total: +((l.total12 || 0).toFixed(2))
+        }));
+        if (!rows.length) return {ok:true, tool:t, say:'No leak groups in this range.', provenance:'leaks', data:{rows:[]}, actions:[{type:'nav', k:'leaks', sec:'sec-leaks'}], suggestions:suggestions(), links:[]};
+        const say = 'Biggest leaks, ' + rangeLabel() + ':\n'
+          + rows.map(l => '• ' + l.name + ' — ' + eur(l.avgMonth) + '/mo · ' + l.txCount + ' tx (' + l.verdict + ')').join('\n');
+        return {ok:true, tool:t, say, provenance:'Engine · leak groups · ' + rangeLabel(),
+                data:{rows}, actions:[{type:'nav', k:'leaks', sec:'sec-leaks'}],
+                suggestions:['where can I cut back', 'propose rules for uncategorised merchants'], links:[]};
+      }
+      if (t === 'propose_rules'){
+        const drafts = [];
+        const existing = new Set(rules.filter(r => r && r.enabled && r.merchantContains)
+          .map(r => String(r.merchantContains).toUpperCase()));
+        const by = new Map();
+        if (typeof TX !== 'undefined'){
+          for (const tx of TX){
+            if (!RANGE.has(tx.mo) || !(tx.de > 0)) continue;
+            const cat = effCatFull(tx);
+            if (cat === SAVE_CAT || cat === INT_CAT) continue;
+            const merch = (typeof canonOf === 'function' ? canonOf(tx.m) : tx.m) || tx.m;
+            if (!merch) continue;
+            if (!by.has(merch)) by.set(merch, {merchant: merch, n: 0, uncat: 0, cats: new Map()});
+            const g = by.get(merch);
+            g.n++; if (cat === 'Uncategorized') g.uncat += tx.de;
+            g.cats.set(cat, (g.cats.get(cat) || 0) + tx.de);
+          }
+        }
+        for (const g of by.values()){
+          if (g.uncat < 20 || g.n < 2) continue;
+          const token = String(g.merchant).split(/\s+/)[0];
+          if (!token || token.length < 3) continue;
+          if (existing.has(token.toUpperCase()) || existing.has(String(g.merchant).toUpperCase())) continue;
+          let best = null, bestV = 0;
+          for (const [c, v] of g.cats){
+            if (c === 'Uncategorized') continue;
+            if (v > bestV){ best = c; bestV = v; }
+          }
+          if (!best){
+            for (const tx of TX){
+              if (!RANGE.has(tx.mo) || !(tx.de > 0)) continue;
+              const merch = String((typeof canonOf === 'function' ? canonOf(tx.m) : tx.m) || tx.m || '').toUpperCase();
+              if (!merch.startsWith(token.toUpperCase())) continue;
+              const cat = effCatFull(tx);
+              if (cat && cat !== 'Uncategorized' && cat !== SAVE_CAT && cat !== INT_CAT){ best = cat; break; }
+            }
+          }
+          if (!best) continue;
+          drafts.push({
+            merchantContains: token, setCategory: best,
+            label: token + ' → ' + best,
+            note: 'proposed from ' + g.n + ' rows',
+            enabled: true
+          });
+          if (drafts.length >= Math.max(1, Math.min(8, +a.limit || 8))) break;
+        }
+        if (!drafts.length){
+          return {ok:true, tool:t, say:'No uncategorised merchant groups look rule-shaped yet. Open Audit to name a few by hand.',
+                  provenance:'Sandbox · no drafts', data:{rules:[]}, actions:[{type:'nav', k:'audit', sec:'sec-audit'}], suggestions:['show leaks'], links:[]};
+        }
+        const scen = {
+          id: uid('scen'), title: 'Rules draft', status: 'draft', kind: 'rules',
+          created: new Date().toISOString(), updated: new Date().toISOString(),
+          conversationId: activeChatId, links: [],
+          payload: {rules: drafts}
+        };
+        scenarioStore.items.unshift(scen);
+        saveScenarios();
+        pendingApply = {scenarioId: scen.id};
+        const say = 'Sandbox rules (' + drafts.length + ') — nothing live changed:\n'
+          + drafts.map(r => '• “' + r.merchantContains + '” → ' + r.setCategory).join('\n')
+          + '\n\nSay “apply scenario” or press Apply when ready.';
+        return {ok:true, tool:t, say, provenance:'Sandbox · not applied', data:scen,
+                actions:[{type:'nav', k:'rules', sec:'sec-rules'}], suggestions:['apply this'], links:[],
+                apply:{scenarioId:scen.id, label:'Apply rule drafts'}};
       }
       return {ok:false, tool:t, say:'Unknown tool ' + t, provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
     }
@@ -17902,7 +18227,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         try { data = JSON.parse(Engine.minimise.aliasText(Engine.minimise.scrub(JSON.stringify(data)), M)); }
         catch (e) { data = null; }
       }
-      return {tool, ok: !!(result && result.ok), say, provenance: result && result.provenance, data, tier};
+      const shaped = {tool, ok: !!(result && result.ok), say, provenance: result && result.provenance, data, tier};
+      recordOutbound({kind:'tool', tool, tier, bytes: JSON.stringify(shaped).length, hosted: aiLeavesDevice('chat')});
+      return shaped;
     }
     async function lmComplete(messages, meta){
       const out = await aiRelayChat(messages, {purpose: (meta && meta.purpose) || 'chat'});
@@ -17972,7 +18299,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         return normLmObj(o);
       } catch (e) {
         // bare tool name lines: TOOL cat_monthly {"category":"Groceries"}
-        const tm = raw.match(/\b(help|nav|set_range|cashflow_summary|cat_monthly|balances|summary_outlook|affordability|spend_ranked|find_transactions|notes_for|goals_status|propose_budget|propose_goal|run_scenario|apply_scenario)\b[\s\S]{0,200}/);
+        const tm = raw.match(/\b(help|nav|set_range|cashflow_summary|cat_monthly|balances|summary_outlook|affordability|spend_ranked|find_transactions|net_worth|pulse|leaks|notes_for|goals_status|propose_budget|propose_goal|propose_rules|run_scenario|apply_scenario)\b[\s\S]{0,200}/);
         if (tm){
           try {
             const am = tm[0].match(/\{[\s\S]*\}/);
@@ -18005,7 +18332,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         '- As soon as a tool result answers the question, reply with type:final. Do not keep exploring.',
         '- Never call the same tool twice; the result you already have is in the conversation.',
         '- One tool is usually enough. "How has X done" is cat_monthly. "Open/show <section>" is nav and nothing else.',
-        '- Only use propose_budget / propose_goal when the user actually asks to design a budget or a goal.',
+        '- Only use propose_budget / propose_goal / propose_rules when the user actually asks to design a budget, a goal, or categorisation rules.',
         '',
         'Advice questions still need a tool FIRST — there is one for each:',
         '- "Can I afford €X a month / a €X installment?" → affordability {"monthly":X}. It does the sum for you.',
@@ -18013,6 +18340,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         '- "How am I doing?" → cashflow_summary.',
         '- "Show me / list / which ones / what did I spend on X" → find_transactions. This is the only tool',
         '  that returns actual rows. Never answer "show me the transactions" by navigating.',
+        '- "What is my net worth?" → net_worth. "Pulse / health score" → pulse. "Leaks" → leaks.',
+        '- "Propose / suggest categorisation rules" → propose_rules (sandbox).',
         '',
         'You are NOT a tax, legal or regulatory adviser, and you must never answer from general knowledge',
         'about rules — you do not know this user\'s country, tax status or entity type, and guessing is worse',
@@ -18076,7 +18405,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     // budget" yes, "show me my budget" no.
     function wantsDraft(text){
       const n = String(text || '').toLowerCase();
-      if (!/\b(budget|goal|save for|saving for|target)\b/.test(n)) return false;
+      if (!/\b(budget|goal|save for|saving for|target|rules?)\b/.test(n)) return false;
       return /\b(design|draft|propose|create|make|build|set ?up|start|plan|come up with|suggest)\b/.test(n);
     }
 
@@ -18136,11 +18465,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           // it may only be created when they actually asked for one. The prompt
           // says so and the model still reached for propose_budget on "show me
           // these transactions" — twice. Refuse it and point at a read tool.
-          if ((parsed.name === 'propose_budget' || parsed.name === 'propose_goal') && !wantsDraft(userText)){
+          if ((parsed.name === 'propose_budget' || parsed.name === 'propose_goal' || parsed.name === 'propose_rules') && !wantsDraft(userText)){
             messages.push({role:'assistant', content: raw});
-            messages.push({role:'user', content: 'No. The user did not ask you to design a budget or a goal, ' +
+            messages.push({role:'user', content: 'No. The user did not ask you to design a budget, a goal or rules, ' +
               'and ' + parsed.name + ' creates a draft they would have to delete. Answer what was actually asked — ' +
-              'use find_transactions, spend_ranked or cat_monthly.'});
+              'use find_transactions, spend_ranked, leaks or cat_monthly.'});
             continue;
           }
           const sig = parsed.name + ':' + JSON.stringify(intent.args || {});
@@ -19011,6 +19340,38 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     };
   })();
   window.__ddCompanion = Companion;
+  window.__ddCatalog = function(){
+    const tools = (Companion && Companion.registry) ? Companion.registry() : [];
+    return {
+      version: 1,
+      product: 'lithifyte',
+      licence: 'AGPL-3.0-or-later',
+      demo: !!window.__lfDemo,
+      hosted: !!window.__lfHosted,
+      selfTest: {fn:'__ddSelfTest', envelope:['pass','n','fails','tests']},
+      hooks: {
+        __ddSelfTest: 'Promise<{pass,n,fails,tests}> (also an array of {name,pass,detail})',
+        __ddCatalog: 'this object',
+        __ddLastOutbound: '{at,kind,url?,provider?,purpose?,hasKey?,bytes,hosted,demo}',
+        __ddCompanion: 'ask/run/match/registry — Engine owns every euro figure',
+        __ddBackup: 'full backup object',
+        __ddMinimise: 'Engine.minimise — the only outbound chokepoint',
+        __ddDisclose: 'metadata-only log of hosted requests'
+      },
+      tools: tools.map(t => ({id:t.id, title:t.title, desc:t.desc, readOnly:!!t.readOnly, sandbox:!!t.sandbox})),
+      dataPlane: {
+        lanes: ['chat','categorise','pdf'],
+        minimise: ['shape','aggregate','detail'],
+        rule: 'Engine computes every euro figure. The model never invents a number. Hosted AI sends only the slice a question needs — never the statement file.'
+      },
+      claims: {
+        statementsStayOnDevice: true,
+        noFinanceBackend: true,
+        hostedAiSendsSlice: true,
+        commandsOnlySendsNothing: true
+      }
+    };
+  };
 
 
   // ══ boot ══
@@ -19264,7 +19625,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       try { if (window.__ddSyncCam) setTimeout(window.__ddSyncCam, 0); } catch (e) {}
     }
     if (navLabels) navLabels.addEventListener('click', ()=> setNavLabels(!document.body.classList.contains('nav-labels')));
-    setNavLabels(!!FCONF.navLabels);
+    /* Labels on unless the user hid them. An unset key used to default off,
+       so the icon rail was a row of glyphs with no names. */
+    setNavLabels(FCONF.navLabels !== false);
     // ── P6: top-right mini cards (range + search) ──
     const mini = document.getElementById('miniPanel');
     const miniBody = document.getElementById('miniBody');
@@ -19430,7 +19793,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // Part 2 — First data
       {part:2, dock:'people', target:'#spacePanel, #sec-people', title:'Household → people → accounts',
        loc:'Data → People 👥 (centered popup)',
-       body:'People is its own Data tab and opens centered over the map. Structure matches the sample: name the household, add people under it, then accounts and statements. First-run onboarding on the map walks the same path (household → people → account → statement → goal). Re-uploads are safe — duplicates are skipped.'},
+       body:'People is its own Data tab and opens centered over the map. Structure matches the sample: household → people → accounts → statements. First-run onboarding is a single drop zone — labels and a goal are optional. Re-uploads are safe — duplicates are skipped.'},
       {part:2, dock:'people', target:'#hhBanner, #orgAddUser, #sec-people', title:'People, accounts & statements',
        loc:'Data → People 👥',
        body:'Edit the household name (map root). Add partners or businesses with ＋ Add person. Each person gets accounts (current / credit / savings / cash). Upload your bank\u2019s own CSV or Excel export under the right account: Prepare & preview shows which column it read as what, lets you change any of it, and shows the finished transactions beside your raw file before anything is saved. Where the statement carries a running balance it is checked against it, and the opening balance can be set from that check. Opening balances power cash-on-hand, net worth, and linked goals.'},

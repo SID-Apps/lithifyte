@@ -54,3 +54,4 @@ writeFileSync(out, code.slice(0, cb.i) + dataBlock + code.slice(cb.j));
 console.log(out + ': ' + (code.length - (cb.j - cb.i) + dataBlock.length) + ' bytes — code from ' +
   codeFrom + ', data from ' + dataFrom + ' (' + json.transactions.length + ' embedded transactions)');
 console.log('Now open it and check the self-test is green before shipping.');
+console.log('Then: node tools/check-shell.mjs ' + out + '  (and make-demo if this is the public blank shell).');

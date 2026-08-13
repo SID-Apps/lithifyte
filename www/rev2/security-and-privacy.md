@@ -1,10 +1,10 @@
 # Security and privacy, in technical terms
 
 Source: https://lithifyte.com/security-and-privacy
-Updated: 2026-08-12
+Updated: 2026-08-13
 Licence: content CC-BY-4.0 · software AGPL-3.0-or-later
 
-The claim is narrow and testable: your financial data is never transmitted to us, because there is no server that receives it. The one exception is the AI co-pilot, which you switch on yourself and which sends what it needs to the model you chose — that is set out in full below, along with the parts we cannot fix.
+The claim is narrow and testable: there is no finance backend, so statements are never stored by us. The one exception is hosted AI, which you consent to per lane and which sends only the slice that question needs — that is set out in full below, along with the parts we cannot fix.
 
 ## The architecture, stated plainly
 
@@ -14,7 +14,7 @@ There is no finance API. Not an encrypted one, not a temporary one, not one that
 
 You do not have to take this on faith. Open your browser's network tab and import a statement. Nothing carrying the file goes out.
 
-**One deliberate exception, and it is yours to switch on: hosted AI.** A language model cannot answer a question about your money without being told something about your money. That section is below, in full, because a privacy claim with a quiet asterisk is worse than no claim at all. The honest sentence is: **we never store your data, and when you ask the AI a question, the part needed to answer it is sent to the model provider for that request.** Commands-only and a local model send nothing.
+**One deliberate exception, and it is yours to consent to per lane: hosted AI.** A language model cannot answer a question about your money without being told something about your money. That section is below, in full, because a privacy claim with a quiet asterisk is worse than no claim at all. The honest sentence is: **we never store your data, and when you ask the AI a question, the part needed to answer it is sent to the model provider for that request.** Commands-only and a local model send nothing.
 
 ## What is stored, and where
 

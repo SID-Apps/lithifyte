@@ -1,6 +1,6 @@
 # Lithifyte — full content library
 
-Every page on lithifyte.com as plain markdown, generated 2026-08-12. Canonical HTML lives at https://lithifyte.com. Licence: content CC-BY-4.0, software AGPL-3.0-or-later.
+Every page on lithifyte.com as plain markdown, generated 2026-08-13. Canonical HTML lives at https://lithifyte.com. Licence: content CC-BY-4.0, software AGPL-3.0-or-later.
 
 
 
@@ -242,7 +242,7 @@ The [learn library](/learn) covers the money side rather than the software side 
 # How Lithifyte works
 
 URL: https://lithifyte.com/how-it-works
-Updated: 2026-08-09
+Updated: 2026-08-13
 
 You upload a bank statement to a web page. The page reads it in your browser, works out who spent what and where it went, and draws the result as a living map. No file is transmitted, because there is no server on the other end to receive it.
 
@@ -283,15 +283,15 @@ You can search it, drag it, isolate a person, and watch it redraw as you change 
 
 There is a co-pilot in the app — Ctrl/Cmd+K — that you can ask in plain language: *how have groceries gone this year*, *show me the cashflow*, *design a wedding budget from the last twelve months*. It answers, it opens the right section for you, and it can draft a budget or goal in a **sandbox** that changes nothing until you press Apply.
 
-Two things make it worth trusting. The model never produces a number — it works out what you asked for, the engine computes the figures on your device, and the answer renders from those. And it is **optional**: it does nothing until you connect a model, and you can connect one running on your own machine so that nothing about your finances leaves it. What is sent, and to whom, is set out plainly in [security and privacy](/security-and-privacy).
+Two things make it worth trusting. The model never produces a number — it works out what you asked for, the engine computes the figures on your device, and the answer renders from those. Hosted Lithifyte AI is available after you consent per lane (chat, categorise, PDF). Commands-only and a model running on your own machine send nothing. What is sent, and to whom, is set out plainly in [security and privacy](/security-and-privacy).
 
 ## What it does not do
 
-It does not connect to your bank by default. It does not give financial advice, recommend products, or take a commission from anyone. It does not have a premium tier that unlocks your own numbers. And outside the co-pilot, which you switch on yourself, nothing about your money reaches Lithifyte — because there is no endpoint for it to arrive at.
+It does not connect to your bank by default. It does not give financial advice, recommend products, or take a commission from anyone. It does not have a premium tier that unlocks your own numbers. There is no finance backend. The one place anything about your money can leave the browser is hosted AI, after you consent, and only the slice that question needs.
 
 Statement import is the supported path in, and it is deliberate rather than a limitation to apologise for: a file you exported yourself is a file no third party had to be trusted with.
 
-The co-pilot is the one place where anything about your money can leave the browser, it is off until you switch it on, and a local model keeps even that on your own machine.
+Commands-only and a local model keep even the co-pilot on your own machine.
 
 ## Two ways to run it
 
@@ -378,9 +378,9 @@ Security reports go through the process in `SECURITY.md` rather than a public is
 # Security and privacy, in technical terms
 
 URL: https://lithifyte.com/security-and-privacy
-Updated: 2026-08-12
+Updated: 2026-08-13
 
-The claim is narrow and testable: your financial data is never transmitted to us, because there is no server that receives it. The one exception is the AI co-pilot, which you switch on yourself and which sends what it needs to the model you chose — that is set out in full below, along with the parts we cannot fix.
+The claim is narrow and testable: there is no finance backend, so statements are never stored by us. The one exception is hosted AI, which you consent to per lane and which sends only the slice that question needs — that is set out in full below, along with the parts we cannot fix.
 
 ## The architecture, stated plainly
 
@@ -390,7 +390,7 @@ There is no finance API. Not an encrypted one, not a temporary one, not one that
 
 You do not have to take this on faith. Open your browser's network tab and import a statement. Nothing carrying the file goes out.
 
-**One deliberate exception, and it is yours to switch on: hosted AI.** A language model cannot answer a question about your money without being told something about your money. That section is below, in full, because a privacy claim with a quiet asterisk is worse than no claim at all. The honest sentence is: **we never store your data, and when you ask the AI a question, the part needed to answer it is sent to the model provider for that request.** Commands-only and a local model send nothing.
+**One deliberate exception, and it is yours to consent to per lane: hosted AI.** A language model cannot answer a question about your money without being told something about your money. That section is below, in full, because a privacy claim with a quiet asterisk is worse than no claim at all. The honest sentence is: **we never store your data, and when you ask the AI a question, the part needed to answer it is sent to the model provider for that request.** Commands-only and a local model send nothing.
 
 ## What is stored, and where
 

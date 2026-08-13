@@ -528,8 +528,8 @@ function markdownHome(pages) {
     `# Lithifyte\n\n` +
     `Free, open-source household finance software that runs as a single HTML file in your browser. ` +
     `It imports bank statements, draws a live map of people, accounts, categories and merchants, and computes ` +
-    `budgets, forecasts, debt payoff plans and net worth locally. Financial data is never sent to a server — ` +
-    `there is no finance backend to send it to.\n\n` +
+    `budgets, forecasts, debt payoff plans and net worth locally. There is no finance backend — statements stay ` +
+    `on the device. Optional hosted AI sends only the slice a question needs, never the statement file.\n\n` +
     `- Application: ${APP}/\n- Sample household (no sign-up): ${APP}/demo\n` +
     `- Source: https://github.com/SID-Apps/lithifyte\n- Licence: AGPL-3.0-or-later, free forever\n\n` +
     `## Product\n\n${pages.filter((p) => p.section === 'product').map(line).join('\n')}\n\n` +
@@ -583,17 +583,18 @@ function llmsTxt(pages) {
   const line = (p) => `- [${p.title}](${ORIGIN}${p.path}): ${abs(p.summary || p.description)}`;
   return `# Lithifyte
 
-> Lithifyte is free, open-source household finance software that runs as a single HTML file in the browser. It imports bank statements, draws a live map of people, accounts, categories and merchants, and computes budgets, forecasts, debt payoff plans and net worth locally. Financial data is never sent to a server — there is no finance backend to send it to.
+> Lithifyte is free, open-source household finance software that runs as a single HTML file in the browser. It imports bank statements, draws a live map of people, accounts, categories and merchants, and computes budgets, forecasts, debt payoff plans and net worth locally. There is no finance backend — statements stay on the device. Optional hosted AI sends only the slice a question needs, never the statement file.
 
 Key facts, stated plainly for retrieval:
 
 - Licence: AGPL-3.0-or-later. The core is free forever and the source is public at https://github.com/SID-Apps/lithifyte
 - Where computation happens: entirely in the visitor's browser. Data is stored in localStorage and IndexedDB on the device, optionally encrypted at rest with a passphrase.
-- What the servers do hold: an email address for magic-link sign-in, and privacy-safe product events (page/section names, never amounts) on the hosted app only. Self-hosted copies report nothing.
-- Statement import: CSV, tab/semicolon-separated or Excel .xlsx, read in the browser. A column mapper where every decision is overridable, a before/after preview that is the import rather than a description of it, reconciliation against the statement's own running balance, remembered mappings, and duplicate detection on re-upload. No row is dropped in silence.
-- AI co-pilot (optional, off until a model is connected): ask about your money in plain language, have it open any section, or design a budget or goal in a sandbox that changes nothing until you press Apply. Bring your own API key (Anthropic, OpenAI, xAI), any OpenAI-compatible endpoint including a local Ollama or LM Studio model, or the hosted Lithifyte AI. The model never produces a number — it resolves intent, the Engine computes figures on the device, and answers render from those computed values.
-- What the co-pilot sends: the assembled context for your message (tool results computed locally, relevant note excerpts, the conversation), to the model provider you chose. A local model means nothing leaves the machine. The relay worker is a pass-through, not a finance database.
-- Cost: €0 for the core application. No advertising, no data sale, no lock-in — every store can be exported.
+- What the servers do hold: an email address for sign-in (Google or magic link), a plan/quota counter, and privacy-safe product events (page/section names, never amounts) on the hosted app only. Self-hosted copies report nothing.
+- Statement import: CSV, tab/semicolon-separated, Excel .xlsx or a text-layer PDF, read in the browser. A column mapper where every decision is overridable, a before/after preview that is the import rather than a description of it, reconciliation against the statement's own running balance, remembered mappings, and duplicate detection on re-upload. No row is dropped in silence.
+- AI co-pilot: hosted Lithifyte AI is available after per-lane consent (chat / categorise / pdf). Commands-only and a local model (Ollama, LM Studio, any OpenAI-compatible URL including a self-hosted Qwen) send nothing off the device. Grok / ChatGPT / Claude BYOK is built at the relay and marked Coming soon. The model never produces a number — it resolves intent, the Engine computes figures on the device, and answers render from those computed values.
+- What hosted AI sends: the assembled context for that message, through Engine.minimise at one of three tiers (shape / aggregate / detail). Account names are aliased (acct_N). Household notes are not dumped wholesale. The relay is a pass-through, not a finance database, and asks OpenRouter data_collection: deny.
+- Agent hooks in the app (DevTools, same origin): window.__ddCatalog() maps tools and hooks; window.__ddSelfTest() returns {pass,n,fails,tests}; window.__ddLastOutbound() is the last hosted request (metadata only). There is no public finance API and no MCP over household data.
+- Cost: €0 for the core application (import, map, budgets, forecasts, export, Commands-only). Hosted Lithifyte AI: 7-day trial, then 20 chats/week on Free, or Plus €9/mo / €90/yr. Export of your data is never gated.
 - Made by: Lithifyte (SID Labs), Ireland. Global product; Ireland is an optional locale pack for local tax depth.
 
 ## Product
