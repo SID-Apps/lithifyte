@@ -3012,6 +3012,8 @@ So, when you change a stored shape:
     <h3 style="margin:18px 0 8px">Tutorial &amp; Ask</h3>
     <p class="hint" style="margin:0 0 10px">Long-form written guide and product Q&amp;A from a local help corpus — not your bank data. For a live walkthrough of this app, use <b>Guided Space tutorial</b> above (or open the sample with the tutorial from onboarding).</p>
     <a class="btn" href="tutorial" id="setTutorialAskLink">📘 Tutorial &amp; Ask</a>
+    <p class="hint" id="selfHostNote" hidden>This copy is self-hosted. Plus, sign-in, Drive and the cloud vault exist only on app.lithifyte.com. Export a backup file here instead.</p>
+    <div id="hostedChrome">
     <h3 style="margin:18px 0 8px">Your account</h3>
     <p class="hint" style="margin:0 0 8px" id="acctWho">Not signed in on this copy — self-hosted and downloaded files never phone home.</p>
     <div class="filter-row" style="margin:0 0 8px; flex-wrap:wrap; gap:8px">
@@ -3037,6 +3039,7 @@ So, when you change a stored shape:
         <button class="btn" id="vaultDelete" type="button">Delete cloud copy</button>
       </div>
       <div id="vaultStatus" class="hint"></div>
+    </div>
     </div>
     <h3 style="margin:18px 0 8px">AI &amp; what left this device</h3>
     <p class="hint" style="margin:0 0 10px">The ledger never lives on our servers. Asking Lithifyte AI sends only the slice that question needs through a pass-through relay. Commands-only and a local model send nothing. Hosted intelligence, the encrypted vault and live tax/bank packs are Plus; the Engine stays free forever, and export is never gated.</p>
@@ -5607,10 +5610,6 @@ rewrite the static advice cards if the picture has changed.</div>
           note: p.note || '',
           match: h => need.every(tok => h.includes(tok)),
           build(h, rows, hr){
-            const at = n => {
-              const i = h.indexOf(n);
-              return i;
-            };
             const col = name => {
               if (name == null) return -1;
               const want = String(name).toLowerCase();
@@ -17581,8 +17580,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     const ACCESS = 'https://access.lithifyte.com';
     function status(msg){ const el = document.getElementById('vaultStatus'); if (el) el.textContent = msg || ''; }
     function hideIfOffline(){
-      const box = document.getElementById('cloudVaultBlock');
-      if (box && !window.__lfHosted) box.hidden = true;
+      const chrome = document.getElementById('hostedChrome');
+      const note = document.getElementById('selfHostNote');
+      if (!window.__lfHosted){
+        if (chrome) chrome.hidden = true;
+        if (note) note.hidden = false;
+      }
     }
     async function info(){
       const res = await fetch(ACCESS + '/vault', {credentials:'include'});

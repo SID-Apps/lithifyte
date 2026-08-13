@@ -63,7 +63,7 @@
       "publisher": {
         "@id": "https://lithifyte.com/#organization"
       },
-      "dateModified": "2026-08-09",
+      "dateModified": "2026-08-13",
       "@type": "WebPage"
     }
   ]
@@ -117,17 +117,17 @@
 <main class="page">
 <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span class="sep">/</span> <span aria-current="page">Guide</span></nav>
   <h1>The Lithifyte guide</h1>
-  <p class="updated">Updated 9 August 2026</p>
+  <p class="updated">Updated 13 August 2026</p>
   <p class="lede">A complete feature reference, ordered the way you actually encounter things: get data in, make it trustworthy, understand it, then plan with it. There is also an interactive version inside the app with an Ask box.</p>
 
 <h2 id="before-you-start">Before you start</h2>
-<p>There is no account to create. Open <a href="https://app.lithifyte.com" rel="noopener">app.lithifyte.com</a>, or download <code>index.html</code> and open it from your own disk — the file works offline and behaves identically.</p>
+<p>The Engine is free forever. Open <a href="https://app.lithifyte.com" rel="noopener">app.lithifyte.com</a> and sign in if you want Lithifyte Plus (hosted AI, an encrypted vault we cannot read, live Ireland tax and extra bank presets). Or download <code>index.html</code> and open it from your own disk — the calculator works offline and never phones home. Plus is documented at <a href="https://lithifyte.com/commercial">lithifyte.com/commercial</a>.</p>
 <p>If you would rather look before you type anything, the <a href="https://app.lithifyte.com/demo" rel="noopener">sample household</a> is a fully populated invented family: two earners, four accounts, two years of transactions, with the messy bits (merchant name variants, standing orders, an annual insurance renewal, a holiday spike) deliberately left in. Its storage is separate, so exploring it can never touch real data you add later.</p>
 <h2 id="1-getting-data-in">1 · Getting data in</h2>
 <p><strong>Set up the skeleton first.</strong> Name the people in your household and the accounts they hold. Everything else hangs off this, and getting it right early saves re-work.</p>
 <p><strong>Then import a statement.</strong> Export whatever your bank gives you — CSV, tab- or semicolon-separated, or Excel <code>.xlsx</code>. The spreadsheet is unzipped and read inside your browser, with no library and nothing uploaded, so the privacy promise holds for it too.</p>
 <p>Press <strong>Prepare &amp; preview</strong>, which is two steps:</p>
-<ol><li><strong>Columns.</strong> Known exports are recognised outright — a Revolut statement maps in one click, reading the <em>completed</em> date, folding each fee into its own transaction so the balance still adds up, and holding back anything not <code>COMPLETED</code>. Anything else is matched on column-name synonyms. <strong>Every decision is yours to change</strong>: what each column is, the header row (a preamble of bank blurb is skipped automatically), the date order — decided from the whole column rather than row by row, so one 13th "month" settles it — the decimal mark, whether to swap the two directions, and rules for holding rows back.</li><li><strong>Preview.</strong> Your raw file on the left, exactly what will be stored on the right, with totals, the date range, and every row that will <em>not</em> be imported named with its reason. The preview is not a rehearsal — it renders the same result the import saves, simply not saved yet. Nothing reaches your dashboard until you press the button.</li></ol>
+<ol><li><strong>Columns.</strong> Known exports are recognised outright. A Revolut statement maps in one click on every copy — completed date, fees folded into their own rows, anything not <code>COMPLETED</code> held back. On the official host, Plus adds maintained maps for AIB, Bank of Ireland, Permanent TSB and N26; they stay overridable. Anything else is matched on column-name synonyms. <strong>Every decision is yours to change</strong>: what each column is, the header row (a preamble of bank blurb is skipped automatically), the date order — decided from the whole column rather than row by row, so one 13th "month" settles it — the decimal mark, whether to swap the two directions, and rules for holding rows back.</li><li><strong>Preview.</strong> Your raw file on the left, exactly what will be stored on the right, with totals, the date range, and every row that will <em>not</em> be imported named with its reason. The preview is not a rehearsal — it renders the same result the import saves, simply not saved yet. Nothing reaches your dashboard until you press the button.</li></ol>
 <p><strong>Where the statement carries a running balance, the importer walks it.</strong> If every step agrees with the amounts it read, the mapping is <em>proven</em> correct rather than assumed — and the balance implied before the first row is offered as that account's <strong>opening balance</strong>, which is the number your cash, net-worth and goal figures are built on. It never overwrites an opening balance you already set without telling you.</p>
 <p><strong>Mappings are remembered</strong> against that file's column headers, so next month's export from the same bank comes back already mapped.</p>
 <p><strong>Nothing is ever dropped in silence.</strong> A row held back by one of your rules is counted and named. A row that cannot be read is counted and named. An import that is entirely one-directional is flagged, because that is nearly always a mapping slip rather than a strange month.</p>

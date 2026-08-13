@@ -6,14 +6,14 @@ section: product
 description: Every part of Lithifyte in the order you meet it — importing statements, cleaning categories, reading the map, budgets, forecasts, debt payoff, net worth, backups and the self-tests.
 summary: A complete feature reference, ordered the way you actually encounter things: get data in, make it trustworthy, understand it, then plan with it. There is also an interactive version inside the app with an Ask box.
 keywords: [Lithifyte guide, how to import bank statement CSV, budgeting software tutorial, net worth tracker guide]
-updated: 2026-08-09
+updated: 2026-08-13
 priority: 0.9
 related: [how-it-works, learn, faq]
 ---
 
 ## Before you start
 
-There is no account to create. Open [app.lithifyte.com](https://app.lithifyte.com), or download `index.html` and open it from your own disk — the file works offline and behaves identically.
+The Engine is free forever. Open [app.lithifyte.com](https://app.lithifyte.com) and sign in if you want Lithifyte Plus (hosted AI, an encrypted vault we cannot read, live Ireland tax and extra bank presets). Or download `index.html` and open it from your own disk — the calculator works offline and never phones home. Plus is documented at [lithifyte.com/commercial](https://lithifyte.com/commercial).
 
 If you would rather look before you type anything, the [sample household](https://app.lithifyte.com/demo) is a fully populated invented family: two earners, four accounts, two years of transactions, with the messy bits (merchant name variants, standing orders, an annual insurance renewal, a holiday spike) deliberately left in. Its storage is separate, so exploring it can never touch real data you add later.
 
@@ -25,7 +25,7 @@ If you would rather look before you type anything, the [sample household](https:
 
 Press **Prepare & preview**, which is two steps:
 
-1. **Columns.** Known exports are recognised outright — a Revolut statement maps in one click, reading the *completed* date, folding each fee into its own transaction so the balance still adds up, and holding back anything not `COMPLETED`. Anything else is matched on column-name synonyms. **Every decision is yours to change**: what each column is, the header row (a preamble of bank blurb is skipped automatically), the date order — decided from the whole column rather than row by row, so one 13th "month" settles it — the decimal mark, whether to swap the two directions, and rules for holding rows back.
+1. **Columns.** Known exports are recognised outright. A Revolut statement maps in one click on every copy — completed date, fees folded into their own rows, anything not `COMPLETED` held back. On the official host, Plus adds maintained maps for AIB, Bank of Ireland, Permanent TSB and N26; they stay overridable. Anything else is matched on column-name synonyms. **Every decision is yours to change**: what each column is, the header row (a preamble of bank blurb is skipped automatically), the date order — decided from the whole column rather than row by row, so one 13th "month" settles it — the decimal mark, whether to swap the two directions, and rules for holding rows back.
 2. **Preview.** Your raw file on the left, exactly what will be stored on the right, with totals, the date range, and every row that will *not* be imported named with its reason. The preview is not a rehearsal — it renders the same result the import saves, simply not saved yet. Nothing reaches your dashboard until you press the button.
 
 **Where the statement carries a running balance, the importer walks it.** If every step agrees with the amounts it read, the mapping is *proven* correct rather than assumed — and the balance implied before the first row is offered as that account's **opening balance**, which is the number your cash, net-worth and goal figures are built on. It never overwrites an opening balance you already set without telling you.

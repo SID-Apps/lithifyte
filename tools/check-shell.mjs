@@ -48,6 +48,11 @@ ok('app: pulse tool', /id:'pulse'/.test(app) || /id: 'pulse'/.test(app));
 ok('app: leaks tool', /id:'leaks'/.test(app) || /id: 'leaks'/.test(app));
 ok('app: propose_rules tool', /id:'propose_rules'/.test(app) || /id: 'propose_rules'/.test(app));
 ok('app: demo skips hosted consume', /!sample && purpose === 'chat'|!window\.__lfDemo/.test(app) && /__lfDemo/.test(app));
+ok('app: cloud vault block', /id="cloudVaultBlock"/.test(app));
+ok('app: hosted chrome wrapper', /id="hostedChrome"/.test(app));
+ok('app: applyFiscalPack', /applyFiscalPack/.test(app));
+ok('app: declarative importer packs', /impRegisterDeclarative/.test(app));
+ok('app: no public workers path', !/www\/workers\/access\.js/.test(app));
 ok('app: no leftover personal name in finance-data seed', (() => {
   const i = app.lastIndexOf('<script id="finance-data" type="application/json">');
   if (i < 0) return false;
