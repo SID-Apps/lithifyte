@@ -15,7 +15,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '2.1.0';
+  var APP_VER = '2.2.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -5938,7 +5938,26 @@ rewrite the static advice cards if the picture has changed.</div>
               amount: col(spec.amount), debit: col(spec.debit), credit: col(spec.credit),
               fee: col(spec.fee), balance: col(spec.balance),
               dateFormat: spec.dateFormat || 'dmy', decimal: spec.decimal || 'dot',
-              feeMode: spec.feeMode || '', clean: spec.clean || '', filters: spec.filters || []
+              feeMode: spec.feeMode || '', clean: spec.clean || '',
+              // Card issuers often sign the other way round: on an Amex export
+              // a POSITIVE amount is a charge, i.e. money OUT. Without this the
+              // whole statement imports inverted — every purchase reads as
+              // income — which looks completely plausible and is completely
+              // wrong. A pack has to be able to say so.
+              swap: !!spec.swap,
+              // Filters arrive from a JSON pack, so their `col` is a column
+              // NAME; the spec everywhere else uses a numeric index, and
+              // impSpec drops anything failing `col >= 0`. Resolving here is
+              // what lets a declarative preset hold back "not COMPLETED" rows
+              // the way the built-in Revolut preset does — without this a
+              // pack's filter is discarded in silence and failed or reversed
+              // transactions import as though they had settled.
+              filters: (spec.filters || []).map(f => ({
+                col: typeof f.col === 'number' ? f.col : col(f.col),
+                mode: f.mode || 'keep',
+                values: Array.isArray(f.values) ? f.values : [],
+                label: f.label || String(f.col == null ? '' : f.col)
+              })).filter(f => f.col >= 0 && f.values.length)
             };
           }
         });
@@ -10758,6 +10777,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
             __state: () => st && {spec: st.spec, headerRow: st.headerRow, step: st.step}};
   })();
   window.__ddImporter = Importer;
+  // Register declarative importer presets — the same shape the hosted packs
+  // use. Exposed deliberately rather than kept private: a self-hosted user on
+  // the free tier can teach their own bank's export to the importer without a
+  // Plus session, and a pack can be verified end to end before it ships.
+  // Returns how many were newly registered; ids already present are ignored.
+  window.__ddRegisterPack = presets => Engine.impRegisterDeclarative(presets);
 
   function householdLabel(){
     const n = org.householdName && String(org.householdName).trim();
@@ -15062,6 +15087,51 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     // ships no tax figures. It asserts the ABSENCE of shipped rates: if a
     // future edit ever bakes a statutory number back into the file, this fails
     // loudly rather than quietly reintroducing the liability.
+    T('importer: a declarative preset can invert the amount sign', () => {
+      E.impRegisterDeclarative([{
+        id: '__selftest_swap', label: 'SwapTest', matchAll: ['sw-date'],
+        build: {date: 'sw-date', merchant: 'sw-desc', amount: 'sw-amt', swap: true}
+      }]);
+      const p = Engine.IMP_PRESETS.find(x => x.id === '__selftest_swap');
+      const spec = p.build(['sw-date', 'sw-desc', 'sw-amt'], [['sw-date','sw-desc','sw-amt']], 0);
+      const idx = Engine.IMP_PRESETS.findIndex(x => x.id === '__selftest_swap');
+      if (idx >= 0) Engine.IMP_PRESETS.splice(idx, 1);
+      // without this an Amex-style export imports every purchase as income
+      return spec.swap === true || 'swap was dropped by the declarative path';
+    });
+    T('importer: a declarative pack filter resolves its column by name', () => {
+      const before = Engine.IMP_PRESETS.length;
+      E.impRegisterDeclarative([{
+        id: '__selftest_filter', label: 'FilterTest',
+        matchAll: ['ft-date', 'ft-desc', 'ft-status'],
+        build: {date: 'ft-date', merchant: 'ft-desc', amount: 'ft-amt',
+                filters: [{col: 'ft-status', mode: 'keep', values: ['Completed'], label: 'Status'}]}
+      }]);
+      const p = Engine.IMP_PRESETS.find(x => x.id === '__selftest_filter');
+      const hdr = ['ft-date', 'ft-desc', 'ft-amt', 'ft-status'];
+      const spec = p.build(hdr, [hdr], 0);
+      const idx = Engine.IMP_PRESETS.findIndex(x => x.id === '__selftest_filter');
+      if (idx >= 0) Engine.IMP_PRESETS.splice(idx, 1);
+      if (Engine.IMP_PRESETS.length !== before) return 'preset not cleaned up';
+      if (!spec.filters.length) return 'named filter column was dropped instead of resolved';
+      if (spec.filters[0].col !== 3) return 'resolved to the wrong column: ' + spec.filters[0].col;
+      return spec.filters[0].values[0] === 'Completed' || 'filter values lost';
+    });
+    T('importer: a declarative filter naming a missing column is dropped, not left broken', () => {
+      E.impRegisterDeclarative([{
+        id: '__selftest_filter2', label: 'FilterTest2',
+        matchAll: ['f2-date'],
+        build: {date: 'f2-date', merchant: 'f2-desc',
+                filters: [{col: 'nope-not-here', mode: 'keep', values: ['x']}]}
+      }]);
+      const p = Engine.IMP_PRESETS.find(x => x.id === '__selftest_filter2');
+      const spec = p.build(['f2-date', 'f2-desc'], [['f2-date', 'f2-desc']], 0);
+      const idx = Engine.IMP_PRESETS.findIndex(x => x.id === '__selftest_filter2');
+      if (idx >= 0) Engine.IMP_PRESETS.splice(idx, 1);
+      // dropping is right: a filter on a column that is not there would hold
+      // back every row, which looks exactly like an empty statement
+      return spec.filters.length === 0 || 'a filter on a missing column survived';
+    });
     // ── updates (P7-2) ──
     T('version: dotted compare orders correctly and refuses junk', () => {
       const c = E.versionCompare;

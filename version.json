@@ -1,8 +1,8 @@
 {
-  "version": "2.1.0",
+  "version": "2.2.0",
   "released": "2026-08-14",
-  "notes": "Opt-in update checks for self-hosted copies.",
+  "notes": "Global bank import presets (India, US, Kenya) and a declarative pack format that can express filters and inverted signs.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "937561667fc7ee6255f9c41adaeb4fe9289ae6635bd32ad52315381d5fb45465"
+  "sha256": "b9e6d83c6be6babae799fcb1ad1a5dc301dec82907b717f30a7d9141ec31c7d9"
 }
