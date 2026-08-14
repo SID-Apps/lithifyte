@@ -8,7 +8,9 @@
 // Exit 0 only when every check passes. Does not upload anything.
 
 import { readFileSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { resolve, join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 const appPath = resolve(process.argv[2] || 'index.html');
 const landPath = resolve(process.argv[3] || 'www/rev2/index.html');
@@ -69,6 +71,27 @@ ok('app: ships no tax rates in the seed', (() => {
 })());
 ok('app: declarative importer packs', /impRegisterDeclarative/.test(app));
 ok('app: no public workers path', !/www\/workers\/access\.js/.test(app));
+// Version identity. On 2026-08-14 four sources disagreed about what version
+// the app was (in-app 1.2, latest release v1.1, tags to v1.8, describe v1.0-71
+// after the history rewrite orphaned every tag from v1.1 on). version.json is
+// now the single source and this fails the build if the app drifts from it —
+// an update notifier is worthless if the app cannot state its own version.
+ok('app: APP_VER matches version.json', (() => {
+  const m = app.match(/\bAPP_VER\s*=\s*'([^']*)'/);
+  if (!m) return false;
+  let man;
+  try { man = JSON.parse(readFileSync(join(ROOT, 'version.json'), 'utf8')); }
+  catch (e) { return false; }
+  return !!man.version && man.version === m[1];
+})());
+ok('app: DATA_VERSION matches version.json', (() => {
+  const m = app.match(/const DATA_VERSION = (\d+);/);
+  if (!m) return false;
+  let man;
+  try { man = JSON.parse(readFileSync(join(ROOT, 'version.json'), 'utf8')); }
+  catch (e) { return false; }
+  return man.dataVersion === Number(m[1]);
+})());
 ok('app: no leftover personal name in finance-data seed', (() => {
   const i = app.lastIndexOf('<script id="finance-data" type="application/json">');
   if (i < 0) return false;

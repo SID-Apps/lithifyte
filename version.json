@@ -1,0 +1,8 @@
+{
+  "version": "2.0.0",
+  "released": "2026-08-14",
+  "notes": "No tax rates ship for any jurisdiction; multi-currency with live ECB reference rates.",
+  "dataVersion": 3,
+  "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
+  "sha256": "ff161ec030f4d03e0f872780e8f7d829b66bf783fe641c9847cce5e06a692ff2"
+}
