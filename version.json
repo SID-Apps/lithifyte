@@ -1,8 +1,8 @@
 {
-  "version": "2.2.0",
+  "version": "2.2.1",
   "released": "2026-08-14",
-  "notes": "Global bank import presets (India, US, Kenya) and a declarative pack format that can express filters and inverted signs.",
+  "notes": "Fix a ReferenceError in the hosted sign-in gate; bank import presets for India, US and Kenya.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "b9e6d83c6be6babae799fcb1ad1a5dc301dec82907b717f30a7d9141ec31c7d9"
+  "sha256": "036f5324444dca03473b25105968a9e6b1bb8381fdbdd79d15310a2bcfe1ff31"
 }
