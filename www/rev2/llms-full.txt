@@ -1,6 +1,6 @@
 # Lithifyte — full content library
 
-Every page on lithifyte.com as plain markdown, generated 2026-08-13. Canonical HTML lives at https://lithifyte.com. Licence: content CC-BY-4.0, software AGPL-3.0-or-later.
+Every page on lithifyte.com as plain markdown, generated 2026-08-14. Canonical HTML lives at https://lithifyte.com. Licence: content CC-BY-4.0, software AGPL-3.0-or-later.
 
 
 
@@ -9,9 +9,9 @@ Every page on lithifyte.com as plain markdown, generated 2026-08-13. Canonical H
 # Plus and commercial licensing
 
 URL: https://lithifyte.com/commercial
-Updated: 2026-08-13
+Updated: 2026-08-14
 
-The calculator is free forever. Official Lithifyte sells the living product — AI, vault, pack updates — and a commercial licence of the Engine for white-label use.
+The calculator is free forever. Official Lithifyte sells the living product — AI, vault, bank presets — and a commercial licence of the Engine for white-label use.
 
 ## Two different things
 
@@ -31,8 +31,9 @@ Import, categorise, the money map, budgets, forecast, wealth, full export, Comma
 | Hosted Lithifyte AI | 20 questions / week after trial | Unlimited |
 | PDF statement parse via Lithifyte AI | No | Yes |
 | Encrypted cloud vault | No (local + Drive still work) | Yes — ciphertext we cannot read |
-| Ireland tax-pack updates | Last snapshot baked into the file | Live, when Revenue figures change |
-| Extra bank presets (AIB, BOI, PTSB, N26) | Revolut only + manual mapper | Maintained maps, still overridable |
+| Bank import presets | Revolut + the manual column mapper | A maintained, growing library across regions — still fully overridable |
+| Currency and exchange rates | Yes — your currency, your locale, live reference rates | Same |
+| Tax calculators | Yes — on rates **you** enter. Lithifyte ships none. | Same |
 
 Start from the hosted app → Settings → Lithifyte Plus. Your own model is always free.
 
@@ -50,7 +51,7 @@ Terms: [COMMERCIAL-LICENSE.md](https://github.com/SID-Apps/lithifyte/blob/main/C
 # Frequently asked questions
 
 URL: https://lithifyte.com/faq
-Updated: 2026-08-13
+Updated: 2026-08-14
 
 Short, direct answers. If a question you have is not here, the [guide](/guide) goes deeper and the [source code](https://github.com/SID-Apps/lithifyte) settles any argument about what the software actually does.
 
@@ -176,19 +177,33 @@ It is built for a household. Sole traders sometimes use it for a simple picture 
 
 No. It describes what your money did and computes what follows arithmetically from that. It does not recommend products, providers or courses of action, and the [learn library](/learn) is written as education rather than advice.
 
+### Does Lithifyte know my country's tax rules?
+
+No, and it deliberately does not try. **Lithifyte ships no tax rates for any country.** Tax differs by country and by person and changes most years, so a statutory figure baked into a file you keep for three years is a wrong number wearing an authoritative face.
+
+What the app does instead is arithmetic on rates *you* supply. Under **Wealth → Your tax assumptions** you can enter your own capital-gains rate, any annual exemption, a separate rate for funds, tax on savings interest, and pension relief. Enter them and the relevant calculators appear, labelled as your figures. Leave them blank and those calculators stay hidden — the app shows you no tax numbers at all rather than guessed ones.
+
+Two things worth knowing. A rate of **0 is a real answer**, not the same as leaving a field blank, so if gains are untaxed where you live you can enter 0 and get genuine zero-tax arithmetic. And real tax rules involve holding periods, loss relief, wrappers and allowances that a rate alone cannot capture — so treat the output as a rough sketch on your own assumptions and check anything that matters with your own tax authority or an adviser.
+
+### Does it work outside Ireland?
+
+Yes. Nothing in the Engine depends on where you live. You set your currency and number format once — including formats most software gets wrong, such as the Indian lakh grouping (`1,23,456`) — and every screen follows. Exchange rates are built in, with a converter and optional live reference rates, plus manual entry for currencies the public feed does not carry.
+
+The importer reads any bank's CSV or Excel export through the column mapper, handles both `1,234.56` and `1.234,56`, and asks you which way round the dates are when a file is genuinely ambiguous rather than guessing. Merchant names in any script are fine. The parts that are unavoidably local — which bank exports have a one-click preset — are the ones we keep adding to.
+
 
 ---
 
 # The Lithifyte guide
 
 URL: https://lithifyte.com/guide
-Updated: 2026-08-13
+Updated: 2026-08-14
 
 A complete feature reference, ordered the way you actually encounter things: get data in, make it trustworthy, understand it, then plan with it. There is also an interactive version inside the app with an Ask box.
 
 ## Before you start
 
-The Engine is free forever. Open [app.lithifyte.com](https://app.lithifyte.com) and sign in if you want Lithifyte Plus (hosted AI, an encrypted vault we cannot read, live Ireland tax and extra bank presets). Or download `index.html` and open it from your own disk — the calculator works offline and never phones home. Plus is documented at [lithifyte.com/commercial](https://lithifyte.com/commercial).
+The Engine is free forever. Open [app.lithifyte.com](https://app.lithifyte.com) and sign in if you want Lithifyte Plus (hosted AI, an encrypted vault we cannot read, and the maintained library of bank import presets). Or download `index.html` and open it from your own disk — the calculator works offline and never phones home. Plus is documented at [lithifyte.com/commercial](https://lithifyte.com/commercial).
 
 If you would rather look before you type anything, the [sample household](https://app.lithifyte.com/demo) is a fully populated invented family: two earners, four accounts, two years of transactions, with the messy bits (merchant name variants, standing orders, an annual insurance renewal, a holiday spike) deliberately left in. Its storage is separate, so exploring it can never touch real data you add later.
 
@@ -350,9 +365,9 @@ Everything exports. Encrypted backups, plain CSV and Excel packs, and a full JSO
 # Open source, and why it matters here
 
 URL: https://lithifyte.com/open-source
-Updated: 2026-08-13
+Updated: 2026-08-14
 
-A privacy promise you cannot verify is marketing. The Engine is published under AGPL-3.0-or-later as a single readable file, so the claim that we never store your ledger is something you can check. Official Lithifyte also sells hosted intelligence and maintained packs — those are not required to run the file.
+A privacy promise you cannot verify is marketing. The Engine is published under AGPL-3.0-or-later as a single readable file, so the claim that we never store your ledger is something you can check. Official Lithifyte also sells hosted intelligence and maintained bank import presets — those are not required to run the file.
 
 ## The licence
 
@@ -381,7 +396,7 @@ There is no build step and no dependency tree.
 2. Open it — from your disk, a USB stick, a private server, whatever you like.
 3. That is the whole procedure.
 
-It runs offline. It reports nothing. The Engine, importer, map, budgets, forecast, wealth, export and Commands-only are the same as the hosted app. What you give up is the **living product**: magic-link / Google sign-in, Lithifyte AI, the encrypted cloud vault, and maintained Ireland tax / bank-preset packs. Those are Lithifyte Plus on the official host. They are conveniences, not a lock on your numbers.
+It runs offline. It reports nothing. The Engine, importer, map, budgets, forecast, wealth, export and Commands-only are the same as the hosted app. What you give up is the **living product**: magic-link / Google sign-in, Lithifyte AI, the encrypted cloud vault, and the maintained library of bank import presets. Those are Lithifyte Plus on the official host. They are conveniences, not a lock on your numbers.
 
 The project keeps no count of self-hosted installs. Telemetry is hostname-gated and does not run from a file.
 
@@ -422,7 +437,7 @@ A commercial licence of the Engine (white-label, closed embed) is [documented se
 # Security and privacy, in technical terms
 
 URL: https://lithifyte.com/security-and-privacy
-Updated: 2026-08-13
+Updated: 2026-08-14
 
 The claim is narrow and testable: there is no finance backend, so statements are never stored by us. The one exception is hosted AI, which you consent to per lane and which sends only the slice that question needs — that is set out in full below, along with the parts we cannot fix.
 
@@ -434,7 +449,11 @@ There is no finance API. Not an encrypted one, not a temporary one, not one that
 
 You do not have to take this on faith. Open your browser's network tab and import a statement. Nothing carrying the file goes out.
 
-**One deliberate exception, and it is yours to consent to per lane: hosted AI.** A language model cannot answer a question about your money without being told something about your money. That section is below, in full, because a privacy claim with a quiet asterisk is worse than no claim at all. The honest sentence is: **we never store your data, and when you ask the AI a question, the part needed to answer it is sent to the model provider for that request.** Commands-only and a local model send nothing.
+**Two deliberate exceptions, both yours to consent to, both off until you act.**
+
+The first is **hosted AI**. A language model cannot answer a question about your money without being told something about your money. That section is below, in full, because a privacy claim with a quiet asterisk is worse than no claim at all. The honest sentence is: **we never store your data, and when you ask the AI a question, the part needed to answer it is sent to the model provider for that request.** Commands-only and a local model send nothing.
+
+The second is **exchange rates**, and it is far smaller. Press *Refresh rates* in Wealth → Currency and the app asks a public European Central Bank rate feed ([frankfurter.dev](https://api.frankfurter.dev/v1/latest)) for a plain list of reference rates. That request carries **no account, no balance, no transaction, and no identifier** — it is the same request any visitor to that site makes, and the reply is a table of numbers. It happens only when you press the button, never on load, and typing rates in by hand works offline and always has. We mention a request this small because the alternative is you finding it in the network tab and wondering what else went unmentioned.
 
 ## What is stored, and where
 
@@ -448,6 +467,8 @@ You do not have to take this on faith. Open your browser's network tab and impor
 | Product events: section opened, import happened (hosted only) | Cloudflare KV, on our side | Names of features, never amounts |
 | Optional Plus vault (encrypted backup envelope) | Cloudflare KV, ciphertext only | Only if you press Cloud vault; we cannot decrypt it |
 | Co-pilot conversations and sandbox scenarios | `localStorage` in your browser | Only the context of a message you send, and only to the model you chose — see below |
+| Your currency, locale and exchange-rate table | `localStorage` in your browser | No. Refreshing rates sends a currency code, never a figure of yours |
+| Your own tax assumptions, if you enter any | `localStorage` in your browser | No. They are never sent anywhere, including to the AI |
 
 Self-hosted copies write nothing to the email or product-event rows. The code that reports product events checks the hostname and does not run from a file or from a domain that is not ours.
 
@@ -507,7 +528,7 @@ The Engine in the public repository is one file. The official host adds a small 
 - **Digest mail** takes an email that your *browser* has already composed and posts it to a mail provider. The body is not stored.
 - **The AI relay** forwards a co-pilot request to the model provider and returns the answer. Pass-through only.
 - **The encrypted vault** (Plus) stores a backup envelope you already encrypted in the browser. We do not have the passphrase and cannot read it.
-- **Packs** (Plus) are Ireland tax parameters and extra bank column maps — public figures, delivered as a maintained update channel.
+- **Packs** (Plus) are bank column maps — how to read a given bank's export — delivered as a maintained update channel. They contain no tax figures, because Lithifyte ships none.
 
 There is deliberately no endpoint that accepts a statement or a plaintext ledger. Adding one would be a different product and this page would say so. The Cloud workers are not published in the Engine repository.
 
@@ -521,7 +542,7 @@ There is deliberately no endpoint that accepts a statement or a plaintext ledger
 
 ## Data protection
 
-Lithifyte is built in Ireland and the design is deliberately compatible with the GDPR principle of data minimisation. On our side we hold an email address, a plan/quota counter, privacy-safe event names, and — if you use Plus vault — an encrypted blob we cannot read. You can request deletion of that address at any time; we then delete the user record and any vault blob. We never had your ledger.
+Lithifyte is built in Ireland and used worldwide, and the design is deliberately compatible with the GDPR principle of data minimisation. On our side we hold an email address, a plan/quota counter, privacy-safe event names, and — if you use Plus vault — an encrypted blob we cannot read. You can request deletion of that address at any time; we then delete the user record and any vault blob. We never had your ledger.
 
 
 ---

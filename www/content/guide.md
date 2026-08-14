@@ -6,14 +6,14 @@ section: product
 description: Every part of Lithifyte in the order you meet it — importing statements, cleaning categories, reading the map, budgets, forecasts, debt payoff, net worth, backups and the self-tests.
 summary: A complete feature reference, ordered the way you actually encounter things: get data in, make it trustworthy, understand it, then plan with it. There is also an interactive version inside the app with an Ask box.
 keywords: [Lithifyte guide, how to import bank statement CSV, budgeting software tutorial, net worth tracker guide]
-updated: 2026-08-13
+updated: 2026-08-14
 priority: 0.9
 related: [how-it-works, learn, faq]
 ---
 
 ## Before you start
 
-The Engine is free forever. Open [app.lithifyte.com](https://app.lithifyte.com) and sign in if you want Lithifyte Plus (hosted AI, an encrypted vault we cannot read, live Ireland tax and extra bank presets). Or download `index.html` and open it from your own disk — the calculator works offline and never phones home. Plus is documented at [lithifyte.com/commercial](https://lithifyte.com/commercial).
+The Engine is free forever. Open [app.lithifyte.com](https://app.lithifyte.com) and sign in if you want Lithifyte Plus (hosted AI, an encrypted vault we cannot read, and the maintained library of bank import presets). Or download `index.html` and open it from your own disk — the calculator works offline and never phones home. Plus is documented at [lithifyte.com/commercial](https://lithifyte.com/commercial).
 
 If you would rather look before you type anything, the [sample household](https://app.lithifyte.com/demo) is a fully populated invented family: two earners, four accounts, two years of transactions, with the messy bits (merchant name variants, standing orders, an annual insurance renewal, a holiday spike) deliberately left in. Its storage is separate, so exploring it can never touch real data you add later.
 

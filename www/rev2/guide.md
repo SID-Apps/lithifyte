@@ -1,14 +1,14 @@
 # The Lithifyte guide
 
 Source: https://lithifyte.com/guide
-Updated: 2026-08-13
+Updated: 2026-08-14
 Licence: content CC-BY-4.0 · software AGPL-3.0-or-later
 
 A complete feature reference, ordered the way you actually encounter things: get data in, make it trustworthy, understand it, then plan with it. There is also an interactive version inside the app with an Ask box.
 
 ## Before you start
 
-The Engine is free forever. Open [app.lithifyte.com](https://app.lithifyte.com) and sign in if you want Lithifyte Plus (hosted AI, an encrypted vault we cannot read, live Ireland tax and extra bank presets). Or download `index.html` and open it from your own disk — the calculator works offline and never phones home. Plus is documented at [lithifyte.com/commercial](https://lithifyte.com/commercial).
+The Engine is free forever. Open [app.lithifyte.com](https://app.lithifyte.com) and sign in if you want Lithifyte Plus (hosted AI, an encrypted vault we cannot read, and the maintained library of bank import presets). Or download `index.html` and open it from your own disk — the calculator works offline and never phones home. Plus is documented at [lithifyte.com/commercial](https://lithifyte.com/commercial).
 
 If you would rather look before you type anything, the [sample household](https://app.lithifyte.com/demo) is a fully populated invented family: two earners, four accounts, two years of transactions, with the messy bits (merchant name variants, standing orders, an annual insurance renewal, a holiday spike) deliberately left in. Its storage is separate, so exploring it can never touch real data you add later.
 

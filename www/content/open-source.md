@@ -3,10 +3,10 @@ title: Open source, and why it matters here
 shortTitle: Open source
 slug: open-source
 section: product
-description: Lithifyte's Engine is AGPL-3.0-or-later. The calculator is one readable HTML file you can audit, fork, self-host and keep. Hosted Plus (AI, vault, pack updates) is a separate living product.
-summary: A privacy promise you cannot verify is marketing. The Engine is published under AGPL-3.0-or-later as a single readable file, so the claim that we never store your ledger is something you can check. Official Lithifyte also sells hosted intelligence and maintained packs — those are not required to run the file.
+description: Lithifyte's Engine is AGPL-3.0-or-later. The calculator is one readable HTML file you can audit, fork, self-host and keep. Hosted Plus (AI, vault, bank presets) is a separate living product.
+summary: A privacy promise you cannot verify is marketing. The Engine is published under AGPL-3.0-or-later as a single readable file, so the claim that we never store your ledger is something you can check. Official Lithifyte also sells hosted intelligence and maintained bank import presets — those are not required to run the file.
 keywords: [open source budgeting app, AGPL finance software, self-hosted personal finance, auditable financial software]
-updated: 2026-08-13
+updated: 2026-08-14
 priority: 0.8
 related: [security-and-privacy, how-it-works, guide]
 ---
@@ -38,7 +38,7 @@ There is no build step and no dependency tree.
 2. Open it — from your disk, a USB stick, a private server, whatever you like.
 3. That is the whole procedure.
 
-It runs offline. It reports nothing. The Engine, importer, map, budgets, forecast, wealth, export and Commands-only are the same as the hosted app. What you give up is the **living product**: magic-link / Google sign-in, Lithifyte AI, the encrypted cloud vault, and maintained Ireland tax / bank-preset packs. Those are Lithifyte Plus on the official host. They are conveniences, not a lock on your numbers.
+It runs offline. It reports nothing. The Engine, importer, map, budgets, forecast, wealth, export and Commands-only are the same as the hosted app. What you give up is the **living product**: magic-link / Google sign-in, Lithifyte AI, the encrypted cloud vault, and the maintained library of bank import presets. Those are Lithifyte Plus on the official host. They are conveniences, not a lock on your numbers.
 
 The project keeps no count of self-hosted installs. Telemetry is hostname-gated and does not run from a file.
 

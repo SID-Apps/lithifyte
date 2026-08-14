@@ -57,7 +57,7 @@
 
 <main class="page">
   <h1>Privacy policy</h1>
-  <p class="updated">Last updated: 18 July 2026 (digest)</p>
+  <p class="updated">Last updated: 14 August 2026</p>
 
   <div class="callout">
     <p><strong>The short version:</strong> we never store your statements, transactions, balances or merchants. There is no finance backend that could receive them. Asking the optional hosted AI sends <em>the slice that question needs</em> to a model provider for that request — not the ledger, and we do not keep the prompt. Commands-only and a local model send nothing. On the hosted app we store your <strong>email</strong> for sign-in, and may record <strong>privacy-safe product usage events</strong> (for example “opened budgets”, not “spent €42 at a shop”). Self-hosted copies send nothing.</p>
@@ -65,6 +65,18 @@
 
   <h2>Who we are</h2>
   <p>Lithifyte is a household finance dashboard built by SID Labs. The app runs at <a href="https://app.lithifyte.com">app.lithifyte.com</a>, sign-in at <a href="https://access.lithifyte.com">access.lithifyte.com</a>, and this marketing site at <a href="https://lithifyte.com">lithifyte.com</a>. The source code is public at <a href="https://github.com/SID-Apps/lithifyte">github.com/SID-Apps/lithifyte</a> under the AGPL-3.0 licence, so every claim on this page can be verified by reading the code.</p>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       DATA CONTROLLER IDENTITY — Sid TODO L-10.
+       Deliberately does NOT name a company: as of 2026-08-14 no company
+       exists (Sid TODO L-01), so the controller is a natural person and
+       claiming otherwise on a GDPR identity notice would be false.
+       When the CRO issues a number, replace the paragraph below with:
+         Lithifyte is operated by <NAME> Limited, a company registered in
+         Ireland, company number <CRO NUMBER>, registered office <ADDRESS>.
+       Do the same in terms.html, which carries the matching marker.
+       ══════════════════════════════════════════════════════════════════ -->
+  <p><strong>Data controller and contact.</strong> For questions about this policy, or to exercise any of the rights below, email <a href="mailto:signin@lithifyte.com">signin@lithifyte.com</a>. Lithifyte is operated from Ireland. If you are in the EU/EEA and are not satisfied with our response, you may complain to your national supervisory authority; in Ireland that is the <a href="https://www.dataprotection.ie">Data Protection Commission</a>.</p>
 
   <h2>Your financial data: never collected</h2>
   <p>Lithifyte is a client-only application. All computation — importing statements, categorising spending, budgets, forecasts, net worth — happens in your browser. Your data is kept in your browser's local storage (localStorage and IndexedDB) on your device, and in backup files you export yourself.</p>
@@ -82,7 +94,6 @@
     <li><strong>Your email address</strong>, with timestamps of first sign-up, last sign-in link request, last sign-in, and last activity.</li>
     <li><strong>A session token</strong> (cookie <code>lf_session</code>) so you stay signed in for up to 30 days.</li>
     <li><strong>Privacy-safe product events</strong> from the hosted app only — allowlisted names such as sign-in, session start, onboarding step completed, section opened (e.g. map / budget), and actions like “CSV uploaded” or “backup exported”. Events carry short enums only (never amounts, merchants, descriptions, account names, or statement contents).</li>
-    <li><strong>Optional locale preference</strong> you choose in Settings (<code>IE</code> or <code>GLOBAL</code>) so we know which region pack to improve.</li>
     <li><strong>Optional Plus vault blob</strong> — an encrypted backup envelope you created in the browser. We store the ciphertext. We do not have the passphrase and cannot read the contents.</li>
     <li><strong>Plan and quota counters</strong> (free / trial / Plus, hosted-AI question count). No amounts.</li>
   </ul>

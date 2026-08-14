@@ -6,7 +6,7 @@ section: product
 description: The full technical privacy model behind Lithifyte — what is stored, where, how it is encrypted, what the servers hold, and the residual risks we cannot solve for you.
 summary: The claim is narrow and testable: there is no finance backend, so statements are never stored by us. The one exception is hosted AI, which you consent to per lane and which sends only the slice that question needs — that is set out in full below, along with the parts we cannot fix.
 keywords: [local first finance app, browser storage encryption, financial data privacy, AES-GCM PBKDF2, zero server finance]
-updated: 2026-08-13
+updated: 2026-08-14
 priority: 0.8
 related: [open-source, how-it-works, faq]
 ---
@@ -19,7 +19,11 @@ There is no finance API. Not an encrypted one, not a temporary one, not one that
 
 You do not have to take this on faith. Open your browser's network tab and import a statement. Nothing carrying the file goes out.
 
-**One deliberate exception, and it is yours to consent to per lane: hosted AI.** A language model cannot answer a question about your money without being told something about your money. That section is below, in full, because a privacy claim with a quiet asterisk is worse than no claim at all. The honest sentence is: **we never store your data, and when you ask the AI a question, the part needed to answer it is sent to the model provider for that request.** Commands-only and a local model send nothing.
+**Two deliberate exceptions, both yours to consent to, both off until you act.**
+
+The first is **hosted AI**. A language model cannot answer a question about your money without being told something about your money. That section is below, in full, because a privacy claim with a quiet asterisk is worse than no claim at all. The honest sentence is: **we never store your data, and when you ask the AI a question, the part needed to answer it is sent to the model provider for that request.** Commands-only and a local model send nothing.
+
+The second is **exchange rates**, and it is far smaller. Press *Refresh rates* in Wealth → Currency and the app asks a public European Central Bank rate feed ([frankfurter.dev](https://api.frankfurter.dev/v1/latest)) for a plain list of reference rates. That request carries **no account, no balance, no transaction, and no identifier** — it is the same request any visitor to that site makes, and the reply is a table of numbers. It happens only when you press the button, never on load, and typing rates in by hand works offline and always has. We mention a request this small because the alternative is you finding it in the network tab and wondering what else went unmentioned.
 
 ## What is stored, and where
 
@@ -33,6 +37,8 @@ You do not have to take this on faith. Open your browser's network tab and impor
 | Product events: section opened, import happened (hosted only) | Cloudflare KV, on our side | Names of features, never amounts |
 | Optional Plus vault (encrypted backup envelope) | Cloudflare KV, ciphertext only | Only if you press Cloud vault; we cannot decrypt it |
 | Co-pilot conversations and sandbox scenarios | `localStorage` in your browser | Only the context of a message you send, and only to the model you chose — see below |
+| Your currency, locale and exchange-rate table | `localStorage` in your browser | No. Refreshing rates sends a currency code, never a figure of yours |
+| Your own tax assumptions, if you enter any | `localStorage` in your browser | No. They are never sent anywhere, including to the AI |
 
 Self-hosted copies write nothing to the email or product-event rows. The code that reports product events checks the hostname and does not run from a file or from a domain that is not ours.
 
@@ -92,7 +98,7 @@ The Engine in the public repository is one file. The official host adds a small 
 - **Digest mail** takes an email that your *browser* has already composed and posts it to a mail provider. The body is not stored.
 - **The AI relay** forwards a co-pilot request to the model provider and returns the answer. Pass-through only.
 - **The encrypted vault** (Plus) stores a backup envelope you already encrypted in the browser. We do not have the passphrase and cannot read it.
-- **Packs** (Plus) are Ireland tax parameters and extra bank column maps — public figures, delivered as a maintained update channel.
+- **Packs** (Plus) are bank column maps — how to read a given bank's export — delivered as a maintained update channel. They contain no tax figures, because Lithifyte ships none.
 
 There is deliberately no endpoint that accepts a statement or a plaintext ledger. Adding one would be a different product and this page would say so. The Cloud workers are not published in the Engine repository.
 
@@ -106,4 +112,4 @@ There is deliberately no endpoint that accepts a statement or a plaintext ledger
 
 ## Data protection
 
-Lithifyte is built in Ireland and the design is deliberately compatible with the GDPR principle of data minimisation. On our side we hold an email address, a plan/quota counter, privacy-safe event names, and — if you use Plus vault — an encrypted blob we cannot read. You can request deletion of that address at any time; we then delete the user record and any vault blob. We never had your ledger.
+Lithifyte is built in Ireland and used worldwide, and the design is deliberately compatible with the GDPR principle of data minimisation. On our side we hold an email address, a plan/quota counter, privacy-safe event names, and — if you use Plus vault — an encrypted blob we cannot read. You can request deletion of that address at any time; we then delete the user record and any vault blob. We never had your ledger.
