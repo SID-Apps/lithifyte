@@ -1,8 +1,8 @@
 {
-  "version": "2.3.0",
+  "version": "2.3.1",
   "released": "2026-08-14",
-  "notes": "GB18030 decoding and direction-column support; Alipay and WeChat Pay presets.",
+  "notes": "Review-bugfix: self-host updates visible, existing households stay EUR, quotes convert, direction flags skip unknowns.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "59f14b1a2bc9bd3cd22c724d52cbfc1edf69a2f5db45282aa8c47483821c154f"
+  "sha256": "dfd8f97bd46986fc2c8b1d0c721e5419bf4222e1324af58b425166d055d81446"
 }

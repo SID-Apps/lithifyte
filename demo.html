@@ -15,7 +15,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '2.3.0';
+  var APP_VER = '2.3.1';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -41,7 +41,10 @@
   // or a bookmarklet calling them cannot throw.
   window.__lfGetLocale = function(){ return 'GLOBAL'; };
   window.__lfSetLocale = function(){};
-  try { localStorage.removeItem('lf-locale'); } catch (e) {}
+  try {
+    window.__lfHadLocale = localStorage.getItem('lf-locale');
+    localStorage.removeItem('lf-locale');
+  } catch (e) {}
 
   window.__lfTrack = function(event, props){
     try {
@@ -2869,10 +2872,10 @@ So, when you change a stored shape:
           <option value="personal">Personal loan</option><option value="car">Car loan</option>
           <option value="mortgage">Mortgage</option><option value="credit-card">Credit card</option>
           <option value="student">Student loan</option><option value="other">Other</option></select></div>
-        <div><label for="db-bal">Balance €</label><input id="db-bal" class="inp" type="number" min="0" step="50" placeholder="8000"></div>
+        <div><label for="db-bal">Balance</label><input id="db-bal" class="inp" type="number" min="0" step="50" placeholder="8000"></div>
         <div><label for="db-asof">Balance as of</label><input id="db-asof" class="inp" type="month"></div>
         <div><label for="db-apr">APR %</label><input id="db-apr" class="inp" type="number" min="0" max="60" step="0.05" placeholder="6.5"></div>
-        <div><label for="db-pay" title="Leave blank if you set an end date — it will be derived">Payment €/mo</label><input id="db-pay" class="inp" type="number" min="0" step="5" placeholder="or set end date"></div>
+        <div><label for="db-pay" title="Leave blank if you set an end date — it will be derived">Payment / mo</label><input id="db-pay" class="inp" type="number" min="0" step="5" placeholder="or set end date"></div>
         <div><label for="db-end" title="Leave blank if you set a payment — it will be derived">End date</label><input id="db-end" class="inp" type="month"></div>
         <div><label for="db-merch" title="If the repayments already show in your statements, pick the merchant — the forecast then ends that item at payoff instead of adding a duplicate line">In statements as</label>
           <select id="db-merch" class="inp"><option value="">not in my statements</option></select></div>
@@ -2913,7 +2916,7 @@ So, when you change a stored shape:
     <div id="holdCard" style="margin-bottom:14px">
       <div class="section-head">
       <h2>Investments &amp; crypto</h2>
-      <p>Your positions — shares, ETFs, funds, crypto, pension — priced from a quotes book you control. Quotes never leave this file: type them in (always works), hit ↻ for crypto (fetched keylessly from CoinGecko when this page is opened as a local file; the hosted artifact blocks external requests, so there it stays manual), or 📥 import a <code>quotes-….json</code> written by the feeder CLI (<code>node feeder.mjs prices AAPL VWCE=VWCE.DE</code> — keyless Yahoo quotes, converted to your currency at ECB rates). If you enter your own tax rates under <b>Your tax assumptions</b>, each row also shows what tax that gain would attract on <i>your</i> figures. Lithifyte ships no tax rates and gives no tax advice.</p>
+      <p>Your positions — shares, ETFs, funds, crypto, pension — priced from a quotes book you control. Quotes never leave this file: type them in (always works), hit ↻ for crypto (fetched keylessly from CoinGecko when this page is opened as a local file; the hosted artifact blocks external requests, so there it stays manual), or 📥 import a <code>quotes-….json</code> written by the feeder CLI (<code>node feeder.mjs prices AAPL VWCE=VWCE.DE</code> — keyless Yahoo quotes, converted from the file's currency into yours using the rates under Currency). If you enter your own tax rates under <b>Your tax assumptions</b>, each row also shows what tax that gain would attract on <i>your</i> figures. Lithifyte ships no tax rates and gives no tax advice.</p>
       </div>
       <div class="card">
       <div class="kpis" id="hdStrip" style="margin:0 0 12px; display:none"></div>
@@ -2927,9 +2930,9 @@ So, when you change a stored shape:
           <option value="stock">Share</option><option value="etf">ETF</option><option value="fund">Fund</option>
           <option value="crypto">Crypto</option><option value="pension">Pension</option><option value="other">Other</option></select></div>
         <div><label for="hd-units">Units</label><input id="hd-units" class="inp" type="number" min="0" step="any" placeholder="10 or 0.05"></div>
-        <div><label for="hd-cost">Total cost €</label><input id="hd-cost" class="inp" type="number" min="0" step="10" placeholder="what you paid"></div>
+        <div><label for="hd-cost">Total cost</label><input id="hd-cost" class="inp" type="number" min="0" step="10" placeholder="what you paid"></div>
         <div><label for="hd-acq" title="When you bought it — used for the holding period, not for any tax rule">Acquired</label><input id="hd-acq" class="inp" type="month"></div>
-        <div><label for="hd-price" title="Price per unit in euro — the quotes book keeps one price per symbol">Quote € / unit</label><input id="hd-price" class="inp" type="number" min="0" step="any" placeholder="today's price"></div>
+        <div><label for="hd-price" title="Price per unit in your household currency — the quotes book keeps one price per symbol">Quote / unit</label><input id="hd-price" class="inp" type="number" min="0" step="any" placeholder="today's price"></div>
         <div><label for="hd-qdate">Quote as of</label><input id="hd-qdate" class="inp" type="date"></div>
         <div><button class="btn primary" id="hd-save" type="button">Add holding</button></div>
         <div><button class="btn" id="hdRefresh" type="button" title="Keyless CoinGecko fetch — works when this file is opened locally">↻ Crypto prices</button></div>
@@ -3046,7 +3049,6 @@ So, when you change a stored shape:
     <p class="hint" style="margin:0 0 10px">Long-form written guide and product Q&amp;A from a local help corpus — not your bank data. For a live walkthrough of this app, use <b>Guided Space tutorial</b> above (or open the sample with the tutorial from onboarding).</p>
     <a class="btn" href="tutorial" id="setTutorialAskLink">📘 Tutorial &amp; Ask</a>
     <p class="hint" id="selfHostNote" hidden>This copy is self-hosted. Plus, sign-in, Drive and the cloud vault exist only on app.lithifyte.com. Export a backup file here instead.</p>
-    <div id="hostedChrome">
     <div id="updateBlock">
     <h3 style="margin:18px 0 8px">Updates</h3>
     <p class="hint" style="margin:0 0 10px; max-width:82ch">This copy is self-hosted, so nothing updates it but you. Lithifyte can check whether a newer version has been published and tell you — <b>it asks GitHub, never us</b>, so we do not learn that you exist, what version you run, or that you ran it today. Off until you turn it on, and it checks at most once a week.</p>
@@ -3059,6 +3061,7 @@ So, when you change a stored shape:
     </div>
     <div id="updResult" style="margin-top:8px"></div>
     </div>
+    <div id="hostedChrome">
     <h3 style="margin:18px 0 8px">Your account</h3>
     <p class="hint" style="margin:0 0 8px" id="acctWho">Not signed in on this copy — self-hosted and downloaded files never phone home.</p>
     <div class="filter-row" style="margin:0 0 8px; flex-wrap:wrap; gap:8px">
@@ -3087,7 +3090,7 @@ So, when you change a stored shape:
     </div>
     </div>
     <h3 style="margin:18px 0 8px">AI &amp; what left this device</h3>
-    <p class="hint" style="margin:0 0 10px">The ledger never lives on our servers. Asking Lithifyte AI sends only the slice that question needs through a pass-through relay. Commands-only and a local model send nothing. Hosted intelligence, the encrypted vault and live tax/bank packs are Plus; the Engine stays free forever, and export is never gated.</p>
+    <p class="hint" style="margin:0 0 10px">The ledger never lives on our servers. Asking Lithifyte AI sends only the slice that question needs through a pass-through relay. Commands-only and a local model send nothing. Hosted intelligence, the encrypted vault and maintained bank-import presets are Plus; the Engine stays free forever, and export is never gated.</p>
     <div class="filter-row" style="margin:0 0 8px; flex-wrap:wrap; gap:8px">
       <button class="btn" id="aiConsentRevoke" type="button">Revoke AI consent</button>
       <button class="btn small" id="aiDiscloseClear" type="button">Clear this log</button>
@@ -3472,7 +3475,7 @@ rewrite the static advice cards if the picture has changed.</div>
   <div class="wiz-box" role="dialog" aria-modal="true" aria-labelledby="plusTitle">
     <div class="wiz-kicker">Lithifyte Plus</div>
     <h3 id="plusTitle">Hosted intelligence, when you want it</h3>
-    <p class="wiz-sub" id="plusWhy">The Engine, import, budgets, export and Commands-only stay free forever. Plus is the living product: hosted Lithifyte AI, PDF parse, an encrypted cloud vault we cannot read, and Ireland tax / bank-preset updates.</p>
+    <p class="wiz-sub" id="plusWhy">The Engine, import, budgets, export and Commands-only stay free forever. Plus is the living product: hosted Lithifyte AI, PDF parse, an encrypted cloud vault we cannot read, and a maintained library of bank import presets.</p>
     <ul class="hint" style="padding-left:18px;line-height:1.55;margin:0 0 12px">
       <li>7 days unlimited after you first sign in</li>
       <li>Then 20 hosted questions a week on Free</li>
@@ -4119,7 +4122,16 @@ rewrite the static advice cards if the picture has changed.</div>
   bindMoney(org.money);
   if (!fxStore.base) fxStore.base = MONEY.base;   // rates are held against the household's own currency
   if (!org.money){
-    org.money = {base: guessCurrency(), locale: guessLocale()};
+    // An existing household (people, accounts, or a pre-v3 ledger) used to
+    // display euro. Guessing from the browser would relabel those figures.
+    // Only a blank first run may guess.
+    const existing = (org.users && org.users.length) || (org.accounts && org.accounts.length)
+      || Object.keys(org.balances || {}).length
+      || (raw.transactions && raw.transactions.length && !raw.demo)
+      || window.__lfHadLocale;
+    org.money = existing
+      ? {base: 'EUR', locale: 'en-IE'}
+      : {base: guessCurrency(), locale: guessLocale()};
     bindMoney(org.money);
     try{ save(LS.org, org); }catch(e){}
   }
@@ -4779,15 +4791,24 @@ rewrite the static advice cards if the picture has changed.</div>
     // P5-22 Tier 2: merge a feeder quotes file into the quotes book. Only
     // valid, non-regressing entries land (an older asOf never overwrites a
     // newer one); `matched` counts how many touch actual holdings.
-    mergeQuotes({book, incoming, symbols}){
+    mergeQuotes({book, incoming, symbols, fromBase, toBase, rates}){
       const out = Object.assign({}, book);
       let updated = 0, ignored = 0;
+      const from = String(fromBase || '').toUpperCase();
+      const to = String(toBase || from || '').toUpperCase();
+      const needFx = from && to && from !== to;
       for (const [sym, q] of Object.entries(incoming || {})){
         const S = String(sym).toUpperCase();
         if (!q || !(q.price > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(q.asOf || '')){ ignored++; continue; }
+        let price = q.price;
+        if (needFx){
+          const conv = Engine.fxConvert({amount: price, from, to, base: to, rates: rates || {}});
+          if (!(conv > 0)){ ignored++; continue; }
+          price = Math.round(conv * 10000) / 10000;
+        }
         const prev = out[S];
         if (prev && prev.asOf && q.asOf < prev.asOf){ ignored++; continue; }
-        out[S] = {price: q.price, asOf: q.asOf};
+        out[S] = {price, asOf: q.asOf};
         updated++;
       }
       const held = new Set((symbols || []).map(s => String(s).toUpperCase()));
@@ -5726,6 +5747,7 @@ rewrite the static advice cards if the picture has changed.</div>
       {k: 'date',       label: 'Date'},
       {k: 'merchant',   label: 'Description / who'},
       {k: 'amount',     label: 'Amount (one signed column)'},
+      {k: 'dirCol',     label: 'Direction (in / out flag)'},
       {k: 'debit',      label: 'Money out'},
       {k: 'credit',     label: 'Money in'},
       {k: 'fee',        label: 'Fee'},
@@ -5735,7 +5757,9 @@ rewrite the static advice cards if the picture has changed.</div>
       {k: 'confidence', label: 'Confidence'},
       {k: 'dateAlt',    label: 'Date (fallback)'}
     ],
-    IMP_SINGLE: ['date', 'dateAlt', 'merchant', 'amount', 'debit', 'credit', 'fee', 'balance', 'category', 'sub', 'confidence'],
+    IMP_SINGLE: ['date', 'dateAlt', 'merchant', 'amount', 'dirCol', 'debit', 'credit', 'fee', 'balance', 'category', 'sub', 'confidence'],
+    DIR_OUT_DEFAULT: ['out', 'outgoing', 'debit', 'dr', 'expense', 'spend', '支出', '支', 'payout'],
+    DIR_IN_DEFAULT: ['in', 'incoming', 'credit', 'cr', 'income', '收入', '收', 'payin'],
     // Which of two candidate decodings of the same bytes is the real one.
     // Pure so the decision can be tested without a File.
     //
@@ -5766,10 +5790,11 @@ rewrite the static advice cards if the picture has changed.</div>
         // separate column saying which way it went — Alipay and WeChat Pay
         // use 收/支 (收入 in, 支出 out). Without this the magnitude is all
         // there is, and every row imports as income.
-        dirCol: -1, dirOut: []
+        dirCol: -1, dirOut: [], dirIn: []
       }, p || {});
       s.dirCol = Number.isInteger(s.dirCol) ? s.dirCol : -1;
       s.dirOut = Array.isArray(s.dirOut) ? s.dirOut.map(v => String(v)) : [];
+      s.dirIn = Array.isArray(s.dirIn) ? s.dirIn.map(v => String(v)) : [];
       Engine.IMP_SINGLE.forEach(k => { s[k] = Number.isInteger(s[k]) ? s[k] : -1; });
       s.filters = (s.filters || []).filter(f => f && f.col >= 0 && Array.isArray(f.values) && f.values.length)
         .map(f => ({col: f.col, mode: f.mode === 'drop' ? 'drop' : 'keep', values: f.values.slice(), label: f.label || ''}));
@@ -5971,6 +5996,7 @@ rewrite the static advice cards if the picture has changed.</div>
               // wrong. A pack has to be able to say so.
               swap: !!spec.swap,
               dirCol: col(spec.dirCol), dirOut: Array.isArray(spec.dirOut) ? spec.dirOut.slice() : [],
+              dirIn: Array.isArray(spec.dirIn) ? spec.dirIn.slice() : [],
               // Filters arrive from a JSON pack, so their `col` is a column
               // NAME; the spec everywhere else uses a numeric index, and
               // impSpec drops anything failing `col >= 0`. Resolving here is
@@ -6040,6 +6066,8 @@ rewrite the static advice cards if the picture has changed.</div>
       if (s.merchant < 0) out.push('No description column chosen — pick the column naming who the money went to or came from.');
       if (s.debit < 0 && s.credit < 0 && s.amount < 0)
         out.push('No amount chosen — pick either one signed Amount column, or a Money out and/or Money in pair.');
+      if (s.dirCol >= 0 && s.amount < 0)
+        out.push('Direction (in/out) needs an Amount column — the flag says which way, the amount is the size.');
       return out;
     },
     // Apply a spec. Returns the transaction rows, WHAT IT DID (meta) and which
@@ -6053,8 +6081,8 @@ rewrite the static advice cards if the picture has changed.</div>
       const out = [], src = [], seq = [];
       const filtered = S.filters.map(f => ({label: f.label || hdr[f.col] || ('column ' + (f.col + 1)),
                                             mode: f.mode, values: f.values.slice(), count: 0, examples: []}));
-      let noDate = 0, noAmount = 0, blank = 0, feeRows = 0, feeTotal = 0;
-      const noDateEg = [], noAmountEg = [];
+      let noDate = 0, noAmount = 0, noDir = 0, blank = 0, feeRows = 0, feeTotal = 0;
+      const noDateEg = [], noAmountEg = [], noDirEg = [];
       for (let i = S.headerRow + 1; i < rows.length; i++){
         const r = rows[i];
         if (!r || r.length < 2) continue;
@@ -6091,13 +6119,18 @@ rewrite the static advice cards if the picture has changed.</div>
             const a = num(r[S.amount]) || 0;
             if (a < 0) de = -a; else cr = a;
           }
-        } else if (S.dirCol >= 0 && S.dirOut.length){
+        } else if (S.dirCol >= 0){
           // magnitude from the amount column, direction from its own column.
-          // The amount may still carry a sign or a currency mark, so take the
-          // absolute value and let the direction column decide.
           const a = Math.abs(num(r[S.amount]) || 0);
-          const d = String(r[S.dirCol] == null ? '' : r[S.dirCol]).trim();
-          if (S.dirOut.some(v => v === d)) de = a; else cr = a;
+          const d = String(r[S.dirCol] == null ? '' : r[S.dirCol]).trim().toLowerCase();
+          const outs = (S.dirOut.length ? S.dirOut : Engine.DIR_OUT_DEFAULT).map(v => String(v).toLowerCase());
+          const ins = (S.dirIn.length ? S.dirIn : Engine.DIR_IN_DEFAULT).map(v => String(v).toLowerCase());
+          if (!d || (outs.indexOf(d) < 0 && ins.indexOf(d) < 0)){
+            noDir++;
+            if (noDirEg.length < 3) noDirEg.push(mer + ' · “' + (d || 'blank') + '”');
+            continue;
+          }
+          if (outs.indexOf(d) >= 0) de = a; else cr = a;
         } else {
           const a = num(r[S.amount]) || 0;
           if (a < 0) de = -a; else cr = a;
@@ -6130,9 +6163,10 @@ rewrite the static advice cards if the picture has changed.</div>
       const meta = {
         columns: {date: S.date >= 0 ? hdr[S.date] : null, merchant: S.merchant >= 0 ? hdr[S.merchant] : null,
                   debit: S.debit >= 0 ? hdr[S.debit] : null, credit: S.credit >= 0 ? hdr[S.credit] : null,
-                  amount: S.amount >= 0 ? hdr[S.amount] : null, fee: S.fee >= 0 ? hdr[S.fee] : null,
+                  amount: S.amount >= 0 ? hdr[S.amount] : null, dirCol: S.dirCol >= 0 ? hdr[S.dirCol] : null,
+                  fee: S.fee >= 0 ? hdr[S.fee] : null,
                   balance: S.balance >= 0 ? hdr[S.balance] : null},
-        header: hdr, noDate, noDateEg, noAmount, noAmountEg, blank,
+        header: hdr, noDate, noDateEg, noAmount, noAmountEg, noDir, noDirEg, blank,
         debits: out.filter(r => r[4] > 0).length,
         credits: out.filter(r => r[5] > 0).length,
         totalOut: r2(out.reduce((s, r) => s + r[4], 0)),
@@ -10382,6 +10416,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       warn.push('⚠ ' + m.noAmount + ' row' + (m.noAmount === 1 ? '' : 's') + ' had a date but no amount in those columns and ' +
         (m.noAmount === 1 ? 'was' : 'were') + ' NOT imported' +
         (m.noAmountEg.length ? ' (e.g. ' + m.noAmountEg.join('; ') + ')' : '') + '.');
+    if (m.noDir)
+      warn.push('⚠ ' + m.noDir + ' row' + (m.noDir === 1 ? '' : 's') + ' had an amount but no recognised in/out flag and ' +
+        (m.noDir === 1 ? 'was' : 'were') + ' NOT imported' +
+        (m.noDirEg && m.noDirEg.length ? ' (e.g. ' + m.noDirEg.join('; ') + ')' : '') + '.');
     if (m.noDate) warn.push(m.noDate + ' row' + (m.noDate === 1 ? '' : 's') + ' had no readable date.');
     if (res.added && !m.credits)
       warn.push('⚠ Every imported row is money OUT. If this account also receives money, its money-in column was not recognised — ' +
@@ -10584,6 +10622,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
            ${sel('impFee', 'Fee column', S.feeMode, [['fold','Add the fee to its transaction'],['ignore','Ignore fees']], 'Revolut and Wise bill the fee separately; folding it in is what makes the balance reconcile')}
            ${sel('impClean', 'Names', S.clean, [['none','Exactly as the file has them'],['revolut','Tidy up (“Transfer to JOHN SMITH” → “John Smith”)']])}
            ${sel('impSwap', 'Direction', S.swap ? 'yes' : 'no', [['no','As read'],['yes','Swap money in and money out']], 'Use this if the preview has everything the wrong way round')}
+           ${S.dirCol >= 0
+             ? `<div style="grid-column:1/-1"><label for="impDirOut">Outgoing values in the direction column</label>
+                 <input class="inp" id="impDirOut" value="${esc((S.dirOut.length ? S.dirOut : Engine.DIR_OUT_DEFAULT).join(', '))}"
+                   placeholder="OUT, 支出, debit" title="Rows whose direction cell matches one of these (case-insensitive) are money out. Anything else recognised as in becomes money in; blank or unknown is skipped."></div>`
+             : ''}
          </div>
          <div class="imp-filters">
            <div class="imp-sub-head">Only import some rows</div>
@@ -10625,6 +10668,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       opt('impFee', v => st.spec.feeMode = v);
       opt('impClean', v => st.spec.clean = v);
       opt('impSwap', v => st.spec.swap = v === 'yes');
+      const dirOut = $('impDirOut');
+      if (dirOut) dirOut.addEventListener('change', () => {
+        st.spec.dirOut = dirOut.value.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+        markCustom();
+      });
       const hrSel = $('impHeaderRow');
       if (hrSel) hrSel.addEventListener('change', () => {
         st.headerRow = +hrSel.value;
@@ -10686,6 +10734,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (m.noDate) notes.push(['warn', '⚠ ' + m.noDate + ' row' + (m.noDate === 1 ? '' : 's') +
         ' had no readable date and will NOT be imported' + (m.noDateEg.length ? ' (e.g. ' + m.noDateEg.join(', ') + ')' : '') +
         '. Check the date column and date order.']);
+      if (m.noDir) notes.push(['warn', '⚠ ' + m.noDir + ' row' + (m.noDir === 1 ? '' : 's') +
+        ' had no recognised in/out flag and ' + (m.noDir === 1 ? 'was' : 'were') + ' not imported' +
+        (m.noDirEg && m.noDirEg.length ? ' (e.g. ' + m.noDirEg.join('; ') + ')' : '') + '.']);
       if (m.noAmount) notes.push(['warn', '⚠ ' + m.noAmount + ' row' + (m.noAmount === 1 ? '' : 's') +
         ' had a date but no readable amount and will NOT be imported' +
         (m.noAmountEg.length ? ' (e.g. ' + m.noAmountEg.join('; ') + ')' : '') + '. Check the amount columns.']);
@@ -12435,7 +12486,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         throw new Error('checksum mismatch — refusing to install. Expected ' + String(st.sha256).slice(0, 12) + '…, got ' + hex.slice(0, 12) + '…');
       say('Verified ✓ — choose where to save');
     } else {
-      say('No checksum published — saving unverified');
+      throw new Error('no checksum published — refusing to install. Fetch the file from GitHub releases instead.');
     }
     const blob = new Blob([buf], {type: 'text/html'});
     const name = (location.pathname.split('/').pop() || 'lithifyte.html').replace(/[^\w.-]/g, '') || 'lithifyte.html';
@@ -12999,15 +13050,21 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     const idOf = s => CG_IDS[s.toLowerCase()] || s.toLowerCase();
     status.textContent = 'Fetching ' + cryptos.join(', ') + ' from CoinGecko…';
     try{
+      const vs = String(MONEY.base || 'EUR').toLowerCase();
       const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=' +
-        encodeURIComponent(cryptos.map(idOf).join(',')) + '&vs_currencies=eur');
+        encodeURIComponent(cryptos.map(idOf).join(',')) + '&vs_currencies=' + encodeURIComponent(vs + ',eur'));
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       const today = new Date().toISOString().slice(0, 10);
       let hit = 0;
       for (const s of cryptos){
-        const p = data[idOf(s)];
-        if (p && p.eur > 0){ holdStore.quotes[s] = {price: p.eur, asOf: today}; hit++; }
+        const p = data[idOf(s)] || {};
+        let price = p[vs];
+        if (!(price > 0) && p.eur > 0){
+          const conv = Engine.fxConvert({amount: p.eur, from: 'EUR', to: MONEY.base, base: MONEY.base, rates: fxStore.rates});
+          price = conv;
+        }
+        if (price > 0){ holdStore.quotes[s] = {price, asOf: today}; hit++; }
       }
       save(LS.holds, holdStore);
       status.textContent = hit ? '✓ Updated ' + hit + ' of ' + cryptos.length + ' crypto quote' + (cryptos.length === 1 ? '' : 's') : '✗ No matches — check the symbols';
@@ -13032,7 +13089,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         if (!j || j.kind !== 'hfd-quotes' || !j.quotes) throw new Error('not a quotes file');
         const prev = {...holdStore.quotes};
         const r = Engine.mergeQuotes({book: holdStore.quotes, incoming: j.quotes,
-          symbols: holdStore.items.map(h => h.symbol)});
+          symbols: holdStore.items.map(h => h.symbol),
+          fromBase: j.base || 'EUR', toBase: MONEY.base, rates: fxStore.rates});
         holdStore.quotes = r.book;
         save(LS.holds, holdStore);
         renderDerived();
@@ -13417,6 +13475,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       return (over.drawn === 400 && over.surplus === 0 &&
               draw.fromSavings === 300 && draw.save === 0 && draw.surplus === 100 && draw.drawn === 0)
              || JSON.stringify({od:over.drawn, fs:draw.fromSavings, su:draw.surplus});
+    });
+    T('mergeQuotes: converts when the file base is not the household currency', () => {
+      const r = E.mergeQuotes({book:{}, incoming:{AAPL:{price:200, asOf:'2026-07-10'}},
+        symbols:['AAPL'], fromBase:'EUR', toBase:'USD', rates:{EUR:0.9}});
+      // rates[EUR] = 0.9 EUR per 1 USD → 200 EUR = 200/0.9 USD
+      return Math.abs(r.book.AAPL.price - (200 / 0.9)) < 0.01 && r.updated === 1;
     });
     T('mergeQuotes: valid lands, older skipped, case-folded, matched counts', () => {
       const r = E.mergeQuotes({book:{AAPL:{price:100, asOf:'2026-07-11'}},
@@ -15220,6 +15284,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (!(out[4] === 86.5 && out[5] === 0)) return 'OUT row did not become a debit: ' + JSON.stringify(out);
       if (!(inc[5] === 1200 && inc[4] === 0)) return 'IN row did not become a credit: ' + JSON.stringify(inc);
       return true;
+    });
+    T('direction column: blank or unknown flags are skipped, not credited', () => {
+      const grid = parseCSV('when,who,amt,dir\n2026-07-03,Shop,86.50,OUT\n2026-07-04,Mystery,10.00,\n2026-07-05,Other,5.00,OTHER\n');
+      const spec = E.impSpec({date: 0, merchant: 1, amount: 2, dirCol: 3, dirOut: ['OUT'], dateFormat: 'ymd'});
+      const rows = mapStatement(grid, spec);
+      return (rows.length === 1 && rows[0][1] === 'Shop' && rows.meta.noDir === 2) || JSON.stringify({n: rows.length, noDir: rows.meta && rows.meta.noDir});
     });
     T('direction column: without it the same file imports as all income', () => {
       // this is the failure the column exists to prevent

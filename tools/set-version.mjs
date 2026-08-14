@@ -36,6 +36,7 @@ const APP = join(ROOT, 'index.html');
 
 const args = process.argv.slice(2);
 const CHECK = args.includes('--check');
+const STAMP = args.includes('--stamp');
 const version = args.find((a) => /^\d+\.\d+\.\d+$/.test(a));
 const notesIdx = args.indexOf('--notes');
 const notes = notesIdx >= 0 ? args[notesIdx + 1] : null;
@@ -52,6 +53,20 @@ const appVersionOf = (file) => {
 
 const sha256 = (file) =>
   createHash('sha256').update(readFileSync(file)).digest('hex');
+
+/* ─────────────────────────────── stamp hash only ─────────────────────────────── */
+
+if (STAMP) {
+  const man = readManifest();
+  if (!man.version) {
+    console.error('version.json has no version — refuse to stamp');
+    process.exit(1);
+  }
+  man.sha256 = existsSync(APP) ? sha256(APP) : null;
+  writeFileSync(MANIFEST, JSON.stringify(man, null, 2) + '\n');
+  console.log(`stamped sha256 ${man.sha256} for ${man.version}`);
+  process.exit(0);
+}
 
 /* ─────────────────────────────── check ─────────────────────────────── */
 

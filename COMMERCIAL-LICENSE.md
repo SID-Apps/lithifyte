@@ -22,7 +22,7 @@ Email **signin@lithifyte.com** with:
 
 - who you are
 - what you want to ship
-- whether you need the Ireland tax pack kept current
+- whether you need maintained bank-import presets kept current
 - an approximate user count
 
 We will send terms. Households and AGPL self-hosters do not need this.

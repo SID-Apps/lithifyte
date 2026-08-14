@@ -8,6 +8,7 @@
 // Exit 0 only when every check passes. Does not upload anything.
 
 import { readFileSync, existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { resolve, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
@@ -141,6 +142,22 @@ ok('app: DATA_VERSION matches version.json', (() => {
   catch (e) { return false; }
   return man.dataVersion === Number(m[1]);
 })());
+ok('app: version.json sha256 matches index.html', (() => {
+  let man;
+  try { man = JSON.parse(readFileSync(join(ROOT, 'version.json'), 'utf8')); }
+  catch (e) { return false; }
+  if (!man.sha256) return 'manifest has no sha256';
+  const actual = createHash('sha256').update(readFileSync(appPath)).digest('hex');
+  return man.sha256 === actual || ('manifest ' + man.sha256.slice(0, 12) + ' actual ' + actual.slice(0, 12));
+})());
+ok('app: update UI is not inside hostedChrome', (() => {
+  const u = app.indexOf('id="updateBlock"');
+  const h = app.indexOf('id="hostedChrome"');
+  const hEnd = app.indexOf('id="cloudVaultBlock"');
+  if (u < 0 || h < 0) return false;
+  return u < h || u > hEnd;
+})());
+ok('app: no Ireland-tax-pack sales pitch', !/Ireland tax \/ bank-preset/i.test(app) && !/live tax\/bank packs/i.test(app));
 ok('app: no leftover personal name in finance-data seed', (() => {
   const i = app.lastIndexOf('<script id="finance-data" type="application/json">');
   if (i < 0) return false;

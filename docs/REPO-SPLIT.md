@@ -17,7 +17,7 @@ Import, categorise, the money map, budgets, forecast, wealth, export, Commands-o
 
 ## What Plus is
 
-Hosted Lithifyte AI, PDF parse, the encrypted cloud vault, and maintained Ireland tax / bank-preset packs. Priced on the hosted app. The Engine is not gated.
+Hosted Lithifyte AI, PDF parse, the encrypted cloud vault, and a maintained library of bank import presets. Lithifyte ships no tax rates. Priced on the hosted app. The Engine is not gated.
 
 ## History
 
