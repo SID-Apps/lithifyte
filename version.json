@@ -1,8 +1,8 @@
 {
-  "version": "2.2.1",
+  "version": "2.3.0",
   "released": "2026-08-14",
-  "notes": "Fix a ReferenceError in the hosted sign-in gate; bank import presets for India, US and Kenya.",
+  "notes": "GB18030 decoding and direction-column support; Alipay and WeChat Pay presets.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "036f5324444dca03473b25105968a9e6b1bb8381fdbdd79d15310a2bcfe1ff31"
+  "sha256": "59f14b1a2bc9bd3cd22c724d52cbfc1edf69a2f5db45282aa8c47483821c154f"
 }
