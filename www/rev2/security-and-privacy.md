@@ -14,11 +14,15 @@ There is no finance API. Not an encrypted one, not a temporary one, not one that
 
 You do not have to take this on faith. Open your browser's network tab and import a statement. Nothing carrying the file goes out.
 
-**Two deliberate exceptions, both yours to consent to, both off until you act.**
+**Three deliberate exceptions, all yours to consent to, all off until you act.**
 
 The first is **hosted AI**. A language model cannot answer a question about your money without being told something about your money. That section is below, in full, because a privacy claim with a quiet asterisk is worse than no claim at all. The honest sentence is: **we never store your data, and when you ask the AI a question, the part needed to answer it is sent to the model provider for that request.** Commands-only and a local model send nothing.
 
 The second is **exchange rates**, and it is far smaller. Press *Refresh rates* in Wealth → Currency and the app asks a public European Central Bank rate feed ([frankfurter.dev](https://api.frankfurter.dev/v1/latest)) for a plain list of reference rates. That request carries **no account, no balance, no transaction, and no identifier** — it is the same request any visitor to that site makes, and the reply is a table of numbers. It happens only when you press the button, never on load, and typing rates in by hand works offline and always has. We mention a request this small because the alternative is you finding it in the network tab and wondering what else went unmentioned.
+
+The third is **update checks**, and only on a self-hosted copy — the hosted app is whatever we deployed, so there is nothing there for you to update. Turn it on and Lithifyte asks **GitHub**, once a week at most, whether a newer version has been published. It deliberately does not ask us: if the check came to lithifyte.com we would end up holding a log of every self-hosted install's address and version, which is exactly the count [we say we do not keep](/open-source). Asking GitHub means we learn nothing, and that is a stronger promise than "we only log a version".
+
+If an update exists you are told, and nothing more happens until you press Download. The file is then fetched and its SHA-256 checked against the published manifest before you are offered it — **a mismatch refuses outright rather than warning**, because installing bytes we have not verified would be a hole we dug ourselves. Your data lives in the browser, not the file, so replacing the file keeps every transaction, budget and rule.
 
 ## What is stored, and where
 
@@ -34,6 +38,7 @@ The second is **exchange rates**, and it is far smaller. Press *Refresh rates* i
 | Co-pilot conversations and sandbox scenarios | `localStorage` in your browser | Only the context of a message you send, and only to the model you chose — see below |
 | Your currency, locale and exchange-rate table | `localStorage` in your browser | No. Refreshing rates sends a currency code, never a figure of yours |
 | Your own tax assumptions, if you enter any | `localStorage` in your browser | No. They are never sent anywhere, including to the AI |
+| Update-check preference and last-checked date | `localStorage` in your browser | No. The check itself goes to GitHub, never to us |
 
 Self-hosted copies write nothing to the email or product-event rows. The code that reports product events checks the hostname and does not run from a file or from a domain that is not ours.
 
