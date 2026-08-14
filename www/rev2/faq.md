@@ -1,7 +1,7 @@
 # Frequently asked questions
 
 Source: https://lithifyte.com/faq
-Updated: 2026-08-13
+Updated: 2026-08-14
 Licence: content CC-BY-4.0 · software AGPL-3.0-or-later
 
 Short, direct answers. If a question you have is not here, the [guide](/guide) goes deeper and the [source code](https://github.com/SID-Apps/lithifyte) settles any argument about what the software actually does.
@@ -127,3 +127,17 @@ It is built for a household. Sole traders sometimes use it for a simple picture 
 ### Is Lithifyte giving me financial advice?
 
 No. It describes what your money did and computes what follows arithmetically from that. It does not recommend products, providers or courses of action, and the [learn library](/learn) is written as education rather than advice.
+
+### Does Lithifyte know my country's tax rules?
+
+No, and it deliberately does not try. **Lithifyte ships no tax rates for any country.** Tax differs by country and by person and changes most years, so a statutory figure baked into a file you keep for three years is a wrong number wearing an authoritative face.
+
+What the app does instead is arithmetic on rates *you* supply. Under **Wealth → Your tax assumptions** you can enter your own capital-gains rate, any annual exemption, a separate rate for funds, tax on savings interest, and pension relief. Enter them and the relevant calculators appear, labelled as your figures. Leave them blank and those calculators stay hidden — the app shows you no tax numbers at all rather than guessed ones.
+
+Two things worth knowing. A rate of **0 is a real answer**, not the same as leaving a field blank, so if gains are untaxed where you live you can enter 0 and get genuine zero-tax arithmetic. And real tax rules involve holding periods, loss relief, wrappers and allowances that a rate alone cannot capture — so treat the output as a rough sketch on your own assumptions and check anything that matters with your own tax authority or an adviser.
+
+### Does it work outside Ireland?
+
+Yes. Nothing in the Engine depends on where you live. You set your currency and number format once — including formats most software gets wrong, such as the Indian lakh grouping (`1,23,456`) — and every screen follows. Exchange rates are built in, with a converter and optional live reference rates, plus manual entry for currencies the public feed does not carry.
+
+The importer reads any bank's CSV or Excel export through the column mapper, handles both `1,234.56` and `1.234,56`, and asks you which way round the dates are when a file is genuinely ambiguous rather than guessing. Merchant names in any script are fine. The parts that are unavoidably local — which bank exports have a one-click preset — are the ones we keep adding to.

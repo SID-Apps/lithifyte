@@ -124,12 +124,16 @@ const data = {
     debitSum: r2(TX.reduce((s, t) => s + t[4], 0)),
     creditSum: r2(TX.reduce((s, t) => s + t[5], 0)),
   },
+  // Modelling assumptions only — NO tax rates.
+  //
+  // This block used to hardcode the full Irish rate set and re-inject it on
+  // every demo build, which meant demo.html shipped those rates back no matter
+  // what the Engine did. Lithifyte ships no tax figures for any jurisdiction
+  // (2026-08-14); the sample household therefore has none either, and its tax
+  // calculators are hidden exactly as a new user's would be.
   fiscal: {
-    verifiedOn: '2026-07-09', country: 'IE', netToGross: 0.68, payeShareOfGross: 0.24,
-    pensionReliefRate: 0.4, fundsExitTax: 0.41, dirtRate: 0.33, htbCap: 30000, htbYears: 4,
-    pensionAgeBands: [[0, 15], [30, 20], [40, 25], [50, 30], [55, 35], [60, 40]],
-    capacityPerThousand: 5.28, depositRateLow: 0.02, depositRateHigh: 0.03,
-    growthNominal: 0.05, mortgageRate: 0.035, cashRate: 0.02, cgtRate: 0.33, cgtExemption: 1270,
+    depositRateLow: 0.02, depositRateHigh: 0.03,
+    growthNominal: 0.05, mortgageRate: 0.035, cashRate: 0.02,
   },
   goals: [
     {id: 'house', name: 'House deposit', target: 40000, targetMonth: null, pot: null, autoFromSavings: true},

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Open source, and why it matters here — Lithifyte</title>
-<meta name="description" content="Lithifyte's Engine is AGPL-3.0-or-later. The calculator is one readable HTML file you can audit, fork, self-host and keep. Hosted Plus (AI, vault, pack updates) is a separate living product.">
+<meta name="description" content="Lithifyte's Engine is AGPL-3.0-or-later. The calculator is one readable HTML file you can audit, fork, self-host and keep. Hosted Plus (AI, vault, bank presets) is a separate living product.">
 <link rel="canonical" href="https://lithifyte.com/open-source">
 <meta name="theme-color" content="#020b1a">
 <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
@@ -16,11 +16,11 @@
 <meta property="og:site_name" content="Lithifyte">
 <meta property="og:url" content="https://lithifyte.com/open-source">
 <meta property="og:title" content="Open source, and why it matters here">
-<meta property="og:description" content="Lithifyte's Engine is AGPL-3.0-or-later. The calculator is one readable HTML file you can audit, fork, self-host and keep. Hosted Plus (AI, vault, pack updates) is a separate living product.">
+<meta property="og:description" content="Lithifyte's Engine is AGPL-3.0-or-later. The calculator is one readable HTML file you can audit, fork, self-host and keep. Hosted Plus (AI, vault, bank presets) is a separate living product.">
 <meta property="og:image" content="https://lithifyte.com/og.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Open source, and why it matters here">
-<meta name="twitter:description" content="Lithifyte's Engine is AGPL-3.0-or-later. The calculator is one readable HTML file you can audit, fork, self-host and keep. Hosted Plus (AI, vault, pack updates) is a separate living product.">
+<meta name="twitter:description" content="Lithifyte's Engine is AGPL-3.0-or-later. The calculator is one readable HTML file you can audit, fork, self-host and keep. Hosted Plus (AI, vault, bank presets) is a separate living product.">
 <meta name="twitter:image" content="https://lithifyte.com/og.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,7 +52,7 @@
       "@id": "https://lithifyte.com/open-source#page",
       "url": "https://lithifyte.com/open-source",
       "name": "Open source, and why it matters here",
-      "description": "Lithifyte's Engine is AGPL-3.0-or-later. The calculator is one readable HTML file you can audit, fork, self-host and keep. Hosted Plus (AI, vault, pack updates) is a separate living product.",
+      "description": "Lithifyte's Engine is AGPL-3.0-or-later. The calculator is one readable HTML file you can audit, fork, self-host and keep. Hosted Plus (AI, vault, bank presets) is a separate living product.",
       "inLanguage": "en",
       "isPartOf": {
         "@id": "https://lithifyte.com/#website"
@@ -63,7 +63,7 @@
       "publisher": {
         "@id": "https://lithifyte.com/#organization"
       },
-      "dateModified": "2026-08-13",
+      "dateModified": "2026-08-14",
       "@type": "WebPage"
     }
   ]
@@ -117,8 +117,8 @@
 <main class="page">
 <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span class="sep">/</span> <span aria-current="page">Open source</span></nav>
   <h1>Open source, and why it matters here</h1>
-  <p class="updated">Updated 13 August 2026</p>
-  <p class="lede">A privacy promise you cannot verify is marketing. The Engine is published under AGPL-3.0-or-later as a single readable file, so the claim that we never store your ledger is something you can check. Official Lithifyte also sells hosted intelligence and maintained packs — those are not required to run the file.</p>
+  <p class="updated">Updated 14 August 2026</p>
+  <p class="lede">A privacy promise you cannot verify is marketing. The Engine is published under AGPL-3.0-or-later as a single readable file, so the claim that we never store your ledger is something you can check. Official Lithifyte also sells hosted intelligence and maintained bank import presets — those are not required to run the file.</p>
 
 <h2 id="the-licence">The licence</h2>
 <p>Lithifyte is licensed <strong>AGPL-3.0-or-later</strong>. In practical terms:</p>
@@ -131,7 +131,7 @@
 <h2 id="self-hosting">Self-hosting</h2>
 <p>There is no build step and no dependency tree.</p>
 <ol><li>Download <code>index.html</code> from <a href="https://github.com/SID-Apps/lithifyte" rel="noopener">the repository</a>.</li><li>Open it — from your disk, a USB stick, a private server, whatever you like.</li><li>That is the whole procedure.</li></ol>
-<p>It runs offline. It reports nothing. The Engine, importer, map, budgets, forecast, wealth, export and Commands-only are the same as the hosted app. What you give up is the <strong>living product</strong>: magic-link / Google sign-in, Lithifyte AI, the encrypted cloud vault, and maintained Ireland tax / bank-preset packs. Those are Lithifyte Plus on the official host. They are conveniences, not a lock on your numbers.</p>
+<p>It runs offline. It reports nothing. The Engine, importer, map, budgets, forecast, wealth, export and Commands-only are the same as the hosted app. What you give up is the <strong>living product</strong>: magic-link / Google sign-in, Lithifyte AI, the encrypted cloud vault, and the maintained library of bank import presets. Those are Lithifyte Plus on the official host. They are conveniences, not a lock on your numbers.</p>
 <p>The project keeps no count of self-hosted installs. Telemetry is hostname-gated and does not run from a file.</p>
 <h2 id="what-is-in-the-repository">What is in the repository</h2>
 <div class="tablewrap"><table><thead><tr><th>Path</th><th>What it is</th></tr></thead><tbody><tr><td><code>index.html</code></td><td>The whole application: interface, engine, self-tests</td></tr><tr><td><code>demo.html</code></td><td>The sample household — invented data, isolated storage</td></tr><tr><td><code>tutorial.html</code></td><td>Long-form written guide with a retrieval-backed Ask box</td></tr><tr><td><code>feeder/</code></td><td>Optional open-banking feeder CLI and price fetcher</td></tr><tr><td><code>tools/</code></td><td>Release tooling — data swapping, sample generation, this site</td></tr><tr><td><code>www/</code></td><td>The marketing site (landing + money library)</td></tr><tr><td><code>docs/</code></td><td>Tutorial corpus, repo split, public analytics note</td></tr><tr><td><code>COMMERCIAL-LICENSE.md</code></td><td>How to license the Engine without AGPL obligations</td></tr><tr><td><code>SECURITY.md</code></td><td>Threat model, scope, and how to report a vulnerability</td></tr></tbody></table></div>

@@ -9,11 +9,11 @@ Free, open-source household finance software that runs as a single HTML file in 
 
 ## Product
 
-- [Plus and commercial licensing](https://lithifyte.com/commercial) — The calculator is free forever. Official Lithifyte sells the living product — AI, vault, pack updates — and a commercial licence of the Engine for white-label use.
+- [Plus and commercial licensing](https://lithifyte.com/commercial) — The calculator is free forever. Official Lithifyte sells the living product — AI, vault, bank presets — and a commercial licence of the Engine for white-label use.
 - [Frequently asked questions](https://lithifyte.com/faq) — Short, direct answers. If a question you have is not here, the [guide](/guide) goes deeper and the [source code](https://github.com/SID-Apps/lithifyte) settles any argument about what the software actually does.
 - [The Lithifyte guide](https://lithifyte.com/guide) — A complete feature reference, ordered the way you actually encounter things: get data in, make it trustworthy, understand it, then plan with it. There is also an interactive version inside the app with an Ask box.
 - [How Lithifyte works](https://lithifyte.com/how-it-works) — You upload a bank statement to a web page. The page reads it in your browser, works out who spent what and where it went, and draws the result as a living map. No file is transmitted, because there is no server on the other end to receive it.
-- [Open source, and why it matters here](https://lithifyte.com/open-source) — A privacy promise you cannot verify is marketing. The Engine is published under AGPL-3.0-or-later as a single readable file, so the claim that we never store your ledger is something you can check. Official Lithifyte also sells hosted intelligence and maintained packs — those are not required to run the file.
+- [Open source, and why it matters here](https://lithifyte.com/open-source) — A privacy promise you cannot verify is marketing. The Engine is published under AGPL-3.0-or-later as a single readable file, so the claim that we never store your ledger is something you can check. Official Lithifyte also sells hosted intelligence and maintained bank import presets — those are not required to run the file.
 - [Security and privacy, in technical terms](https://lithifyte.com/security-and-privacy) — The claim is narrow and testable: there is no finance backend, so statements are never stored by us. The one exception is hosted AI, which you consent to per lane and which sends only the slice that question needs — that is set out in full below, along with the parts we cannot fix.
 
 ## Learn

@@ -63,7 +63,7 @@
       "publisher": {
         "@id": "https://lithifyte.com/#organization"
       },
-      "dateModified": "2026-08-13",
+      "dateModified": "2026-08-14",
       "@type": "FAQPage",
       "mainEntity": [
         {
@@ -281,6 +281,22 @@
             "@type": "Answer",
             "text": "No. It describes what your money did and computes what follows arithmetically from that. It does not recommend products, providers or courses of action, and the learn library is written as education rather than advice."
           }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Lithifyte know my country's tax rules?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No, and it deliberately does not try. Lithifyte ships no tax rates for any country. Tax differs by country and by person and changes most years, so a statutory figure baked into a file you keep for three years is a wrong number wearing an authoritative face. What the app does instead is arithmetic on rates you supply. Under Wealth → Your tax assumptions you can enter your own capital-gains rate, any annual exemption, a separate rate for funds, tax on savings interest, and pension relief. Enter them and the relevant calculators appear, labelled as your figures. Leave them blank and those calculators stay hidden — the app shows you no tax numbers at all rather than guessed ones. Two things worth knowing. A rate of 0 is a real answer, not the same as leaving a field blank, so if gains are untaxed where you live you can enter 0 and get genuine zero-tax arithmetic. And real tax rules involve holding periods, loss relief, wrappers and allowances that a rate alone cannot capture — so treat the output as a rough sketch on your own assumptions and check anything that matters with your own tax authority or an adviser."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does it work outside Ireland?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Nothing in the Engine depends on where you live. You set your currency and number format once — including formats most software gets wrong, such as the Indian lakh grouping (1,23,456) — and every screen follows. Exchange rates are built in, with a converter and optional live reference rates, plus manual entry for currencies the public feed does not carry. The importer reads any bank's CSV or Excel export through the column mapper, handles both 1,234.56 and 1.234,56, and asks you which way round the dates are when a file is genuinely ambiguous rather than guessing. Merchant names in any script are fine. The parts that are unavoidably local — which bank exports have a one-click preset — are the ones we keep adding to."
+          }
         }
       ]
     }
@@ -335,7 +351,7 @@
 <main class="page">
 <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span class="sep">/</span> <span aria-current="page">FAQ</span></nav>
   <h1>Frequently asked questions</h1>
-  <p class="updated">Updated 13 August 2026</p>
+  <p class="updated">Updated 14 August 2026</p>
   <p class="lede">Short, direct answers. If a question you have is not here, the <a href="/guide">guide</a> goes deeper and the <a href="https://github.com/SID-Apps/lithifyte" rel="noopener">source code</a> settles any argument about what the software actually does.</p>
 
 <h2 id="cost-and-licensing">Cost and licensing</h2>
@@ -399,8 +415,15 @@
 <p>It is built for a household. Sole traders sometimes use it for a simple picture of a single account, but it has no invoicing, VAT handling or double-entry bookkeeping, and it is not intended as accounting software.</p>
 <h3 id="is-lithifyte-giving-me-financial-advice">Is Lithifyte giving me financial advice?</h3>
 <p>No. It describes what your money did and computes what follows arithmetically from that. It does not recommend products, providers or courses of action, and the <a href="/learn">learn library</a> is written as education rather than advice.</p>
+<h3 id="does-lithifyte-know-my-countrys-tax-rules">Does Lithifyte know my country's tax rules?</h3>
+<p>No, and it deliberately does not try. <strong>Lithifyte ships no tax rates for any country.</strong> Tax differs by country and by person and changes most years, so a statutory figure baked into a file you keep for three years is a wrong number wearing an authoritative face.</p>
+<p>What the app does instead is arithmetic on rates <em>you</em> supply. Under <strong>Wealth → Your tax assumptions</strong> you can enter your own capital-gains rate, any annual exemption, a separate rate for funds, tax on savings interest, and pension relief. Enter them and the relevant calculators appear, labelled as your figures. Leave them blank and those calculators stay hidden — the app shows you no tax numbers at all rather than guessed ones.</p>
+<p>Two things worth knowing. A rate of <strong>0 is a real answer</strong>, not the same as leaving a field blank, so if gains are untaxed where you live you can enter 0 and get genuine zero-tax arithmetic. And real tax rules involve holding periods, loss relief, wrappers and allowances that a rate alone cannot capture — so treat the output as a rough sketch on your own assumptions and check anything that matters with your own tax authority or an adviser.</p>
+<h3 id="does-it-work-outside-ireland">Does it work outside Ireland?</h3>
+<p>Yes. Nothing in the Engine depends on where you live. You set your currency and number format once — including formats most software gets wrong, such as the Indian lakh grouping (<code>1,23,456</code>) — and every screen follows. Exchange rates are built in, with a converter and optional live reference rates, plus manual entry for currencies the public feed does not carry.</p>
+<p>The importer reads any bank's CSV or Excel export through the column mapper, handles both <code>1,234.56</code> and <code>1.234,56</code>, and asks you which way round the dates are when a file is genuinely ambiguous rather than guessing. Merchant names in any script are fine. The parts that are unavoidably local — which bank exports have a one-click preset — are the ones we keep adding to.</p>
 <aside class="cta"><h2>Try it</h2><p>The sample household is fully populated with invented data — no sign-up, nothing to upload. When you are ready to use your own statements, sign-in is a magic link and holds no financial data.</p><p><a class="btn" href="https://app.lithifyte.com/demo">Explore the sample household</a> <a class="btn ghost" href="https://access.lithifyte.com/">Sign in free</a></p></aside>
-<aside class="related"><h2>Keep reading</h2><ul><li><a href="/how-it-works">How Lithifyte works</a> <span class="rel-d">You upload a bank statement to a web page. The page reads it in your browser, works out who spent what and where it went, and draws the result as a living map. No file is transmitted, because there is no server on the other end to receive it.</span></li><li><a href="/security-and-privacy">Security and privacy, in technical terms</a> <span class="rel-d">The claim is narrow and testable: there is no finance backend, so statements are never stored by us. The one exception is hosted AI, which you consent to per lane and which sends only the slice that question needs — that is set out in full below, along with the parts we cannot fix.</span></li><li><a href="/open-source">Open source, and why it matters here</a> <span class="rel-d">A privacy promise you cannot verify is marketing. The Engine is published under AGPL-3.0-or-later as a single readable file, so the claim that we never store your ledger is something you can check. Official Lithifyte also sells hosted intelligence and maintained packs — those are not required to run the file.</span></li></ul></aside>
+<aside class="related"><h2>Keep reading</h2><ul><li><a href="/how-it-works">How Lithifyte works</a> <span class="rel-d">You upload a bank statement to a web page. The page reads it in your browser, works out who spent what and where it went, and draws the result as a living map. No file is transmitted, because there is no server on the other end to receive it.</span></li><li><a href="/security-and-privacy">Security and privacy, in technical terms</a> <span class="rel-d">The claim is narrow and testable: there is no finance backend, so statements are never stored by us. The one exception is hosted AI, which you consent to per lane and which sends only the slice that question needs — that is set out in full below, along with the parts we cannot fix.</span></li><li><a href="/open-source">Open source, and why it matters here</a> <span class="rel-d">A privacy promise you cannot verify is marketing. The Engine is published under AGPL-3.0-or-later as a single readable file, so the claim that we never store your ledger is something you can check. Official Lithifyte also sells hosted intelligence and maintained bank import presets — those are not required to run the file.</span></li></ul></aside>
 </main>
 
 <footer class="site">

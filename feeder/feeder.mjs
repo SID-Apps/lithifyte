@@ -238,7 +238,7 @@ async function cmdPrices(){
   const ccys = [...new Set(rows.map(r => (r.ccy === 'GBp' || r.ccy === 'GBX') ? 'GBP' : r.ccy).filter(c => c && c !== 'EUR'))];
   const fx = {};
   for (const c of ccys){
-    const res = await fetch(`https://api.frankfurter.app/latest?from=${c}&to=EUR`);
+    const res = await fetch(`https://api.frankfurter.dev/v1/latest?base=${c}&symbols=EUR`);
     const j = await res.json();
     fx[c] = j && j.rates && j.rates.EUR;
     console.log(`  FX ${c}→EUR: ${fx[c]}`);
