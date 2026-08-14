@@ -15,7 +15,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '2.2.1';
+  var APP_VER = '2.3.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -5736,13 +5736,40 @@ rewrite the static advice cards if the picture has changed.</div>
       {k: 'dateAlt',    label: 'Date (fallback)'}
     ],
     IMP_SINGLE: ['date', 'dateAlt', 'merchant', 'amount', 'debit', 'credit', 'fee', 'balance', 'category', 'sub', 'confidence'],
+    // Which of two candidate decodings of the same bytes is the real one.
+    // Pure so the decision can be tested without a File.
+    //
+    // CJK is the signal: a windows-1252 file mis-decoded as GB18030 produces
+    // scattered CJK, but a genuinely Chinese file is dense with it. A GB18030
+    // file mis-decoded as windows-1252 produces long runs of high-Latin
+    // accented letters, which real Western text does not do either. Requiring
+    // a clear margin means an ambiguous file falls back to Western, which is
+    // the safer default for a European bank.
+    impPickDecode(cn, west){
+      const count = (str, re) => { const m = String(str).match(re); return m ? m.length : 0; };
+      const cjk = count(cn, /[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]/g);
+      const len = Math.max(1, String(cn).length);
+      const cjkShare = cjk / len;
+      // replacement characters mean that decoding is simply wrong
+      const cnBad = count(cn, /\ufffd/g), westBad = count(west, /\ufffd/g);
+      if (cnBad === 0 && westBad > 0) return 'cn';
+      if (westBad === 0 && cnBad > 0) return 'west';
+      return cjkShare >= 0.02 ? 'cn' : 'west';
+    },
     impSpec(p){
       const s = Object.assign({
         headerRow: 0, date: -1, dateAlt: -1, merchant: -1, amount: -1, debit: -1, credit: -1,
         fee: -1, balance: -1, category: -1, sub: -1, confidence: -1,
         dateFormat: 'auto', decimal: 'auto', swap: false, feeMode: 'fold',
-        clean: 'none', filters: [], preset: 'custom', label: 'Custom mapping'
+        clean: 'none', filters: [], preset: 'custom', label: 'Custom mapping',
+        // Direction column: some exports carry an UNSIGNED amount plus a
+        // separate column saying which way it went — Alipay and WeChat Pay
+        // use 收/支 (收入 in, 支出 out). Without this the magnitude is all
+        // there is, and every row imports as income.
+        dirCol: -1, dirOut: []
       }, p || {});
+      s.dirCol = Number.isInteger(s.dirCol) ? s.dirCol : -1;
+      s.dirOut = Array.isArray(s.dirOut) ? s.dirOut.map(v => String(v)) : [];
       Engine.IMP_SINGLE.forEach(k => { s[k] = Number.isInteger(s[k]) ? s[k] : -1; });
       s.filters = (s.filters || []).filter(f => f && f.col >= 0 && Array.isArray(f.values) && f.values.length)
         .map(f => ({col: f.col, mode: f.mode === 'drop' ? 'drop' : 'keep', values: f.values.slice(), label: f.label || ''}));
@@ -5943,6 +5970,7 @@ rewrite the static advice cards if the picture has changed.</div>
               // income — which looks completely plausible and is completely
               // wrong. A pack has to be able to say so.
               swap: !!spec.swap,
+              dirCol: col(spec.dirCol), dirOut: Array.isArray(spec.dirOut) ? spec.dirOut.slice() : [],
               // Filters arrive from a JSON pack, so their `col` is a column
               // NAME; the spec everywhere else uses a numeric index, and
               // impSpec drops anything failing `col >= 0`. Resolving here is
@@ -6063,6 +6091,13 @@ rewrite the static advice cards if the picture has changed.</div>
             const a = num(r[S.amount]) || 0;
             if (a < 0) de = -a; else cr = a;
           }
+        } else if (S.dirCol >= 0 && S.dirOut.length){
+          // magnitude from the amount column, direction from its own column.
+          // The amount may still carry a sign or a currency mark, so take the
+          // absolute value and let the direction column decide.
+          const a = Math.abs(num(r[S.amount]) || 0);
+          const d = String(r[S.dirCol] == null ? '' : r[S.dirCol]).trim();
+          if (S.dirOut.some(v => v === d)) de = a; else cr = a;
         } else {
           const a = num(r[S.amount]) || 0;
           if (a < 0) de = -a; else cr = a;
@@ -10198,8 +10233,37 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       file._pdfText = extracted.text;
       throw {code:'pdf-no-table', text: extracted.text, message:'This PDF has selectable text but no obvious transaction table. Use “Parse with Lithifyte AI” to propose rows, then confirm them.'};
     }
-    const text = await file.text();
+    const text = await decodeStatement(file);
     return parseDelim(text, sniffDelim(text));
+  }
+  // Decode a statement whatever encoding it was written in.
+  //
+  // `file.text()` assumes UTF-8, which is fine until it is not: Alipay and
+  // WeChat Pay export GB18030, and plenty of older European exports are
+  // windows-1252. Decoded wrongly, a statement does not fail — it imports with
+  // mojibake merchant names, which is the quiet kind of wrong this file tries
+  // hard to avoid.
+  //
+  // Order matters. A BOM is unambiguous, so it wins outright. Then STRICT
+  // UTF-8: valid UTF-8 is essentially never accidental, so if it decodes it is
+  // right. Only once that fails is there a real choice to make, and the naive
+  // answer — "fall back to GB18030" — would turn every accented windows-1252
+  // export into Chinese-looking nonsense. So both candidates are decoded and
+  // scored, and the one with actual CJK content wins.
+  async function decodeStatement(file){
+    const buf = new Uint8Array(await file.arrayBuffer());
+    if (buf.length >= 3 && buf[0] === 0xEF && buf[1] === 0xBB && buf[2] === 0xBF)
+      return new TextDecoder('utf-8').decode(buf.subarray(3));
+    if (buf.length >= 2 && buf[0] === 0xFF && buf[1] === 0xFE) return new TextDecoder('utf-16le').decode(buf);
+    if (buf.length >= 2 && buf[0] === 0xFE && buf[1] === 0xFF) return new TextDecoder('utf-16be').decode(buf);
+    try { return new TextDecoder('utf-8', {fatal: true}).decode(buf); }
+    catch (e) { /* not UTF-8 — decide below */ }
+    const tryDecode = enc => { try { return new TextDecoder(enc).decode(buf); } catch (e) { return null; } };
+    const cn = tryDecode('gb18030');            // superset of GBK
+    const west = tryDecode('windows-1252');
+    if (cn == null) return west == null ? new TextDecoder('utf-8').decode(buf) : west;
+    if (west == null) return cn;
+    return Engine.impPickDecode(cn, west) === 'cn' ? cn : west;
   }
   // A bank that prints "Account: IE12…" above the table leaves the real header a
   // few rows down. The header is the first row that looks like column names —
@@ -10781,6 +10845,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   // Plus session, and a pack can be verified end to end before it ships.
   // Returns how many were newly registered; ids already present are ignored.
   window.__ddRegisterPack = presets => Engine.impRegisterDeclarative(presets);
+  // exposed alongside it so a decoding choice can be inspected the same way
+  window.__ddPickDecode = (cn, west) => Engine.impPickDecode(cn, west);
 
   function householdLabel(){
     const n = org.householdName && String(org.householdName).trim();
@@ -15129,6 +15195,48 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // dropping is right: a filter on a column that is not there would hold
       // back every row, which looks exactly like an empty statement
       return spec.filters.length === 0 || 'a filter on a missing column survived';
+    });
+    // ── encoding + direction column (P7-3) ──
+    T('encoding: a Chinese export is decoded as GB18030, a European one is not', () => {
+      // Real bytes, decoded both ways. The naive rule — "not UTF-8, so try
+      // GB18030" — turns every accented windows-1252 export into this:
+      //   'Café Müller Straße' → 'Caf\ufffd M\u9ee0ler Stra\u907d'
+      // which imports silently as garbage merchant names.
+      const cnAsCn = "交易时间,交易对方,金额(元),收/支\n2026-07-03 18:22:00,星巴克,¥32.00,支出\n";
+      const cnAsWest = "½»Ò×Ê±¼ä,½»Ò×¶Ô·½,½ð¶î(Ôª),ÊÕ/Ö§\n2026-07-03 18:22:00,ÐÇ°Í¿Ë,�0„632.00,Ö§³ö\n";
+      const westAsCn = "Datum;Beschreibung;Betrag\n03.07.2026;Caf� M黮ler Stra遝;-12,50\n05.07.2026;Gehalt Zahlung;2.100,00\n";
+      const westAsWest = "Datum;Beschreibung;Betrag\n03.07.2026;Café Müller Straße;-12,50\n05.07.2026;Gehalt Zahlung;2.100,00\n";
+      if (E.impPickDecode(cnAsCn, cnAsWest) !== 'cn') return 'a Chinese export was not recognised';
+      if (E.impPickDecode(westAsCn, westAsWest) !== 'west') return 'a European export would have been mangled as Chinese';
+      return true;
+    });
+    T('direction column: an unsigned amount plus 收/支 lands the right way round', () => {
+      const grid = parseCSV('when,who,amt,dir\n2026-07-03,Shop,86.50,OUT\n2026-07-05,Payroll,1200.00,IN\n');
+      const spec = E.impSpec({date: 0, merchant: 1, amount: 2, dirCol: 3, dirOut: ['OUT'], dateFormat: 'ymd'});
+      const rows = mapStatement(grid, spec);
+      // rows are [date, merchant, cat, sub, debit, credit, ...]
+      const out = rows.find(r => r[1] === 'Shop'), inc = rows.find(r => r[1] === 'Payroll');
+      if (!out || !inc) return 'rows missing: ' + JSON.stringify(rows);
+      if (!(out[4] === 86.5 && out[5] === 0)) return 'OUT row did not become a debit: ' + JSON.stringify(out);
+      if (!(inc[5] === 1200 && inc[4] === 0)) return 'IN row did not become a credit: ' + JSON.stringify(inc);
+      return true;
+    });
+    T('direction column: without it the same file imports as all income', () => {
+      // this is the failure the column exists to prevent
+      const grid = parseCSV('when,who,amt,dir\n2026-07-03,Shop,86.50,OUT\n');
+      const rows = mapStatement(grid, E.impSpec({date: 0, merchant: 1, amount: 2, dateFormat: 'ymd'}));
+      return (rows[0][5] === 86.5 && rows[0][4] === 0) || 'expected the unguarded case to read as income';
+    });
+    T('direction column: a declarative pack can name it', () => {
+      E.impRegisterDeclarative([{
+        id: '__selftest_dir', label: 'DirTest', matchAll: ['d-when'],
+        build: {date: 'd-when', merchant: 'd-who', amount: 'd-amt', dirCol: 'd-dir', dirOut: ['支出']}
+      }]);
+      const p = Engine.IMP_PRESETS.find(x => x.id === '__selftest_dir');
+      const spec = p.build(['d-when','d-who','d-amt','d-dir'], [['d-when','d-who','d-amt','d-dir']], 0);
+      const idx = Engine.IMP_PRESETS.findIndex(x => x.id === '__selftest_dir');
+      if (idx >= 0) Engine.IMP_PRESETS.splice(idx, 1);
+      return (spec.dirCol === 3 && spec.dirOut[0] === '支出') || JSON.stringify({dirCol: spec.dirCol, dirOut: spec.dirOut});
     });
     // ── updates (P7-2) ──
     T('version: dotted compare orders correctly and refuses junk', () => {
