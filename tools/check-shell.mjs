@@ -10,6 +10,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import vm from 'node:vm';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 const appPath = resolve(process.argv[2] || 'index.html');
@@ -56,6 +57,54 @@ ok('app: hosted chrome wrapper', /id="hostedChrome"/.test(app));
 // shell must not carry code that writes statutory rates into FISCAL from a
 // remote pack, because Lithifyte ships no tax figures for any jurisdiction.
 // Inverted deliberately — the old check asserted its presence.
+// The sign-in gate is the first <script> block and only executes on
+// app.lithifyte.com, so nothing in the self-test ever runs it — which is how a
+// dangling `localeStored()` reference shipped and threw on the live /demo page
+// while every check stayed green. Actually EXECUTE it here, on the hosted-demo
+// path, with enough of a browser stubbed to get through. Any undefined
+// identifier throws, exactly as it would in the browser.
+ok('app: sign-in gate executes without throwing (hosted demo path)', (() => {
+  const m = app.match(/<script\b[^>]*>([\s\S]*?)<\/script>/);
+  if (!m) return false;
+  const src = m[1];
+  if (!/isHostedApp/.test(src)) return false;   // wrong block; fail loudly
+  const noop = () => {};
+  const el = new Proxy({}, {
+    get: (t, k) => (k === 'style' || k === 'dataset' || k === 'classList'
+      ? new Proxy({}, {get: () => noop, set: () => true})
+      : (k === 'appendChild' || k === 'setAttribute' || k === 'addEventListener'
+         || k === 'removeAttribute' || k === 'prepend' || k === 'remove' ? noop : '')),
+    set: () => true,
+  });
+  const sandbox = {
+    window: {}, document: {
+      createElement: () => el, getElementById: () => el, querySelector: () => el,
+      querySelectorAll: () => [], addEventListener: noop, body: el, documentElement: el,
+      readyState: 'complete',
+    },
+    location: {hostname: 'app.lithifyte.com', pathname: '/demo', href: 'https://app.lithifyte.com/demo',
+               search: '', origin: 'https://app.lithifyte.com', replace: noop, assign: noop},
+    navigator: {language: 'en-US', languages: ['en-US'], sendBeacon: () => true, userAgent: 'node'},
+    localStorage: {getItem: () => null, setItem: noop, removeItem: noop},
+    sessionStorage: {getItem: () => null, setItem: noop, removeItem: noop},
+    // never resolves: we are checking the synchronous path, not the network
+    fetch: () => new Promise(() => {}),
+    setTimeout: noop, clearTimeout: noop, setInterval: noop, clearInterval: noop,
+    matchMedia: () => ({matches: false, addEventListener: noop}),
+    console: {log: noop, warn: noop, error: noop},
+    URLSearchParams: globalThis.URLSearchParams, JSON, Date, Math, String, Number,
+    Object, Array, Promise, RegExp, Error,
+  };
+  sandbox.window = sandbox;
+  sandbox.globalThis = sandbox;
+  try {
+    vm.runInNewContext(src, vm.createContext(sandbox), {timeout: 4000});
+    return true;
+  } catch (e) {
+    console.log('       gate threw: ' + (e && e.message));
+    return false;
+  }
+})());
 ok('app: no tax-pack applier', !/applyFiscalPack/.test(app));
 ok('app: ships no tax rates in the seed', (() => {
   const i = app.lastIndexOf('<script id="finance-data" type="application/json">');
