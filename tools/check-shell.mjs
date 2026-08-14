@@ -50,7 +50,23 @@ ok('app: propose_rules tool', /id:'propose_rules'/.test(app) || /id: 'propose_ru
 ok('app: demo skips hosted consume', /!sample && purpose === 'chat'|!window\.__lfDemo/.test(app) && /__lfDemo/.test(app));
 ok('app: cloud vault block', /id="cloudVaultBlock"/.test(app));
 ok('app: hosted chrome wrapper', /id="hostedChrome"/.test(app));
-ok('app: applyFiscalPack', /applyFiscalPack/.test(app));
+// Retired 2026-08-14. This asserts the ABSENCE of a tax-pack applier: the
+// shell must not carry code that writes statutory rates into FISCAL from a
+// remote pack, because Lithifyte ships no tax figures for any jurisdiction.
+// Inverted deliberately — the old check asserted its presence.
+ok('app: no tax-pack applier', !/applyFiscalPack/.test(app));
+ok('app: ships no tax rates in the seed', (() => {
+  const i = app.lastIndexOf('<script id="finance-data" type="application/json">');
+  if (i < 0) return false;
+  const j = app.indexOf('</script>', i);
+  let d;
+  try { d = JSON.parse(app.slice(i + '<script id="finance-data" type="application/json">'.length, j)); }
+  catch (e) { return false; }
+  const banned = ['country','netToGross','payeShareOfGross','pensionReliefRate','fundsExitTax',
+                  'dirtRate','htbCap','htbYears','pensionAgeBands','capacityPerThousand',
+                  'cgtRate','cgtExemption','verifiedOn'];
+  return !banned.some(k => (d.fiscal || {})[k] != null);
+})());
 ok('app: declarative importer packs', /impRegisterDeclarative/.test(app));
 ok('app: no public workers path', !/www\/workers\/access\.js/.test(app));
 ok('app: no leftover personal name in finance-data seed', (() => {
