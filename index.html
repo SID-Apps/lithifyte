@@ -15,7 +15,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '2.0.0';
+  var APP_VER = '2.1.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -3049,6 +3049,18 @@ So, when you change a stored shape:
     <a class="btn" href="tutorial" id="setTutorialAskLink">📘 Tutorial &amp; Ask</a>
     <p class="hint" id="selfHostNote" hidden>This copy is self-hosted. Plus, sign-in, Drive and the cloud vault exist only on app.lithifyte.com. Export a backup file here instead.</p>
     <div id="hostedChrome">
+    <div id="updateBlock">
+    <h3 style="margin:18px 0 8px">Updates</h3>
+    <p class="hint" style="margin:0 0 10px; max-width:82ch">This copy is self-hosted, so nothing updates it but you. Lithifyte can check whether a newer version has been published and tell you — <b>it asks GitHub, never us</b>, so we do not learn that you exist, what version you run, or that you ran it today. Off until you turn it on, and it checks at most once a week.</p>
+    <div class="filter-row" style="margin:0 0 8px; flex-wrap:wrap">
+      <button class="btn primary" id="updOptIn" type="button">Check for updates</button>
+      <button class="btn" id="updOff" type="button">No thanks</button>
+      <button class="btn" id="updNow" type="button" hidden>Check now</button>
+      <button class="btn" id="updDisable" type="button" hidden>Stop checking</button>
+      <span class="hint" id="updStatus"></span>
+    </div>
+    <div id="updResult" style="margin-top:8px"></div>
+    </div>
     <h3 style="margin:18px 0 8px">Your account</h3>
     <p class="hint" style="margin:0 0 8px" id="acctWho">Not signed in on this copy — self-hosted and downloaded files never phone home.</p>
     <div class="filter-row" style="margin:0 0 8px; flex-wrap:wrap; gap:8px">
@@ -3739,7 +3751,7 @@ rewrite the static advice cards if the picture has changed.</div>
   const MAP_LEGEND = false;
 
   // ══ persistent stores (all in this browser — self-hosted) ══
-  const LS = {rules:'dd-rules-v2', cats:'dd-cats-v2', goals:'dd-goals-v1', org:'dd-org-v1', recur:'dd-recur-v1', uploads:'dd-uploads-v1', xfers:'dd-xfers-v1', manrec:'dd-manrec-v1', fcast:'dd-fcast-v1', cuts:'dd-cuts-v1', visit:'dd-visit-v1', budget:'dd-budget-v1', priv:'dd-privacy-v1', debts:'dd-debts-v1', holds:'dd-holdings-v1', assets:'dd-assets-v1', nwlog:'dd-nwlog-v1', merch:'dd-merch-v1', notes:'dd-notes-v1', lm:'dd-lm-v1', cash:'dd-cash-v1', alerts:'dd-alerts-v1', txcat:'dd-txcat-v1', docs:'dd-docs-v1', imports:'dd-imports-v1', chats:'dd-chats-v1', scenarios:'dd-scenarios-v1', disclose:'dd-disclose-v1', tax:'dd-tax-v1', fx:'dd-fx-v1'};
+  const LS = {rules:'dd-rules-v2', cats:'dd-cats-v2', goals:'dd-goals-v1', org:'dd-org-v1', recur:'dd-recur-v1', uploads:'dd-uploads-v1', xfers:'dd-xfers-v1', manrec:'dd-manrec-v1', fcast:'dd-fcast-v1', cuts:'dd-cuts-v1', visit:'dd-visit-v1', budget:'dd-budget-v1', priv:'dd-privacy-v1', debts:'dd-debts-v1', holds:'dd-holdings-v1', assets:'dd-assets-v1', nwlog:'dd-nwlog-v1', merch:'dd-merch-v1', notes:'dd-notes-v1', lm:'dd-lm-v1', cash:'dd-cash-v1', alerts:'dd-alerts-v1', txcat:'dd-txcat-v1', docs:'dd-docs-v1', imports:'dd-imports-v1', chats:'dd-chats-v1', scenarios:'dd-scenarios-v1', disclose:'dd-disclose-v1', tax:'dd-tax-v1', fx:'dd-fx-v1', upd:'dd-updates-v1'};
   // demo build (raw.demo:true in the data block): every store gets its own
   // namespace — the sample household shares an origin with the real app, and
   // playing with sample data must never be able to touch someone's real data
@@ -4246,6 +4258,59 @@ rewrite the static advice cards if the picture has changed.</div>
   // each kernel's original location; the self-test runs them on fixtures.
   // ═══════════════════════════════════════════════════════════════════
   const Engine = {
+    // ── update checking (P7-2) ──
+    // Self-hosted copies only. The hosted app is whatever Sid deployed, so an
+    // update prompt there would be noise about a file the user cannot replace.
+    //
+    // Dotted numeric compare. Not full semver — Lithifyte has no pre-release
+    // or build metadata and inventing a parser for tags it never emits would
+    // be more code to get wrong. Missing segments read as 0, so 2.1 === 2.1.0,
+    // and a non-numeric segment makes the whole comparison refuse (null)
+    // rather than guess an ordering.
+    versionCompare(a, b){
+      const parse = v => {
+        if (v == null) return null;
+        const parts = String(v).trim().replace(/^v/i, '').split('.');
+        if (!parts.length || parts.some(x => x === '' || !/^\d+$/.test(x))) return null;
+        return parts.map(Number);
+      };
+      const A = parse(a), B = parse(b);
+      if (!A || !B) return null;
+      for (let i = 0; i < Math.max(A.length, B.length); i++){
+        const x = A[i] || 0, y = B[i] || 0;
+        if (x !== y) return x < y ? -1 : 1;
+      }
+      return 0;
+    },
+    // Decide what the update card should say, as data. Pure so the self-test
+    // can assert every branch without a network or a clock.
+    updateStatus({current, manifest, lastCheck, now, intervalDays, optIn}){
+      const out = {due: false, newer: false, version: null, notes: '', url: null,
+                   sha256: null, dataVersionJump: false, error: null};
+      if (optIn !== true) return out;                     // never due until opted in
+      const days = intervalDays == null ? 7 : intervalDays;
+      const t = Date.parse(now || '');
+      const last = lastCheck ? Date.parse(lastCheck) : NaN;
+      out.due = !isFinite(last) || !isFinite(t) || (t - last) >= days * 86400000;
+      if (!manifest || typeof manifest !== 'object') return out;
+      const cmp = Engine.versionCompare(current, manifest.version);
+      if (cmp === null){
+        // an unreadable version on either side is reported, never treated as
+        // "up to date" — silence would hide a broken manifest indefinitely
+        out.error = 'unreadable version (' + current + ' vs ' + manifest.version + ')';
+        return out;
+      }
+      out.version = manifest.version;
+      out.notes = manifest.notes || '';
+      out.url = manifest.url || null;
+      out.sha256 = manifest.sha256 || null;
+      out.newer = cmp < 0;
+      // a higher stored-data version means the update migrates their data, and
+      // they deserve to know that before they take it
+      const mv = Number(manifest.dataVersion);
+      out.dataVersionJump = out.newer && isFinite(mv) && mv > Number(DATA_VERSION);
+      return out;
+    },
     // ── currency conversion (P7-1) ──
     // Rates are held against ONE base: rates[X] is "how many X per 1 base",
     // with the base itself implicitly 1. Cross-rates are derived, never stored,
@@ -12186,6 +12251,184 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     document.querySelector('#reallocTable tbody').innerHTML = rows.join('');
   }
 
+  // ══ update checking (P7-2) ══
+  //
+  // Self-hosted only, opt-in, and pointed at GitHub rather than at us. That
+  // last part is the whole design: lithifyte.com never sees the request, so
+  // "the project keeps no count of self-hosted installs" stays literally true
+  // rather than becoming "we only log a version". raw.githubusercontent.com
+  // serves `access-control-allow-origin: *`, which is why this works from a
+  // downloaded file (Origin: null) as well as from a server.
+  //
+  // Nothing here installs anything on its own. The most it will do is fetch a
+  // candidate file, verify its SHA-256 against the manifest, and hand it to
+  // the user to save — see updInstall().
+  // APP_VER is declared inside the sign-in gate's IIFE in the first script
+  // block, so it is NOT in scope here — reaching for it throws a ReferenceError
+  // that takes this whole init block down silently. window.__lfAppVer is the
+  // deliberate export; use it.
+  const APP_VERSION = String((window.__lfAppVer != null ? window.__lfAppVer : '') || '0.0.0');
+  const UPD_MANIFEST = 'https://raw.githubusercontent.com/SID-Apps/lithifyte/main/version.json';
+  const UPD_INTERVAL_DAYS = 7;
+  let updStore = load(LS.upd, {optIn: null, lastCheck: null, seen: null});
+
+  const updSaveStore = () => save(LS.upd, updStore);
+  const updEl = id => document.getElementById(id);
+  function updSay(msg, warn){
+    const el = updEl('updStatus');
+    if (el) el.innerHTML = warn ? '<span class="flag warm">' + esc(msg) + '</span>' : esc(msg);
+  }
+  // A self-hosted copy is the only one this applies to. On the hosted app the
+  // running version is whatever was deployed and the user cannot replace it,
+  // so the whole block is hidden rather than shown and made inert.
+  const updApplies = () => !window.__lfHosted && !raw.demo;
+
+  function updRender(st){
+    const box = updEl('updResult');
+    if (!box) return;
+    const optedIn = updStore.optIn === true;
+    if (updEl('updOptIn')) updEl('updOptIn').hidden = updStore.optIn !== null;
+    if (updEl('updOff')) updEl('updOff').hidden = updStore.optIn !== null;
+    if (updEl('updNow')) updEl('updNow').hidden = !optedIn;
+    if (updEl('updDisable')) updEl('updDisable').hidden = !optedIn;
+    if (updStore.optIn === false){
+      box.innerHTML = '<p class="hint">Update checks are off. Nothing leaves this browser. You can turn them on here any time, or watch the repository yourself.</p>';
+      return;
+    }
+    if (!optedIn){ box.innerHTML = ''; return; }
+    if (!st || !st.version){
+      box.innerHTML = '<p class="hint">You are running <b>' + esc(APP_VERSION) + '</b>.' +
+        (updStore.lastCheck ? ' Last checked ' + esc(String(updStore.lastCheck).slice(0, 10)) + '.' : '') + '</p>';
+      return;
+    }
+    if (!st.newer){
+      box.innerHTML = '<p class="hint">You are on <b>' + esc(APP_VERSION) + '</b>, the newest published version. Checked ' +
+        esc(String(updStore.lastCheck || '').slice(0, 10)) + '.</p>';
+      return;
+    }
+    box.innerHTML =
+      '<div class="card" style="margin:0">' +
+      '<h4 style="margin:0 0 6px">Version ' + esc(st.version) + ' is available</h4>' +
+      '<p class="hint" style="margin:0 0 8px">You are on ' + esc(APP_VERSION) + '.' + (st.notes ? ' ' + esc(st.notes) : '') + '</p>' +
+      (st.dataVersionJump
+        ? '<p class="hint" style="margin:0 0 8px"><span class="flag warm">Changes stored data</span> This version upgrades how your data is stored. Lithifyte snapshots your data before migrating and you can restore it, but <b>export a backup first</b> — it costs a click and removes all doubt.</p>'
+        : '') +
+      '<p class="hint" style="margin:0 0 8px">Your data lives in this browser, not in the file, so replacing the file keeps every transaction, budget and rule.</p>' +
+      '<div class="filter-row" style="margin:0">' +
+        '<button class="btn primary" id="updGet" type="button">Download ' + esc(st.version) + '</button>' +
+        '<a class="btn" href="https://github.com/SID-Apps/lithifyte/releases" target="_blank" rel="noopener">What changed</a>' +
+        '<span class="hint" id="updGetMsg"></span>' +
+      '</div></div>';
+    const b = updEl('updGet');
+    if (b) b.addEventListener('click', () => updInstall(st).catch(e => {
+      const m = updEl('updGetMsg');
+      if (m) m.innerHTML = '<span class="flag warm">' + esc(e.message || String(e)) + '</span>';
+    }));
+  }
+
+  async function updCheck(force){
+    if (!updApplies() || updStore.optIn !== true) return null;
+    const now = new Date().toISOString();
+    let st = Engine.updateStatus({current: APP_VERSION, manifest: null, lastCheck: updStore.lastCheck,
+                                  now, intervalDays: UPD_INTERVAL_DAYS, optIn: true});
+    if (!force && !st.due) return null;
+    updSay('Checking…');
+    try{
+      const res = await fetch(UPD_MANIFEST, {cache: 'no-store'});
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const manifest = await res.json();
+      st = Engine.updateStatus({current: APP_VERSION, manifest, lastCheck: updStore.lastCheck,
+                                now, intervalDays: UPD_INTERVAL_DAYS, optIn: true});
+      updStore.lastCheck = now;
+      if (st.version) updStore.seen = st.version;
+      updSaveStore();
+      updSay(st.error ? st.error : '');
+      updRender(st);
+      return st;
+    }catch(e){
+      // A failed check is not an error the user has to act on — it means they
+      // are offline or GitHub is unreachable, and the app is unaffected.
+      updSay('Could not reach GitHub (' + (e.message || 'offline') + '). Nothing else is affected.', true);
+      return null;
+    }
+  }
+
+  // Fetch the candidate, verify it, then hand it over. Deliberately never
+  // writes anything by itself:
+  //   * a page cannot overwrite the file it was loaded from, in any browser;
+  //   * File System Access lets the USER point at the file and confirm, which
+  //     is a decision they make rather than one made for them.
+  // The SHA-256 check is the important part. Installing bytes fetched over the
+  // network without verifying them would be a self-inflicted supply-chain hole,
+  // so a mismatch refuses rather than warns.
+  async function updInstall(st){
+    const msg = updEl('updGetMsg');
+    const say = (t, warn) => { if (msg) msg.innerHTML = warn ? '<span class="flag warm">' + esc(t) + '</span>' : esc(t); };
+    if (!st.url) throw new Error('the manifest gave no download URL');
+    say('Downloading ' + st.version + '…');
+    const res = await fetch(st.url, {cache: 'no-store'});
+    if (!res.ok) throw new Error('download failed (HTTP ' + res.status + ')');
+    const buf = await res.arrayBuffer();
+    if (st.sha256){
+      if (!(crypto && crypto.subtle)) throw new Error('this browser cannot verify the download — fetch it from GitHub manually');
+      const digest = await crypto.subtle.digest('SHA-256', buf);
+      const hex = Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+      if (hex !== String(st.sha256).toLowerCase())
+        throw new Error('checksum mismatch — refusing to install. Expected ' + String(st.sha256).slice(0, 12) + '…, got ' + hex.slice(0, 12) + '…');
+      say('Verified ✓ — choose where to save');
+    } else {
+      say('No checksum published — saving unverified');
+    }
+    const blob = new Blob([buf], {type: 'text/html'});
+    const name = (location.pathname.split('/').pop() || 'lithifyte.html').replace(/[^\w.-]/g, '') || 'lithifyte.html';
+    // Preferred path: the user picks their own file and overwrites it in place.
+    // Available on file:// as well as https, which is why this is offered first.
+    if (window.showSaveFilePicker){
+      try{
+        const handle = await window.showSaveFilePicker({
+          suggestedName: name,
+          types: [{description: 'Lithifyte', accept: {'text/html': ['.html']}}]
+        });
+        const w = await handle.createWritable();
+        await w.write(blob);
+        await w.close();
+        say('Saved. Reload the file to run ' + st.version + '.');
+        return;
+      }catch(e){
+        if (e && e.name === 'AbortError'){ say('Cancelled — nothing was changed.'); return; }
+        // fall through to a plain download
+      }
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 5000);
+    say('Downloaded. Replace your existing file with it, then reload.');
+  }
+
+  {
+    const block = updEl('updateBlock');
+    if (block && !updApplies()) block.hidden = true;
+    const on = updEl('updOptIn');
+    if (on) on.addEventListener('click', ()=>{
+      updStore.optIn = true; updSaveStore(); updRender(null); updCheck(true);
+    });
+    const off = updEl('updOff');
+    if (off) off.addEventListener('click', ()=>{ updStore.optIn = false; updSaveStore(); updRender(null); });
+    const now = updEl('updNow');
+    if (now) now.addEventListener('click', ()=> updCheck(true));
+    const dis = updEl('updDisable');
+    if (dis) dis.addEventListener('click', ()=>{
+      updStore.optIn = false; updStore.lastCheck = null; updSaveStore(); updRender(null);
+    });
+    updRender(null);
+    // A background check on load, only once opted in and only when the weekly
+    // interval has elapsed. Never blocks the render.
+    if (updApplies() && updStore.optIn === true) setTimeout(()=> updCheck(false), 3000);
+  }
+
   // ══ currency & exchange rates ══
   // The rate feed is frankfurter.app (European Central Bank reference rates):
   // keyless, free, no account, and it never sees anything but a currency pair.
@@ -14850,6 +15093,68 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     // ships no tax figures. It asserts the ABSENCE of shipped rates: if a
     // future edit ever bakes a statutory number back into the file, this fails
     // loudly rather than quietly reintroducing the liability.
+    // ── updates (P7-2) ──
+    T('version: dotted compare orders correctly and refuses junk', () => {
+      const c = E.versionCompare;
+      if (c('2.0.0','2.0.1') !== -1) return 'patch order wrong';
+      if (c('2.10.0','2.9.0') !== 1) return 'numeric, not lexical, ordering expected';
+      if (c('2.1','2.1.0') !== 0) return 'missing segments should read as 0';
+      if (c('v2.0.0','2.0.0') !== 0) return 'a leading v should not matter';
+      // junk must refuse rather than invent an ordering — a wrong answer here
+      // would tell someone they are up to date when they are not
+      if (c('2.0.0','banana') !== null) return 'non-numeric should return null';
+      if (c(null,'2.0.0') !== null) return 'null should return null';
+      return c('2.0.0-beta','2.0.0') === null || 'a pre-release tag should refuse, not guess';
+    });
+    // Regression net for a real bug: the update card first referenced APP_VER,
+    // which lives inside the sign-in gate's IIFE and is not in scope in the app
+    // block. It threw a ReferenceError that silently killed the whole update
+    // init, and every structural check still passed. Assert the exported
+    // global exists and is a version this build can actually compare.
+    T('update: the app can read its own version at runtime', () => {
+      const v = window.__lfAppVer;
+      if (v == null || v === '') return '__lfAppVer is not exported';
+      return E.versionCompare(v, v) === 0 || 'exported version is not comparable: ' + v;
+    });
+    T('update: nothing is due until the user opts in', () => {
+      const base = {current:'2.0.0', manifest:{version:'9.9.9'}, lastCheck:null, now:'2026-08-14', intervalDays:7};
+      const off = E.updateStatus(Object.assign({}, base, {optIn:false}));
+      const unset = E.updateStatus(Object.assign({}, base, {optIn:null}));
+      if (off.due || off.newer) return 'opted out still reported an update';
+      if (unset.due || unset.newer) return 'unset consent still reported an update';
+      const on = E.updateStatus(Object.assign({}, base, {optIn:true}));
+      return (on.due && on.newer && on.version === '9.9.9') || JSON.stringify(on);
+    });
+    T('update: the weekly interval is respected', () => {
+      const base = {current:'2.0.0', manifest:{version:'2.0.0'}, now:'2026-08-14T00:00:00Z', intervalDays:7, optIn:true};
+      const fresh = E.updateStatus(Object.assign({}, base, {lastCheck:'2026-08-12T00:00:00Z'}));
+      const stale = E.updateStatus(Object.assign({}, base, {lastCheck:'2026-08-01T00:00:00Z'}));
+      const never = E.updateStatus(Object.assign({}, base, {lastCheck:null}));
+      return (!fresh.due && stale.due && never.due) ||
+        JSON.stringify({fresh:fresh.due, stale:stale.due, never:never.due});
+    });
+    T('update: same or older published version is not an update', () => {
+      const base = {current:'2.0.0', lastCheck:null, now:'2026-08-14', optIn:true};
+      const same = E.updateStatus(Object.assign({}, base, {manifest:{version:'2.0.0'}}));
+      const older = E.updateStatus(Object.assign({}, base, {manifest:{version:'1.9.9'}}));
+      return (!same.newer && !older.newer) || JSON.stringify({same:same.newer, older:older.newer});
+    });
+    T('update: a data-version jump is flagged so the user can back up first', () => {
+      const withJump = E.updateStatus({current:'2.0.0', manifest:{version:'2.1.0', dataVersion: DATA_VERSION + 1},
+        lastCheck:null, now:'2026-08-14', optIn:true});
+      const noJump = E.updateStatus({current:'2.0.0', manifest:{version:'2.1.0', dataVersion: DATA_VERSION},
+        lastCheck:null, now:'2026-08-14', optIn:true});
+      return (withJump.dataVersionJump && !noJump.dataVersionJump) ||
+        JSON.stringify({withJump: withJump.dataVersionJump, noJump: noJump.dataVersionJump});
+    });
+    T('update: a broken manifest is reported, never read as up to date', () => {
+      const bad = E.updateStatus({current:'2.0.0', manifest:{version:'not-a-version'},
+        lastCheck:null, now:'2026-08-14', optIn:true});
+      if (bad.newer) return 'junk version claimed to be newer';
+      if (!bad.error) return 'a broken manifest was silently treated as up to date';
+      const none = E.updateStatus({current:'2.0.0', manifest:null, lastCheck:null, now:'2026-08-14', optIn:true});
+      return (!none.newer && none.version === null) || 'a missing manifest should yield nothing';
+    });
     // ── currency & FX (P7-1) ──
     T('fx: converts via the base and derives cross-rates', () => {
       const rates = {USD: 1.10, INR: 95.0};       // per 1 EUR

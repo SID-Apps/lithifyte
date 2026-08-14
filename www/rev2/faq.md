@@ -136,6 +136,14 @@ What the app does instead is arithmetic on rates *you* supply. Under **Wealth �
 
 Two things worth knowing. A rate of **0 is a real answer**, not the same as leaving a field blank, so if gains are untaxed where you live you can enter 0 and get genuine zero-tax arithmetic. And real tax rules involve holding periods, loss relief, wrappers and allowances that a rate alone cannot capture — so treat the output as a rough sketch on your own assumptions and check anything that matters with your own tax authority or an adviser.
 
+### How do I know when there is a new version?
+
+If you use the hosted app, you are always on the current one — we deploy it.
+
+On a self-hosted copy, **Settings → Updates** offers a weekly check. It is off until you turn it on, and it asks **GitHub**, not us, so we never learn that your copy exists. When an update is published you are told what changed; pressing Download fetches the file and verifies its SHA-256 against the published manifest before handing it to you, and refuses outright if they do not match.
+
+Your data is in your browser, not in the file, so replacing the file keeps everything. If a version changes how data is stored you are warned before you take it, and Lithifyte snapshots your data before migrating — though exporting a backup first is still the sensible habit.
+
 ### Does it work outside Ireland?
 
 Yes. Nothing in the Engine depends on where you live. You set your currency and number format once — including formats most software gets wrong, such as the Indian lakh grouping (`1,23,456`) — and every screen follows. Exchange rates are built in, with a converter and optional live reference rates, plus manual entry for currencies the public feed does not carry.
