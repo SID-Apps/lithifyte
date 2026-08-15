@@ -1,8 +1,8 @@
 {
-  "version": "2.5.0",
+  "version": "2.6.0",
   "released": "2026-08-15",
-  "notes": "Natural budget chat: Engine what-if and notice; stop echoing tool dumps.",
+  "notes": "Typical standing-order amount (not year-smear); save plan for target-by-date without a payment.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "e54cbe1658964ff8b845db12220b85f5e709eac2743f5d13c8375f6efa304850"
+  "sha256": "75e9735339c72488788442643846fc9545f1ac4dba86a69acce014167fca5c03"
 }

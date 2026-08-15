@@ -103,10 +103,29 @@ T('plan hint: what do you notice is advice', () => {
   const h = Engine.planHint('What do you notice?');
   return !!(h.wantsAdvice && !h.wantsWhatIf);
 });
+T('paySeries: 11x270 in 12 months is 270 not 248', () => {
+  if (typeof Engine.paySeries !== 'function') return 'paySeries missing';
+  const rows = [];
+  for (let i = 1; i <= 11; i++){
+    const mo = '2025-' + String(i).padStart(2, '0');
+    rows.push({d: mo + '-05', m:'PTSB ASSET FI SEPA DD', c:'Financial', de:270, cr:0, mo});
+  }
+  const s = Engine.paySeries({query:'ptsb', rows});
+  return s.typical === 270 && s.monthsActive === 11;
+});
+T('plan hint: how much am I paying PTSB each mont', () => {
+  const h = Engine.planHint('How much am i paying PTSB each mont?');
+  return !!(h.wantsPayment && h.paymentQuery && h.paymentQuery.indexOf('ptsb') >= 0);
+});
+T('plan hint: do not need PTSB + save target is save plan', () => {
+  const h = Engine.planHint('how much can i save, I do not need the PTSB payment, I want to reach 5000 by 2027-06');
+  const ended = (h.cuts || []).find(c => c.end && c.label.indexOf('ptsb') >= 0);
+  return !!(h.wantsSavePlan && ended && h.target === 5000 && h.by === '2027-06');
+});
 
 if (fails.length){
   console.error('tx-retrieve FAIL (' + fails.length + ')');
   for (const f of fails) console.error('  - ' + f);
   process.exit(1);
 }
-console.log('tx-retrieve: ' + '13/13');
+console.log('tx-retrieve: ' + '16/16');

@@ -53,6 +53,8 @@ ok('app: leaks tool', /id:'leaks'/.test(app) || /id: 'leaks'/.test(app));
 ok('app: propose_rules tool', /id:'propose_rules'/.test(app) || /id: 'propose_rules'/.test(app));
 ok('app: txRetrieve in-browser RAG', /txRetrieve\(/.test(app) && /\/\/ <tx-retrieve>/.test(app));
 ok('app: cashflow what-if tool', /cashflow_whatif/.test(app) && /planHint\(text\)/.test(app));
+ok('app: payment monthly uses typical bill', /payment_monthly/.test(app) && /paySeries\(/.test(app));
+ok('app: save plan tool', /save_plan/.test(app));
 ok('app: budget notice tool', /budget_notice/.test(app));
 ok('app: cacheable static system prompt', /function systemPromptStatic\(/.test(app) && /function systemPromptHousehold\(/.test(app));
 ok('app: relay sends convId for Grok cache', /convId:\s*opts\.convId/.test(app));
