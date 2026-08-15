@@ -15,7 +15,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '2.6.0';
+  var APP_VER = '2.7.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -5019,6 +5019,28 @@ rewrite the static advice cards if the picture has changed.</div>
       return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(/\s+/)
         .filter(w => w.length >= 2 && !Engine.TX_STOP[w]);
     },
+    nearTok(a, b){
+      a = String(a || ''); b = String(b || '');
+      if (a === b) return true;
+      if (a.length < 4 || b.length < 4 || Math.abs(a.length - b.length) > 1) return false;
+      if (a.length === b.length){
+        let d = 0;
+        for (let i = 0; i < a.length; i++){
+          if (a[i] === b[i]) continue;
+          if (i + 1 < a.length && a[i] === b[i + 1] && a[i + 1] === b[i]){ i++; d++; }
+          else d++;
+          if (d > 1) return false;
+        }
+        return d <= 1;
+      }
+      const s = a.length < b.length ? a : b, l = a.length < b.length ? b : a;
+      let i = 0, j = 0, d = 0;
+      while (i < s.length && j < l.length){
+        if (s[i] === l[j]){ i++; j++; }
+        else { d++; j++; if (d > 1) return false; }
+      }
+      return true;
+    },
     txQueryHint(text){
       const raw = String(text || '');
       const n = raw.toLowerCase();
@@ -5083,6 +5105,7 @@ rewrite the static advice cards if the picture has changed.</div>
             if (merch === t) score += 6;
             else if (merch.indexOf(t) >= 0) score += 3;
             else if (t.length >= 3 && merchWords.some(w => w.startsWith(t))) score += 2;
+            else if (t.length >= 4 && merchWords.some(w => Engine.nearTok(t, w))) score += 3;
             if (cat === t || (Engine.TX_SYN[t] && cat === Engine.TX_SYN[t])) score += 5;
             else if (cat.indexOf(t) >= 0) score += 2;
             else if (note.indexOf(t) >= 0) score += 1;
@@ -5121,6 +5144,16 @@ rewrite the static advice cards if the picture has changed.</div>
         return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
       };
       const lastMonth = months[months.length - 1] || '';
+      const counts = {};
+      for (const r of got.hits){
+        const a = Math.round(+r.de || 0);
+        if (a > 0) counts[a] = (counts[a] || 0) + 1;
+      }
+      let modeAmount = 0, modeCount = 0, nTx = 0;
+      for (const k of Object.keys(counts)){
+        nTx += counts[k];
+        if (counts[k] > modeCount){ modeCount = counts[k]; modeAmount = +k; }
+      }
       return {
         tokens: got.tokens,
         matched: got.matched,
@@ -5130,6 +5163,9 @@ rewrite the static advice cards if the picture has changed.</div>
         lastMonth,
         total: +vals.reduce((s, v) => s + v, 0).toFixed(2),
         monthsActive: vals.length,
+        nTx,
+        modeAmount,
+        modeCount,
         sample: got.hits[0] ? (got.hits[0].merchant || got.hits[0].m || '') : ''
       };
     },
@@ -5182,8 +5218,19 @@ rewrite the static advice cards if the picture has changed.</div>
       m = n.match(/\b(?:how much|what)\s+(?:am i|do i|are we|is (?:the|my))\s+(?:paying|pay)\s+(?:for\s+|on\s+)?([a-z0-9][a-z0-9 &.-]{1,30}?)(?:\s+each month|\s+a month|\s+monthly|\s+per month)?\b/);
       if (m) paymentQuery = cleanLab(m[1]);
       if (!paymentQuery){
+        m = n.match(/\bhow much is (?:the |my |our )?(?:current )?([a-z0-9][a-z0-9&-]{2,24})(?:\s+payment|\s+bill|\s+dd|\s+standing order)?\b/);
+        if (m && !/^(this|that|last|next|my|the|our|rent)$/.test(m[1])) paymentQuery = cleanLab(m[1]);
+      }
+      if (!paymentQuery){
+        m = n.match(/\b(?:current )?(?:the )?([a-z0-9][a-z0-9&-]{2,24})\s+payment\b/);
+        if (m && !/^(this|that|last|next|month|monthly|my|the)$/.test(m[1])) paymentQuery = cleanLab(m[1]);
+      }
+      if (!paymentQuery){
         m = n.match(/\b([a-z0-9][a-z0-9&-]{2,24})\s+(?:each month|a month|per month|monthly payment|standing order|direct debit)\b/);
         if (m && !/^(this|that|last|next|every|each)$/.test(m[1])) paymentQuery = cleanLab(m[1]);
+      }
+      if (!paymentQuery && /\b(how many payments|month(?:ly)? payment not the average|not the average)\b/.test(n)){
+        paymentQuery = (cuts.find(c => c.end) || {}).label || '';
       }
       let target = null, by = null, months = null;
       m = n.match(/(?:€|\$|£)\s*(\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?|\b(\d+(?:\.\d+)?)\s*k\b|(?:target|reach|save)\s+(?:of\s+)?(?:€|\$|£)?\s*(\d{1,3}(?:,\d{3})+|\d{3,})/i);
@@ -5199,7 +5246,8 @@ rewrite the static advice cards if the picture has changed.</div>
       }
       m = n.match(/\bin\s+(\d{1,3})\s+months?\b/);
       if (m) months = +m[1];
-      const wantsPayment = !!paymentQuery && /\b(how much|paying|each month|a month|per month|monthly)\b/.test(n);
+      const wantsPayment = (!!paymentQuery && /\b(how much|paying|each month|a month|per month|monthly|payment)\b/.test(n))
+        || /\b(how many payments|not the average|month(?:ly)? payment)\b/.test(n);
       const wantsWhatIf = /\b(if i|what if|suppose i|after i|once i|when i|how does this|how would this|effect my|affect my|monthly outcome|these sections are deducted|if these)\b/i.test(raw)
         || (cuts.length >= 2 && /\b(cut|reduc|deduct|finish|paid off)\b/i.test(n));
       const wantsSavePlan = /\b(how much can i save|how much could i save|what can i (put aside|save)|reach .{0,48} by |save .{0,24} by |target .{0,24} by )\b/i.test(n)
@@ -13848,6 +13896,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const h = E.planHint('How much am i paying PTSB each mont?');
       return (h.wantsPayment && h.paymentQuery && h.paymentQuery.indexOf('ptsb') >= 0) || JSON.stringify(h);
     });
+    T('plan: current PSTB payment is a payment lookup', () => {
+      const h = E.planHint('how much is the current PSTB payment');
+      return (h.wantsPayment && h.paymentQuery && /p[st][st]b/.test(h.paymentQuery)) || JSON.stringify(h);
+    });
+    T('nearTok: pstb matches ptsb', () => E.nearTok('pstb', 'ptsb') || 'no');
     T('plan: do not need PTSB + how much can I save is a save plan', () => {
       const h = E.planHint('how much can i save, I do not need the PTSB payment, I want to reach 5000 by 2027-06');
       if (!h.wantsSavePlan) return 'not save plan: ' + JSON.stringify(h);
@@ -16445,6 +16498,23 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const n = (A.leaks || []).length;
       if ((lk.data.rows || []).length !== Math.min(8, n) && n > 0) return 'leaks row count';
       return true;
+    });
+    T('companion: "current" does not match Rent', () => {
+      const c = Companion.findCategory('how much is the current pstb payment');
+      return !c || !/^rent$/i.test(c) || ('matched ' + c);
+    });
+    T('companion: how much is my rent is Rent', () => {
+      if (!TX.length || !A) return true;
+      const c = Companion.findCategory('how much is my rent');
+      return /rent/i.test(c || '') || ('got ' + c);
+    });
+    T('companion: structure a budget drafts a sandbox budget', () => {
+      const m = Companion.match('Help me structure a budget with my current finances');
+      return (m && m.tool === 'propose_budget' && m.score >= 0.8) || JSON.stringify(m);
+    });
+    T('companion: why are you telling me about rent is not notes', () => {
+      const m = Companion.match('Why are you telling me about rent?');
+      return !m || m.tool !== 'notes_for' || JSON.stringify(m);
     });
     T('companion: shoppy resolves to Shopping', () => {
       if (!TX.length || !A) return true;
@@ -19401,26 +19471,31 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       return [...set].filter(c => c && c !== INT_CAT).sort((a,b) => b.length - a.length);
     }
     function findCategory(n){
+      // Word-boundary only. "current" used to match Rent because it contains "rent".
       const raw = String(n || '').toLowerCase().replace(/\b(euros?|eur|dollars?|quid|pounds?|my|the|our|a|an|on|for)\b/g, ' ').replace(/\s+/g, ' ').trim();
       if (!raw) return null;
-      const syn = (Engine.CAT_SYN && (Engine.CAT_SYN[raw] || Engine.CAT_SYN[raw.replace(/s$/, '')])) || raw;
+      const tokens = raw.split(/\s+/).filter(Boolean);
       const cats = allCatNames();
-      let best = null, bestS = 0;
       for (const c of cats){
         const cl = c.toLowerCase();
-        const head = cl.split(/[^a-z0-9]+/)[0] || cl;
-        if (cl === syn || cl === raw || head === syn || head === raw) return c;
-        if (cl.indexOf(syn) >= 0 || syn.indexOf(head) >= 0 && head.length >= 4){
-          if (head.length > bestS){ best = c; bestS = head.length; }
-        }
-        if (syn.length >= 4 && head.indexOf(syn.slice(0, 4)) === 0 && head.length > bestS){
-          best = c; bestS = head.length;
+        const re = new RegExp('\\b' + cl.replace(/[^a-z0-9]+/g, '\\s*') + '\\b');
+        if (re.test(raw)) return c;
+      }
+      for (const tok of tokens){
+        const want = (Engine.CAT_SYN && (Engine.CAT_SYN[tok] || Engine.CAT_SYN[tok.replace(/s$/, '')])) || tok;
+        for (const c of cats){
+          const head = c.toLowerCase().split(/[^a-z0-9]+/)[0] || '';
+          if (head && (head === want || head === tok)) return c;
         }
       }
-      if (best) return best;
-      for (const c of cats){
-        const cl = c.toLowerCase();
-        if (n === cl || String(n).includes(cl) || String(n).includes('for ' + cl) || String(n).includes('on ' + cl)) return c;
+      if (tokens.length <= 3){
+        for (const tok of tokens){
+          if (tok.length < 4) continue;
+          for (const c of cats){
+            const head = c.toLowerCase().split(/[^a-z0-9]+/)[0] || '';
+            if (head.indexOf(tok) === 0 || tok.indexOf(head) === 0) return c;
+          }
+        }
       }
       return null;
     }
@@ -19470,28 +19545,24 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const n = norm(q);
       if (!n) return null;
       if (/^(help|\?|commands|what can you do|examples)$/.test(n)) return {tool:'help', args:{}, score:1};
-      if (/\b(why|note|notes|explain)\b/.test(n)){
+      // Notes only when they asked about notes, not "why are you telling me…".
+      if (/\bnotes?\b/.test(n) || /\bwhy (did|do|was|is) (i|we|my)\b/.test(n)){
         const cat = findCategory(n), mo = findMonth(n);
         if (cat || mo) return {tool:'notes_for', args:{category:cat, month:mo}, score:0.9};
       }
       const onlyRange = findRangePreset(n);
       if (onlyRange && (/^(last|past|previous)\s*\d+\s*months?$/.test(n) || /^(all time|all|everything|this year|full history)$/.test(n)))
         return {tool:'set_range', args:{preset:onlyRange}, score:0.95};
-      if (findCategory(n) && (/\b(how|has|have|done|doing|spend|spent|spending|performance|trend|over|months?)\b/.test(n) || n === findCategory(n).toLowerCase())){
-        const cat = findCategory(n);
-        return {tool:'cat_monthly', args:{category:cat, rangePreset:findRangePreset(n), month:findMonth(n)}, score:0.9};
-      }
-      // "can I afford €300 a month" — the amount is the user's, the verdict is
-      // the Engine's. Matched deterministically so it also works with the model
-      // switched off entirely.
-      if (/\b(afford|affordable|can i (take on|manage|handle)|stretch to)\b/.test(n)){
-        const m = n.match(/(\d[\d,]*(?:\.\d+)?)/);
-        const amt = m ? Math.round(parseFloat(m[1].replace(/,/g, ''))) : 0;
-        if (amt > 0) return {tool:'affordability', args:{monthly:amt}, score:0.9};
-      }
+      // Payment / save / what-if BEFORE category. "current PTSB payment"
+      // used to match Rent because "current" contains "rent".
       const plan = Engine.planHint ? Engine.planHint(q) : {cuts:[], wantsWhatIf:false, wantsAdvice:false};
-      if (plan.wantsPayment && plan.paymentQuery){
-        return {tool:'payment_monthly', args:{query: plan.paymentQuery}, score:0.94};
+      if (plan.wantsPayment){
+        let pq = plan.paymentQuery;
+        if (!pq){
+          const wider = Engine.planHint(recentAsk(q));
+          pq = wider.paymentQuery || ((wider.cuts || []).find(c => c.end) || {}).label || '';
+        }
+        if (pq) return {tool:'payment_monthly', args:{query: pq}, score:0.94};
       }
       if (plan.wantsSavePlan){
         const end = (plan.cuts || []).filter(c => c.end).map(c => c.label);
@@ -19499,6 +19570,18 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       }
       if (plan.wantsWhatIf && plan.cuts.length){
         return {tool:'cashflow_whatif', args:{cuts: plan.cuts}, score:0.92};
+      }
+      if (/\b(budget|budgets)\b/.test(n) && /\b(design|propose|create|set ?up|setup|make|build|from my|structure|organis[ee]|help me|put together|draft)\b/.test(n))
+        return {tool:'propose_budget', args:{fromHistory:true, coach:true}, score:0.91};
+      if (findCategory(n) && (/\b(how has|how have|how is my|how is our|done|doing|spend|spent|spending on|performance|trend)\b/.test(n) || n === findCategory(n).toLowerCase() || /\bhow much is my\b/.test(n) || /\bhow much is our\b/.test(n))){
+        const cat = findCategory(n);
+        if (cat && !/\b(payment|standing order|direct debit|ptsb|pstb)\b/.test(n))
+          return {tool:'cat_monthly', args:{category:cat, rangePreset:findRangePreset(n), month:findMonth(n)}, score:0.9};
+      }
+      if (/\b(afford|affordable|can i (take on|manage|handle)|stretch to)\b/.test(n)){
+        const m = n.match(/(\d[\d,]*(?:\.\d+)?)/);
+        const amt = m ? Math.round(parseFloat(m[1].replace(/,/g, ''))) : 0;
+        if (amt > 0) return {tool:'affordability', args:{monthly:amt}, score:0.9};
       }
       if (plan.wantsAdvice){
         return {tool:'budget_notice', args:{}, score:0.75};
@@ -19695,10 +19778,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const recAmt = rec && rec.avg > 0 ? +(+rec.avg).toFixed(2) : 0;
       // Prefer the detected standing-order amount, then the median month.
       // Never total / range-length (that is how €270 became €248).
-      const monthly = recAmt || series.typical;
+      const monthly = recAmt || series.modeAmount || series.typical;
       return {
         monthly, typical: series.typical, last: series.last, lastMonth: series.lastMonth,
         matched: series.matched, monthsActive: series.monthsActive,
+        nTx: series.nTx, modeAmount: series.modeAmount, modeCount: series.modeCount,
         sample: rec ? rec.merchant : series.sample,
         source: recAmt ? 'recurring' : 'series',
         rangeMonths: RN || 0
@@ -19706,7 +19790,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
     function recentAsk(text){
       const chat = (typeof chatStore !== 'undefined' && chatStore.items || []).find(c => c.id === activeChatId);
-      const prev = ((chat && chat.messages) || []).filter(m => m.role === 'user').slice(-3).map(m => m.content);
+      const prev = ((chat && chat.messages) || []).filter(m => m.role === 'user').slice(-8).map(m => m.content);
       const parts = prev.slice();
       if (text && parts[parts.length - 1] !== text) parts.push(text);
       return parts.join('\n');
@@ -19860,14 +19944,21 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           return {ok:true, tool:t, say:'I could not find “' + q + '” in ' + rangeLabel() + '. Check the merchant spelling on the statement.',
                   provenance:'Engine · no payment', data:pay, actions:[{type:'nav', k:'cash', sec:'sec-cashflow'}], suggestions:['show me the transactions'], links:[]};
         }
-        const bits = [(pay.sample || q) + ' is ' + eur(pay.monthly) + ' each month.'];
-        if (pay.last && pay.lastMonth) bits.push('Last payment ' + eur(pay.last) + ' in ' + fmtMoLbl(pay.lastMonth) + '.');
+        const bill = pay.modeAmount || pay.monthly;
+        const bits = [];
+        if (pay.modeCount && pay.nTx){
+          bits.push((pay.sample || q) + ' — standing order ' + eur(bill) + ' (' + pay.modeCount + ' of ' + pay.nTx + ' payments were ' + eur(bill) + ').');
+        } else {
+          bits.push((pay.sample || q) + ' is ' + eur(pay.monthly) + ' each month.');
+        }
+        if (pay.last && pay.lastMonth && Math.abs(pay.last - bill) >= 1){
+          bits.push('Last month (' + fmtMoLbl(pay.lastMonth) + ') was ' + eur(pay.last) + ' — not the usual bill.');
+        } else if (pay.last && pay.lastMonth){
+          bits.push('Last payment ' + eur(pay.last) + ' in ' + fmtMoLbl(pay.lastMonth) + '.');
+        }
+        if (pay.monthsActive) bits.push('Factored ' + pay.monthsActive + ' month' + (pay.monthsActive === 1 ? '' : 's') + ' in ' + rangeLabel() + '.');
         if (pay.monthsActive && pay.rangeMonths && pay.monthsActive < pay.rangeMonths){
-          const spread = pay.typical && pay.rangeMonths ? +(pay.typical * pay.monthsActive / pay.rangeMonths).toFixed(2) : 0;
-          bits.push('Seen in ' + pay.monthsActive + ' of ' + pay.rangeMonths + ' months in this range.');
-          if (spread && Math.abs(spread - pay.monthly) >= 1){
-            bits.push('Spreading the missing month across the year would look like ' + eur(spread) + ' — that is not the standing order. The bill is ' + eur(pay.monthly) + '.');
-          }
+          bits.push('The year-average is lower because some months have no payment — the monthly DD is still ' + eur(bill) + '.');
         }
         return {ok:true, tool:t, say: bits.join(' '), provenance:'Engine · typical payment · ' + rangeLabel(),
                 data:pay, actions:[{type:'nav', k:'cash', sec:'sec-cashflow'}],
@@ -19907,7 +19998,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           goalName = g.name || 'your goal';
         }
         const last = (typeof MONTHS !== 'undefined' && MONTHS.length) ? MONTHS[MONTHS.length - 1] : '';
-        if (!nMo && by && last && Engine.monthDiff) nMo = Engine.monthDiff(last, by);
+        const todayMo = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0');
+        if (!nMo && by && Engine.monthDiff) nMo = Engine.monthDiff(todayMo, by);
         const bits = [];
         bits.push('You currently keep ' + eur(fig.spare) + ' a month after spending.');
         for (const e of ended){
@@ -19924,7 +20016,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           } else {
             const req = +(gap / nMo).toFixed(2);
             const finishMo = available > 0 ? Math.ceil(gap / available) : null;
-            bits.push('That needs ' + eur(req) + '/mo over ' + nMo + ' months.');
+            bits.push('From this month that is ' + nMo + ' months, so ' + eur(req) + '/mo.');
             if (available + 0.005 >= req){
               bits.push('With ' + eur(available) + '/mo you are on pace (room ' + eur(available - req) + '/mo).');
             } else if (available <= 0){
@@ -20083,11 +20175,20 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         saveScenarios();
         pendingApply = {scenarioId: scen.id};
         const total = scen.payload.lines.reduce((s,l)=>s+l.amount,0);
-        const say = 'Sandbox budget “' + scen.title + '” (' + scen.payload.lines.length + ' lines, ' + eur(total) + '/mo total).\n'
-          + scen.payload.lines.slice(0,8).map(l => '• ' + l.category + ': ' + eur(l.amount) + '/mo').join('\n')
-          + (scen.payload.lines.length > 8 ? '\n• …' : '')
-          + '\n\nNothing live changed. Say “apply scenario” or press Apply when ready.';
-        return {ok:true, tool:t, say, provenance:'Sandbox · not applied', data:scen, actions:[{type:'nav', k:'budget', sec:'sec-budget'}], suggestions:['apply this budget', 'show cashflow'], links:scen.links, apply:{scenarioId:scen.id, label:'Apply budget draft'}};
+        const fig = cashflowFigures();
+        const FLEX = /shopping|dining|entertainment|uncategor|subscription|eating|takeaway/i;
+        const FIXED = /rent|mortgage|housing|loan|childcare|insurance/i;
+        const bits = ['Sandbox budget from your last ' + (RN || 12) + ' months — nothing live until you Apply.'];
+        bits.push(scen.payload.lines.slice(0, 10).map(l => '• ' + l.category + ': ' + eur(l.amount) + '/mo').join('\n')
+          + (scen.payload.lines.length > 10 ? '\n• …' : ''));
+        bits.push('Draft total ' + eur(total) + '/mo'
+          + (fig ? ' vs income ' + eur(fig.income) + '/mo → ' + eur(fig.income - total) + ' left over if you hit every line.' : '.'));
+        const flex = scen.payload.lines.filter(l => FLEX.test(l.category));
+        const fixed = scen.payload.lines.filter(l => FIXED.test(l.category));
+        if (fixed.length) bits.push('Usually keep unless you are moving or refinancing: ' + fixed.map(l => l.category + ' ' + eur(l.amount)).join(', ') + '.');
+        if (flex.length) bits.push('First places to cut: ' + flex.map(l => l.category + ' ' + eur(l.amount)).join(', ') + '. Want to take €50–100 off groceries or shopping?');
+        bits.push('Open Budget to tweak a line, or say “apply this budget”.');
+        return {ok:true, tool:t, say: bits.join('\n'), provenance:'Sandbox · not applied', data:scen, actions:[{type:'nav', k:'budget', sec:'sec-budget'}], suggestions:['apply this budget', 'cut shopping by 50', 'show cashflow'], links:scen.links, apply:{scenarioId:scen.id, label:'Apply budget draft'}};
       }
       if (t === 'propose_goal'){
         const name = a.name || 'Savings goal';
@@ -20419,9 +20520,14 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     function systemPromptStatic(){
       return [
         'You are Lithifyte co-pilot — a household finance coach inside the Lithifyte app.',
+        'You know the app: Cashflow, Categories, Transactions, Leaks, Recurring, Budget (sandbox then Apply),',
+        'Goals, Forecast, Pulse, Net worth, Rules, Notes. You operate those surfaces via tools.',
         'You MUST NOT invent amounts, balances, or averages. Call tools; the app Engine computes figures.',
-        'You HELP: say what the numbers mean, what is tight, what they can actually move, and one next step.',
-        'Do not restate a tool paragraph. The user already sees it. Add interpretation.',
+        'You HELP: assess, propose, challenge, and ask one sharpening question. Do not restate a tool paragraph.',
+        'Rent / mortgage / loans are usually fixed — ask before suggesting a cut. Groceries, shopping,',
+        'dining, uncategorised and subscriptions are the first movable lines.',
+        '"Structure / help me with / build a budget" → propose_budget (sandbox). Then discuss specific cuts.',
+        '"How much is the current X payment" → payment_monthly, never a category average.',
         'You are not a regulated financial adviser — co-author the user\'s plan, do not recommend products.',
         '',
         'Respond with exactly ONE JSON object per turn (never multiple). One of:',
@@ -20516,7 +20622,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     function wantsDraft(text){
       const n = String(text || '').toLowerCase();
       if (!/\b(budget|goal|save for|saving for|target|rules?)\b/.test(n)) return false;
-      return /\b(design|draft|propose|create|make|build|set ?up|start|plan|come up with|suggest)\b/.test(n);
+      return /\b(design|draft|propose|create|make|build|set ?up|start|plan|come up with|suggest|structure|organis[ee]|help me|put together)\b/.test(n);
     }
 
     // Figures in `say` that neither a tool nor the user's own question supports.
@@ -20768,11 +20874,13 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           }
           return await askLm(text);
         } catch (e) {
-          // fall back to deterministic
-          let result = ask(text);
-          result.say = (result.ok ? result.say : '') + (result.ok ? '' : '\n\n') + 'AI error: ' + (e.message || e) + (result.ok ? '' : '\n' + (result.say || ''));
-          if (!result.ok && intent){
-            result = run(intent); applyActions(result.actions); result = refill(result);
+          let result = match(recentAsk(text)) || match(text) || intent;
+          if (result && result.tool) result = run(result);
+          else result = ask(text);
+          applyActions((result && result.actions) || []);
+          result = refill(result);
+          if (!result.ok){
+            result.say = (result.say ? result.say + '\n\n' : '') + 'The hosted model did not answer (' + ((e && e.message) || e) + '). Try again, or use Commands only.';
           }
           const chat = ensureChat();
           echoUser(chat, text);

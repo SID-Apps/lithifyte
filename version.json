@@ -1,8 +1,8 @@
 {
-  "version": "2.6.0",
+  "version": "2.7.0",
   "released": "2026-08-15",
-  "notes": "Typical standing-order amount (not year-smear); save plan for target-by-date without a payment.",
+  "notes": "Chat routing: current is not Rent; PTSB typos; structure-a-budget is a sandbox draft.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "75e9735339c72488788442643846fc9545f1ac4dba86a69acce014167fca5c03"
+  "sha256": "9b3b7f07cc0f994c587febe1ad22aaeb38704662d206a5d8df60276451e1fa8b"
 }

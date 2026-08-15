@@ -117,6 +117,11 @@ T('plan hint: how much am I paying PTSB each mont', () => {
   const h = Engine.planHint('How much am i paying PTSB each mont?');
   return !!(h.wantsPayment && h.paymentQuery && h.paymentQuery.indexOf('ptsb') >= 0);
 });
+T('plan hint: current PSTB payment is a payment lookup', () => {
+  const h = Engine.planHint('how much is the current PSTB payment');
+  return !!(h.wantsPayment && h.paymentQuery && /p[st][st]b/.test(h.paymentQuery));
+});
+T('nearTok: pstb is ptsb', () => Engine.nearTok('pstb', 'ptsb') === true);
 T('plan hint: do not need PTSB + save target is save plan', () => {
   const h = Engine.planHint('how much can i save, I do not need the PTSB payment, I want to reach 5000 by 2027-06');
   const ended = (h.cuts || []).find(c => c.end && c.label.indexOf('ptsb') >= 0);
@@ -128,4 +133,4 @@ if (fails.length){
   for (const f of fails) console.error('  - ' + f);
   process.exit(1);
 }
-console.log('tx-retrieve: ' + '16/16');
+console.log('tx-retrieve: ' + '18/18');
