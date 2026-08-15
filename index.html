@@ -15,7 +15,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '2.3.1';
+  var APP_VER = '2.4.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -5019,6 +5019,115 @@ rewrite the static advice cards if the picture has changed.</div>
         return found;
       }
     },
+    // <tx-retrieve>
+    // Client-side retrieval over the household's own rows. The index never
+    // leaves the device. The model only sees minimise.detail of the hits.
+    // This is Lithifyte's RAG: lexical rank in the browser, not a server store.
+    TX_STOP: {the:1, and:1, for:1, with:1, from:1, that:1, this:1, have:1, has:1, was:1, were:1, did:1,
+      show:1, list:1, what:1, which:1, ones:1, spend:1, spent:1, spending:1, transactions:1, transaction:1,
+      money:1, on:1, my:1, me:1, how:1, much:1, all:1, any:1, last:1, past:1, month:1, months:1,
+      about:1, into:1, than:1, over:1, under:1, just:1, please:1, can:1, you:1, give:1, tell:1,
+      where:1, when:1, who:1, why:1, are:1, is:1, of:1, to:1, in:1, at:1, by:1, or:1, if:1,
+      find:1, search:1, look:1, see:1, get:1, got:1, had:1, been:1, there:1, their:1, our:1,
+      some:1, these:1, those:1, they:1, them:1, your:1, we:1, it:1, its:1, do:1, does:1},
+    TX_MONTH: {january:'01',jan:'01',february:'02',feb:'02',march:'03',mar:'03',april:'04',apr:'04',
+      may:'05',june:'06',jun:'06',july:'07',jul:'07',august:'08',aug:'08',september:'09',sept:'09',sep:'09',
+      october:'10',oct:'10',november:'11',nov:'11',december:'12',dec:'12'},
+    TX_SYN: {grocery:'groceries',groceries:'groceries',supermarket:'groceries',shopping:'groceries',
+      restaurant:'dining',dining:'dining',eating:'dining',
+      uber:'transport',taxi:'transport',transport:'transport',travel:'transport',commute:'transport',
+      rent:'housing',mortgage:'housing',housing:'housing',
+      netflix:'subscriptions',spotify:'subscriptions',subscription:'subscriptions',subscriptions:'subscriptions',
+      electric:'bills',electricity:'bills',utility:'bills',utilities:'bills',bills:'bills',
+      salary:'income',payroll:'income',wage:'income',wages:'income',paycheck:'income'},
+    txTokens(s){
+      return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(/\s+/)
+        .filter(w => w.length >= 2 && !Engine.TX_STOP[w]);
+    },
+    txQueryHint(text){
+      const raw = String(text || '');
+      const n = raw.toLowerCase();
+      let month = null;
+      let m = n.match(/\b(20\d{2})[-/](0?[1-9]|1[0-2])\b/);
+      if (m) month = m[1] + '-' + String(+m[2]).padStart(2, '0');
+      if (!month){
+        m = n.match(/\b(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)\s+(20\d{2})\b/);
+        if (m) month = m[2] + '-' + Engine.TX_MONTH[m[1]];
+      }
+      if (!month){
+        const now = new Date();
+        if (/\bthis month\b/.test(n)){
+          month = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+        } else if (/\blast month\b/.test(n)){
+          const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          month = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+        }
+      }
+      // Amount only when marked as money — never a year or a bare count.
+      let min = null;
+      const amt = n.match(/(?:€|\$|£)\s*(\d+(?:[.,]\d{1,2})?)|(?:over|above|more than|at least|min(?:imum)?)\s+(?:€|\$|£)?\s*(\d+(?:[.,]\d{1,2})?)|\b(\d+[.,]\d{2})\b/);
+      if (amt){
+        const rawAmt = amt[1] || amt[2] || amt[3];
+        const v = Math.abs(parseFloat(String(rawAmt).replace(',', '.')));
+        if (v >= 1) min = v;
+      }
+      const income = /\b(income|incoming|paid in|salary|payroll|received|wages?)\b/.test(n);
+      const query = Engine.txTokens(raw).join(' ');
+      const explicit = /\b(show me|list(?: them)?|which ones|what did i|transactions?)\b/i.test(raw);
+      const spendAsk = /\b(spend(?:ing)? (?:on|at|with)|spent (?:on|at|with)|paid (?:to|at)|bought (?:at|from)|how much .{0,32}(?:at|on|to|with))\b/i.test(raw);
+      return {query, month, min, income, wantsRows: explicit || (!!query && spendAsk)};
+    },
+    txRetrieve({query, rows, month, category, min, income, limit}){
+      const tokens = Engine.txTokens(query);
+      const expanded = [];
+      for (const t of tokens){
+        expanded.push(t);
+        if (Engine.TX_SYN[t] && Engine.TX_SYN[t] !== t) expanded.push(Engine.TX_SYN[t]);
+      }
+      const catL = category ? String(category).toLowerCase() : '';
+      const cap = Math.max(1, Math.min(40, +limit || 15));
+      const wantIn = !!income;
+      const scored = [];
+      for (const r of (rows || [])){
+        const merch = String(r.merchant || r.m || '').toLowerCase();
+        const cat = String(r.category || r.c || r.ec || '').toLowerCase();
+        const note = String(r.note || r.n || '').toLowerCase();
+        const mo = r.month || r.mo || (r.date || r.d || '').slice(0, 7);
+        const de = +(r.de || 0), cr = +(r.cr || 0);
+        const amt = wantIn ? cr : de;
+        if (month && mo !== month) continue;
+        if (catL && cat !== catL && cat.indexOf(catL) < 0 && catL.indexOf(cat) < 0) continue;
+        if (wantIn){ if (!(cr > 0)) continue; }
+        else { if (!(de > 0)) continue; }
+        if (min != null && !(amt >= min)) continue;
+        let score = 0;
+        if (!tokens.length) score = amt;
+        else {
+          const merchWords = merch.split(/[^a-z0-9]+/).filter(Boolean);
+          for (const t of expanded){
+            if (merch === t) score += 6;
+            else if (merch.indexOf(t) >= 0) score += 3;
+            else if (t.length >= 3 && merchWords.some(w => w.startsWith(t))) score += 2;
+            if (cat === t || (Engine.TX_SYN[t] && cat === Engine.TX_SYN[t])) score += 5;
+            else if (cat.indexOf(t) >= 0) score += 2;
+            else if (note.indexOf(t) >= 0) score += 1;
+          }
+          // Recency is a tie-break only — never promotes an unmatched row.
+          if (score > 0 && mo){
+            const y = +mo.slice(0, 4), mm = +mo.slice(5, 7);
+            if (y) score += (y * 12 + mm) / 1e6;
+          }
+        }
+        if (score > 0) scored.push({r, score, amt});
+      }
+      scored.sort((a, b) => b.score - a.score || b.amt - a.amt);
+      return {
+        tokens,
+        matched: scored.length,
+        hits: scored.slice(0, cap).map(x => x.r)
+      };
+    },
+    // </tx-retrieve>
     // Heuristic: turn extracted statement text into a Date/Merchant/Debit/Credit
     // grid the existing importer can preview. Returns [] when it cannot prove
     // three dated, amount-bearing lines — the caller then offers AI parse.
@@ -13578,6 +13687,72 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const leaks = E.minimise.leaks('shape', bad);
       return leaks.indexOf('amount') >= 0 || JSON.stringify(leaks);
     });
+    T('retrieve: ranks a merchant query above unrelated spend', () => {
+      const rows = [
+        {d:'2026-01-02', m:'TESCO STORES 3184', c:'Groceries', de:42.1, cr:0, mo:'2026-01'},
+        {d:'2026-01-03', m:'VIRGIN MEDIA', c:'Bills', de:60, cr:0, mo:'2026-01'},
+        {d:'2026-01-04', m:'TESCO EXPRESS', c:'Groceries', de:8.5, cr:0, mo:'2026-01'}
+      ];
+      const got = E.txRetrieve({query:'tesco groceries', rows, limit:5});
+      if (got.hits.length < 2) return 'expected tesco hits, got ' + got.hits.length;
+      if (!/tesco/i.test(got.hits[0].m)) return 'top hit was not tesco: ' + got.hits[0].m;
+      return true;
+    });
+    T('retrieve: unknown query returns no rows rather than the whole ledger', () => {
+      const rows = [{d:'2026-01-02', m:'TESCO', c:'Groceries', de:10, cr:0, mo:'2026-01'}];
+      const got = E.txRetrieve({query:'zzzz-no-such-merchant', rows, limit:10});
+      return got.hits.length === 0 || 'leaked ' + got.hits.length;
+    });
+    T('retrieve: query hint detects a show-me question', () => {
+      const h = E.txQueryHint('show me tesco spending in 2026-01');
+      return (h.wantsRows && h.query.indexOf('tesco') >= 0 && h.month === '2026-01' && h.min == null) || JSON.stringify(h);
+    });
+    T('retrieve: a year in a date is not treated as a minimum amount', () => {
+      const h = E.txQueryHint('show me tesco spending in January 2026');
+      return (h.month === '2026-01' && h.min == null && h.query.indexOf('tesco') >= 0) || JSON.stringify(h);
+    });
+    T('retrieve: marked amount is a minimum, not a year', () => {
+      const h = E.txQueryHint('show me tesco over €50');
+      return (h.min === 50 && !h.month && h.wantsRows) || JSON.stringify(h);
+    });
+    T('retrieve: spending query skips incoming rows', () => {
+      const rows = [
+        {d:'2026-01-02', m:'TESCO', c:'Groceries', de:12, cr:0, mo:'2026-01'},
+        {d:'2026-01-03', m:'TESCO REFUND', c:'Groceries', de:0, cr:12, mo:'2026-01'}
+      ];
+      const got = E.txRetrieve({query:'tesco', rows, limit:10});
+      return (got.hits.length === 1 && got.hits[0].de === 12) || JSON.stringify(got.hits);
+    });
+    T('retrieve: prefix match ranks tesco for tes', () => {
+      const rows = [{d:'2026-01-02', m:'TESCO STORES', c:'Groceries', de:10, cr:0, mo:'2026-01'}];
+      const got = E.txRetrieve({query:'tes', rows, limit:5});
+      return got.hits.length === 1 || 'no prefix hit';
+    });
+    T('retrieve: how-much-at is a retrieve question', () => {
+      const h = E.txQueryHint('how much did I spend at tesco');
+      return (h.wantsRows && h.query.indexOf('tesco') >= 0) || JSON.stringify(h);
+    });
+    T('prompt cache: static system prompt has no live range or account names', () => {
+      const s = typeof Companion !== 'undefined' && Companion.systemPromptStatic
+        ? Companion.systemPromptStatic()
+        : null;
+      if (!s) return true; // companion not bound in this path — skip honestly
+      if (/20\d{2}-\d{2}/.test(s)) return 'static prompt contains a date';
+      if (/acct_/.test(s)) return 'static prompt contains aliases';
+      return s.indexOf('ONE JSON object') >= 0;
+    });
+    T('prompt cache: static system prompt is byte-stable across calls', () => {
+      if (typeof Companion === 'undefined' || !Companion.systemPromptStatic) return true;
+      const a = Companion.systemPromptStatic();
+      const b = Companion.systemPromptStatic();
+      return a === b && a.length > 200;
+    });
+    T('prompt cache: household prompt is the moving part', () => {
+      if (typeof Companion === 'undefined' || !Companion.systemPromptHousehold || !Companion.systemPromptStatic) return true;
+      const h = Companion.systemPromptHousehold();
+      const s = Companion.systemPromptStatic();
+      return (/Current range:/.test(h) && !/Current range:/.test(s)) || 'split leaked';
+    });
     T('minimise: accounts are aliased and reversible', () => {
       const m = E.minimise.accounts([{id:'a1', name:'Ava — AIB current'}, {id:'a2', name:'Joint savings'}]);
       const aliased = E.minimise.aliasText('Ava — AIB current is low', m);
@@ -18617,6 +18792,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       max_tokens: hosted ? 1600 : 900,
       endpoint: provider === 'openai_compat' ? (lmStore.endpoint || '') : undefined,
       purpose,
+      convId: opts.convId || '',
       entitlement: (!sample && ent && ent.token) ? ent.token : undefined
     };
     const headers = {'Content-Type': 'application/json'};
@@ -18647,7 +18823,18 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         body: JSON.stringify({lane:'chat'})
       }).then(r => r.json()).then(e => { window.__lfEntitlement = e; }).catch(()=>{});
     }
-    return {content: String(data.content || ''), usage: data.usage || null, fallback: !!data.fallback, model: data.model || ''};
+    const cachedTokens = +(data.cachedTokens
+      || (data.usage && data.usage.prompt_tokens_details && data.usage.prompt_tokens_details.cached_tokens)
+      || (data.usage && data.usage.input_tokens_details && data.usage.input_tokens_details.cached_tokens)
+      || 0);
+    return {
+      content: String(data.content || ''),
+      usage: data.usage || null,
+      fallback: !!data.fallback,
+      model: data.model || '',
+      upstream: data.upstream || (data.fallback ? 'workers-ai' : ''),
+      cachedTokens
+    };
   }
   const CloudDrive = (function(){
     let token = null, tokenExp = 0;
@@ -18936,6 +19123,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
   }
   window.__ddMinimise = Engine.minimise;
+  window.__ddTxRetrieve = (q, rows, extra) => Engine.txRetrieve(Object.assign({query: q, rows: rows || []}, extra || {}));
   window.__ddDisclose = () => (discloseStore.items || []).slice();
   window.__ddAiConsent = () => JSON.parse(JSON.stringify(lmStore.consent || {}));
 
@@ -19013,7 +19201,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
               t.id === 'cashflow_summary' ? '{rangePreset?: string}' :
               t.id === 'affordability' ? '{monthly: number}' :
               t.id === 'spend_ranked' ? '{limit?: number}' :
-              t.id === 'find_transactions' ? '{category?: string, merchant?: string, month?: "YYYY-MM", min?: number, limit?: number}' :
+              t.id === 'find_transactions' ? '{category?: string, merchant?: string, query?: string, month?: "YYYY-MM", min?: number, income?: boolean, limit?: number}' :
               t.id === 'propose_rules' ? '{limit?: number}' :
               t.id === 'net_worth' || t.id === 'pulse' || t.id === 'leaks' ? '{}' : '{}'
       }));
@@ -19317,45 +19505,41 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // the one that returns the actual rows.
       if (t === 'find_transactions'){
         const cat = a.category ? String(a.category) : null;
-        const q = a.merchant || a.query ? String(a.merchant || a.query).toUpperCase() : null;
+        const q = a.merchant || a.query ? String(a.merchant || a.query) : '';
         const mo = a.month ? String(a.month) : null;
         const min = a.min != null ? +a.min : null;
         const limit = Math.max(1, Math.min(40, +a.limit || 15));
-        const catL = cat ? cat.toLowerCase() : null;
-        // Spending unless asked otherwise. Summing debits and credits together
-        // produced a "total" of €-30,235 for an unfiltered call — arithmetically
-        // true, meaningless as an answer, and it prints as "€-30,235".
         const wantIn = a.income === true || a.direction === 'in';
-        let hits = [];
+        const pool = [];
         for (const tx of TX){
           if (!RANGE.has(tx.mo)) continue;
-          if (mo && tx.mo !== mo) continue;
-          if (tx.ec === INT_CAT) continue;                 // internal transfers are not spending
-          if (wantIn ? !(tx.cr > 0) : !(tx.de > 0)) continue;
-          if (catL && String(effCatFull(tx) || '').toLowerCase() !== catL) continue;
-          if (q && !(String(tx.m || '').toUpperCase().includes(q) || String(canonOf(tx.m) || '').toUpperCase().includes(q))) continue;
-          if (min != null && !(tx.de >= min || tx.cr >= min)) continue;
-          hits.push(tx);
+          if (tx.ec === INT_CAT) continue;
+          pool.push({d: tx.d, m: tx.m, merchant: canonOf(tx.m) || tx.m, c: effCatFull(tx),
+                     category: effCatFull(tx), de: tx.de, cr: tx.cr, mo: tx.mo, _tx: tx});
         }
+        const got = Engine.txRetrieve({query: q, rows: pool, month: mo, category: cat, min, income: wantIn, limit: 80});
+        let hits = got.hits.map(h => h._tx || h);
         if (!hits.length)
           return {ok:true, tool:t, say:'No transactions match that in ' + rangeLabel() + '.', provenance:'Engine · no matches',
                   data:{rows:[], total:0}, actions:[], suggestions:suggestions(), links:[]};
         const amtOf = x => wantIn ? x.cr : x.de;
-        hits.sort((x, y) => amtOf(y) - amtOf(x));            // biggest money first
+        // Keep retrieve ranking (token score, then amount). Re-sorting by
+        // amount alone promoted a weak high-value hit over a strong merchant match.
         const total = hits.reduce((s, x) => s + amtOf(x), 0);
+        const matched = got.matched;
         const rows = hits.slice(0, limit).map(x => ({
           date: x.d, merchant: canonOf(x.m) || x.m, category: effCatFull(x),
           amount: +( amtOf(x).toFixed(2) )
         }));
-        const say = hits.length + (wantIn ? ' incoming' : ' spending') + ' transaction' + (hits.length === 1 ? '' : 's')
+        const say = matched + (wantIn ? ' incoming' : ' spending') + ' transaction' + (matched === 1 ? '' : 's')
           + (cat ? ' in ' + cat : '') + (q ? ' matching “' + (a.merchant || a.query) + '”' : '')
           + (mo ? ' in ' + fmtMoLbl(mo) : '')
           + ' · ' + eur(total) + ' total, ' + rangeLabel()
           + (!cat && !q && !mo ? ' (everything — narrow it with a category, merchant or month)' : '') + ':\n'
           + rows.map(r => '• ' + r.date + ' · ' + r.merchant + ' — ' + eur(r.amount) + (cat ? '' : ' (' + r.category + ')')).join('\n')
-          + (hits.length > rows.length ? '\n• …and ' + (hits.length - rows.length) + ' more' : '');
-        return {ok:true, tool:t, say, provenance:'Engine · transactions · ' + rangeLabel(),
-                data:{rows, total:+total.toFixed(2), matched:hits.length},
+          + (matched > rows.length ? '\n• …and ' + (matched - rows.length) + ' more' : '');
+        return {ok:true, tool:t, say, provenance:'Engine · retrieve · ' + rangeLabel(),
+                data:{rows, total:+total.toFixed(2), matched},
                 actions: cat ? [{type:'nav', k:'cats', sec:'sec-cats'}] : [],
                 suggestions:suggestions(), links: cat ? ['cat:' + cat] : []};
       }
@@ -19680,15 +19864,17 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       return shaped;
     }
     async function lmComplete(messages, meta){
-      const out = await aiRelayChat(messages, {purpose: (meta && meta.purpose) || 'chat'});
+      const out = await aiRelayChat(messages, {purpose: (meta && meta.purpose) || 'chat', convId: meta && meta.convId});
       const bytes = JSON.stringify(messages).length;
       if (aiLeavesDevice('chat')){
         aiDisclose({
           lane: 'chat',
           tier: (meta && meta.tier) || 'aggregate',
           provider: aiProviderLabel(),
-          dest: out.fallback ? 'workers-ai' : 'openrouter',
+          dest: out.upstream || (out.fallback ? 'workers-ai' : 'hosted'),
           bytes,
+          cached: !!(out.cachedTokens || (out.usage && out.usage.prompt_tokens_details && out.usage.prompt_tokens_details.cached_tokens)),
+          cachedTokens: +(out.cachedTokens || (out.usage && out.usage.prompt_tokens_details && out.usage.prompt_tokens_details.cached_tokens) || 0),
           purpose: (meta && meta.purpose) || 'co-pilot'
         });
       }
@@ -19759,11 +19945,13 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       }
     }
 
-    function systemPrompt(){
-      const cats = allCatNames().slice(0, 40);
+    // Split for Grok prompt caching: the first system message must be byte-identical
+    // across turns. Household facts (range, cats, aliases) live in a second
+    // system message so a date-range change does not evict the contract prefix.
+    function systemPromptStatic(){
       return [
         'You are Lithifyte co-pilot — a household finance assistant inside the Lithifyte app.',
-        'You MUST NOT invent euro amounts, balances, or averages. Call tools; the app Engine computes figures.',
+        'You MUST NOT invent amounts, balances, or averages. Call tools; the app Engine computes figures.',
         'You help structure data, explain numbers, and design budgets/goals in a SANDBOX until the user applies.',
         'You are not a regulated financial adviser — co-author the user\'s plan, do not recommend products.',
         '',
@@ -19783,7 +19971,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         '- Only use propose_budget / propose_goal / propose_rules when the user actually asks to design a budget, a goal, or categorisation rules.',
         '',
         'Advice questions still need a tool FIRST — there is one for each:',
-        '- "Can I afford €X a month / a €X installment?" → affordability {"monthly":X}. It does the sum for you.',
+        '- "Can I afford X a month / an X installment?" → affordability {"monthly":X}. It does the sum for you.',
         '- "Where can I cut back?" / "how do I save money?" → spend_ranked.',
         '- "How am I doing?" → cashflow_summary.',
         '- "Show me / list / which ones / what did I spend on X" → find_transactions. This is the only tool',
@@ -19791,30 +19979,29 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         '- "What is my net worth?" → net_worth. "Pulse / health score" → pulse. "Leaks" → leaks.',
         '- "Propose / suggest categorisation rules" → propose_rules (sandbox).',
         '',
-        'You are NOT a tax, legal or regulatory adviser, and you must never answer from general knowledge',
-        'about rules — you do not know this user\'s country, tax status or entity type, and guessing is worse',
-        'than useless. When asked something like "what can I claim tax back on":',
-        '1. Say plainly that the rules depend on their jurisdiction and status, and that you cannot rule on it.',
-        '2. Then be USEFUL with what you do have: call find_transactions / spend_ranked and show the spending',
-        '   that such a question usually concerns, so they have something concrete to take to an accountant.',
-        '3. Ask the one question that would sharpen it (e.g. sole trader or limited company?) — do not deliver',
-        '   a generic checklist of allowable expenses.',
+        'You are NOT a tax, legal or regulatory adviser. Never answer tax rules from general knowledge.',
         'Never name a country or tax authority the user has not named themselves.',
-        'Never answer a money question from memory: you do not know this household\'s numbers until a tool',
-        'tells you, and you must not do the arithmetic yourself — the tool returns the result already worked out.',
-        'You may repeat an amount the user named themselves. Every OTHER figure must come from a tool.',
+        'Never answer a money question from memory. You may repeat an amount the user named. Every OTHER figure must come from a tool.',
         '',
-        'Tools: ' + JSON.stringify(toolSchemasForPrompt()),
+        'A local retriever may already have attached matching rows. Treat those as a find_transactions result — do not invent more rows.',
+        '',
+        'Tools: ' + JSON.stringify(toolSchemasForPrompt())
+      ].join('\n');
+    }
+    function systemPromptHousehold(){
+      const cats = allCatNames().slice(0, 40);
+      const ccy = (typeof MONEY !== 'undefined' && MONEY.base) ? MONEY.base : 'EUR';
+      return [
+        'Household session (changes when the user changes range or accounts):',
         'Known categories: ' + JSON.stringify(cats),
         'Current range: ' + rangeLabel(),
-        // the model answered a tax question with UK rules for a euro household;
-        // it should at least know what money it is looking at, and that the
-        // currency is NOT a country
-        'Figures are shown in EUR (€). That is the display currency only — it does',
-        'not tell you the user\'s country, tax residence or entity type. Do not infer one.',
+        'Display currency: ' + ccy + ' — display only; do not infer a country from it.',
         'Accounts are aliased as ' + JSON.stringify(acctMap().aliases) +
           ' — never use a real account name, person name or IBAN. Call notes_for if you need household context; notes are not in this prompt.'
       ].join('\n');
+    }
+    function systemPrompt(){
+      return systemPromptStatic() + '\n\n' + systemPromptHousehold();
     }
 
     // Tool paragraphs joined for the user, with repeats dropped. Two tools can
@@ -19896,8 +20083,27 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         role: m.role === 'tool' ? 'user' : (m.role === 'assistant' ? 'assistant' : 'user'),
         content: m.role === 'tool' ? ('Tool result: ' + m.content) : m.content
       }));
-      let messages = [{role:'system', content: systemPrompt()}, ...history];
+      // Two system messages: byte-stable contract first (Grok prefix cache),
+      // then household facts that change when the user changes range.
+      let messages = [
+        {role:'system', content: systemPromptStatic()},
+        {role:'system', content: systemPromptHousehold()},
+        ...history
+      ];
       const steps = [];
+      const hint = Engine.txQueryHint(userText);
+      if (hint.wantsRows){
+        const pre = run({tool:'find_transactions', args:{
+          query: hint.query, month: hint.month, min: hint.min, income: hint.income, limit: 12
+        }});
+        if (pre && pre.ok && pre.data && pre.data.rows && pre.data.rows.length){
+          applyActions(pre.actions || []);
+          const outbound = outboundFor(pre);
+          steps.push(pre);
+          messages.push({role:'user', content: 'Engine retrieved matching rows locally (not a guess). Use these numbers:\n' +
+            JSON.stringify({tool: outbound.tool, say: outbound.say, data: outbound.data})});
+        }
+      }
       // A smaller model often keeps calling tools instead of committing to an
       // answer, and re-calls one it already has. Running it twice appends the
       // same paragraph to the reply, so remember what has been asked and answer
@@ -19905,7 +20111,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const seen = new Map();
       let groundedRetry = false;
       for (let round = 0; round < 5; round++){
-        const raw = await lmComplete(messages);
+        const raw = await lmComplete(messages, {purpose:'chat', convId: chat.id});
         const parsed = parseLmJson(raw);
         if (parsed && parsed.type === 'tool' && parsed.name){
           const intent = {tool: parsed.name, args: parsed.args || {}};
@@ -20776,7 +20982,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
     return {
       ask, match, run, handle, askLm, applyActions, registry, suggestions, open, close, bind, isOpen,
-      systemPrompt, outboundFor, acctMap,
+      systemPrompt, systemPromptStatic, systemPromptHousehold, outboundFor, acctMap,
       ensureChat, newChat, deleteChat, lmEnabled, lmComplete, chats: () => chatStore.items, scenarios: () => scenarioStore.items,
       deleteScenario, applyScenario, renderScenarios, scenSummary,
       renderThread, echoUser, appendMsg, amts, moneyish, unbackedFigures, wantsDraft,

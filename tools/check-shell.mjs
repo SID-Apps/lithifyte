@@ -51,6 +51,9 @@ ok('app: net_worth tool', /id:'net_worth'/.test(app) || /id: 'net_worth'/.test(a
 ok('app: pulse tool', /id:'pulse'/.test(app) || /id: 'pulse'/.test(app));
 ok('app: leaks tool', /id:'leaks'/.test(app) || /id: 'leaks'/.test(app));
 ok('app: propose_rules tool', /id:'propose_rules'/.test(app) || /id: 'propose_rules'/.test(app));
+ok('app: txRetrieve in-browser RAG', /txRetrieve\(/.test(app) && /\/\/ <tx-retrieve>/.test(app));
+ok('app: cacheable static system prompt', /function systemPromptStatic\(/.test(app) && /function systemPromptHousehold\(/.test(app));
+ok('app: relay sends convId for Grok cache', /convId:\s*opts\.convId/.test(app));
 ok('app: demo skips hosted consume', /!sample && purpose === 'chat'|!window\.__lfDemo/.test(app) && /__lfDemo/.test(app));
 ok('app: cloud vault block', /id="cloudVaultBlock"/.test(app));
 ok('app: hosted chrome wrapper', /id="hostedChrome"/.test(app));
@@ -142,14 +145,18 @@ ok('app: DATA_VERSION matches version.json', (() => {
   catch (e) { return false; }
   return man.dataVersion === Number(m[1]);
 })());
-ok('app: version.json sha256 matches index.html', (() => {
+(() => {
   let man;
   try { man = JSON.parse(readFileSync(join(ROOT, 'version.json'), 'utf8')); }
-  catch (e) { return false; }
-  if (!man.sha256) return 'manifest has no sha256';
+  catch (e) { ok('app: version.json sha256 matches index.html', false, String(e && e.message || e)); return; }
+  if (!man.sha256) { ok('app: version.json sha256 matches index.html', false, 'manifest has no sha256'); return; }
   const actual = createHash('sha256').update(readFileSync(appPath)).digest('hex');
-  return man.sha256 === actual || ('manifest ' + man.sha256.slice(0, 12) + ' actual ' + actual.slice(0, 12));
-})());
+  ok(
+    'app: version.json sha256 matches index.html',
+    man.sha256 === actual,
+    man.sha256 === actual ? '' : ('manifest ' + man.sha256.slice(0, 12) + ' actual ' + actual.slice(0, 12))
+  );
+})();
 ok('app: update UI is not inside hostedChrome', (() => {
   const u = app.indexOf('id="updateBlock"');
   const h = app.indexOf('id="hostedChrome"');

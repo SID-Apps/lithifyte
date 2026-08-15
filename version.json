@@ -1,8 +1,8 @@
 {
-  "version": "2.3.1",
-  "released": "2026-08-14",
-  "notes": "Review-bugfix: self-host updates visible, existing households stay EUR, quotes convert, direction flags skip unknowns.",
+  "version": "2.4.0",
+  "released": "2026-08-15",
+  "notes": "Lithifyte AI on Grok with prefix cache; in-browser transaction retrieve.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "e789f326dfc6ebee006a1a9a27d6ed1b5e6ec0ee622eb828f66a972e0ad5f931"
+  "sha256": "df96c853b0754b19df85a841903e5f1abd393e40dec794cae06eef958f97ae72"
 }

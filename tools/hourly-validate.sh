@@ -58,6 +58,15 @@ if [[ -f feeder/feeder.mjs ]]; then
   fi
 fi
 
+if [[ -f tools/test-tx-retrieve.mjs ]]; then
+  if $NODE tools/test-tx-retrieve.mjs >>"$LOG" 2>&1; then
+    say "tx-retrieve: pass"
+  else
+    say "tx-retrieve: FAIL"
+    fail=1
+  fi
+fi
+
 say ""
 say "## 2. Live endpoints"
 for url in \
@@ -65,7 +74,8 @@ for url in \
   https://app.lithifyte.com/demo \
   https://lithifyte.com/ \
   https://lithifyte.com/commercial \
-  https://access.lithifyte.com/health
+  https://access.lithifyte.com/health \
+  https://lithifyte-ai.sidethecomputer.workers.dev/health
 do
   code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$url" || echo err)
   say "$code  $url"
