@@ -84,10 +84,29 @@ T('empty unknown-looking query does not dump the ledger when tokens exist', () =
   const got = Engine.txRetrieve({query:'xyzzy-plugh', rows, limit:40});
   return got.hits.length === 0 && got.matched === 0;
 });
+T('plan hint parses a bundle of cuts and an ended payment', () => {
+  if (typeof Engine.planHint !== 'function') return 'planHint missing';
+  const h = Engine.planHint('if i cut back on shoppy by 200 euros, and reduce my groceries by 100, car payments PTSB are finished, and I reduce bills by around 30 euros, how does this effect my monthly outcome');
+  if (!h.wantsWhatIf) return 'not what-if';
+  const by = (k) => h.cuts.find(c => c.label.indexOf(k) >= 0);
+  if (!by('shoppy') || by('shoppy').monthly !== 200) return 'shoppy';
+  if (!by('groceries') || by('groceries').monthly !== 100) return 'groceries';
+  if (!by('bills') || by('bills').monthly !== 30) return 'bills';
+  const ended = h.cuts.find(c => c.end);
+  return !!(ended && ended.label.indexOf('ptsb') >= 0);
+});
+T('plan hint: follow-up if these are deducted is a what-if', () => {
+  const h = Engine.planHint('so how do I improve my end of month cash flow if these sections are deducted?');
+  return !!h.wantsWhatIf;
+});
+T('plan hint: what do you notice is advice', () => {
+  const h = Engine.planHint('What do you notice?');
+  return !!(h.wantsAdvice && !h.wantsWhatIf);
+});
 
 if (fails.length){
   console.error('tx-retrieve FAIL (' + fails.length + ')');
   for (const f of fails) console.error('  - ' + f);
   process.exit(1);
 }
-console.log('tx-retrieve: ' + '10/10');
+console.log('tx-retrieve: ' + '13/13');

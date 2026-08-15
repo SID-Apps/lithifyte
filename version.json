@@ -1,8 +1,8 @@
 {
-  "version": "2.4.0",
+  "version": "2.5.0",
   "released": "2026-08-15",
-  "notes": "Lithifyte AI on Grok with prefix cache; in-browser transaction retrieve.",
+  "notes": "Natural budget chat: Engine what-if and notice; stop echoing tool dumps.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "df96c853b0754b19df85a841903e5f1abd393e40dec794cae06eef958f97ae72"
+  "sha256": "e54cbe1658964ff8b845db12220b85f5e709eac2743f5d13c8375f6efa304850"
 }

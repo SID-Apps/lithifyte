@@ -15,7 +15,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '2.4.0';
+  var APP_VER = '2.5.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -5009,6 +5009,12 @@ rewrite the static advice cards if the picture has changed.</div>
       netflix:'subscriptions',spotify:'subscriptions',subscription:'subscriptions',subscriptions:'subscriptions',
       electric:'bills',electricity:'bills',utility:'bills',utilities:'bills',bills:'bills',
       salary:'income',payroll:'income',wage:'income',wages:'income',paycheck:'income'},
+    CAT_SYN: {shoppy:'shopping',shop:'shopping',shopping:'shopping',
+      grocery:'groceries',groceries:'groceries',
+      bill:'bills',bills:'bills',utility:'bills',utilities:'bills',
+      restaurant:'dining',dining:'dining',eating:'dining',
+      sub:'subscriptions',subs:'subscriptions',subscription:'subscriptions',
+      car:'transport',fuel:'transport',petrol:'transport',diesel:'transport'},
     txTokens(s){
       return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(/\s+/)
         .filter(w => w.length >= 2 && !Engine.TX_STOP[w]);
@@ -5095,6 +5101,52 @@ rewrite the static advice cards if the picture has changed.</div>
         matched: scored.length,
         hits: scored.slice(0, cap).map(x => x.r)
       };
+    },
+    // Natural-language plan: "cut shoppy by 200, PTSB finished".
+    // Extracts cuts only — the Companion resolves labels against live cats.
+    planHint(text){
+      const raw = String(text || '');
+      const n = raw.toLowerCase();
+      const cuts = [];
+      const seen = {};
+      const amtOf = (s) => {
+        const v = Math.abs(parseFloat(String(s).replace(',', '.')));
+        if (!(v >= 1)) return null;
+        if (v >= 1900 && v <= 2100 && v === Math.floor(v)) return null;
+        return v;
+      };
+      const cleanLab = (s) => String(s || '').replace(/\b(euros?|eur|dollars?|quid|pounds?|my|the|our|a|an|on|for|back|down)\b/g, ' ').replace(/\s+/g, ' ').trim();
+      const push = (label, monthly, end) => {
+        const lab = cleanLab(label);
+        if (!lab || lab.length < 2) return;
+        const key = lab + ':' + (end ? 'end' : monthly);
+        if (seen[key]) return;
+        seen[key] = 1;
+        cuts.push({label: lab, monthly: monthly != null ? +monthly : null, end: !!end});
+      };
+      let m, re;
+      re = /(?:cut(?:\s+back)?(?:\s+on)?|reduc(?:e|ing)|drop|trim|lower|shave|deduct(?:ed|ing)?)\s+(?:my\s+)?([a-z][a-z0-9 &'/.-]{1,40}?)\s+(?:by|of)\s+(?:around|about|roughly)?\s*(?:€|\$|£)?\s*(\d+(?:[.,]\d{1,2})?)/gi;
+      while ((m = re.exec(n))) { const a = amtOf(m[2]); if (a) push(m[1], a, false); }
+      re = /\b([a-z][a-z0-9&'\/.-]{2,24}(?:\s+[a-z][a-z0-9&'\/.-]{2,24})?)\s+by\s+(?:around|about|roughly)?\s*(?:€|\$|£)?\s*(\d+(?:[.,]\d{1,2})?)/gi;
+      while ((m = re.exec(n))){
+        const a = amtOf(m[2]);
+        const lab = cleanLab(m[1]);
+        if (!a || !lab) continue;
+        if (/\b(if|and|then|this|that|them|these|those|month|months|year|so|how|cut|reduc|reduce|drop|i)\b/.test(lab)) continue;
+        push(lab, a, false);
+      }
+      re = /\b(?:car\s+payments?|loan|finance|direct\s*debit)\s+([a-z0-9][a-z0-9&-]{1,24})\s+(?:are|is|will be)?\s*(?:finished|paid\s*off|done|over|ending|ended)\b/gi;
+      while ((m = re.exec(n))) push(m[1], null, true);
+      re = /\b([a-z0-9][a-z0-9&-]{1,24})\s+(?:car\s+payments?|loan|payments?)\s+(?:are|is|will be)?\s*(?:finished|paid\s*off|done|over|ending|ended)\b/gi;
+      while ((m = re.exec(n))) push(m[1], null, true);
+      re = /\b([a-z0-9][a-z0-9&-]{2,24})\s+(?:are|is)\s+(?:finished|paid\s*off|done|over)\b/gi;
+      while ((m = re.exec(n))) push(m[1], null, true);
+      re = /\b(?:finished|paid\s*off|ending|no more)\s+(?:my\s+)?([a-z0-9][a-z0-9 &-]{1,30})/gi;
+      while ((m = re.exec(n))) push(m[1], null, true);
+      const wantsWhatIf = /\b(if i|what if|suppose i|after i|once i|when i|how does this|how would this|effect my|affect my|monthly outcome|these sections are deducted|if these)\b/i.test(raw)
+        || (cuts.length >= 2 && /\b(cut|reduc|deduct|finish|paid off)\b/i.test(n));
+      const wantsAdvice = !wantsWhatIf && /\b(what do you notice|how am i doing|anything i can improve|where can i (cut|improve|save)|improve.{0,48}(cash ?flow|budget|spending)|help (me )?(with )?(my )?(budget|spending|money)|too (much|tight)|worried|what stands out)\b/i.test(n);
+      return {cuts, wantsWhatIf: !!wantsWhatIf, wantsAdvice};
     },
     // </tx-retrieve>
     // Heuristic: turn extracted statement text into a Date/Merchant/Debit/Credit
@@ -13701,6 +13753,26 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const h = E.txQueryHint('how much did I spend at tesco');
       return (h.wantsRows && h.query.indexOf('tesco') >= 0) || JSON.stringify(h);
     });
+    T('plan: a bundle of cuts and an ended payment parse', () => {
+      const h = E.planHint('if i cut back on shoppy by 200 euros, and reduce my groceries by 100, car payments PTSB are finished, and I reduce bills by around 30 euros, how does this effect my monthly outcome');
+      if (!h.wantsWhatIf) return 'not flagged as what-if: ' + JSON.stringify(h);
+      const labs = h.cuts.map(c => c.label);
+      const byLab = (k) => h.cuts.find(c => c.label.indexOf(k) >= 0);
+      if (!byLab('shoppy') || byLab('shoppy').monthly !== 200) return 'shoppy 200 missing: ' + JSON.stringify(h.cuts);
+      if (!byLab('groceries') || byLab('groceries').monthly !== 100) return 'groceries 100 missing';
+      if (!byLab('bills') || byLab('bills').monthly !== 30) return 'bills 30 missing';
+      const ended = h.cuts.find(c => c.end);
+      if (!ended || ended.label.indexOf('ptsb') < 0) return 'PTSB end missing: ' + labs.join(',');
+      return true;
+    });
+    T('plan: a follow-up "if these are deducted" is still a what-if', () => {
+      const h = E.planHint('so how do I improve my end of month cash flow if these sections are deducted?');
+      return h.wantsWhatIf || JSON.stringify(h);
+    });
+    T('plan: what do you notice is advice, not a what-if', () => {
+      const h = E.planHint('What do you notice?');
+      return (h.wantsAdvice && !h.wantsWhatIf) || JSON.stringify(h);
+    });
     T('prompt cache: static system prompt has no live range or account names', () => {
       const s = typeof Companion !== 'undefined' && Companion.systemPromptStatic
         ? Companion.systemPromptStatic()
@@ -16271,7 +16343,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const c = window.__ddCatalog && window.__ddCatalog();
       if (!c) return 'no __ddCatalog';
       const ids = (c.tools || []).map(t => t.id);
-      const need = ['help','net_worth','pulse','leaks','find_transactions','propose_rules'];
+      const need = ['help','net_worth','pulse','leaks','find_transactions','propose_rules','cashflow_whatif','budget_notice'];
       const missing = need.filter(id => ids.indexOf(id) < 0);
       if (missing.length) return 'missing tools: ' + missing.join(',');
       if (!c.hooks || !c.hooks.__ddSelfTest || !c.hooks.__ddLastOutbound) return 'hooks: ' + JSON.stringify(c.hooks);
@@ -16293,11 +16365,38 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if ((lk.data.rows || []).length !== Math.min(8, n) && n > 0) return 'leaks row count';
       return true;
     });
+    T('companion: shoppy resolves to Shopping', () => {
+      if (!TX.length || !A) return true;
+      const c = Companion.findCategory('shoppy');
+      if (!c) return 'findCategory(shoppy) was null';
+      return /shop/i.test(c) || c;
+    });
+    T('companion: cashflow_summary includes left-over spare', () => {
+      if (!TX.length || !A) return true;
+      const r = Companion.run({tool:'cashflow_summary', args:{}});
+      if (!r.ok || !r.data) return 'failed';
+      if (typeof r.data.spare !== 'number') return 'no spare in data';
+      return /left over/i.test(r.say) || r.say;
+    });
+    T('companion: what-if applies named cuts to spare', () => {
+      if (!TX.length || !A) return true;
+      const r = Companion.run({tool:'cashflow_whatif', args:{cuts:[
+        {label:'shopping', monthly:200}, {label:'groceries', monthly:100}, {label:'bills', monthly:30}
+      ]}});
+      if (!r.ok || !r.data) return 'failed: ' + (r && r.say);
+      if (!(r.data.freed >= 330 - 0.5)) return 'freed ' + r.data.freed;
+      if (Math.abs(r.data.afterSpare - (r.data.spare + r.data.freed)) > 0.05) return JSON.stringify(r.data);
+      return /new left over/i.test(r.say) || r.say;
+    });
+    T('companion: match routes a natural what-if to cashflow_whatif', () => {
+      const m = Companion.match('if i cut back on shoppy by 200 euros and reduce groceries by 100 how does this affect my monthly outcome');
+      return (m && m.tool === 'cashflow_whatif' && m.args.cuts && m.args.cuts.length >= 2) || JSON.stringify(m);
+    });
     T('companion: help names the new read tools', () => {
       const r = Companion.run({tool:'help', args:{}});
       const say = String(r && r.say || '');
       const ids = (r.data && r.data.tools) || [];
-      const need = ['net_worth','pulse','leaks'];
+      const need = ['net_worth','pulse','leaks','cashflow_whatif','budget_notice'];
       return (need.every(id => ids.indexOf(id) >= 0) && /net worth/i.test(say) && /pulse/i.test(say) && /leak/i.test(say))
         || say.slice(0, 200);
     });
@@ -19093,6 +19192,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   }
   window.__ddMinimise = Engine.minimise;
   window.__ddTxRetrieve = (q, rows, extra) => Engine.txRetrieve(Object.assign({query: q, rows: rows || []}, extra || {}));
+  window.__ddPlanHint = (text) => Engine.planHint(text);
   window.__ddDisclose = () => (discloseStore.items || []).slice();
   window.__ddAiConsent = () => JSON.parse(JSON.stringify(lmStore.consent || {}));
 
@@ -19140,6 +19240,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         {id:'balances', title:'Balances', desc:'Engine.balanceRuns', readOnly:true},
         {id:'summary_outlook', title:'Next-month outlook', desc:'Engine.nextMonth', readOnly:true},
         {id:'affordability', title:'Can I afford it', desc:'Check a monthly commitment against income, spending and surplus', readOnly:true},
+        {id:'cashflow_whatif', title:'What-if cashflow', desc:'Engine arithmetic for "if I cut X / Y is finished" — new month-end spare', readOnly:true},
+        {id:'budget_notice', title:'Budget notice', desc:'What stands out: spare, tightness, movable vs fixed lines', readOnly:true},
         {id:'spend_ranked', title:'Biggest spending', desc:'Categories ranked by monthly average — use for "where can I cut back"', readOnly:true},
         {id:'find_transactions', title:'Find transactions', desc:'The actual rows — date, merchant, amount. Use whenever the user says "show me", "which ones", "list them"', readOnly:true},
         {id:'net_worth', title:'Net worth', desc:'Engine.netWorth — cash, pots, holdings, assets, liabilities', readOnly:true},
@@ -19169,6 +19271,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
               t.id === 'apply_scenario' ? '{scenarioId: string, confirm: true}' :
               t.id === 'cashflow_summary' ? '{rangePreset?: string}' :
               t.id === 'affordability' ? '{monthly: number}' :
+              t.id === 'cashflow_whatif' ? '{cuts: [{label?: string, category?: string, query?: string, monthly?: number, end?: boolean}]}' :
+              t.id === 'budget_notice' ? '{}' :
               t.id === 'spend_ranked' ? '{limit?: number}' :
               t.id === 'find_transactions' ? '{category?: string, merchant?: string, query?: string, month?: "YYYY-MM", min?: number, income?: boolean, limit?: number}' :
               t.id === 'propose_rules' ? '{limit?: number}' :
@@ -19192,9 +19296,26 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       return [...set].filter(c => c && c !== INT_CAT).sort((a,b) => b.length - a.length);
     }
     function findCategory(n){
-      for (const c of allCatNames()){
+      const raw = String(n || '').toLowerCase().replace(/\b(euros?|eur|dollars?|quid|pounds?|my|the|our|a|an|on|for)\b/g, ' ').replace(/\s+/g, ' ').trim();
+      if (!raw) return null;
+      const syn = (Engine.CAT_SYN && (Engine.CAT_SYN[raw] || Engine.CAT_SYN[raw.replace(/s$/, '')])) || raw;
+      const cats = allCatNames();
+      let best = null, bestS = 0;
+      for (const c of cats){
         const cl = c.toLowerCase();
-        if (n === cl || n.includes(cl) || n.includes('for ' + cl) || n.includes('on ' + cl)) return c;
+        const head = cl.split(/[^a-z0-9]+/)[0] || cl;
+        if (cl === syn || cl === raw || head === syn || head === raw) return c;
+        if (cl.indexOf(syn) >= 0 || syn.indexOf(head) >= 0 && head.length >= 4){
+          if (head.length > bestS){ best = c; bestS = head.length; }
+        }
+        if (syn.length >= 4 && head.indexOf(syn.slice(0, 4)) === 0 && head.length > bestS){
+          best = c; bestS = head.length;
+        }
+      }
+      if (best) return best;
+      for (const c of cats){
+        const cl = c.toLowerCase();
+        if (n === cl || String(n).includes(cl) || String(n).includes('for ' + cl) || String(n).includes('on ' + cl)) return c;
       }
       return null;
     }
@@ -19262,6 +19383,13 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         const m = n.match(/(\d[\d,]*(?:\.\d+)?)/);
         const amt = m ? Math.round(parseFloat(m[1].replace(/,/g, ''))) : 0;
         if (amt > 0) return {tool:'affordability', args:{monthly:amt}, score:0.9};
+      }
+      const plan = Engine.planHint ? Engine.planHint(q) : {cuts:[], wantsWhatIf:false, wantsAdvice:false};
+      if (plan.wantsWhatIf && plan.cuts.length){
+        return {tool:'cashflow_whatif', args:{cuts: plan.cuts}, score:0.92};
+      }
+      if (plan.wantsAdvice){
+        return {tool:'budget_notice', args:{}, score:0.75};
       }
       if (/\b(cut back|cut down|save money|spend less|savings? opportunit|where.*(money|spending) go|biggest (spend|expense))\b/.test(n))
         return {tool:'spend_ranked', args:{}, score:0.88};
@@ -19375,9 +19503,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     function refill(result){
       if (!result || !result.ok) return result;
       if (result._refill === 'cashflow' && A){
-        result.data = {incomeAvg: A.incomeAvg12, spendAvg: A.spendAvg12, saveAvg: A.saveAvg12, months: RN, from: rangeFrom, to: rangeTo};
-        result.say = rangeLabel() + ' — ' + eur(result.data.incomeAvg) + ' in, ' + eur(result.data.spendAvg) + ' out a month'
-          + (result.data.saveAvg > 0.5 ? '; ' + eur(result.data.saveAvg) + ' to deposit savings.' : '.');
+        const fig = cashflowFigures();
+        result.data = {incomeAvg: fig.income, spendAvg: fig.spend, saveAvg: fig.save, spare: fig.spare, rate: fig.rate, months: RN, from: rangeFrom, to: rangeTo};
+        result.say = cashflowSay(fig)
+          + (fig.save > 0.5 ? ' ' + eur(fig.save) + ' currently moves to deposit savings.' : '');
         result.provenance = 'Cashflow · ' + rangeLabel();
       }
       if (result._refill === 'cat' && result._cat && A){
@@ -19404,6 +19533,47 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         .slice(0, 12)
         .map(c => ({category: c.category, amount: Math.round(c.avgMonth)}));
     }
+    function cashflowFigures(){
+      if (!A) return null;
+      const income = +(A.incomeAvg12 || 0);
+      const spend = +(A.spendAvg12 || 0);
+      const save = +(A.saveAvg12 || 0);
+      const spare = income - spend;
+      const rate = income > 0 ? spare / income : 0;
+      return {income, spend, save, spare, rate};
+    }
+    function cashflowSay(fig){
+      if (!fig) return 'No cashflow figures yet.';
+      let s = rangeLabel() + ' — ' + eur(fig.income) + ' in, ' + eur(fig.spend) + ' out, ' + eur(fig.spare) + ' left over a month';
+      if (fig.income > 0) s += ' (' + (Math.round(fig.rate * 1000) / 10) + '% of income)';
+      s += '.';
+      if (fig.spare < 0) s += ' You are spending more than comes in.';
+      else if (fig.rate < 0.1) s += ' That surplus is tight.';
+      return s;
+    }
+    function merchantMonthly(query){
+      const q = String(query || '').trim();
+      if (!q || typeof TX === 'undefined') return {monthly:0, matched:0, sample:''};
+      const pool = [];
+      for (const tx of TX){
+        if (!RANGE.has(tx.mo)) continue;
+        if (tx.ec === INT_CAT) continue;
+        pool.push({d: tx.d, m: tx.m, merchant: canonOf(tx.m) || tx.m, c: effCatFull(tx),
+                   category: effCatFull(tx), de: tx.de, cr: tx.cr, mo: tx.mo});
+      }
+      const got = Engine.txRetrieve({query: q, rows: pool, limit: 80});
+      const total = got.hits.reduce((s, r) => s + (+r.de || 0), 0);
+      const months = Math.max(1, RN || 1);
+      const sample = got.hits[0] ? (got.hits[0].merchant || got.hits[0].m || '') : '';
+      return {monthly: +(total / months).toFixed(2), matched: got.matched, sample};
+    }
+    function recentAsk(text){
+      const chat = (typeof chatStore !== 'undefined' && chatStore.items || []).find(c => c.id === activeChatId);
+      const prev = ((chat && chat.messages) || []).filter(m => m.role === 'user').slice(-3).map(m => m.content);
+      const parts = prev.slice();
+      if (text && parts[parts.length - 1] !== text) parts.push(text);
+      return parts.join('\n');
+    }
 
     function run(intent){
       if (!intent) return {ok:false, tool:null, say:'I did not catch that. Try “show cashflow”, “how has groceries done”, or enable Lithifyte AI for freer chat.', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
@@ -19416,6 +19586,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           '• how has <category> done · show me the transactions',
           '• net worth · pulse · leaks',
           '• can I afford €X a month · where can I cut back',
+          '• if I cut shopping by €200 and PTSB is finished…',
           '• design a budget from my last 12 months (sandbox)',
           '• propose rules for uncategorised merchants (sandbox)',
           '',
@@ -19437,8 +19608,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         actions.push({type:'nav', k:'cash', sec:'sec-cashflow'});
         const result = {ok:true, tool:t, say: a.rangePreset ? 'Updating range…' : '', provenance:'Cashflow', data:null, actions, suggestions:suggestions(), links:[], _refill: a.rangePreset ? 'cashflow' : null};
         if (!a.rangePreset && A){
-          result.data = {incomeAvg:A.incomeAvg12, spendAvg:A.spendAvg12, saveAvg:A.saveAvg12};
-          result.say = rangeLabel() + ' — ' + eur(A.incomeAvg12) + ' in, ' + eur(A.spendAvg12) + ' out a month.';
+          const fig = cashflowFigures();
+          result.data = {incomeAvg:fig.income, spendAvg:fig.spend, saveAvg:fig.save, spare:fig.spare, rate:fig.rate};
+          result.say = cashflowSay(fig);
           result.provenance = 'Cashflow · ' + rangeLabel();
         } else if (a.rangePreset) result._refill = 'cashflow';
         return result;
@@ -19467,6 +19639,105 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
                 data:{monthly, income, spend, spare, after, fits: after >= 0},
                 actions:[{type:'nav', k:'cash', sec:'sec-cashflow'}],
                 suggestions:['where can I cut back', 'show cashflow'], links:[]};
+      }
+      // "If I cut shopping by €200 and PTSB is finished" — the model must not
+      // add those numbers. The Engine applies the named cuts and returns the
+      // new spare so the answer is grounded.
+      if (t === 'cashflow_whatif'){
+        const fig = cashflowFigures();
+        if (!fig) return {ok:false, tool:t, say:'No transaction history to run a what-if against yet.', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
+        const rawCuts = Array.isArray(a.cuts) ? a.cuts : [];
+        const lines = historyBudgetLines();
+        const byCat = new Map(lines.map(l => [l.category.toLowerCase(), l]));
+        const applied = [];
+        let freed = 0;
+        const merged = [];
+        for (const cut of rawCuts){
+          const label = String(cut.label || cut.category || cut.query || cut.merchant || '').trim();
+          const cat = cut.category ? String(cut.category) : findCategory(label);
+          const key = (cat || label).toLowerCase();
+          const prev = merged.find(x => x.key === key);
+          if (prev){
+            if (cut.end || cut.finished) prev.end = true;
+            if (cut.monthly != null || cut.amount != null) prev.monthly = Math.max(prev.monthly || 0, Math.abs(+(cut.monthly != null ? cut.monthly : cut.amount || 0)));
+            continue;
+          }
+          merged.push({cut, label, cat, key, monthly: +(cut.monthly != null ? cut.monthly : cut.amount || 0), end: !!(cut.end || cut.finished)});
+        }
+        for (const item of merged){
+          const label = item.label;
+          const cat = item.cat;
+          const query = String(item.cut.query || item.cut.merchant || (!cat ? label : '')).trim();
+          const ending = !!item.end;
+          let current = 0, source = '';
+          if (cat && byCat.has(cat.toLowerCase())){
+            current = byCat.get(cat.toLowerCase()).amount;
+            source = 'category';
+          }
+          if (ending || query){
+            const mer = merchantMonthly(query || label);
+            if (mer.matched && mer.monthly > 0){
+              current = mer.monthly;
+              source = mer.sample ? ('merchant · ' + mer.sample) : 'merchant';
+            }
+          }
+          let take = ending ? current : Math.abs(+(item.monthly || 0));
+          if (!(take > 0) && ending && !(current > 0)){
+            applied.push({label: label || query || cat || 'that payment', take:0, current:0, missing:true, end:ending});
+            continue;
+          }
+          if (current > 0 && take > current) take = current;
+          take = +(+take).toFixed(2);
+          freed += take;
+          applied.push({label: cat || label || query, category: cat || '', take, current, end: ending, source, missing:false});
+        }
+        freed = +freed.toFixed(2);
+        const afterSpend = fig.spend - freed;
+        const afterSpare = fig.spare + freed;
+        const bits = [cashflowSay(fig)];
+        if (!applied.length){
+          bits.push('I need named cuts — for example “cut shopping by €200, groceries by €100, PTSB finished”.');
+        } else {
+          bits.push('If you make those changes:');
+          for (const row of applied){
+            if (row.missing) bits.push('• ' + row.label + ' — I could not find that payment in this range, so I did not count it.');
+            else if (row.end) bits.push('• ' + row.label + ' ends — ' + eur(row.take) + '/mo comes back' + (row.current ? ' (recently ' + eur(row.current) + '/mo)' : '') + '.');
+            else bits.push('• ' + row.label + ' −' + eur(row.take) + '/mo' + (row.current ? ' (from ' + eur(row.current) + ')' : '') + '.');
+          }
+          bits.push('Freed ' + eur(freed) + '/mo. New outgoings ' + eur(afterSpend) + ', new left over ' + eur(afterSpare) + ' a month.');
+          if (fig.income > 0) bits.push('That is ' + (Math.round((afterSpare / fig.income) * 1000) / 10) + '% of income, versus ' + (Math.round(fig.rate * 1000) / 10) + '% now.');
+        }
+        const say = bits.join('\n');
+        return {ok:true, tool:t, say, provenance:'Engine · what-if · ' + rangeLabel(),
+                data:{income:fig.income, spend:fig.spend, spare:fig.spare, freed, afterSpend:+afterSpend.toFixed(2), afterSpare:+afterSpare.toFixed(2), cuts:applied},
+                actions:[{type:'nav', k:'cash', sec:'sec-cashflow'}],
+                suggestions:['design a budget from my last 12 months', 'where can I cut back'],
+                links: applied.map(r => r.category ? 'cat:' + r.category : '').filter(Boolean)};
+      }
+      if (t === 'budget_notice'){
+        const fig = cashflowFigures();
+        if (!fig) return {ok:false, tool:t, say:'Upload a statement and I will tell you what stands out.', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
+        const lines = historyBudgetLines();
+        const FLEX = /shopping|dining|entertainment|uncategor|subscription|eating|takeaway|amazon/i;
+        const FIXED = /rent|mortgage|housing|loan|childcare|insurance/i;
+        const flex = lines.filter(l => FLEX.test(l.category));
+        const fixed = lines.filter(l => FIXED.test(l.category));
+        const top = lines.slice(0, 6);
+        const bits = [cashflowSay(fig)];
+        if (fig.spare < 0) bits.push('Month-end is negative — the first job is to stop the overspend, not to add new commitments.');
+        else if (fig.rate < 0.05) bits.push('Almost everything that comes in is already spoken for. Small cuts on movable lines will show up immediately.');
+        else if (fig.rate < 0.1) bits.push('There is a little room, but not enough to absorb a surprise bill comfortably.');
+        else bits.push('There is usable room each month if you want to save faster or take something on.');
+        if (top.length) bits.push('Largest lines: ' + top.map(l => l.category + ' ' + eur(l.amount) + '/mo').join('; ') + '.');
+        if (fixed.length) bits.push('Usually least flexible: ' + fixed.map(l => l.category + ' ' + eur(l.amount)).join(', ') + '.');
+        if (flex.length) bits.push('More movable: ' + flex.slice(0, 4).map(l => l.category + ' ' + eur(l.amount) + '/mo').join(', ') + '.');
+        else if (top.length) bits.push('Shopping, dining and uncategorised spend are usually the easiest to move; rent is not.');
+        bits.push('Tell me a cut (“shopping down €200, PTSB finished”) and I will show the new month-end figure.');
+        return {ok:true, tool:t, say: bits.join('\n'), provenance:'Engine · notice · ' + rangeLabel(),
+                data:{income:fig.income, spend:fig.spend, spare:fig.spare, rate:fig.rate, top, flex, fixed},
+                actions:[{type:'nav', k:'cash', sec:'sec-cashflow'}],
+                suggestions:['if I cut shopping by 200', 'where can I cut back', 'show leaks'],
+                links: top.map(l => 'cat:' + l.category)};
       }
       // "Show me these transactions" had no tool at all — the co-pilot could
       // only report monthly averages, so it navigated and then narrated numbers
@@ -19902,7 +20173,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         return normLmObj(o);
       } catch (e) {
         // bare tool name lines: TOOL cat_monthly {"category":"Groceries"}
-        const tm = raw.match(/\b(help|nav|set_range|cashflow_summary|cat_monthly|balances|summary_outlook|affordability|spend_ranked|find_transactions|net_worth|pulse|leaks|notes_for|goals_status|propose_budget|propose_goal|propose_rules|run_scenario|apply_scenario)\b[\s\S]{0,200}/);
+        const tm = raw.match(/\b(help|nav|set_range|cashflow_summary|cat_monthly|balances|summary_outlook|affordability|cashflow_whatif|budget_notice|spend_ranked|find_transactions|net_worth|pulse|leaks|notes_for|goals_status|propose_budget|propose_goal|propose_rules|run_scenario|apply_scenario)\b[\s\S]{0,200}/);
         if (tm){
           try {
             const am = tm[0].match(/\{[\s\S]*\}/);
@@ -19919,9 +20190,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     // system message so a date-range change does not evict the contract prefix.
     function systemPromptStatic(){
       return [
-        'You are Lithifyte co-pilot — a household finance assistant inside the Lithifyte app.',
+        'You are Lithifyte co-pilot — a household finance coach inside the Lithifyte app.',
         'You MUST NOT invent amounts, balances, or averages. Call tools; the app Engine computes figures.',
-        'You help structure data, explain numbers, and design budgets/goals in a SANDBOX until the user applies.',
+        'You HELP: say what the numbers mean, what is tight, what they can actually move, and one next step.',
+        'Do not restate a tool paragraph. The user already sees it. Add interpretation.',
         'You are not a regulated financial adviser — co-author the user\'s plan, do not recommend products.',
         '',
         'Respond with exactly ONE JSON object per turn (never multiple). One of:',
@@ -19939,10 +20211,13 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         '- One tool is usually enough. "How has X done" is cat_monthly. "Open/show <section>" is nav and nothing else.',
         '- Only use propose_budget / propose_goal / propose_rules when the user actually asks to design a budget, a goal, or categorisation rules.',
         '',
-        'Advice questions still need a tool FIRST — there is one for each:',
+        'Advice and what-if questions still need a tool FIRST — there is one for each:',
+        '- "If I cut X / reduce Y / Z is finished / how does that change month-end" → cashflow_whatif.',
+        '  Pass the cuts through (typos like "shoppy" are fine). NEVER add the numbers yourself.',
+        '- "What do you notice / how am I doing / anything I can improve / improve cashflow" → budget_notice.',
         '- "Can I afford X a month / an X installment?" → affordability {"monthly":X}. It does the sum for you.',
         '- "Where can I cut back?" / "how do I save money?" → spend_ranked.',
-        '- "How am I doing?" → cashflow_summary.',
+        '- "How am I doing?" with no extra ask → budget_notice (not a bare restatement of in/out).',
         '- "Show me / list / which ones / what did I spend on X" → find_transactions. This is the only tool',
         '  that returns actual rows. Never answer "show me the transactions" by navigating.',
         '- "What is my net worth?" → net_worth. "Pulse / health score" → pulse. "Leaks" → leaks.',
@@ -19952,7 +20227,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         'Never name a country or tax authority the user has not named themselves.',
         'Never answer a money question from memory. You may repeat an amount the user named. Every OTHER figure must come from a tool.',
         '',
-        'A local retriever may already have attached matching rows. Treat those as a find_transactions result — do not invent more rows.',
+        'A local retriever or what-if may already be attached. Treat those as computed fact — do not invent more rows or totals.',
         '',
         'Tools: ' + JSON.stringify(toolSchemasForPrompt())
       ].join('\n');
@@ -20060,17 +20335,29 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         ...history
       ];
       const steps = [];
+      const attachQuiet = (result, note) => {
+        if (!result || !result.ok) return;
+        applyActions(result.actions || []);
+        const outbound = outboundFor(result);
+        steps.push(result);
+        messages.push({role:'user', content: (note || 'Engine result (computed, not a guess). Use these numbers:') + '\n' +
+          JSON.stringify({tool: outbound.tool, say: outbound.say, data: outbound.data})});
+      };
+      const plan = Engine.planHint ? Engine.planHint(recentAsk(userText)) : {cuts:[], wantsWhatIf:false, wantsAdvice:false};
+      if (plan.wantsWhatIf && plan.cuts.length){
+        attachQuiet(run({tool:'cashflow_whatif', args:{cuts: plan.cuts}}),
+          'Engine already ran the what-if. Narrate the new month-end figure and how to make the cuts. Do not restate the whole paragraph.');
+      } else if (plan.wantsAdvice){
+        attachQuiet(run({tool:'budget_notice', args:{}}),
+          'Engine notice is attached. Interpret it for the user — what is tight, what they can move, one next step. Do not restate it.');
+      }
       const hint = Engine.txQueryHint(userText);
       if (hint.wantsRows){
         const pre = run({tool:'find_transactions', args:{
           query: hint.query, month: hint.month, min: hint.min, income: hint.income, limit: 12
         }});
         if (pre && pre.ok && pre.data && pre.data.rows && pre.data.rows.length){
-          applyActions(pre.actions || []);
-          const outbound = outboundFor(pre);
-          steps.push(pre);
-          messages.push({role:'user', content: 'Engine retrieved matching rows locally (not a guess). Use these numbers:\n' +
-            JSON.stringify({tool: outbound.tool, say: outbound.say, data: outbound.data})});
+          attachQuiet(pre, 'Engine retrieved matching rows locally (not a guess). Use these numbers:');
         }
       }
       // A smaller model often keeps calling tools instead of committing to an
@@ -20173,12 +20460,18 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
             // model asked to narrate a tool result usually restates it, and
             // "Opening budget." twice reads like a stutter.
             const echo = !unbacked.length && say && addsNothing(grounded, say);
-            // Name the figures. "figures your data does not support" with no
-            // examples reads like the app is being difficult; the numbers make
-            // it checkable.
-            if (unbacked.length) say = grounded + '\n\n(The rest of the answer was left out — it quoted ' +
-              unbacked.slice(0, 3).map(a => eur(parseFloat(a))).join(', ') + ', which the Engine did not work out from your data.)';
-            else say = grounded + (echo || !say ? '' : ('\n\n' + say));
+            const helpful = steps.find(s => s && (s.tool === 'cashflow_whatif' || s.tool === 'budget_notice' || s.tool === 'affordability'));
+            // Do not paste the tool dump into the assistant bubble — the green
+            // tool card already showed it. Prefer the model's advice; if it
+            // invented figures or only echoed, use the Engine's helpful write-up.
+            if (unbacked.length){
+              say = helpful && helpful.say
+                ? helpful.say
+                : (say + '\n\n(I left out ' + unbacked.slice(0, 3).map(a => eur(parseFloat(a))).join(', ') +
+                  ' — those figures were not worked out from your data.)');
+            } else if (!say || echo){
+              say = (helpful && helpful.say) || grounded;
+            }
           }
         }
         say = Engine.minimise.revealText(say, acctMap());
@@ -20207,8 +20500,14 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         touchChat(chat, result.links);
         return result;
       }
-      // Prefer deterministic tools when they match strongly
-      const intent = match(text);
+      // Prefer deterministic tools when they match strongly.
+      // Follow-ups like "if these are deducted" only parse once we include
+      // the previous user turns (the cuts live there).
+      let intent = match(text);
+      if (!(intent && intent.score >= 0.8)){
+        const wider = match(recentAsk(text));
+        if (wider && wider.tool === 'cashflow_whatif' && wider.score >= 0.8) intent = wider;
+      }
       if (intent && intent.score >= 0.8){
         let result = run(intent);
         applyActions(result.actions || []);
@@ -20951,7 +21250,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
     return {
       ask, match, run, handle, askLm, applyActions, registry, suggestions, open, close, bind, isOpen,
-      systemPrompt, systemPromptStatic, systemPromptHousehold, outboundFor, acctMap,
+      systemPrompt, systemPromptStatic, systemPromptHousehold, outboundFor, acctMap, findCategory,
       ensureChat, newChat, deleteChat, lmEnabled, lmComplete, chats: () => chatStore.items, scenarios: () => scenarioStore.items,
       deleteScenario, applyScenario, renderScenarios, scenSummary,
       renderThread, echoUser, appendMsg, amts, moneyish, unbackedFigures, wantsDraft,
