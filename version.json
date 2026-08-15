@@ -1,8 +1,8 @@
 {
-  "version": "2.7.0",
+  "version": "2.8.0",
   "released": "2026-08-15",
-  "notes": "Chat routing: current is not Rent; PTSB typos; structure-a-budget is a sandbox draft.",
+  "notes": "Household snapshot + typical standing orders. No question bank. Rent is the bill, not the range smear.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "9b3b7f07cc0f994c587febe1ad22aaeb38704662d206a5d8df60276451e1fa8b"
+  "sha256": "7c480c2be522e499be76b29d52b7563f102b5481a6eab69eb502916925e8a4d6"
 }

@@ -56,6 +56,7 @@ ok('app: cashflow what-if tool', /cashflow_whatif/.test(app) && /planHint\(text\
 ok('app: payment monthly uses typical bill', /payment_monthly/.test(app) && /paySeries\(/.test(app));
 ok('app: save plan tool', /save_plan/.test(app));
 ok('app: budget notice tool', /budget_notice/.test(app));
+ok('app: household snapshot for LM fluency', /function householdSnapshot/.test(app) && /function catSpeak/.test(app));
 ok('app: cacheable static system prompt', /function systemPromptStatic\(/.test(app) && /function systemPromptHousehold\(/.test(app));
 ok('app: relay sends convId for Grok cache', /convId:\s*opts\.convId/.test(app));
 ok('app: demo skips hosted consume', /!sample && purpose === 'chat'|!window\.__lfDemo/.test(app) && /__lfDemo/.test(app));

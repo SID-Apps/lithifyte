@@ -15,7 +15,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '2.7.0';
+  var APP_VER = '2.8.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -4628,6 +4628,12 @@ rewrite the static advice cards if the picture has changed.</div>
       // avgActive ignores empty months: for a quarterly bill the all-months
       // average understates what it costs when it does land
       const avgActive = active.length ? active.reduce((s, r) => s + r.total, 0) / active.length : 0;
+      // Median of months that actually have the bill. 6×€1,250 in a 7-month
+      // window is €1,250 rent, not €1,071 (= 6×1250/7).
+      const actVals = active.map(r => r.total).slice().sort((a, b) => a - b);
+      const typical = !actVals.length ? 0
+        : (actVals.length % 2 ? actVals[(actVals.length - 1) / 2]
+          : (actVals[actVals.length / 2 - 1] + actVals[actVals.length / 2]) / 2);
       const peak = rows.reduce((a, r) => (a && Math.abs(a.total) >= Math.abs(r.total)) ? a : r, null);
       const lowActive = active.reduce((a, r) => (a && Math.abs(a.total) <= Math.abs(r.total)) ? a : r, null);
       // trend: mean of the later half against the earlier half
@@ -4638,9 +4644,15 @@ rewrite the static advice cards if the picture has changed.</div>
         const fa = first.reduce((s,v)=>s+v,0) / half, la = last.reduce((s,v)=>s+v,0) / half;
         trend = Math.abs(fa) < 0.005 ? (Math.abs(la) < 0.005 ? 0 : 1) : (la - fa) / Math.abs(fa);
       }
-      return {rows, total: sum, avg, avgActive, months: rows.length,
+      return {rows, total: sum, avg, avgActive, typical, months: rows.length,
               activeMonths: active.length, emptyMonths: rows.length - active.length,
               peak, low: lowActive, trend, txCount: rows.reduce((s, r) => s + r.n, 0)};
+    },
+    flexOf(label){
+      const s = String(label || '').toLowerCase();
+      if (/\b(rent|mortgage|landlord|housing|loan|ptsb|insurance|childcare|council tax|property tax|hoa|strata|child support)\b/.test(s)) return 'fixed';
+      if (/\b(groc|shop|dining|eat|restaurant|entertainment|uncategor|amazon|takeaway|coffee|pub|bar|clothing)\b/.test(s)) return 'movable';
+      return 'ask';
     },
     // ── per-transaction category overrides (bulk assign) ──
     // Selecting a handful of transactions and sending them to a category is a
@@ -15394,6 +15406,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const M = E.catMonthly({txe, months:['2026-01','2026-02','2026-03'], category:'Bins', saveCat:'Deposit savings'});
       return (approx(M.avg, 30, 0.01) && approx(M.avgActive, 90, 0.01)) || JSON.stringify({avg:M.avg, act:M.avgActive});
     });
+    T('catMonthly: six 1250s in seven months is typical 1250 not 1071', () => {
+      const months = ['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06','2026-07'];
+      const txe = months.filter(m => m !== '2026-04').map(mo => ({mo, ec:'Rent', de:1250, cr:0}));
+      const M = E.catMonthly({txe, months, category:'Rent', saveCat:'S'});
+      return (approx(M.typical, 1250, 0.01) && approx(M.avg, 1250 * 6 / 7, 0.05) && M.avg < 1100) || JSON.stringify({t:M.typical, a:M.avg});
+    });
     T('catMonthly: ignores other categories and credits on spend categories', () => {
       const txe = [{mo:'2026-01', ec:'Rent', de:1000, cr:0}, {mo:'2026-01', ec:'Dining', de:40, cr:0},
                    {mo:'2026-01', ec:'Rent', de:0, cr:250}];
@@ -16552,6 +16570,23 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const c = Companion.findCategory('shoppy');
       if (!c) return 'findCategory(shoppy) was null';
       return /shop/i.test(c) || c;
+    });
+    T('companion: household snapshot lists recurring or typical cats', () => {
+      if (typeof Companion.householdSnapshot !== 'function') return 'no snapshot';
+      const s = Companion.householdSnapshot();
+      if (!s) return 'empty';
+      return (Array.isArray(s.recs) && Array.isArray(s.cats)) || JSON.stringify(s);
+    });
+    T('companion: cat_monthly quotes typical not the range smear', () => {
+      if (!TX.length || !A || !A.cats12 || !A.cats12.length) return true;
+      const cat = A.cats12[0].category;
+      const M = catMonthlyModel(cat);
+      const r = Companion.run({tool:'cat_monthly', args:{category:cat}});
+      if (!r.ok) return r.say;
+      if (M.typical && M.avg && Math.abs(M.typical - M.avg) >= 1){
+        return (Math.abs((r.data.typical || 0) - M.typical) < 0.02 && /standing amount|when it is paid/i.test(r.say)) || r.say;
+      }
+      return /when it is paid|each month|standing/i.test(r.say) || r.say;
     });
     T('companion: cashflow_summary includes left-over spare', () => {
       if (!TX.length || !A) return true;
@@ -19738,10 +19773,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (result._refill === 'cat' && result._cat && A){
         const cat = result._cat;
         const M = catMonthlyModel(cat);
-        result.data = {category:cat, avg:M.avg, avgActive:M.avgActive, peak:M.peak, low:M.low, months:M.months, activeMonths:M.activeMonths};
-        const peakBit = M.peak && M.peak.n ? ' Highest ' + fmtMoLbl(M.peak.month) + ' ' + eur(M.peak.total) + '.' : '';
-        const lowBit = M.low && M.low.n && M.activeMonths > 1 ? ' Lowest ' + fmtMoLbl(M.low.month) + ' ' + eur(M.low.total) + '.' : '';
-        result.say = cat + ' — ' + eur(M.avg) + ' a month on average over ' + M.months + ' months.' + peakBit + lowBit;
+        result.data = {category:cat, typical:M.typical, avg:M.avg, avgActive:M.avgActive, peak:M.peak, low:M.low, months:M.months, activeMonths:M.activeMonths, flex: Engine.flexOf(cat)};
+        result.say = catSpeak(cat, M);
         result.provenance = 'Categories → ' + cat + ' · ' + rangeLabel();
       }
       if (result.tool === 'set_range'){
@@ -19752,12 +19785,34 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       return result;
     }
 
+    function catSpeak(cat, M){
+      const bill = +(M.typical || M.avgActive || 0);
+      const flex = Engine.flexOf(cat);
+      let s = cat + ' is ' + eur(bill) + ' in a month when it is paid';
+      if (M.activeMonths && M.months && M.activeMonths < M.months)
+        s += ' (' + M.activeMonths + ' of ' + M.months + ' months in this range)';
+      s += '.';
+      if (M.avg && bill && Math.abs(M.avg - bill) >= 1)
+        s += ' The average over every month in the range is ' + eur(M.avg) + ' — that is not the standing amount.';
+      if (M.peak && M.peak.n && Math.abs(M.peak.total - bill) >= 1)
+        s += ' Highest ' + fmtMoLbl(M.peak.month) + ' ' + eur(M.peak.total) + '.';
+      if (flex === 'fixed') s += ' This looks like a fixed commitment. I will not suggest cutting it unless you say you are moving or it is ending.';
+      else if (flex === 'movable') s += ' This is usually a line you can cut.';
+      else s += ' Tell me if this one is fixed or if we can move it.';
+      return s;
+    }
     function historyBudgetLines(){
       if (!A || !A.cats12) return [];
       return A.cats12
         .filter(c => c.category !== SAVE_CAT && c.category !== INT_CAT && c.avgMonth > 0)
         .slice(0, 12)
-        .map(c => ({category: c.category, amount: Math.round(c.avgMonth)}));
+        .map(c => {
+          const M = catMonthlyModel(c.category);
+          const recs = (typeof REC !== 'undefined' && REC || []).filter(r => r.kind === 'expense' && !r.isSave && r.cat === c.category && r.period === 1);
+          const recSum = recs.reduce((s, r) => s + (+(r.avg || r.avgMo) || 0), 0);
+          const amount = Math.round(recSum > 0 && recSum >= (M.typical || 0) * 0.5 ? recSum : (M.typical || M.avgActive || c.avgMonth));
+          return {category: c.category, amount, rangeAvg: Math.round(M.avg || c.avgMonth), flex: Engine.flexOf(c.category + ' ' + (recs[0] && recs[0].merchant || ''))};
+        });
     }
     function cashflowFigures(){
       if (!A) return null;
@@ -19789,6 +19844,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         for (const t of tokens){
           if (merch === t) s += 6;
           else if (merch.indexOf(t) >= 0) s += 3;
+          else if (Engine.nearTok && merch.split(/[^a-z0-9]+/).some(w => Engine.nearTok(t, w))) s += 3;
         }
         if (s > bestS){ best = r; bestS = s; }
       }
@@ -20155,9 +20211,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         const result = {ok:true, tool:t, say:'…', provenance:'Categories → ' + cat, data:null, actions, suggestions:suggestions(), links:['cat:'+cat], _refill:'cat', _cat:cat, _month:a.month||null};
         if (!a.rangePreset && A){
           const M = catMonthlyModel(cat);
-          result.data = {category:cat, avg:M.avg, peak:M.peak, low:M.low, months:M.months};
-          result.say = cat + ' — ' + eur(M.avg) + ' a month on average over ' + M.months + ' months.';
-          if (M.peak && M.peak.n) result.say += ' Highest ' + fmtMoLbl(M.peak.month) + ' ' + eur(M.peak.total) + '.';
+          result.data = {category:cat, typical:M.typical, avg:M.avg, avgActive:M.avgActive, peak:M.peak, low:M.low, months:M.months, activeMonths:M.activeMonths, flex: Engine.flexOf(cat)};
+          result.say = catSpeak(cat, M);
           result.provenance = 'Categories → ' + cat + ' · ' + rangeLabel();
           result._refill = null;
         }
@@ -20593,23 +20648,53 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         '',
         'You are NOT a tax, legal or regulatory adviser. Never answer tax rules from general knowledge.',
         'Never name a country or tax authority the user has not named themselves.',
-        'Never answer a money question from memory. You may repeat an amount the user named. Every OTHER figure must come from a tool.',
+        'Never invent a figure. You may use amounts in the household snapshot or a tool result, or an amount the user named.',
+        'Standing-order / typical amounts in the snapshot ARE computed Engine figures. Range-averages are labelled — do not quote them as the bill.',
+        'Every household is different. If flex=ask or you are not sure a payment can be cut, ask the user to confirm.',
         '',
         'A local retriever or what-if may already be attached. Treat those as computed fact — do not invent more rows or totals.',
         '',
         'Tools: ' + JSON.stringify(toolSchemasForPrompt())
       ].join('\n');
     }
+    function householdSnapshot(){
+      const fig = cashflowFigures();
+      const recs = (typeof REC !== 'undefined' && REC || [])
+        .filter(r => r && r.kind === 'expense' && !r.isSave && (+(r.avg || r.avgMo) || 0) >= 15)
+        .slice(0, 18)
+        .map(r => {
+          const merch = Engine.minimise.scrub(r.merchant || '').slice(0, 42);
+          const monthly = Math.round(+(r.avg || r.avgMo) || 0);
+          const flex = Engine.flexOf((r.cat || '') + ' ' + (r.merchant || ''));
+          return {merchant: merch, monthly, category: r.cat || '', period: r.period === 1 ? 'monthly' : ('every ' + r.period + 'mo'), flex};
+        });
+      const cats = historyBudgetLines().slice(0, 12);
+      return {range: rangeLabel(), fig, recs, cats};
+    }
     function systemPromptHousehold(){
       const cats = allCatNames().slice(0, 40);
       const ccy = (typeof MONEY !== 'undefined' && MONEY.base) ? MONEY.base : 'EUR';
+      const snap = householdSnapshot();
+      const fig = snap.fig;
+      const recLines = (snap.recs || []).map(r =>
+        '- ' + r.merchant + ' · ' + (ccy === 'EUR' ? '€' : ccy + ' ') + r.monthly + '/mo · ' + r.category + ' · ' + r.period + ' · ' + r.flex);
+      const catLines = (snap.cats || []).map(c =>
+        '- ' + c.category + ' · typical ' + (ccy === 'EUR' ? '€' : '') + c.amount + '/mo'
+          + (c.rangeAvg && Math.abs(c.rangeAvg - c.amount) >= 1 ? ' (range-average ' + c.rangeAvg + ' — do not quote as the bill)' : '')
+          + ' · ' + (c.flex || 'ask'));
       return [
         'Household session (changes when the user changes range or accounts):',
-        'Known categories: ' + JSON.stringify(cats),
         'Current range: ' + rangeLabel(),
         'Display currency: ' + ccy + ' — display only; do not infer a country from it.',
+        fig ? ('Cashflow: ' + fig.income.toFixed(0) + ' in, ' + fig.spend.toFixed(0) + ' out, ' + fig.spare.toFixed(0) + ' leftover /mo.') : 'Cashflow: no figures yet.',
+        'Standing orders / recurring — quote these as the bill, never a year-smear:',
+        recLines.length ? recLines.join('\n') : '- none detected yet',
+        'Category typical monthly (months with spend). flex=fixed must not be cut unless the user says so; flex=ask → ask them:',
+        catLines.length ? catLines.join('\n') : '- no categories yet',
+        'Known categories: ' + JSON.stringify(cats),
         'Accounts are aliased as ' + JSON.stringify(acctMap().aliases) +
-          ' — never use a real account name, person name or IBAN. Call notes_for if you need household context; notes are not in this prompt.'
+          ' — never use a real account name, person name or IBAN. Call notes_for if you need household context; notes are not in this prompt.',
+        'If they name a merchant (PTSB, a landlord, a loan), look it up in standing orders above or call payment_monthly. Do not answer with a different category.'
       ].join('\n');
     }
     function systemPrompt(){
@@ -21626,7 +21711,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
     return {
       ask, match, run, handle, askLm, applyActions, registry, suggestions, open, close, bind, isOpen,
-      systemPrompt, systemPromptStatic, systemPromptHousehold, outboundFor, acctMap, findCategory,
+      systemPrompt, systemPromptStatic, systemPromptHousehold, outboundFor, acctMap, findCategory, householdSnapshot,
       ensureChat, newChat, deleteChat, lmEnabled, lmComplete, chats: () => chatStore.items, scenarios: () => scenarioStore.items,
       deleteScenario, applyScenario, renderScenarios, scenSummary,
       renderThread, echoUser, appendMsg, amts, moneyish, unbackedFigures, wantsDraft,
