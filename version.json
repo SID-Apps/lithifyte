@@ -4,5 +4,5 @@
   "notes": "Review-bugfix: self-host updates visible, existing households stay EUR, quotes convert, direction flags skip unknowns.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "dfd8f97bd46986fc2c8b1d0c721e5419bf4222e1324af58b425166d055d81446"
+  "sha256": "e789f326dfc6ebee006a1a9a27d6ed1b5e6ec0ee622eb828f66a972e0ad5f931"
 }
