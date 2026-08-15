@@ -15,7 +15,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '2.8.0';
+  var APP_VER = '2.8.1';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -15894,6 +15894,13 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const m = Companion.match('help');
       return (m && m.tool === 'help') || 'help not matched';
     });
+    T('companion: hi is a greeting, not help or a money tool', () => {
+      if (!Companion.isSmallTalk || !Companion.isSmallTalk('Hi')) return 'isSmallTalk missed Hi';
+      const m = Companion.match('Hi');
+      if (!m || m.tool !== 'greet') return JSON.stringify(m);
+      const r = Companion.run(m);
+      return (r.ok && !/Co-pilot commands/i.test(r.say) && !/I need named cuts/i.test(r.say)) || r.say;
+    });
     T('companion: cashflow navigates', () => {
       const m = Companion.match('show cashflow');
       return (m && m.tool === 'cashflow_summary') || JSON.stringify(m);
@@ -19576,9 +19583,23 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (lmEnabled()) base.push('design a budget from my last 12 months');
       return base;
     }
+    function isSmallTalk(text){
+      const n = norm(text);
+      if (!n) return true;
+      return /^(hi|hiya|hey|hello|yo|sup|howdy|thanks|thank you|cheers|ok|okay|cool|great|nice|morning|evening|good morning|good afternoon|good evening|how are you|what'?s up|whats up)[!?., ]*$/.test(n);
+    }
+    function greetSay(){
+      const fig = cashflowFigures();
+      let s = 'Hi.';
+      if (fig && fig.income > 0)
+        s += ' You have about ' + eur(fig.spare) + ' left over a month.';
+      s += ' What do you want to look at — a bill, cashflow, or a budget?';
+      return s;
+    }
     function match(q){
       const n = norm(q);
       if (!n) return null;
+      if (isSmallTalk(q)) return {tool:'greet', args:{}, score:0.99};
       if (/^(help|\?|commands|what can you do|examples)$/.test(n)) return {tool:'help', args:{}, score:1};
       // Notes only when they asked about notes, not "why are you telling me…".
       if (/\bnotes?\b/.test(n) || /\bwhy (did|do|was|is) (i|we|my)\b/.test(n)){
@@ -19855,6 +19876,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     function run(intent){
       if (!intent) return {ok:false, tool:null, say:'I did not catch that. Try “show cashflow”, “how has groceries done”, or enable Lithifyte AI for freer chat.', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
       const t = intent.tool, a = intent.args || {};
+      if (t === 'greet'){
+        return {ok:true, tool:t, say: greetSay(), provenance:'greet', data:null, actions:[], suggestions:suggestions(), links:[]};
+      }
       if (t === 'help'){
         return {ok:true, tool:t, say:[
           'Co-pilot commands (work offline — Commands only sends nothing off this device):',
@@ -20663,7 +20687,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         'Known categories: ' + JSON.stringify(cats),
         'Accounts are aliased as ' + JSON.stringify(acctMap().aliases) +
           ' — never use a real account name, person name or IBAN. Call notes_for if you need household context; notes are not in this prompt.',
-        'If they name a merchant (PTSB, a landlord, a loan), look it up in standing orders above or call payment_monthly. Do not answer with a different category.'
+        'If they name a merchant (PTSB, a landlord, a loan), look it up in standing orders above or call payment_monthly. Do not answer with a different category.',
+        'A greeting (hi, hello, hey, thanks) is type:final only — one short hello. Never call help, nav, budget_notice or cashflow_whatif on a greeting.'
       ].join('\n');
     }
     function systemPrompt(){
@@ -20743,6 +20768,13 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
 
     async function askLm(userText){
+      if (isSmallTalk(userText)){
+        const chat0 = ensureChat();
+        echoUser(chat0, userText);
+        const say = greetSay();
+        appendMsg(chat0, 'assistant', say);
+        return {ok:true, tool:'greet', say, provenance:'greet', data:null, actions:[], suggestions:suggestions(), links:[], chatId: chat0.id};
+      }
       const chat = ensureChat();
       echoUser(chat, userText);
       const history = chat.messages.slice(-12).map(m => ({
@@ -20798,6 +20830,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         const raw = await lmComplete(messages, {purpose:'chat', convId: chat.id});
         const parsed = parseLmJson(raw);
         if (parsed && parsed.type === 'tool' && parsed.name){
+          if (parsed.name === 'help' && !/^(help|\?|commands|what can you do)/i.test(userText)){
+            messages.push({role:'assistant', content: raw});
+            messages.push({role:'user', content: 'Do not list commands. The user did not ask for help. Answer what they said. If it was only a greeting, say hello and ask what they want to look at.'});
+            continue;
+          }
           const intent = {tool: parsed.name, args: parsed.args || {}};
           // A sandbox draft is a thing the user then has to find and delete, so
           // it may only be created when they actually asked for one. The prompt
@@ -20918,6 +20955,13 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     async function handle(q){
       const text = String(q || '').trim();
       if (!text) return null;
+      if (isSmallTalk(text)){
+        const chat = ensureChat();
+        echoUser(chat, text);
+        const say = greetSay();
+        appendMsg(chat, 'assistant', say);
+        return {ok:true, tool:'greet', say, provenance:'greet', data:null, actions:[], suggestions:suggestions(), links:[]};
+      }
       // explicit apply shortcuts
       if (/^apply\b/i.test(text) && pendingApply){
         const result = run({tool:'apply_scenario', args:{scenarioId: pendingApply.scenarioId || pendingApply, confirm:true}});
@@ -21680,6 +21724,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
     return {
       ask, match, run, handle, askLm, applyActions, registry, suggestions, open, close, bind, isOpen,
+      isSmallTalk, greetSay,
       systemPrompt, systemPromptStatic, systemPromptHousehold, outboundFor, acctMap, findCategory, householdSnapshot,
       ensureChat, newChat, deleteChat, lmEnabled, lmComplete, chats: () => chatStore.items, scenarios: () => scenarioStore.items,
       deleteScenario, applyScenario, renderScenarios, scenSummary,
