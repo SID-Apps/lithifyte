@@ -1,8 +1,8 @@
 {
-  "version": "2.8.1",
-  "released": "2026-08-15",
-  "notes": "Hi is a greeting. Do not dump commands, open Budget, or run a what-if.",
+  "version": "3.0.0",
+  "released": "2026-08-16",
+  "notes": "The assistant writes, and only when you ask.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "d6628b53a395e652574143be2f8c6a1eb97469b12fbd2c7c578bdccd1841f91c"
+  "sha256": "d60f71b24beda6e4d0f1a8c7d89892c72b4801672f7f2994b74da6b4aaeb588f"
 }

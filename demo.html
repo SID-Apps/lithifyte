@@ -15,7 +15,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '2.8.1';
+  var APP_VER = '3.0.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -758,6 +758,14 @@ So, when you change a stored shape:
   .cp-tool-hd{font-size:11px; font-weight:600; letter-spacing:.02em; text-transform:uppercase; color:#6ee7b7; opacity:.9}
   .cp-tool-say{white-space:pre-wrap; color:#d6f3e6}
   .cp-tool-src{font-size:10.5px; color:#7fbfa4; opacity:.85}
+  /* The figures moved behind a disclosure when the card became a status line —
+     the assistant bubble is the answer now, this is the receipt. */
+  .cp-tool-more{margin-top:2px}
+  .cp-tool-more summary{font-size:10.5px; color:#7fbfa4; cursor:pointer; list-style:none; opacity:.85}
+  .cp-tool-more summary::-webkit-details-marker{display:none}
+  .cp-tool-more summary::before{content:'▸ '; font-size:9px}
+  .cp-tool-more[open] summary::before{content:'▾ '}
+  .cp-tool-more summary:hover{opacity:1; text-decoration:underline}
   /* "thinking" is a bubble in the thread, where the eye already is — the status
      line under the model popover is closed most of the time */
   .cp-msg.think{align-self:flex-start; display:flex; align-items:center; gap:7px; color:#9fc4e6;
@@ -3090,7 +3098,11 @@ So, when you change a stored shape:
     </div>
     </div>
     <h3 style="margin:18px 0 8px">AI &amp; what left this device</h3>
-    <p class="hint" style="margin:0 0 10px">The ledger never lives on our servers. Asking Lithifyte AI sends only the slice that question needs through a pass-through relay. Commands-only and a local model send nothing. Hosted intelligence, the encrypted vault and maintained bank-import presets are Plus; the Engine stays free forever, and export is never gated.</p>
+    <p class="hint" style="margin:0 0 10px">The ledger never lives on our servers. With consent, Lithifyte AI can read every panel and make reversible edits (budgets, goals, rules, notes). Imported statement amounts are never changed. Commands-only and a local model send nothing. Hosted intelligence, the encrypted vault and maintained bank-import presets are Plus; the Engine stays free forever, and export is never gated.</p>
+    <label class="hint" style="display:flex; align-items:flex-start; gap:8px; margin:0 0 10px; cursor:pointer">
+      <input type="checkbox" id="aiAssistantVision" style="margin-top:3px">
+      <span>Lithifyte AI may read every panel and edit budgets, goals, rules and notes on my behalf. Statement amounts stay immutable. I can revoke this anytime.</span>
+    </label>
     <div class="filter-row" style="margin:0 0 8px; flex-wrap:wrap; gap:8px">
       <button class="btn" id="aiConsentRevoke" type="button">Revoke AI consent</button>
       <button class="btn small" id="aiDiscloseClear" type="button">Clear this log</button>
@@ -5260,7 +5272,7 @@ rewrite the static advice cards if the picture has changed.</div>
       if (m) months = +m[1];
       const wantsPayment = (!!paymentQuery && /\b(how much|paying|each month|a month|per month|monthly|payment)\b/.test(n))
         || /\b(how many payments|not the average|month(?:ly)? payment)\b/.test(n);
-      const wantsWhatIf = /\b(if i|what if|suppose i|after i|once i|when i|how does this|how would this|effect my|affect my|monthly outcome|these sections are deducted|if these)\b/i.test(raw)
+      const wantsWhatIf = /\b(if i|what if|suppose i|after i|once i|when i|how does (this|that)|how would (this|that)|what does (this|that) do|effect my|affect my|monthly outcome|these sections are deducted|if these)\b/i.test(raw)
         || (cuts.length >= 2 && /\b(cut|reduc|deduct|finish|paid off)\b/i.test(n));
       const wantsSavePlan = /\b(how much can i save|how much could i save|what can i (put aside|save)|reach .{0,48} by |save .{0,24} by |target .{0,24} by )\b/i.test(n)
         || !!(target && (by || months));
@@ -8997,7 +9009,7 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
     const messages = [{role:'system', content: LM_SYS}, {role:'user', content: user}];
     try{
       const out = await aiRelayChat(messages, {forceHosted:true, purpose:'categorise'});
-      aiDisclose({lane:'categorise', tier:'shape', provider:'lithifyte-hosted', dest: out.fallback ? 'workers-ai' : 'openrouter', bytes: JSON.stringify(messages).length, purpose:'categorise'});
+      aiDisclose({lane:'categorise', tier:'shape', provider:'lithifyte-hosted', dest: out.upstream || (out.fallback ? 'workers-ai' : 'hosted'), bytes: JSON.stringify(messages).length, purpose:'categorise'});
       const parsed = Engine.lmParse({text: out.content, allowed});
       if (!parsed.ok){ lmStatus('✗ The model replied but ' + esc(parsed.error) + ' — try again.'); return; }
       await lmApplyParsed(cands, parsed);
@@ -10803,7 +10815,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       ];
       try{
         const out = await aiRelayChat(messages, {forceHosted:true, purpose:'pdf'});
-        aiDisclose({lane:'pdf', tier:'detail', provider:'lithifyte-hosted', dest: out.fallback ? 'workers-ai' : 'openrouter', bytes: JSON.stringify(messages).length, purpose:'pdf-parse'});
+        aiDisclose({lane:'pdf', tier:'detail', provider:'lithifyte-hosted', dest: out.upstream || (out.fallback ? 'workers-ai' : 'hosted'), bytes: JSON.stringify(messages).length, purpose:'pdf-parse'});
         let arr;
         const s = String(out.content || '');
         const a0 = s.indexOf('['), a1 = s.lastIndexOf(']');
@@ -15971,6 +15983,25 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     T('companion: relay default is https', () => {
       return String(Companion.RELAY_DEFAULT || '').indexOf('https://') === 0 || Companion.RELAY_DEFAULT;
     });
+    T('ai: capability defaults to the weakest profile until an answer proves otherwise', () => {
+      // Assuming a protocol from configuration is exactly how /health came to
+      // advertise a model that had never answered a single request.
+      const keep = window.__lfCapability;
+      try {
+        delete window.__lfCapability;
+        const c = window.__ddAiCapability();
+        return (c.profile === 'E' && c.tools === false && c.jsonSchema === false)
+          || 'unknown capability should be E, got ' + JSON.stringify(c);
+      } finally { if (keep) window.__lfCapability = keep; else delete window.__lfCapability; }
+    });
+    T('ai: capability follows the upstream that answered', () => {
+      const keep = window.__lfCapability;
+      try {
+        window.__lfCapability = {profile:'S', tier:'strong', tools:true, jsonSchema:true, upstream:'grok'};
+        const c = window.__ddAiCapability();
+        return (c.profile === 'S' && c.tools === true) || 'did not adopt the reported capability';
+      } finally { if (keep) window.__lfCapability = keep; else delete window.__lfCapability; }
+    });
     T('companion: a tool name in "type" is still a tool call, not an answer', () => {
       // Observed live from the hosted model. Before this was handled the user
       // was shown the raw JSON as their answer.
@@ -15991,14 +16022,267 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const j = Companion.joinSays(steps);
       return (j === 'Groceries — €479 a month.\n\nBalances: …') || JSON.stringify(j);
     });
-    T('companion: model narration that only restates the Engine is dropped', () => {
-      const g = 'Groceries — €479 a month on average over 12 months. Highest Jun 2026 €589.';
-      const echo = Companion.addsNothing(g, '€479 a month on average over 12 months.');
-      const reworded = Companion.addsNothing(g, 'On average, groceries ran €479 a month.');
-      const real = Companion.addsNothing(g, 'That is steady — no seasonal spike worth worrying about.');
-      const nav = Companion.addsNothing('Opening budget.', 'Opening budget.');
-      return (echo === true && reworded === true && real === false && nav === true) ||
-             JSON.stringify({echo, reworded, real, nav});
+    T('companion: the model\'s own wording survives when its figures check out', () => {
+      // This replaces "narration that only restates the Engine is dropped".
+      // Dropping a restatement is what made the co-pilot sound like a machine:
+      // the tool card printed the Engine sentence, so a model narrating it read
+      // as a stutter and the guard threw the model away. The card is a status
+      // line now — a restatement is simply the answer, and only an UNBACKED
+      // figure may cost the model its sentence.
+      const g = 'Groceries — 479 a month on average over 12 months. Highest Jun 2026 589.';
+      const echo = Companion.unbackedFigures(g, 'On average, groceries ran 479 a month.', '');
+      const real = Companion.unbackedFigures(g, 'That is steady — no seasonal spike worth worrying about.', '');
+      const invented = Companion.unbackedFigures(g, 'You could save 1,250 a month by cutting that.', '');
+      const userSaid = Companion.unbackedFigures(g, 'A 300 installment would fit.', 'can i afford a 300 installment');
+      return (echo.length === 0 && real.length === 0 && invented.length === 1 && userSaid.length === 0) ||
+             JSON.stringify({echo, real, invented, userSaid});
+    });
+    T('understand: the model re-asking for the prefetched tool is not a new question', () => {
+      // Measured live 16 Aug: the prefetch ran payment_monthly for "avant", the
+      // model then asked for "Avant Money", the guard called that a different
+      // question, and the tool ran twice — one wasted hosted call per turn.
+      const same = Companion.sameAsk({query:'avant'}, {query:'Avant Money'});
+      const alsoSame = Companion.sameAsk({query:'avant money'}, {});
+      const tescoFamily = Companion.sameAsk({query:'tesco'}, {query:'tesco mobile'});
+      const tooShort = Companion.sameAsk({query:'tes'}, {query:'tesco'});
+      const different = Companion.sameAsk({category:'Groceries'}, {category:'Fuel'});
+      const newSubject = Companion.sameAsk({}, {category:'Groceries'});
+      return (same === true && alsoSame === true && tescoFamily === true && tooShort === false &&
+              different === false && newSubject === false) ||
+             JSON.stringify({same, alsoSame, tescoFamily, tooShort, different, newSubject});
+    });
+    T('greet: "hi there" is a greeting, not a navigation command', () => {
+      // The anchored version only matched a bare "hi", so "hi there" and
+      // "hey, how's it going" fell through to the model — which answered a
+      // hello by opening Cashflow.
+      const yes = ['hi', 'hi there', "hey, how's it going", 'Hello!', 'good morning', 'thanks'];
+      const no  = ['hi, how much did I spend on groceries', 'hey can you show me my budget',
+                   'how much is the Avant Money payment'];
+      for (const q of yes) if (!Companion.isSmallTalk(q)) return 'missed a greeting: ' + q;
+      for (const q of no) if (Companion.isSmallTalk(q)) return 'swallowed a real question: ' + q;
+      return true;
+    });
+    T('greet: the greeting brief carries figures and no account names', () => {
+      const b = Companion.greetBrief();
+      if (!/left over|range on screen/.test(b)) return 'brief has nothing to say: ' + b;
+      return !/IBAN|\bAva\b|\bBen\b/.test(b) || 'a person or account leaked into the greeting brief';
+    });
+    T('brief: standing names the payment, not the grocery bill', () => {
+      if (typeof Companion.briefFor !== 'function') return 'no briefFor';
+      if (!TX.length) return true;
+      const u = Companion.understand('how much is the Avant Money payment');
+      const b = Companion.briefFor(u);
+      const text = (b.facts || []).join('\n');
+      if (b.tier !== 'aggregate') return 'tier ' + b.tier;
+      if (!/avant/i.test(text)) return 'payment missing: ' + text;
+      if (/tesco|aldi|supervalu/i.test(text)) return 'unrelated merchant in a standing brief: ' + text;
+      return true;
+    });
+    T('brief: nav and rules_draft are shape and leak no amounts', () => {
+      if (typeof Companion.briefFor !== 'function') return 'no briefFor';
+      const nav = Companion.briefFor(Companion.understand('open Budget'));
+      const rules = Companion.briefFor(Companion.understand('suggest categorisation rules'));
+      if (nav.tier !== 'shape') return 'nav tier ' + nav.tier;
+      if (rules.tier !== 'shape') return 'rules tier ' + rules.tier;
+      const blob = (nav.facts || []).concat(rules.facts || []).join('\n');
+      const leaks = Engine.minimise.leaks('shape', blob);
+      return leaks.length === 0 || ('shape leaked ' + leaks.join(',') + ': ' + blob.slice(0, 200));
+    });
+    T('brief: advice is category typicals, not eighteen standing orders', () => {
+      if (typeof Companion.briefFor !== 'function') return 'no briefFor';
+      if (!TX.length) return true;
+      const dump = Companion.householdSnapshot();
+      const b = Companion.briefFor(Companion.understand('I need to restructure my finance, what can I do?'));
+      const text = (b.facts || []).join('\n');
+      if (b.tier !== 'aggregate') return 'tier ' + b.tier;
+      if (!/leftover|left over|Cashflow/i.test(text)) return 'no spare: ' + text;
+      const recNames = (dump.recs || []).map(r => r.merchant).filter(m => m && !/avant|rent/i.test(m));
+      const extras = recNames.filter(m => text.indexOf(m) >= 0);
+      return extras.length <= 1 || ('advice brief still lists bills: ' + extras.slice(0, 4).join(', '));
+    });
+    T('brief: rows with no subject does not dump the ledger', () => {
+      if (typeof Companion.briefFor !== 'function') return 'no briefFor';
+      const b = Companion.briefFor(Companion.understand('show me everything'));
+      if ((b.rows || []).length) return 'rows leaked: ' + b.rows.length;
+      const text = (b.facts || []).join('\n');
+      return !/tesco|aldi|supervalu/i.test(text) || 'ledger names in an empty rows brief: ' + text;
+    });
+    T('assistant: writes refuse without consent', () => {
+      const r = Companion.run({tool:'set_budget_line', args:{category:'Groceries', amount:400}});
+      return (r && r.ok === false && /consent/i.test(r.say + r.provenance)) || JSON.stringify(r);
+    });
+    T('assistant: a write needs the USER to have asked, not just consent', () => {
+      // Consent is permission to act, not permission to act unprompted. Tool
+      // results carry merchant strings from the statement and bodies from
+      // notes; none of that is the household speaking. apply_scenario already
+      // required the user's own words — the other four writes now do too.
+      const reads = ['rows', 'advice_open', 'category', 'standing', 'unknown', 'greet'];
+      for (const r of reads){
+        Companion.__setTurnIntent({intent:r, confidence:0.9, slots:{}});
+        for (const tool of ['set_budget_line', 'set_goal', 'add_note', 'add_rule'])
+          if (Companion.writeAsked(tool)) return tool + ' allowed during a "' + r + '" turn';
+      }
+      // …and the matching edit request still goes through.
+      const pairs = [['edit_budget','set_budget_line'], ['edit_goal','set_goal'],
+                     ['add_note','add_note'], ['add_rule','add_rule']];
+      for (const [intent, tool] of pairs){
+        Companion.__setTurnIntent({intent, confidence:0.9, slots:{}});
+        if (!Companion.writeAsked(tool)) return intent + ' could not run ' + tool;
+      }
+      // An explicit yes to something we just offered counts.
+      Companion.__setTurnIntent({intent:'apply', confidence:0.95, slots:{}});
+      const okApply = Companion.writeAsked('set_budget_line');
+      Companion.__setTurnIntent(null);
+      return okApply || 'an explicit apply was refused';
+    });
+    T('assistant: understand apply / panel / edit', () => {
+      const a = Companion.understand('apply this budget');
+      const p = Companion.understand('what\'s on my budget panel');
+      const e = Companion.understand('set Groceries budget to 400');
+      if (a.intent !== 'apply') return 'apply → ' + a.intent;
+      if (p.intent !== 'panel') return 'panel → ' + p.intent;
+      if (e.intent !== 'edit_budget') return 'edit → ' + e.intent;
+      return true;
+    });
+    T('assistant: registry can read a panel and write a line', () => {
+      const ids = Companion.registry().map(t => t.id);
+      return (ids.indexOf('panel_state') >= 0 && ids.indexOf('set_budget_line') >= 0 && ids.indexOf('add_rule') >= 0)
+        || ids.join(',');
+    });
+    T('assistant: vision is compact and has no IBAN', () => {
+      if (typeof Companion.appVision !== 'function') return 'no appVision';
+      const v = Companion.appVision();
+      const blob = JSON.stringify(v);
+      if (!v.cashflow || !v.budget || !v.goals) return 'missing panels: ' + blob.slice(0, 200);
+      return !/IE\d{2}/.test(blob) || 'IBAN leaked';
+    });
+    T('brief: household prompt for a standing ask is smaller than the dump', () => {
+      if (!Companion.systemPromptHousehold || !TX.length) return true;
+      const dump = Companion.systemPromptHousehold();
+      const slim = Companion.systemPromptHousehold(Companion.understand('how much is the Avant Money payment'));
+      if (!/Current range:/.test(slim)) return 'lost the range line';
+      if (slim.length >= dump.length) return 'standing brief not smaller: ' + slim.length + ' >= ' + dump.length;
+      if (/tesco|aldi/i.test(slim)) return 'standing household prompt still lists grocers';
+      return true;
+    });
+    T('ask: a missing detail is asked for, not guessed', () => {
+      // "can I afford it" used to be answered "that commitment fits with room
+      // left" for an amount nobody named, and "how much is the current payment"
+      // answered with a merchant the user had not mentioned.
+      const cases = [
+        ['can i afford it', 'amount'],
+        ['how much is the current payment', 'query'],
+        ['show me everything', 'query']
+      ];
+      for (const [q, slot] of cases){
+        const u = Companion.understand(q);
+        if ((u.missing || []).indexOf(slot) < 0) return q + ' → missing ' + JSON.stringify(u.missing);
+        if (Companion.prefetchFor(u)) return q + ' ran a tool on a guess';
+        if (!Companion.askFor(slot, u.intent)) return 'no question for ' + slot;
+      }
+      // …and a complete question is NOT interrogated back at the user.
+      const full = Companion.understand('can i afford 300 a month');
+      if ((full.missing || []).length) return 'asked for a detail it already had';
+      const open = Companion.understand('I need to restructure my finance, what can I do?');
+      return !(open.missing || []).length || 'an open advice question must not be met with a question';
+    });
+    T('ask: "by December" is a deadline', () => {
+      // planHint wants a year with the month, so a save target with a bare
+      // month read as having no date and the co-pilot asked for one twice.
+      const u = Companion.understand('can i reach 5000 by December without the loan payment');
+      if (u.intent !== 'save_plan') return 'intent ' + u.intent;
+      if (!u.slots.by) return 'no deadline parsed';
+      return (u.missing || []).length === 0 || 'still asking for a date it was given';
+    });
+    T('understand: the sentence that started this is advice, not a draft', () => {
+      // "I need to restructure my finance, what can I do?" was invisible to
+      // match(), planHint() and wantsDraft() alike, so it reached the model
+      // with nothing attached and ended in "try a more specific ask".
+      const u = Companion.understand('I need to restructure my finance, what can I do?');
+      if (u.intent !== 'advice_open') return 'intent ' + u.intent;
+      if (u.confidence < 0.8) return 'confidence ' + u.confidence;
+      const pre = Companion.prefetchFor(u);
+      return (pre && pre.tool === 'budget_notice') || 'no advice prefetch: ' + JSON.stringify(pre);
+    });
+    T('understand: one layer cannot disagree with itself', () => {
+      // planHint reads "300 a month" as a standing order, so a payment lookup
+      // used to outrank an explicit afford question. Three gates could hold
+      // three answers; one layer has to pick.
+      const cases = [
+        ['can i afford 300 a month', 'afford'],
+        ['can i reach 5000 by December without the loan payment', 'save_plan'],
+        ['how much is the Avant Money payment', 'standing'],
+        ['show me what I spent at Tesco', 'rows'],
+        ['design a budget from my last 12 months', 'budget_draft'],
+        ['open budget', 'nav'],
+        ['show cashflow', 'nav']
+      ];
+      for (const [q, want] of cases){
+        const got = Companion.understand(q).intent;
+        if (got !== want) return q + ' → ' + got + ', expected ' + want;
+      }
+      return true;
+    });
+    T('understand: a question it cannot place is low confidence, not a guess', () => {
+      const u = Companion.understand('what is the airspeed velocity of an unladen swallow');
+      if (u.intent !== 'unknown') return 'claimed ' + u.intent;
+      if (u.confidence >= 0.8) return 'confident about nonsense: ' + u.confidence;
+      return Companion.prefetchFor(u) === null || 'prefetched something for an unknown intent';
+    });
+    T('understand: a sandbox draft is only prefetched when they asked for one', () => {
+      // Prefetching is what makes a grounded answer cost one call, but a draft
+      // the user then has to find and delete is not a free side effect of the
+      // classifier. Draft intents prefetch a READ; propose_* waits for the model.
+      const asked = Companion.understand('design a budget from my last 12 months');
+      const notAsked = Companion.understand('what do you notice');
+      const p1 = Companion.prefetchFor(asked), p2 = Companion.prefetchFor(notAsked);
+      if (p1 && /^propose_/.test(p1.tool)) return 'prefetched a write: ' + p1.tool;
+      if (!p1 || p1.tool !== 'budget_notice') return 'asked for a budget should still get a read prefetch: ' + JSON.stringify(p1);
+      return (p2 && p2.tool === 'budget_notice') || 'unasked advice prefetched ' + JSON.stringify(p2);
+    });
+    T('speak: the tool card is a status line, not a second answer', () => {
+      // While the card printed the tool's own sentence, any narration by the
+      // model read as a duplicate — which is why the old guard threw the
+      // model's wording away. The figures stay one click down.
+      const html = Companion.toolBubble({role:'tool', tool:'budget_notice',
+        content: JSON.stringify({tool:'budget_notice', ok:true, say:'You have 2,519 spare.', provenance:'last 12 months'})});
+      const head = (html.match(/cp-tool-hd">([^<]*)/) || [])[1] || '';
+      if (/2,519/.test(head)) return 'the figure is still in the card headline';
+      if (!/looked over your budget/.test(head)) return 'headline is not plain language: ' + head;
+      return /<details/.test(html) || 'the figures are no longer reachable at all';
+    });
+    T('speak: nav and range stay local, money answers go to the writer', () => {
+      // §10.4 — composing is the trap, phrasing "Opening Budget." is not, and
+      // routing every navigation through the model would spend a metered
+      // question to say it.
+      const local = Companion.LOCAL_INTENTS;
+      const mustBeLocal = ['nav', 'set_range', 'help'];
+      const mustSpeak = ['budget_notice', 'spend_ranked', 'payment_monthly', 'cat_monthly',
+                         'affordability', 'cashflow_whatif', 'save_plan', 'find_transactions',
+                         'net_worth', 'pulse', 'leaks', 'propose_budget',
+                         'cashflow_summary', 'balances', 'summary_outlook'];
+      for (const t of mustBeLocal) if (local.indexOf(t) < 0) return t + ' must stay on the local path';
+      for (const t of mustSpeak) if (local.indexOf(t) >= 0) return t + ' is a money answer and must reach the model';
+      return true;
+    });
+    T('speak: "help me get my money in order" is advice, not a cashflow readout', () => {
+      // "money in" matched inside "money in order", so a request for advice was
+      // answered with a readout and never reached the model.
+      const m = Companion.match('help me get my money in order');
+      return (!m || m.tool !== 'cashflow_summary') ||
+        'still routed to cashflow_summary at score ' + m.score;
+    });
+    T('speak: no ending tells the user they asked wrong', () => {
+      // "I ran tools but did not finish — try a more specific ask" was what
+      // "I need to restructure my finance, what can I do?" arrived at. Every
+      // exit now carries either figures or a specific question back.
+      const endings = Object.values(Companion.LAST_RESORT || {});
+      if (endings.length < 2) return 'LAST_RESORT not exported';
+      for (const e of endings){
+        if (/more specific|rephrase|did not finish|try again with/i.test(e)) return 'still blames the user: ' + e;
+        if (!/tell me|which part/i.test(e)) return 'gives the user nothing to do next: ' + e;
+      }
+      return true;
     });
     T('companion: a real final answer is not mistaken for a tool', () => {
       const o = Companion.parseLmJson('{"type":"final","say":"You spent 412.30 on Groceries."}');
@@ -18854,14 +19138,15 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   // assembled by Engine.minimise and recorded (metadata only) in discloseStore.
   const AI_LANES = {
     chat: {
-      title: 'Ask Lithifyte AI about this household',
-      dest: 'OpenRouter (hosted model) via the Lithifyte relay, or Cloudflare Workers AI if that route is unavailable',
+      title: 'Let Lithifyte AI act as your assistant',
+      dest: 'Grok (xAI) via the Lithifyte relay, or Cloudflare Workers AI if that route is unavailable',
       points: [
-        'We send the question, a short system prompt (category names, date range, account aliases — not real account names), and only the tool results needed to answer.',
-        'Household notes are not sent unless the model asks for a scoped note.',
-        'We never store the prompt or the answer. The disclosure log below records that a request happened, not what it said.',
-        'The hosted router is asked not to use providers that train on inputs. If none can answer, we fall back to Cloudflare Workers AI rather than a training-allowed free model.',
-        'Commands only and a local model (Ollama on this machine) send nothing off the device.'
+        'The assistant can read a compact view of every panel (cashflow, budget, goals, forecast, pulse, net worth, leaks, notes, rules) and open any of them.',
+        'It can make reversible edits on your behalf: budget lines, goals, categorisation rules, notes, and applying a sandbox draft you asked for.',
+        'Imported statement amounts are never changed. Corrections are overlays (a rule, a category, a draft) that you can undo in the app.',
+        'We send the question, a per-intent brief, and tool results — not the raw statement file. Account names are aliased.',
+        'We never store the prompt or the answer. The disclosure log records that a request happened, not what it said.',
+        'Revoke anytime in Settings. Commands only and a local model send nothing off the device.'
       ]
     },
     categorise: {
@@ -18908,11 +19193,24 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     const c = lmStore.consent && lmStore.consent[lane];
     return !!(c && c.at);
   }
+  // Chat consent granted under the old "slice only" copy does not unlock
+  // panel vision or writes. Those need an explicit accept of the assistant
+  // wording (consent.chat.vision). Redesign follow-up 2026-08-16.
+  function aiAssistantGranted(){
+    const c = lmStore.consent && lmStore.consent.chat;
+    return !!(c && c.at && c.vision);
+  }
   function aiGrantConsent(lane){
     if (!lmStore.consent || typeof lmStore.consent !== 'object') lmStore.consent = {};
-    lmStore.consent[lane] = {at: new Date().toISOString(), provider: aiProviderLabel()};
+    const prev = lmStore.consent[lane] && typeof lmStore.consent[lane] === 'object' ? lmStore.consent[lane] : {};
+    lmStore.consent[lane] = {
+      at: new Date().toISOString(),
+      provider: aiProviderLabel(),
+      vision: lane === 'chat' ? new Date().toISOString() : prev.vision
+    };
     save(LS.lm, lmStore);
     aiRenderConsentHint();
+    try { const el = document.getElementById('aiAssistantVision'); if (el && lane === 'chat') el.checked = true; } catch (e) {}
   }
   function aiRevokeConsent(){
     lmStore.consent = {};
@@ -18953,12 +19251,16 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     if (!el) return;
     const c = lmStore.consent || {};
     const bits = ['chat', 'categorise', 'pdf'].filter(k => c[k] && c[k].at);
+    if (c.chat && c.chat.vision) bits.push('assistant (read panels + reversible edits)');
     el.textContent = bits.length ? ('Granted: ' + bits.join(', ')) : 'No hosted AI consent granted yet.';
+    const box = document.getElementById('aiAssistantVision');
+    if (box) box.checked = !!(c.chat && c.chat.at && c.chat.vision);
   }
   let aiConsentWaiter = null;
   function aiAskConsent(lane){
     return new Promise(resolve => {
-      if (!aiLeavesDevice(lane) || aiConsentGranted(lane)) return resolve(true);
+      if (!aiLeavesDevice(lane)) return resolve(true);
+      if (lane === 'chat' ? aiAssistantGranted() : aiConsentGranted(lane)) return resolve(true);
       const spec = AI_LANES[lane] || AI_LANES.chat;
       const ov = document.getElementById('aiConsentOverlay');
       const title = document.getElementById('aiConsentTitle');
@@ -18968,6 +19270,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       title.textContent = spec.title;
       body.textContent = 'This goes to ' + spec.dest + '. We do not store the content. You can revoke in Settings.';
       pts.innerHTML = spec.points.map(p => '<li>' + esc(p) + '</li>').join('');
+      const yesBtn = document.getElementById('aiConsentYes');
+      if (yesBtn) yesBtn.textContent = lane === 'chat' ? 'Allow the assistant' : 'Send this request';
       aiConsentWaiter = {lane, resolve};
       ov.hidden = false;
     });
@@ -18998,6 +19302,16 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     if (off) off.addEventListener('click', () => aiCloseConsent(false, true));
     const rev = document.getElementById('aiConsentRevoke');
     if (rev) rev.addEventListener('click', aiRevokeConsent);
+    const vis = document.getElementById('aiAssistantVision');
+    if (vis) vis.addEventListener('change', () => {
+      if (vis.checked) aiGrantConsent('chat');
+      else {
+        if (lmStore.consent && lmStore.consent.chat) delete lmStore.consent.chat.vision;
+        save(LS.lm, lmStore);
+        aiRenderConsentHint();
+        if (typeof feedback === 'function') feedback('Assistant edits off — the next chat will ask again');
+      }
+    });
     const clr = document.getElementById('aiDiscloseClear');
     if (clr) clr.addEventListener('click', () => {
       discloseStore.items = [];
@@ -19069,13 +19383,36 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       provider: hosted ? 'lithifyte' : provider,
       model: hosted ? undefined : (lmStore.model || undefined),
       messages,
-      temperature: 0,
+      temperature: typeof opts.temperature === 'number' ? opts.temperature : 0,
       max_tokens: hosted ? 1600 : 900,
       endpoint: provider === 'openai_compat' ? (lmStore.endpoint || '') : undefined,
       purpose,
       convId: opts.convId || '',
       entitlement: (!sample && ent && ent.token) ? ent.token : undefined
     };
+    // Ask for the envelope schema on every hosted turn. The relay applies it
+    // only when the upstream that answers supports json_schema (Grok / S);
+    // Workers AI and the free nano drop it. parseLmJson still runs either way.
+    if (hosted && purpose === 'chat'){
+      body.response_format = {
+        type: 'json_schema',
+        json_schema: {
+          name: 'lithifyte_turn',
+          schema: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              type: {type: 'string', enum: ['tool', 'final', 'ask']},
+              name: {type: ['string', 'null']},
+              args: {type: ['object', 'null']},
+              say: {type: ['string', 'null']},
+              question: {type: ['string', 'null']}
+            },
+            required: ['type']
+          }
+        }
+      };
+    }
     const headers = {'Content-Type': 'application/json'};
     if (!hosted && lmStore.apiKey) headers['X-Api-Key'] = lmStore.apiKey;
     if (!sample && hosted && ent && ent.token) headers['X-Entitlement'] = ent.token;
@@ -19097,7 +19434,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       throw new Error(data.error || 'Plus required');
     }
     if (!res.ok) throw new Error(data.error || data.message || ('HTTP ' + res.status));
-    if (hosted && window.__lfHosted && !sample && purpose === 'chat'){
+    // One consume per user turn (§8). Retries and extra model rounds pass
+    // consume:false — a weak model that needs three rounds must not bill three
+    // questions. The first successful /chat of the turn still bills.
+    if (hosted && window.__lfHosted && !sample && purpose === 'chat' && opts.consume !== false){
       fetch('https://access.lithifyte.com/ai/consume', {
         method:'POST', credentials:'include',
         headers:{'Content-Type':'application/json'},
@@ -19108,14 +19448,29 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       || (data.usage && data.usage.prompt_tokens_details && data.usage.prompt_tokens_details.cached_tokens)
       || (data.usage && data.usage.input_tokens_details && data.usage.input_tokens_details.cached_tokens)
       || 0);
+    // What ACTUALLY answered, and what protocols it can hold. Never assume the
+    // profile from "we set the secret": /health advertised the OpenRouter nano
+    // for days while every answer came from the Workers AI fallback, because
+    // OpenRouter has no free endpoint satisfying data_collection:deny.
+    // Redesign §3 / §11.
+    if (data.capability) window.__lfCapability = data.capability;
     return {
       content: String(data.content || ''),
+      toolCalls: data.toolCalls || null,
       usage: data.usage || null,
       fallback: !!data.fallback,
       model: data.model || '',
       upstream: data.upstream || (data.fallback ? 'workers-ai' : ''),
+      capability: data.capability || null,
+      applied: data.applied || null,
       cachedTokens
     };
+  }
+  // Profile of the upstream that last answered: 'S' strong (native tools +
+  // json_schema), 'N' nano (tools only), 'E' envelope (neither). Unknown until
+  // the first answer, and the envelope parser runs on every profile.
+  function aiCapability(){
+    return window.__lfCapability || {profile:'E', tier:'envelope', tools:false, jsonSchema:false, streaming:false, upstream:''};
   }
   const CloudDrive = (function(){
     let token = null, tokenExp = 0;
@@ -19406,13 +19761,22 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   window.__ddMinimise = Engine.minimise;
   window.__ddTxRetrieve = (q, rows, extra) => Engine.txRetrieve(Object.assign({query: q, rows: rows || []}, extra || {}));
   window.__ddPlanHint = (text) => Engine.planHint(text);
+  window.__ddAiCapability = () => aiCapability();
   window.__ddDisclose = () => (discloseStore.items || []).slice();
   window.__ddAiConsent = () => JSON.parse(JSON.stringify(lmStore.consent || {}));
+  window.__ddAiAssistant = () => aiAssistantGranted();
 
   // ══ Companion / In-App LM Co-Pilot (P1 tools + LLM tool loop + chats + sandbox) ══
   // Spec: Lithifyte - In-App LM Co-Pilot. Engine owns every euro figure.
   const Companion = (function(){
     const RELAY_DEFAULT = 'https://lithifyte-ai.sidethecomputer.workers.dev';
+    // <lm-route>
+    // Extracted verbatim by tools/eval-copilot.mjs and run in Node. Everything
+    // between these markers must stay free of DOM and of live store writes —
+    // it may read injected app state (A, TX, MONTHS, Engine) but must not
+    // touch document, localStorage or the chat store. Same contract as
+    // <tx-retrieve>. Moving a DOM call in here breaks the harness, not the app,
+    // so the harness fails loudly rather than silently skipping.
     const SECTIONS = [
       {k:'summary', sec:'sec-summary', labels:['summary','home','overview','front screen','dashboard']},
       {k:'cash', sec:'sec-cashflow', labels:['cashflow','cash flow','cash','income and spending','income vs spend','money in and out']},
@@ -19442,6 +19806,69 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     };
     let activeChatId = null;
     let pendingApply = null;
+    // The previous turn's intent, so "and last month?" is not read as a fresh
+    // question with no subject.
+    let lastIntent = null;
+    // Everything the co-pilot may say when the model did not finish. Named so a
+    // self-test can assert what they are NOT: none of them may tell the user
+    // they asked wrong. "I ran tools but did not finish — try a more specific
+    // ask" was the old ending, and it is what "I need to restructure my
+    // finance, what can I do?" arrived at.
+    const LAST_RESORT = {
+      withFigures: 'That is what I could work out — tell me which part to dig into.',
+      noFigures: 'I could not work that one out from what is imported. ' +
+        'Tell me the category, the month, or the payment you mean and I will look it up.'
+    };
+    // Tools where a deterministic answer IS the answer: opening a section,
+    // changing the range, listing commands. There is nothing to compose, and
+    // routing them through the model would spend a metered question to say
+    // "Opening Budget."
+    //
+    // Readouts (cashflow_summary, balances, outlook) are money answers — they
+    // go to the writer. "show cashflow" / "open Budget" is navigation and
+    // stays local; "balances" / "next month outlook" as a question is not.
+    const LOCAL_INTENTS = ['nav', 'set_range', 'help'];
+    function wantsApply(text){
+      const n = String(text || '').toLowerCase().trim();
+      return /^(yes|yeah|yep|yup|ok|okay|do it|go ahead|please do|make it so|apply)\b/.test(n)
+        || /\b(apply (this|that|it|the )?(budget|goal|rules?|draft)?|make (it|that|this) live)\b/.test(n);
+    }
+    function assistantGranted(){
+      try { return typeof aiAssistantGranted === 'function' && aiAssistantGranted(); }
+      catch (e) { return false; }
+    }
+    // Consent is permission to ACT, not permission to act unprompted.
+    //
+    // Everything the model reads during a turn is not the user speaking: tool
+    // results carry merchant strings straight from the statement (a payment
+    // reference is attacker-controllable), note bodies are pasted text, and
+    // panel summaries carry goal names. Before writes existed the worst case
+    // was a wrong sentence; with a live budget/goal/rule/note write behind the
+    // same consent, text from the ledger could ask for a change the household
+    // never asked for.
+    //
+    // apply_scenario already required the user's own words (wantsApply). This
+    // extends the same rule to the other four writes: the turn's intent — read
+    // from what the USER typed, before any tool ran — has to be the matching
+    // edit, or an explicit yes to something we just offered.
+    const WRITE_INTENT = {
+      set_budget_line: 'edit_budget', set_goal: 'edit_goal',
+      add_note: 'add_note', add_rule: 'add_rule'
+    };
+    function writeAsked(tool){
+      const want = WRITE_INTENT[tool];
+      if (!want) return true;
+      // No turn in flight (command bar, self-test, direct API): the caller is
+      // the user, not a model reading a tool result.
+      if (!lastIntent) return true;
+      if (lastIntent.intent === want || lastIntent.intent === 'apply') return true;
+      return wantsApply(typeof recentAsk === 'function' ? recentAsk('') : '');
+    }
+    function writeNotAsked(tool){
+      return {ok:false, tool,
+        say:'I only change things you have asked me to change. Tell me what to set and I will do it.',
+        provenance:'not requested in this turn', data:null, actions:[], suggestions:suggestions(), links:[]};
+    }
 
     function registry(){
       return [
@@ -19468,7 +19895,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         {id:'propose_rules', title:'Propose rules (sandbox)', desc:'Draft categorisation rules for uncategorised merchants', readOnly:false, sandbox:true},
         {id:'propose_goal', title:'Propose goal (sandbox)', desc:'Draft savings goal', readOnly:false, sandbox:true},
         {id:'run_scenario', title:'Run scenario', desc:'Compare draft vs live figures', readOnly:true, sandbox:true},
-        {id:'apply_scenario', title:'Apply scenario', desc:'Commit sandbox to live (needs confirm)', readOnly:false}
+        {id:'apply_scenario', title:'Apply scenario', desc:'Commit sandbox to live (needs confirm or assistant consent)', readOnly:false},
+        {id:'panel_state', title:'Read a panel', desc:'Current figures on one app panel — cashflow, budget, goals, forecast, pulse, net_worth, leaks, notes, rules, categories, people, alerts', readOnly:true},
+        {id:'set_budget_line', title:'Set a budget line', desc:'Change a live budget category amount (reversible). Never edits statement rows.', readOnly:false},
+        {id:'set_goal', title:'Set a goal', desc:'Create or update a live savings goal (reversible)', readOnly:false},
+        {id:'add_note', title:'Add a note', desc:'Write a household note the user asked for', readOnly:false},
+        {id:'add_rule', title:'Add a categorisation rule', desc:'Live overlay: merchant contains → category. Does not change imported amounts.', readOnly:false}
       ];
     }
     function toolSchemasForPrompt(){
@@ -19493,6 +19925,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
               t.id === 'spend_ranked' ? '{limit?: number}' :
               t.id === 'find_transactions' ? '{category?: string, merchant?: string, query?: string, month?: "YYYY-MM", min?: number, income?: boolean, limit?: number}' :
               t.id === 'propose_rules' ? '{limit?: number}' :
+              t.id === 'panel_state' ? '{panel: "cashflow"|"budget"|"goals"|"forecast"|"pulse"|"net_worth"|"leaks"|"notes"|"rules"|"categories"|"people"|"alerts"}' :
+              t.id === 'set_budget_line' ? '{category: string, amount: number}' :
+              t.id === 'set_goal' ? '{name: string, target: number, months?: number}' :
+              t.id === 'add_note' ? '{title?: string, body: string, category?: string}' :
+              t.id === 'add_rule' ? '{merchantContains: string, setCategory: string}' :
               t.id === 'net_worth' || t.id === 'pulse' || t.id === 'leaks' ? '{}' : '{}'
       }));
     }
@@ -19583,10 +20020,18 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (lmEnabled()) base.push('design a budget from my last 12 months');
       return base;
     }
+    // "hi there" and "hey, how's it going" were not greetings to the anchored
+    // version, so they fell through to the model — which answered a hello by
+    // navigating the app to Cashflow. A greeting is a SHORT turn that opens
+    // with a greeting word and asks about no money.
+    const GREET_WORD = /^(hi|hiya|hey|heya|hello|yo|sup|howdy|thanks|thank you|cheers|ok|okay|cool|great|nice|morning|afternoon|evening|good morning|good afternoon|good evening|how are you|how's it going|hows it going|what'?s up|whats up)\b/;
+    const GREET_STOP = /\b(budget|spend|spent|cash|cashflow|money|save|saving|afford|payment|bill|category|transaction|goal|worth|balance|month|show|list|help)\b/;
     function isSmallTalk(text){
       const n = norm(text);
       if (!n) return true;
-      return /^(hi|hiya|hey|hello|yo|sup|howdy|thanks|thank you|cheers|ok|okay|cool|great|nice|morning|evening|good morning|good afternoon|good evening|how are you|what'?s up|whats up)[!?., ]*$/.test(n);
+      if (!GREET_WORD.test(n)) return false;
+      if (GREET_STOP.test(n)) return false;          // "hi, how much did I spend…"
+      return n.split(/\s+/).length <= 6;
     }
     function greetSay(){
       const fig = cashflowFigures();
@@ -19595,6 +20040,30 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         s += ' You have about ' + eur(fig.spare) + ' left over a month.';
       s += ' What do you want to look at — a bill, cashflow, or a budget?';
       return s;
+    }
+    // A greeting is a turn, not a lookup. greetSay() below is the same sentence
+    // every time — the first thing the user complained about — so it is now the
+    // FALLBACK for when the model is off, consent was declined, or the relay
+    // failed. One hosted call the first time in a session; after that the
+    // session's greeting is reused, because saying hello twice should not cost
+    // a metered question.
+    let greetCache = null;
+    const GREET_SYS = [
+      'You are the Lithifyte co-pilot, a household finance coach inside the app.',
+      'Someone has just greeted you. Reply with ONE short, warm sentence and ONE question',
+      'about what they would like to look at. Under 35 words.',
+      'You may use the figures below and no others. Never invent an amount.',
+      'No lists, no command menus, no bullet points.',
+      'Reply with exactly one JSON object: {"type":"final","say":"…"}'
+    ].join('\n');
+    function greetBrief(){
+      const fig = cashflowFigures();
+      const lines = ['Their household, for context:'];
+      if (fig && fig.income > 0) lines.push('- about ' + eur(fig.spare) + ' left over a month');
+      const top = (A && A.cats12 && A.cats12[0]) ? A.cats12[0] : null;
+      if (top) lines.push('- biggest category is ' + top.category + ' at ' + eur(top.avg) + ' a month');
+      lines.push('- range on screen: ' + rangeLabel());
+      return lines.join('\n');
     }
     function match(q){
       const n = norm(q);
@@ -19660,7 +20129,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         return {tool:'goals_status', args:{}, score:0.85};
       if (/\b(budget|budgets)\b/.test(n) && /\b(design|propose|create|set up|setup|make|build|from my)\b/.test(n))
         return {tool:'propose_budget', args:{fromHistory:true}, score:0.88};
-      if (/\b(cashflow|cash flow|income and spend|money in|going out)\b/.test(n) && !findCategory(n))
+      // "money in" used to be enough, so "help me get my money in order" —
+      // a request for advice — was answered with a cashflow readout and never
+      // reached the model at all. Require the phrase that actually means
+      // cashflow.
+      if (/\b(cashflow|cash flow|income and spend|money in and out|money going out)\b/.test(n) && !findCategory(n))
         return {tool:'cashflow_summary', args:{rangePreset:findRangePreset(n)}, score:0.88};
       if (onlyRange && (n.startsWith('last ') || n.startsWith('past ') || n === 'this year' || n === 'all time'))
         return {tool:'set_range', args:{preset:onlyRange}, score:0.9};
@@ -19673,6 +20146,276 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         return {tool:'cat_monthly', args:{category:cat2, rangePreset:findRangePreset(n), month:findMonth(n)}, score:0.65};
       return null;
     }
+    // ── Understand ────────────────────────────────────────────────────────
+    //
+    // One intent layer. Intent used to be decided in three places that did not
+    // agree — match() picked a tool, planHint() picked cuts and advice,
+    // wantsDraft() decided whether a proposal was even allowed — each with its
+    // own vocabulary. "I need to restructure my finance, what can I do?" was
+    // advice-seeking to any human and invisible to all three.
+    //
+    // This does not add a fourth vocabulary; it is the only one. match() and
+    // planHint() stay as what they are genuinely good at — a tool guess and a
+    // slot extractor — and their answers arrive here to be reconciled.
+    //
+    // The result is a HINT, never a gate. Confidence says how much to lean on
+    // it, and the model can still call a different tool. Redesign §3.
+    const TOOL_INTENT = {
+      help:'help', nav:'nav', set_range:'range',
+      payment_monthly:'standing', cat_monthly:'category', find_transactions:'rows',
+      affordability:'afford', cashflow_whatif:'whatif', save_plan:'save_plan',
+      budget_notice:'advice_open', spend_ranked:'advice_open',
+      net_worth:'net_worth', pulse:'pulse', leaks:'leaks', notes_for:'notes',
+      propose_budget:'budget_draft', propose_goal:'goal_draft', propose_rules:'rules_draft',
+      cashflow_summary:'cashflow', balances:'balances', summary_outlook:'outlook',
+      goals_status:'goals',
+      panel_state:'panel', set_budget_line:'edit_budget', set_goal:'edit_goal',
+      add_note:'add_note', add_rule:'add_rule', apply_scenario:'apply'
+    };
+    // What to put in front of the model before it answers, per intent. This is
+    // what collapses a turn from two hosted calls to one: the figures are
+    // already there, so the model's first reply can be the answer.
+    const INTENT_PREFETCH = {
+      standing:    (s) => ({tool:'payment_monthly', args:{query: s.query || ''}}),
+      category:    (s) => ({tool:'cat_monthly', args:{category: s.category, month: s.month}}),
+      afford:      (s) => (s.amount ? {tool:'affordability', args:{monthly: s.amount}} : null),
+      advice_open: () => ({tool:'budget_notice', args:{}}),
+      whatif:      (s) => (s.cuts && s.cuts.length ? {tool:'cashflow_whatif', args:{cuts: s.cuts}} : null),
+      save_plan:   (s) => ({tool:'save_plan', args:{target: s.target, by: s.by, months: s.months, cuts: s.cuts}}),
+      rows:        (s) => ({tool:'find_transactions', args:{query: s.query, month: s.month, min: s.min, income: s.income, limit: 12}}),
+      cashflow:    () => ({tool:'cashflow_summary', args:{}}),
+      balances:    () => ({tool:'balances', args:{}}),
+      outlook:     () => ({tool:'summary_outlook', args:{}}),
+      net_worth:   () => ({tool:'net_worth', args:{}}),
+      pulse:       () => ({tool:'pulse', args:{}}),
+      leaks:       () => ({tool:'leaks', args:{}}),
+      notes:       (s) => ({tool:'notes_for', args:{category: s.category, month: s.month}}),
+      goals:       () => ({tool:'goals_status', args:{}}),
+      // Reads only. propose_* writes a sandbox row the user then has to find
+      // and delete — that is not a side-effect an intent classifier may take.
+      // The model may still call propose_* after it has spoken, and Apply is
+      // still the gate.
+      budget_draft:() => ({tool:'budget_notice', args:{}}),
+      goal_draft:  () => ({tool:'goals_status', args:{}}),
+      rules_draft: () => ({tool:'leaks', args:{}}),
+      panel:       (s) => ({tool:'panel_state', args:{panel: s.page || 'cashflow'}}),
+      edit_budget: (s) => (s.category && s.amount ? {tool:'set_budget_line', args:{category:s.category, amount:s.amount}} : {tool:'panel_state', args:{panel:'budget'}}),
+      edit_goal:   (s) => (s.target ? {tool:'set_goal', args:{name:s.query || 'Goal', target:s.target, months:s.months}} : {tool:'goals_status', args:{}}),
+      add_note:    () => null,
+      add_rule:    () => null,
+      apply:       () => null
+    };
+    // Open questions about the household's money in general. Deliberately
+    // broad: this is the class the old build could not see at all, and the cost
+    // of a false positive is a budget_notice the model can talk around, while
+    // the cost of a miss is the refusal loop.
+    const ADVICE_RE = new RegExp([
+      'what (can|should|could) (i|we) do',
+      'what do you (notice|think|reckon|suggest)',
+      'how am i doing', 'how are we doing',
+      'anything (i|we) can improve', 'what stands out',
+      'restructure', 'sort out my', 'sort my .{0,12}(money|finance)',
+      'get (my|our) .{0,16}(money|finance|budget).{0,12}(in order|sorted|straight|on track)',
+      'get on top of', 'take control of my', 'where (do|should) i start',
+      'help me (with|get|sort|fix|plan|manage)',
+      'improve.{0,24}(cash ?flow|budget|spending|finances?)',
+      'where can i (cut|improve|save)', 'save money', 'spend less',
+      'too (much|tight)', 'worried about (my|our) (money|spending|finances?)',
+      'living beyond', 'money (is|feels) tight'
+    ].join('|'), 'i');
+
+    function understand(text, prior){
+      const raw = String(text || '');
+      const n = norm(raw);
+      const out = (intent, confidence, source, extra) => {
+        const o = Object.assign({intent, confidence, source: source || 'hint', slots: slots}, extra || {});
+        o.missing = missingSlots(o);
+        return o;
+      };
+
+      if (!n) return {intent:'none', confidence:1, source:'hint', slots:{}};
+
+      const plan = Engine.planHint ? Engine.planHint(raw) : {cuts:[]};
+      // The fourth vocabulary: "show me / list / what did I spend at X" was
+      // detected by Engine.txQueryHint inside askLm, so Understand did not know
+      // rows existed and returned 'unknown' for the clearest request in the set.
+      const rows = Engine.txQueryHint ? Engine.txQueryHint(raw) : {wantsRows:false};
+      const amtM = n.match(/(?:€|\$|£)?\s*(\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?\s*(?:a|per|each)?\s*(?:month|mo|monthly)?/);
+      // "by December" is a deadline. planHint wants a year with the month, so a
+      // save target with a bare month read as having no date at all and the
+      // co-pilot asked for one the user had already given.
+      let by = plan.by || null;
+      if (!by){
+        const bm = n.match(/\bby\s+(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)\b/);
+        if (bm && MONTH_RE[bm[1]]){
+          const now = new Date(), mm = MONTH_RE[bm[1]];
+          const yr = mm > (now.getMonth() + 1) ? now.getFullYear() : now.getFullYear() + 1;
+          by = yr + '-' + String(mm).padStart(2, '0');
+        }
+      }
+      const slots = {
+        category: findCategory(n) || null,
+        month: findMonth(n) || rows.month || null,
+        query: plan.paymentQuery || rows.query || null,
+        min: rows.min || null,
+        income: !!rows.income,
+        amount: amtM ? Math.round(parseFloat(String(amtM[1]).replace(/,/g, ''))) : null,
+        cuts: plan.cuts || [],
+        target: plan.target || null,
+        by: by,
+        months: plan.months || null
+      };
+
+      if (isSmallTalk(raw)) return out('greet', 1);
+      if (/^(help|\?|commands|what can you do|examples)$/.test(n)) return out('help', 1);
+
+      // "show cashflow" / "open Budget" is navigation. A readout without a
+      // show/open verb ("balances", "next month outlook") still goes to the writer.
+      if (/^(show|open|go to|goto|take me to|view|see|display)\b/.test(n) && !/\b(show me|list|which ones|what did i)\b/.test(n)){
+        const sec = findSection(n);
+        if (sec) return out('nav', 0.9, 'hint', {tool:'nav', args:{k:sec.k, sec:sec.sec, label:sec.labels[0]}});
+      }
+
+      // Order by what the USER asked for, not by which extractor fired first.
+      // planHint reads "can I afford €300 a month" as a payment lookup — "300 a
+      // month" satisfies its standing-order pattern — so a payment query must
+      // never outrank an explicit afford or save question. Three of these
+      // disagreeing is what the single layer exists to stop.
+      if (/\b(can|could) (i|we)\b.{0,24}\b(afford|take on|manage|handle|stretch to)\b|\bafford(able)?\b/.test(n))
+        return out('afford', slots.amount ? 0.9 : 0.75);
+      if (plan.wantsSavePlan) return out('save_plan', 0.93);
+      if (plan.wantsWhatIf && slots.cuts.length) return out('whatif', 0.92);
+      // "How much is the X payment" is a standing order however it is phrased.
+      if (plan.wantsPayment && slots.query) return out('standing', 0.94);
+
+      // An explicit request to build something. wantsDraft is the same test the
+      // apply gate uses, so "design a budget" and "is a draft allowed" can no
+      // longer disagree.
+      if (wantsDraft(raw)){
+        if (/\brules?\b/.test(n)) return out('rules_draft', 0.9);
+        if (/\bgoal|save for|saving for\b/.test(n)) return out('goal_draft', 0.9);
+        return out('budget_draft', 0.9);
+      }
+      if (wantsApply(raw)) return out('apply', 0.95);
+      if (/\b(set|change|put|make)\b.{0,32}\bbudget\b/.test(n) && slots.amount){
+        if (!slots.category){
+          const cm = n.match(/\b(?:set|change|put|make)\s+([a-z][a-z0-9 &/-]{2,30}?)\s+budget\b/);
+          if (cm) slots.category = cm[1].replace(/\b(the|my|our|a)\b/g, '').trim();
+        }
+        if (slots.category) return out('edit_budget', 0.9);
+      }
+      if ((/\b(add|set|create|update)\b.{0,16}\bgoal\b/.test(n) || /\bsave for\b/.test(n)) && (slots.target || slots.amount)){
+        if (!slots.target && slots.amount) slots.target = slots.amount;
+        return out('edit_goal', 0.88);
+      }
+      if (/\b(add|write|save) (a )?note\b/.test(n)) return out('add_note', 0.86);
+      if (/\b(categorise|categorize|treat|tag)\b/.test(n) && /\bas\b/.test(n)) return out('add_rule', 0.86);
+      if (/\b(what.?s on|show me)\s+(the |my )?(budget|forecast|pulse|net worth|leaks|notes|rules|alerts)(\s+panel|\s+screen|\s+page)?\b/.test(n)
+          && !/\b(design|cut|edit|change|set)\b/.test(n)){
+        const sec = findSection(n);
+        slots.page = (sec && sec.k) || 'budget';
+        return out('panel', 0.86, 'hint', {tool:'panel_state', args:{panel: slots.page}});
+      }
+
+      // Rows versus a total is a real ambiguity and the verb settles it:
+      // "SHOW ME what I spent at Tesco" wants the list, "what did I SPEND on
+      // Groceries last month" wants the figure. When a category is named and
+      // nobody asked to see anything, the total is the answer.
+      const listVerb = /\b(show me|list|which ones|what are the|see the|display|each of)\b/.test(n);
+      if (rows.wantsRows && (listVerb || !slots.category)) return out('rows', 0.88);
+      if (slots.category && /\b(what did i spend|how much did i spend|how much on|spend on|spent on|how has|how have|how is my|how are my)\b/.test(n))
+        return out('category', 0.85);
+      if (rows.wantsRows) return out('rows', 0.88);
+
+      // The class that used to fall through everything.
+      if (ADVICE_RE.test(raw)) return out('advice_open', 0.85);
+
+      // Otherwise defer to the tool guess, mapped onto the enum.
+      const m = match(raw);
+      if (m && TOOL_INTENT[m.tool]) return out(TOOL_INTENT[m.tool], m.score, 'hint', {tool: m.tool, args: m.args});
+
+      // A follow-up ("and last month?") carries the previous intent.
+      if (prior && prior.intent && prior.intent !== 'unknown' && n.split(/\s+/).length <= 6)
+        return out(prior.intent, 0.5, 'hint');
+
+      return out('unknown', 0.2);
+    }
+    // The tool to run before the model speaks, or null when the intent does not
+    // imply one. Never a gate: the model may call something else.
+    // Is this the same question we already answered with that tool? Compared by
+    // SUBJECT, not by JSON: the prefetch asks payment_monthly for "avant money"
+    // and the model then asks for "Avant Money", which is not a new question —
+    // but a raw args comparison called it one, so the tool ran twice and the
+    // turn cost two calls. Measured live 16 Aug.
+    function sameAsk(a, b){
+      const FIELDS = ['query', 'category', 'month', 'monthly', 'name'];
+      const norm1 = (v) => v == null ? '' : String(v).toLowerCase().replace(/[^a-z0-9]+/g, '');
+      const empty = (o) => FIELDS.every(k => !norm1(o && o[k]));
+      if (empty(b)) return true;              // named no new subject at all
+      if (empty(a)) return false;
+      for (const k of FIELDS){
+        const x = norm1(a && a[k]), y = norm1(b && b[k]);
+        if (!x && !y) continue;
+        if (!x || !y) return false;
+        if (x === y) continue;
+        // "avant" and "avantmoney" are the same merchant. Prefix only, and only
+        // from 5 characters — "tes" must not swallow "tesco", and "one" must
+        // not swallow "someone".
+        const short = x.length < y.length ? x : y, long = x.length < y.length ? y : x;
+        if (short.length >= 5 && long.indexOf(short) === 0) continue;
+        return false;
+      }
+      return true;
+    }
+    // What each intent cannot be answered without. A tool run on a missing slot
+    // does not fail — it guesses, which is worse: "can I afford it" came back
+    // "that commitment fits with room left" for an amount nobody named, and
+    // "how much is the current payment" answered with a merchant the user had
+    // not mentioned. Redesign §3, type:"ask" stop rule.
+    const REQUIRED_SLOTS = {
+      afford:    ['amount'],
+      standing:  ['query'],
+      category:  ['category'],
+      save_plan: ['deadline'],
+      rows:      ['query']
+    };
+    // A payment query that names nothing. planHint will hand back "current"
+    // from "how much is the current payment".
+    const EMPTY_QUERY = /^(current|this|that|the|my|our|monthly|payment|bill|it|one|everything|anything|all|stuff|things)$/;
+    function missingSlots(intent){
+      const need = REQUIRED_SLOTS[intent && intent.intent] || [];
+      const s = (intent && intent.slots) || {};
+      const out = [];
+      for (const k of need){
+        if (k === 'deadline'){ if (!s.by && !s.months) out.push('deadline'); continue; }
+        const v = s[k];
+        if (v == null || v === '' || (k === 'query' && EMPTY_QUERY.test(String(v).trim().toLowerCase())))
+          out.push(k);
+      }
+      return out;
+    }
+    const ASK_FOR = {
+      amount:   'How much a month are you thinking?',
+      query:    'Which payment do you mean?',
+      category: 'Which category?',
+      deadline: 'By when do you want to get there?'
+    };
+    // The same missing slot reads differently depending on what was asked.
+    function askFor(slot, intent){
+      if (slot === 'query' && intent === 'rows')
+        return 'What should I look for — a shop, a category, or a month?';
+      return ASK_FOR[slot] || 'Which one do you mean?';
+    }
+    function prefetchFor(intent){
+      if (!intent || !intent.intent) return null;
+      // Never run a tool on a slot the user did not give us. Guessing is what
+      // produced a confident answer about an amount nobody named.
+      if (missingSlots(intent).length) return null;
+      const f = INTENT_PREFETCH[intent.intent];
+      if (!f) return null;
+      try { return f(intent.slots || {}); } catch (e) { return null; }
+    }
+    // </lm-route>
 
     function uid(prefix){
       return prefix + '_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
@@ -19892,7 +20635,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           '• design a budget from my last 12 months (sandbox)',
           '• propose rules for uncategorised merchants (sandbox)',
           '',
-          'Hosted Lithifyte AI asks once per lane (chat / categorise / pdf) and sends only the slice that question needs — never the statement file. A local model or Commands only send nothing.',
+          'Hosted Lithifyte AI, with consent, can read every panel and make reversible edits (budget, goals, rules, notes). Statement amounts never change. Revoke in Settings.',
           'Numbers always come from Lithifyte’s Engine, never invented.',
           'Inspect: window.__ddCatalog() · window.__ddLastOutbound() · window.__ddSelfTest()'
         ].join('\n'), provenance:'help', data:{tools:registry().map(x=>x.id)}, actions:[], suggestions:suggestions(), links:[]};
@@ -20308,7 +21051,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         return {ok:true, tool:t, say:'Scenario ' + scen.id + ' status ' + scen.status, provenance:'sandbox', data:scen, actions:[], suggestions:suggestions(), links:[]};
       }
       if (t === 'apply_scenario'){
-        if (!a.confirm) return {ok:false, tool:t, say:'Apply requires confirm:true (use the Apply button).', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
+        const allowed = !!(a.confirm || (assistantGranted() && wantsApply(typeof recentAsk === 'function' ? recentAsk() : '')));
+        if (!allowed) return {ok:false, tool:t, say:'Apply needs you to say “apply” or confirm in the app. Imported statement amounts are never changed.', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
         const scen = scenarioStore.items.find(s => s.id === a.scenarioId);
         if (!scen) return {ok:false, tool:t, say:'Scenario not found.', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
         if (scen.kind === 'budget'){
@@ -20467,7 +21211,133 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
                 actions:[{type:'nav', k:'rules', sec:'sec-rules'}], suggestions:['apply this'], links:[],
                 apply:{scenarioId:scen.id, label:'Apply rule drafts'}};
       }
+      if (t === 'panel_state'){
+        const panel = String(a.panel || a.k || 'cashflow').toLowerCase().replace(/\s+/g, '_');
+        const v = appVision();
+        const map = {
+          cashflow: () => ({say: v.cashflow, nav:{k:'cash', sec:'sec-cashflow'}}),
+          budget: () => ({say: v.budget, nav:{k:'budget', sec:'sec-budget'}}),
+          goals: () => ({say: v.goals, nav:{k:'goals', sec:'goalHero'}}),
+          forecast: () => ({say: v.forecast, nav:{k:'fcast', sec:'sec-forecast'}}),
+          pulse: () => ({say: v.pulse, nav:{k:'pulse', sec:'pulseCard'}}),
+          net_worth: () => ({say: v.netWorth, nav:{k:'wealth', sec:'nwCard'}}),
+          leaks: () => ({say: v.leaks, nav:{k:'leaks', sec:'sec-leaks'}}),
+          notes: () => ({say: v.notes, nav:{k:'notes', sec:'sec-notes'}}),
+          rules: () => ({say: v.rules, nav:{k:'rules', sec:'sec-rules'}}),
+          categories: () => ({say: v.categories, nav:{k:'cats', sec:'sec-cats'}}),
+          people: () => ({say: v.people, nav:{k:'people', sec:'sec-people'}}),
+          alerts: () => ({say: v.alerts, nav:{k:'alerts', sec:'sec-alerts'}})
+        };
+        const fn = map[panel] || map.cashflow;
+        const got = fn();
+        return {ok:true, tool:t, say: got.say || ('Nothing on ' + panel + ' yet.'), provenance:'panel · ' + panel,
+                data:{panel, vision: v}, actions: got.nav ? [{type:'nav', k:got.nav.k, sec:got.nav.sec}] : [],
+                suggestions:suggestions(), links:[]};
+      }
+      if (t === 'set_budget_line'){
+        if (!assistantGranted()) return writeDenied(t);
+        if (!writeAsked(t)) return writeNotAsked(t);
+        const cat = String(a.category || '').trim();
+        const amount = Math.round(+a.amount || 0);
+        if (!cat || !(amount >= 0)) return {ok:false, tool:t, say:'Need a category and a monthly amount.', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
+        let pack = null;
+        try { pack = typeof activePack === 'function' ? activePack() : (budgetStore && (budgetStore.packs || []).find(p => p.id === budgetStore.activeId)); } catch (e) {}
+        if (!pack){
+          const lines = historyBudgetLines().map(l => l.category === cat ? Object.assign({}, l, {amount}) : l);
+          if (!lines.some(l => l.category === cat)) lines.push({category: cat, amount});
+          return run({tool:'propose_budget', args:{title:'Budget with ' + cat + ' at ' + amount, lines}});
+        }
+        if (!pack.cats) pack.cats = [];
+        let row = pack.cats.find(c => (c.cat || c.name) === cat);
+        if (!row){ row = {id:'cat:' + cat, cat: cat, name: cat, cur: amount, sug: amount, max: Math.max(amount * 2, 100), note:'from co-pilot'}; pack.cats.push(row); }
+        else { row.cur = amount; row.sug = amount; }
+        try { saveBudget(); renderBudget(); } catch (e) { try { save(LS.budget, budgetStore); } catch (e2) {} }
+        return {ok:true, tool:t, say:'Set live budget line ' + cat + ' to ' + eur(amount) + '/mo. Open Budget to tweak. Statement rows were not changed.',
+                provenance:'live budget · reversible', data:{category:cat, amount}, actions:[{type:'nav', k:'budget', sec:'sec-budget'}],
+                suggestions:['show budget', 'apply this budget'], links:['cat:' + cat]};
+      }
+      if (t === 'set_goal'){
+        if (!assistantGranted()) return writeDenied(t);
+        if (!writeAsked(t)) return writeNotAsked(t);
+        const name = String(a.name || 'Savings goal').trim();
+        const target = Math.round(+a.target || 0);
+        if (!(target > 0)) return {ok:false, tool:t, say:'Need a target amount for the goal.', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
+        const months = a.months != null ? Math.max(1, Math.round(+a.months)) : null;
+        let g = goals.find(x => String(x.name || '').toLowerCase() === name.toLowerCase());
+        if (!g){ g = {id: uid('g'), name, target, targetMonth: null, pot: null, autoFromSavings: true, accountId: null}; goals.push(g); }
+        else g.target = target;
+        if (months){
+          const d = new Date(); d.setMonth(d.getMonth() + months);
+          g.targetMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+        }
+        try { save(LS.goals, goals); renderAll(); } catch (e) {}
+        return {ok:true, tool:t, say:'Live goal “' + g.name + '” — target ' + eur(g.target) + (g.targetMonth ? ' by ' + fmtMoLbl(g.targetMonth) : '') + '.',
+                provenance:'live goals · reversible', data:{goalId:g.id, name:g.name, target:g.target},
+                actions:[{type:'nav', k:'goals', sec:'goalHero'}], suggestions:['goals'], links:['goal:' + g.id]};
+      }
+      if (t === 'add_note'){
+        if (!assistantGranted()) return writeDenied(t);
+        if (!writeAsked(t)) return writeNotAsked(t);
+        const body = String(a.body || a.text || '').trim();
+        if (!body) return {ok:false, tool:t, say:'What should the note say?', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
+        const note = {
+          id: uid('n'), title: String(a.title || '').trim() || 'From co-pilot',
+          body, links: a.category ? ['cat:' + a.category] : [], tags: [],
+          created: new Date().toISOString(), updated: new Date().toISOString()
+        };
+        try { docStore.items.unshift(note); onDocsChanged(); } catch (e) {}
+        return {ok:true, tool:t, say:'Saved note “' + note.title + '”.', provenance:'notes · reversible',
+                data:{id:note.id}, actions:[{type:'nav', k:'notes', sec:'sec-notes'}], suggestions:suggestions(), links:note.links};
+      }
+      if (t === 'add_rule'){
+        if (!assistantGranted()) return writeDenied(t);
+        if (!writeAsked(t)) return writeNotAsked(t);
+        const needle = String(a.merchantContains || a.query || '').trim();
+        const cat = String(a.setCategory || a.category || '').trim();
+        if (!needle || !cat) return {ok:false, tool:t, say:'Need a merchant fragment and a category.', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
+        const exists = rules.some(x => String(x.merchantContains || '').toUpperCase() === needle.toUpperCase() && x.setCategory === cat);
+        if (!exists){
+          rules.unshift({label: needle + ' → ' + cat, merchantContains: needle, amountEquals: null, setCategory: cat, note:'from co-pilot', enabled: true});
+          try { onRulesChanged(); } catch (e) { try { save(LS.rules, rules); } catch (e2) {} }
+        }
+        return {ok:true, tool:t, say:(exists ? 'That rule already exists: ' : 'Added rule: ') + '“' + needle + '” → ' + cat + '. Statement amounts were not changed.',
+                provenance:'live rules · overlay', data:{merchantContains:needle, setCategory:cat},
+                actions:[{type:'nav', k:'rules', sec:'sec-rules'}], suggestions:['show leaks'], links:[]};
+      }
       return {ok:false, tool:t, say:'Unknown tool ' + t, provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
+    }
+    function writeDenied(tool){
+      return {ok:false, tool, say:'I can only change the household when Lithifyte AI assistant consent is on (Settings). Imported statement amounts are never edited either way.',
+              provenance:'consent', data:null, actions:[], suggestions:['help'], links:[]};
+    }
+    function appVision(){
+      const fig = cashflowFigures();
+      const pack = (typeof activePack === 'function') ? activePack() : null;
+      const budgetTotal = pack && pack.cats ? pack.cats.reduce((s, c) => s + (+c.cur || 0), 0) : 0;
+      let pulse = 'Pulse: not scored yet.';
+      try {
+        if (TX.length && A){
+          const hs = Engine.healthScore(pulseCompute().inputs);
+          pulse = hs.score == null ? 'Pulse: not scored yet.' : ('Pulse ' + hs.score + ' · ' + (hs.zone || ''));
+        }
+      } catch (e) {}
+      const O = (typeof summaryModel === 'function') ? summaryModel() : null;
+      const leakRows = ((A && A.leaks) || []).slice(0, 3);
+      const uncat = (typeof TX !== 'undefined') ? TX.filter(x => RANGE.has(x.mo) && (typeof effCatFull === 'function' ? effCatFull(x) : x.c) === 'Uncategorized').length : 0;
+      return {
+        cashflow: fig ? ('Cashflow ' + rangeLabel() + ': ' + Math.round(fig.income) + ' in, ' + Math.round(fig.spend) + ' out, ' + Math.round(fig.spare) + ' leftover /mo.') : 'Cashflow: no figures yet.',
+        budget: pack ? ('Budget “' + (pack.name || 'active') + '”: ' + (pack.cats || []).length + ' lines, ' + Math.round(budgetTotal) + '/mo total.') : 'Budget: no live pack yet.',
+        goals: goals.length ? ('Goals: ' + goals.map(g => (g.name || 'Goal') + ' ' + Math.round(+g.target || 0)).join('; ') + '.') : 'Goals: none yet.',
+        forecast: O && O.month ? ('Next month ' + (O.month || '') + ': income ' + Math.round(+O.income || 0) + ', expenses ' + Math.round(+O.expenses || 0) + '.') : 'Forecast: needs a statement.',
+        pulse,
+        netWorth: (typeof NW !== 'undefined' && NW) ? ('Net worth ' + Math.round(+NW.total || 0) + '.') : 'Net worth: not set.',
+        leaks: leakRows.length ? ('Leaks: ' + leakRows.map(l => l.name + ' ' + Math.round(+l.avgMonth || 0) + '/mo').join('; ') + '.') : 'Leaks: none in this range.',
+        notes: (docStore && docStore.items) ? (docStore.items.length + ' note' + (docStore.items.length === 1 ? '' : 's') + '.') : 'Notes: none.',
+        rules: (typeof rules !== 'undefined') ? (rules.length + ' categorisation rule' + (rules.length === 1 ? '' : 's') + '.') : 'Rules: none.',
+        categories: uncat ? (uncat + ' uncategorised rows in this range.') : 'Categories: nothing uncategorised in this range.',
+        people: (typeof allAccounts === 'function') ? (allAccounts().length + ' account' + (allAccounts().length === 1 ? '' : 's') + '.') : 'Accounts: unknown.',
+        alerts: 'Alerts live on the Alerts panel (reminders + predicted bills).'
+      };
     }
 
     function ask(q){
@@ -20512,7 +21382,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       return shaped;
     }
     async function lmComplete(messages, meta){
-      const out = await aiRelayChat(messages, {purpose: (meta && meta.purpose) || 'chat', convId: meta && meta.convId});
+      const out = await aiRelayChat(messages, {
+        purpose: (meta && meta.purpose) || 'chat',
+        convId: meta && meta.convId,
+        consume: meta && meta.consume,
+        temperature: meta && meta.temperature
+      });
       const bytes = JSON.stringify(messages).length;
       if (aiLeavesDevice('chat')){
         aiDisclose({
@@ -20529,6 +21404,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       return String(out.content || '');
     }
 
+    // <lm-guards>
+    // Extracted by tools/eval-copilot.mjs — same no-DOM contract as <lm-route>.
+    // These are the functions that decide whether the model's sentence survives,
+    // which is exactly what the redesign changes; the harness has to be able to
+    // call them without a browser.
+    //
     // Smaller models routinely collapse the envelope and put the TOOL NAME in
     // "type" — {"type":"cat_monthly","args":{…}} instead of
     // {"type":"tool","name":"cat_monthly","args":{…}}. Left unhandled that falls
@@ -20537,7 +21418,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     // this is the guarantee, and it holds for every provider.
     function normLmObj(o){
       if (!o || typeof o !== 'object') return o;
-      if (o.type === 'tool' || o.type === 'final') return o;
+      if (o.type === 'tool' || o.type === 'final' || o.type === 'ask') return o;
       const ids = registry().map(t => t.id);
       if (typeof o.type === 'string' && ids.indexOf(o.type) >= 0)
         return {type:'tool', name:o.type, args:o.args || {}};
@@ -20563,6 +21444,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
             if (o && o.type === 'tool' && o.name) return o;
           } catch (e) {}
         }
+      }
+      const askRe = /\{\s*"type"\s*:\s*"ask"[\s\S]*?\}/;
+      const am2 = s.match(askRe);
+      if (am2){
+        try { const o = JSON.parse(am2[0]); if (o && o.type === 'ask' && o.question) return o; } catch (e) {}
       }
       const finRe = /\{\s*"type"\s*:\s*"final"[\s\S]*\}/;
       const fm = s.match(finRe);
@@ -20612,8 +21498,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         'Respond with exactly ONE JSON object per turn (never multiple). One of:',
         '{"type":"tool","name":"<tool>","args":{...}}',
         '{"type":"final","say":"<plain language answer using ONLY numbers already returned by tools>"}',
+        '{"type":"ask","question":"<ONE short question, only when a required detail is missing>"}',
         '',
-        '"type" is literally the word "tool" or "final" — never the tool name.',
+        '"type" is literally the word "tool", "final" or "ask" — never the tool name.',
+        'Ask ONLY when a detail you need was not given — an amount, a merchant, a category, a date.',
+        'Never ask for something you can already see, and never ask instead of using a tool result.',
+        'An open question like "what can I do about my finances" is NOT missing a detail — answer it.',
         'Correct:   {"type":"tool","name":"cat_monthly","args":{"category":"Groceries"}}',
         'Wrong:     {"type":"cat_monthly","args":{"category":"Groceries"}}',
         'Emit the JSON object only — no prose before or after it.',
@@ -20647,9 +21537,15 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         '',
         'A local retriever or what-if may already be attached. Treat those as computed fact — do not invent more rows or totals.',
         '',
+        'You are their in-app assistant. panel_state reads any panel. set_budget_line, set_goal, add_note, add_rule',
+        'change live (reversible) settings when they asked you to. apply_scenario makes a sandbox live when they said apply/yes.',
+        'NEVER edit imported statement amounts. A rule or category overlay is the correction.',
+        '',
         'Tools: ' + JSON.stringify(toolSchemasForPrompt())
       ].join('\n');
     }
+    // Raw dump — kept for self-tests and as the pool briefFor slices from.
+    // The model never sees this object. Redesign §5.
     function householdSnapshot(){
       const fig = cashflowFigures();
       const recs = (typeof REC !== 'undefined' && REC || [])
@@ -20664,32 +21560,146 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const cats = historyBudgetLines().slice(0, 12);
       return {range: rangeLabel(), fig, recs, cats};
     }
-    function systemPromptHousehold(){
-      const cats = allCatNames().slice(0, 40);
+    // Per-intent brief. This is Stage 2: the only household facts that may
+    // cross the boundary, assembled through Engine.minimise tiers. Advice
+    // used to get every standing order whether or not the question touched
+    // them. Redesign §3 / §5.
+    const BRIEF_TIER = {
+      greet:'aggregate', help:'shape', nav:'shape', range:'shape',
+      standing:'aggregate', category:'aggregate', afford:'aggregate',
+      advice_open:'aggregate', whatif:'aggregate', save_plan:'aggregate',
+      rows:'detail', budget_draft:'aggregate', goal_draft:'aggregate',
+      rules_draft:'shape', net_worth:'aggregate', pulse:'aggregate',
+      leaks:'aggregate', notes:'shape', unknown:'aggregate',
+      cashflow:'aggregate', balances:'aggregate', outlook:'aggregate',
+      goals:'aggregate', none:'shape'
+    };
+    function briefFor(intent){
+      const kind = (intent && intent.intent) || 'unknown';
+      const slots = (intent && intent.slots) || {};
+      const tier = BRIEF_TIER[kind] || 'aggregate';
+      const fig = cashflowFigures();
+      const range = rangeLabel();
       const ccy = (typeof MONEY !== 'undefined' && MONEY.base) ? MONEY.base : 'EUR';
+      const facts = [];
+      const provenance = [];
+      const rows = [];
+      facts.push('Current range: ' + range);
+      facts.push('Display currency: ' + ccy + ' — display only; do not infer a country from it.');
+
+      if (tier === 'shape'){
+        if (kind === 'nav') facts.push('They asked to open a section. Confirm the jump. Do not quote figures.');
+        else if (kind === 'help') facts.push('They asked what you can do. List surfaces, not amounts.');
+        else if (kind === 'range') facts.push('They asked to change the date range. Confirm the new range.');
+        else if (kind === 'notes') facts.push('Call notes_for for household notes. None are in this brief.');
+        else if (kind === 'rules_draft'){
+          const merchants = (householdSnapshot().recs || []).map(r => r.merchant);
+          const shaped = (Engine.minimise && Engine.minimise.shape)
+            ? Engine.minimise.shape({merchants, categories: allCatNames().slice(0, 20)})
+            : {merchants: merchants.slice(0, 12)};
+          facts.push('Merchant names only (no amounts): ' + (shaped.merchants || []).slice(0, 12).join(', '));
+        }
+        return {intent: kind, tier: 'shape', facts, rows: [], provenance};
+      }
+
+      if (fig)
+        facts.push('Cashflow: ' + Math.round(fig.income) + ' in, ' + Math.round(fig.spend) + ' out, ' + Math.round(fig.spare) + ' leftover /mo.');
+      else
+        facts.push('Cashflow: no figures yet.');
+      provenance.push(range + ' · cashflow');
+
       const snap = householdSnapshot();
-      const fig = snap.fig;
-      const recLines = (snap.recs || []).map(r =>
-        '- ' + r.merchant + ' · ' + (ccy === 'EUR' ? '€' : ccy + ' ') + r.monthly + '/mo · ' + r.category + ' · ' + r.period + ' · ' + r.flex);
-      const catLines = (snap.cats || []).map(c =>
-        '- ' + c.category + ' · typical ' + (ccy === 'EUR' ? '€' : '') + c.amount + '/mo'
-          + (c.rangeAvg && Math.abs(c.rangeAvg - c.amount) >= 1 ? ' (range-average ' + c.rangeAvg + ' — do not quote as the bill)' : '')
-          + ' · ' + (c.flex || 'ask'));
-      return [
+      const needle = String(slots.query || slots.category || '').toLowerCase();
+      const flexOf = (s) => (Engine.flexOf ? Engine.flexOf(s) : 'ask');
+
+      if (kind === 'standing'){
+        const hit = needle
+          ? (snap.recs || []).filter(r => (r.merchant + ' ' + r.category).toLowerCase().indexOf(needle) >= 0)
+          : [];
+        if (hit.length){
+          hit.slice(0, 4).forEach(r => facts.push(r.merchant + ' · ' + r.monthly + '/mo · ' + r.category + ' · ' + r.flex));
+          provenance.push('standing order · ' + needle);
+        } else {
+          facts.push('No standing order matched "' + (slots.query || '') + '". Use payment_monthly; do not quote a category average.');
+        }
+      } else if (kind === 'category'){
+        const mine = slots.category
+          ? (snap.cats || []).filter(c => c.category === slots.category)
+          : [];
+        (mine.length ? mine : (snap.cats || []).slice(0, 1)).forEach(c => {
+          facts.push(c.category + ' · typical ' + c.amount + '/mo'
+            + (c.rangeAvg && Math.abs(c.rangeAvg - c.amount) >= 1 ? ' (range-average ' + c.rangeAvg + ' — not the bill)' : '')
+            + (c.flex ? ' · ' + c.flex : ''));
+        });
+        provenance.push((slots.category || 'category') + ' · ' + range);
+      } else if (kind === 'afford'){
+        if (slots.amount) facts.push('They named ' + slots.amount + ' a month.');
+        else facts.push('No amount named — ask, do not guess.');
+        provenance.push('spare vs named commitment');
+      } else if (kind === 'advice_open' || kind === 'budget_draft'){
+        const cats = snap.cats || [];
+        const fixed = cats.filter(c => flexOf(c.category) === 'fixed').slice(0, 4);
+        const movable = cats.filter(c => flexOf(c.category) !== 'fixed').slice(0, 6);
+        if (fixed.length) facts.push('Usually fixed: ' + fixed.map(c => c.category + ' ' + c.amount).join(', '));
+        if (movable.length) facts.push('Usually movable: ' + movable.map(c => c.category + ' ' + c.amount).join(', '));
+        provenance.push('category typicals · ' + range);
+      } else if (kind === 'whatif' || kind === 'save_plan'){
+        const cuts = slots.cuts || [];
+        if (cuts.length)
+          facts.push('Named changes: ' + cuts.map(c => (c.label || c.category || '?') + (c.end ? ' ends' : (c.monthly != null ? ' −' + c.monthly : ''))).join(', '));
+        if (slots.target) facts.push('Target: ' + slots.target + (slots.by ? ' by ' + slots.by : ''));
+        if (slots.by && !slots.target) facts.push('Deadline: ' + slots.by);
+        provenance.push((kind === 'whatif' ? 'what-if cuts' : 'save plan') + ' · ' + range);
+      } else if (kind === 'rows'){
+        // Detail crosses via find_transactions (prefetch + outboundFor), not
+        // by dumping the ledger into this brief.
+        if (slots.query && !/^(everything|all|anything|stuff|things)$/i.test(String(slots.query)))
+          facts.push('Row search subject: ' + slots.query + (slots.month ? ' · ' + slots.month : '') + '. Use the attached retrieve result; do not invent rows.');
+        else
+          facts.push('No subject for a row search. Ask what to look for. Do not list the ledger.');
+        provenance.push('rows · no ledger dump');
+      } else if (kind === 'unknown'){
+        facts.push('If this is not in the imported data, say so. Lithifyte holds no tax rates and no jurisdiction.');
+      } else if (kind === 'net_worth' || kind === 'pulse' || kind === 'leaks' || kind === 'goals' ||
+                 kind === 'cashflow' || kind === 'balances' || kind === 'outlook' || kind === 'goal_draft' ||
+                 kind === 'panel' || kind === 'edit_budget' || kind === 'edit_goal' || kind === 'add_note' ||
+                 kind === 'add_rule' || kind === 'apply'){
+        facts.push('Use the matching tool for the figure or the change. Do not invent one from this brief.');
+      }
+
+      if (assistantGranted() && typeof appVision === 'function'){
+        const v = appVision();
+        facts.push('App panels (compact, consent on):');
+        facts.push(v.cashflow);
+        facts.push(v.budget);
+        facts.push(v.goals);
+        facts.push(v.forecast);
+        facts.push(v.pulse);
+        facts.push(v.netWorth);
+        facts.push(v.leaks);
+        facts.push(v.notes + ' ' + v.rules + ' ' + v.categories);
+        provenance.push('all-panel vision · consent');
+      }
+
+      return {intent: kind, tier, facts, rows, provenance};
+    }
+    function systemPromptHousehold(intent){
+      const b = briefFor(intent);
+      const map = (typeof acctMap === 'function') ? acctMap() : {aliases:[]};
+      const lines = [
         'Household session (changes when the user changes range or accounts):',
-        'Current range: ' + rangeLabel(),
-        'Display currency: ' + ccy + ' — display only; do not infer a country from it.',
-        fig ? ('Cashflow: ' + fig.income.toFixed(0) + ' in, ' + fig.spend.toFixed(0) + ' out, ' + fig.spare.toFixed(0) + ' leftover /mo.') : 'Cashflow: no figures yet.',
-        'Standing orders / recurring — quote these as the bill, never a year-smear:',
-        recLines.length ? recLines.join('\n') : '- none detected yet',
-        'Category typical monthly (months with spend). flex=fixed must not be cut unless the user says so; flex=ask → ask them:',
-        catLines.length ? catLines.join('\n') : '- no categories yet',
-        'Known categories: ' + JSON.stringify(cats),
-        'Accounts are aliased as ' + JSON.stringify(acctMap().aliases) +
-          ' — never use a real account name, person name or IBAN. Call notes_for if you need household context; notes are not in this prompt.',
-        'If they name a merchant (PTSB, a landlord, a loan), look it up in standing orders above or call payment_monthly. Do not answer with a different category.',
-        'A greeting (hi, hello, hey, thanks) is type:final only — one short hello. Never call help, nav, budget_notice or cashflow_whatif on a greeting.'
-      ].join('\n');
+        'Intent: ' + b.intent + ' · tier: ' + b.tier
+      ];
+      for (const f of b.facts) lines.push(f);
+      if (b.rows && b.rows.length){
+        lines.push('Matching rows (detail slice, not the ledger):');
+        for (const r of b.rows.slice(0, 12))
+          lines.push('- ' + (r.date || '') + ' · ' + (r.merchant || '') + ' · ' + (r.category || '') + ' · ' + r.amount);
+      }
+      if (b.provenance && b.provenance.length) lines.push('Provenance: ' + b.provenance.join('; '));
+      lines.push('Accounts are aliased as ' + JSON.stringify(map.aliases) +
+        ' — never use a real account name, person name or IBAN. Call notes_for if you need household context; notes are not in this prompt.');
+      return lines.join('\n');
     }
     function systemPrompt(){
       return systemPromptStatic() + '\n\n' + systemPromptHousehold();
@@ -20698,6 +21708,20 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     // Tool paragraphs joined for the user, with repeats dropped. Two tools can
     // legitimately return the same sentence (and a model that loops makes it
     // likelier); showing it twice reads like a stutter.
+    // Models routinely hand back a quoted string — the JSON say field already
+    // was the quotes, so the user reads «"Hi, what would you like to look at?"»
+    // and anything testing for a trailing "?" sees a quote mark. Strip the
+    // wrapper, never the content.
+    function tidySay(t){
+      let x = String(t == null ? '' : t).trim();
+      x = x.replace(/^```(?:\w+)?\s*|\s*```$/g, '').trim();
+      for (let i = 0; i < 2; i++){
+        const m = x.match(/^(["'\u201c\u2018])([\s\S]*)(["'\u201d\u2019])$/);
+        if (!m) break;
+        x = m[2].trim();
+      }
+      return x;
+    }
     function joinSays(steps){
       const out = [];
       for (const s of (steps || [])){
@@ -20753,52 +21777,116 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       });
     }
 
-    // True when `say` is a restatement of the grounded Engine text rather than
-    // commentary on it. Not an exact-subset test: a reworded echo ("on average
-    // groceries RAN €479 a month") drags in a filler word or two and would slip
-    // through. Real commentary is mostly new words, an echo is mostly not, so
-    // compare the proportion — a third is comfortably clear of both.
-    function addsNothing(grounded, say){
-      const words = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(w => w.length > 2);
-      const mine = words(say);
-      if (!mine.length) return true;
-      const have = new Set(words(grounded));
-      const fresh = mine.filter(w => !have.has(w));
-      return fresh.length / mine.length <= 1/3;
-    }
+    // </lm-guards>
 
-    async function askLm(userText){
-      if (isSmallTalk(userText)){
-        const chat0 = ensureChat();
-        echoUser(chat0, userText);
-        const say = greetSay();
-        appendMsg(chat0, 'assistant', say);
-        return {ok:true, tool:'greet', say, provenance:'greet', data:null, actions:[], suggestions:suggestions(), links:[], chatId: chat0.id};
+    // Both short-circuits are gone: handle() routes a greeting to greetTurn and
+    // askLm never sees one, so there is no second place for the canned sentence
+    // to come back from.
+    async function greetTurn(userText){
+      const chat = ensureChat();
+      echoUser(chat, userText);
+      let say = greetCache;
+      let spoken = false;
+      if (!say && lmEnabled()){
+        try {
+          if (await aiAskConsent('chat')){
+            const brief = greetBrief();
+            const raw = await lmComplete([
+              {role:'system', content: GREET_SYS},
+              {role:'user', content: brief + '\n\nThey said: ' + String(userText).slice(0, 80)}
+            ], {purpose:'chat', tier:'aggregate', convId: chat.id, temperature: 0.4});
+            const parsed = parseLmJson(raw);
+            const t = tidySay((parsed && (parsed.say || parsed.question)) || raw);
+            // Same invariant as everywhere else: it may use the figures it was
+            // handed and no others.
+            if (t && t.length <= 400 && !unbackedFigures(brief, t, userText).length){
+              say = t; greetCache = say; spoken = true;
+            }
+          }
+        } catch (e) { /* fall back to the written greeting */ }
       }
+      if (!say) say = greetSay();
+      say = Engine.minimise.revealText(say, acctMap());
+      appendMsg(chat, 'assistant', say);
+      touchChat(chat, []);
+      return {ok:true, tool:'greet', say,
+        provenance: spoken ? 'Lithifyte AI · greeting' : (greetCache ? 'greeting (this session)' : 'greeting'),
+        data:{spoken}, actions:[], suggestions:suggestions(), links:[], chatId: chat.id};
+    }
+    async function askLm(userText, understanding){
       const chat = ensureChat();
       echoUser(chat, userText);
       const history = chat.messages.slice(-12).map(m => ({
         role: m.role === 'tool' ? 'user' : (m.role === 'assistant' ? 'assistant' : 'user'),
         content: m.role === 'tool' ? ('Tool result: ' + m.content) : m.content
       }));
+      // Understand first so the household brief can be per-intent, and so
+      // needSlots exists before any later read. The eval driver declared these;
+      // the app did not — every LM turn after greet threw ReferenceError.
+      const u = understanding || understand(userText);
+      const needSlots = (u && u.missing) || [];
+      let asked = false;
+      let billed = false;
+      const complete = async (msgs, extra) => {
+        const raw = await lmComplete(msgs, Object.assign({
+          purpose: 'chat',
+          convId: chat.id,
+          consume: !billed,
+          temperature: 0.2
+        }, extra || {}));
+        billed = true;
+        return raw;
+      };
       // Two system messages: byte-stable contract first (Grok prefix cache),
       // then household facts that change when the user changes range.
       let messages = [
         {role:'system', content: systemPromptStatic()},
-        {role:'system', content: systemPromptHousehold()},
+        {role:'system', content: systemPromptHousehold(u)},
         ...history
       ];
+      if (u && u.intent === 'unknown'){
+        messages.push({role:'user', content:
+          'Lithifyte holds no tax rates and no jurisdiction. If they asked something you cannot see in the imported data, say so and offer what you CAN look up. Do not guess a figure or name a tax authority.'});
+      }
       const steps = [];
-      const attachQuiet = (result, note) => {
+      // Declared here, not below the loop: a prefetched result has to be
+      // registered BEFORE the model gets a turn, or the model asks for the tool
+      // we just ran and the repeat guard does not recognise it. Measured live
+      // on 16 Aug — payment_monthly ran twice and the turn cost two calls
+      // instead of one.
+      const seen = new Map();
+      const attachQuiet = (result, note, args) => {
         if (!result || !result.ok) return;
         applyActions(result.actions || []);
         const outbound = outboundFor(result);
         steps.push(result);
-        messages.push({role:'user', content: (note || 'Engine result (computed, not a guess). Use these numbers:') + '\n' +
-          JSON.stringify({tool: outbound.tool, say: outbound.say, data: outbound.data})});
+        const text = JSON.stringify({tool: outbound.tool, say: outbound.say, data: outbound.data});
+        seen.set(outbound.tool, text);
+        // The args the prefetch actually used. Without them the repeat guard
+        // compares the model's call against {} and lets the same tool run a
+        // second time — one wasted hosted call per turn.
+        seen.set(outbound.tool + ':args', args || {});
+        messages.push({role:'user', content: (note || 'Engine result (computed, not a guess). Use these numbers:') + '\n' + text});
       };
+      // Understand said what this turn is about, so the figures go in FRONT of
+      // the model instead of costing it a round to fetch. This is what makes a
+      // grounded answer cost one hosted call rather than two.
+      const pre = prefetchFor(u);
+      if (pre && pre.tool){
+        // Advice is spoken first and the draft is offered at the end, where the
+        // user can decline it. Opening with a sandbox they then have to find
+        // and delete is the same mistake as refusing them one.
+        const closer = u.intent === 'advice_open'
+          ? ' Then close by offering it — "want me to draft that as a sandbox budget you can edit before applying?"'
+          : '';
+        attachQuiet(run(pre),
+          'Engine already ran ' + pre.tool + ' for this question (computed, not a guess). ' +
+          'Answer in your own words using these numbers — you do not need another tool.' + closer,
+          pre.args);
+      }
       const plan = Engine.planHint ? Engine.planHint(recentAsk(userText)) : {cuts:[], wantsWhatIf:false, wantsAdvice:false};
-      if (plan.wantsPayment && plan.paymentQuery){
+      if (pre && pre.tool){ /* prefetched above */ }
+      else if (plan.wantsPayment && plan.paymentQuery){
         attachQuiet(run({tool:'payment_monthly', args:{query: plan.paymentQuery}}),
           'Engine already looked up the typical monthly payment (the bill, not a year-average). Use that figure.');
       } else if (plan.wantsSavePlan){
@@ -20812,22 +21900,31 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           'Engine notice is attached. Interpret it for the user — what is tight, what they can move, one next step. Do not restate it.');
       }
       const hint = Engine.txQueryHint(userText);
-      if (hint.wantsRows){
-        const pre = run({tool:'find_transactions', args:{
-          query: hint.query, month: hint.month, min: hint.min, income: hint.income, limit: 12
-        }});
-        if (pre && pre.ok && pre.data && pre.data.rows && pre.data.rows.length){
-          attachQuiet(pre, 'Engine retrieved matching rows locally (not a guess). Use these numbers:');
+      if (hint.wantsRows && !needSlots.length && !(pre && pre.tool === 'find_transactions')){
+        const rowArgs = {query: hint.query, month: hint.month, min: hint.min, income: hint.income, limit: 12};
+        const rows = run({tool:'find_transactions', args: rowArgs});
+        if (rows && rows.ok && rows.data && rows.data.rows && rows.data.rows.length){
+          attachQuiet(rows, 'Engine retrieved matching rows locally (not a guess). Use these numbers:', rowArgs);
         }
       }
       // A smaller model often keeps calling tools instead of committing to an
       // answer, and re-calls one it already has. Running it twice appends the
       // same paragraph to the reply, so remember what has been asked and answer
       // a repeat from the result already in hand.
-      const seen = new Map();
       let groundedRetry = false;
-      for (let round = 0; round < 5; round++){
-        const raw = await lmComplete(messages, {purpose:'chat', convId: chat.id});
+      let repeats = 0;
+      // One correction round for invented figures, and a flag so the answer can
+      // admit when the Engine wrote it instead of the model.
+      let figureRetry = false;
+      let fallbackUsed = false;
+      // Set when a draft was asked for too early and turned into advice, so the
+      // pivot happens once rather than on every round.
+      let offeredDraft = null;
+      // Unknown used to be capped at 2, so an unrecognised question got less
+      // effort than a recognised one. Same budget as everything else.
+      const maxRounds = 5;
+      for (let round = 0; round < maxRounds; round++){
+        const raw = await complete(messages);
         const parsed = parseLmJson(raw);
         if (parsed && parsed.type === 'tool' && parsed.name){
           if (parsed.name === 'help' && !/^(help|\?|commands|what can you do)/i.test(userText)){
@@ -20837,22 +21934,49 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           }
           const intent = {tool: parsed.name, args: parsed.args || {}};
           // A sandbox draft is a thing the user then has to find and delete, so
-          // it may only be created when they actually asked for one. The prompt
-          // says so and the model still reached for propose_budget on "show me
-          // these transactions" — twice. Refuse it and point at a read tool.
-          if ((parsed.name === 'propose_budget' || parsed.name === 'propose_goal' || parsed.name === 'propose_rules') && !wantsDraft(userText)){
+          // it may only be created when they actually asked for one.
+          //
+          // This used to answer "No. The user did not ask you to…", which the
+          // model met by reaching for another tool, and another, until the five
+          // rounds ran out and "I need to restructure my finance, what can I
+          // do?" ended in "try a more specific ask." Refusing was right about
+          // the draft and wrong about the turn.
+          //
+          // Advice is not a draft. Hand it what an adviser would actually look
+          // at, tell it to SPEAK first, and let the draft be something the user
+          // is offered at the end and can decline.
+          if ((parsed.name === 'propose_budget' || parsed.name === 'propose_goal' || parsed.name === 'propose_rules') && !wantsDraft(userText) && !assistantGranted()){
             messages.push({role:'assistant', content: raw});
-            messages.push({role:'user', content: 'No. The user did not ask you to design a budget, a goal or rules, ' +
-              'and ' + parsed.name + ' creates a draft they would have to delete. Answer what was actually asked — ' +
-              'use find_transactions, spend_ranked, leaks or cat_monthly.'});
+            if (!offeredDraft){
+              offeredDraft = parsed.name;
+              if (!seen.has('budget_notice'))
+                attachQuiet(run({tool:'budget_notice', args:{}}),
+                  'They asked what they can do — that is advice, not a draft. Here is what the Engine sees:');
+              if (!seen.has('spend_ranked'))
+                attachQuiet(run({tool:'spend_ranked', args:{}}), 'And their biggest lines:');
+            }
+            messages.push({role:'user', content:
+              'Do not create a draft yet — they did not ask for one, and a sandbox they have to find and delete ' +
+              'is not an answer. Talk to them first: what is tight, which lines are fixed, which are movable, ' +
+              'and one thing they could change. Then close by offering it — "want me to draft that as a sandbox ' +
+              'budget you can edit before applying?" — so they can say no. ' +
+              'Reply with {"type":"final","say":"…"}.'});
             continue;
           }
-          const sig = parsed.name + ':' + JSON.stringify(intent.args || {});
-          if (seen.has(sig)){
+          // A weak model re-requests a tool whose result is already in the
+          // conversation — including the one we prefetched for it. Keyed on the
+          // tool, so an empty-args repeat is caught; a genuinely different ask
+          // (another category, another month) still gets through.
+          const prevArgs = seen.get(parsed.name + ':args') || {};
+          if (seen.has(parsed.name) && sameAsk(prevArgs, intent.args || {})){
+            // A weak model can do this all day, and every round is a hosted
+            // call. Live-S (16 Aug): Grok also re-asked the prefetched tool
+            // twice and never emitted type:final — two rounds then the Engine
+            // paragraph. Give it a third, last, "speak now" before falling back.
+            if (++repeats >= 3) break;
             messages.push({role:'assistant', content: raw});
-            messages.push({role:'user', content: 'You already ran ' + parsed.name +
-              ' and its result is above:\n' + seen.get(sig) +
-              '\n\nDo not call it again. Reply now with {"type":"final","say":"…"}.'});
+            messages.push({role:'user', content: 'You already have that result:\n' + seen.get(parsed.name) +
+              '\n\nDo not call ' + parsed.name + ' again. Answer the question now with {"type":"final","say":"…"}.'});
             continue;
           }
           let result = run(intent);
@@ -20864,12 +21988,32 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
             tool: outbound.tool, ok: outbound.ok, say: outbound.say,
             provenance: outbound.provenance, data: outbound.data
           });
-          seen.set(sig, toolText);
+          seen.set(parsed.name, toolText);
+          seen.set(parsed.name + ':args', intent.args || {});
           appendMsg(chat, 'tool', toolText, {tool: result.tool, links: result.links || []});
           touchChat(chat, result.links || []);
           messages.push({role:'assistant', content: raw});
           messages.push({role:'user', content: 'Tool result (use these numbers; do not invent others):\n' + toolText + '\n\nIf you need another tool, return type:tool. Else type:final with a clear answer.'});
           if (result.apply) pendingApply = result.apply;
+          continue;
+        }
+        // One clarifying question per turn, and only when a slot really is
+        // missing. Otherwise a weak model asks forever and never answers.
+        if (parsed && parsed.type === 'ask' && parsed.question){
+          if (needSlots.length && !asked){
+            // A question that does not end in a question mark reads as a
+            // statement, and the user cannot tell they were asked anything.
+            let q = tidySay(parsed.question).slice(0, 200);
+            if (q && !/\?\s*$/.test(q)) q = q.replace(/[.\s]*$/, '?');
+            if (!q) q = askFor(needSlots[0], u && u.intent);
+            appendMsg(chat, 'assistant', q);
+            touchChat(chat, []);
+            return {ok:true, tool:'lm_ask', say:q, asked:q, provenance:'Lithifyte AI · needs ' + needSlots.join(', '),
+              data:{steps, missing:needSlots}, actions:[], suggestions:suggestions(), links: chat.links || [], chatId: chat.id};
+          }
+          messages.push({role:'assistant', content: raw});
+          messages.push({role:'user', content: 'You have what you need — do not ask, answer. ' +
+            'Reply with {"type":"final","say":"…"}.'});
           continue;
         }
         let say = (parsed && parsed.say) ? parsed.say : String(raw).slice(0, 1500);
@@ -20891,7 +22035,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
             steps.push(result);
             const ob = outboundFor(result);
             const tt = JSON.stringify({tool:ob.tool, ok:ob.ok, say:ob.say, provenance:ob.provenance, data:ob.data});
-            seen.set(forced.tool + ':{}', tt);
+            seen.set(forced.tool, tt);
             appendMsg(chat, 'tool', tt, {tool:result.tool, links:result.links||[]});
             touchChat(chat, result.links || []);
           }
@@ -20903,67 +22047,106 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
             'Reply with {"type":"final","say":"…"}.'});
           continue;
         }
-        // Prefer Engine tool wording when tools ran (model may mis-subtract)
-        if (steps.length){
+        // ── Speak: the model writes, the guard VERIFIES ──────────────────
+        //
+        // This used to substitute: any figure the guard could not trace, and
+        // the model's sentence was replaced with the Engine paragraph. So was
+        // any sentence that merely restated the tool. Between them they
+        // guaranteed the product could not sound human — the model's wording
+        // almost never survived.
+        //
+        // A wrong figure is still unacceptable, so the fix is not to trust it.
+        // The fix is to give it back and ask for a correction: the model gets
+        // one round to re-answer with the real numbers. Only if THAT still
+        // carries an invented figure do we fall back to the Engine's own
+        // write-up — and the answer records that it did.
+        if (steps.length && say){
           const grounded = joinSays(steps);
           if (grounded){
-            // Keep the model's prose only if every amount in it is traceable —
-            // to a tool result, OR to the user's own question. A figure the user
-            // typed ("a €300 installment") is theirs to name; treating it as an
-            // invention is what made affordability questions unanswerable.
             // Ground against everything the Engine returned, not just the prose
             // it printed. A tool's `say` rounds ("€589 total") while its `data`
             // carries the exact figure (588.65) — and the model, reading the
             // tool result, quotes the exact one. Comparing only against the
             // rounded prose struck out a correct answer and then rounded the
             // rejected figure back to €589 in the notice.
+            //
+            // A figure the user typed ("a €300 installment") is theirs to name.
             const groundedAll = grounded + '\n' + steps.map(s => {
               try { return JSON.stringify(s.data || ''); } catch (e) { return ''; }
             }).join(' ');
             const unbacked = unbackedFigures(groundedAll, say, userText);
-            // …and only if it says something the Engine paragraph did not. A
-            // model asked to narrate a tool result usually restates it, and
-            // "Opening budget." twice reads like a stutter.
-            const echo = !unbacked.length && say && addsNothing(grounded, say);
-            const helpful = steps.find(s => s && (s.tool === 'cashflow_whatif' || s.tool === 'budget_notice' || s.tool === 'affordability' || s.tool === 'payment_monthly' || s.tool === 'save_plan'));
-            // Do not paste the tool dump into the assistant bubble — the green
-            // tool card already showed it. Prefer the model's advice; if it
-            // invented figures or only echoed, use the Engine's helpful write-up.
+            if (unbacked.length && !figureRetry){
+              figureRetry = true;
+              messages.push({role:'assistant', content: raw});
+              messages.push({role:'user', content:
+                'Those figures are not in the data: ' + unbacked.slice(0, 4).join(', ') + '.\n' +
+                'Only these are computed:\n' + grounded + '\n\n' +
+                'Say the same thing again in your own words, using only those figures ' +
+                '(and any amount the user named themselves). Do not add a figure you were not given. ' +
+                'Reply with {"type":"final","say":"…"}.'});
+              continue;
+            }
             if (unbacked.length){
-              say = helpful && helpful.say
-                ? helpful.say
-                : (say + '\n\n(I left out ' + unbacked.slice(0, 3).map(a => eur(parseFloat(a))).join(', ') +
-                  ' — those figures were not worked out from your data.)');
-            } else if (!say || echo){
+              // Second failure. The Engine's own write-up is the answer, and we
+              // say so rather than passing it off as the model's.
+              const helpful = steps.find(s => s && (s.tool === 'cashflow_whatif' || s.tool === 'budget_notice' ||
+                s.tool === 'affordability' || s.tool === 'payment_monthly' || s.tool === 'save_plan'));
               say = (helpful && helpful.say) || grounded;
+              fallbackUsed = true;
             }
           }
         }
-        say = Engine.minimise.revealText(say, acctMap());
+        // Nothing said and nothing to say it from: the Engine paragraph, not an
+        // empty bubble.
+        if (!say && steps.length){ say = joinSays(steps); fallbackUsed = true; }
+        // A detail is missing and no tool ran, so the only correct answer is a
+        // question. A weak model asks in prose instead of using the envelope
+        // ("how much is the monthly commitment"), which reads as a statement
+        // and leaves the user unsure whether they were asked anything. Make it
+        // a question — model wording first, ours as the backstop.
+        if (needSlots.length && !steps.length){
+          const q = askFor(needSlots[0], u && u.intent);
+          if (!/\?\s*$/.test(String(say).trim())) say = say && say.length > 8 ? tidySay(say).replace(/[.\s]*$/, '?') : q;
+          asked = true;
+          appendMsg(chat, 'assistant', say);
+          return {ok:true, tool:'lm_ask', say, asked:say, provenance:'Lithifyte AI · needs ' + needSlots.join(', '),
+            data:{steps, missing:needSlots}, actions:[], suggestions:suggestions(), links: chat.links || [], chatId: chat.id};
+        }
+        say = Engine.minimise.revealText(tidySay(say), acctMap());
         appendMsg(chat, 'assistant', say);
         touchChat(chat, []);
-        return {ok:true, tool:'lm_final', say, provenance: 'Lithifyte AI · tools: ' + (steps.map(s=>s.tool).join(', ') || 'none'), data:{steps}, actions:[], suggestions:suggestions(), links: chat.links || [], apply: pendingApply, chatId: chat.id};
+        return {ok:true, tool:'lm_final', say,
+          provenance: 'Lithifyte AI · tools: ' + (steps.map(s=>s.tool).join(', ') || 'none') + (fallbackUsed ? ' · Engine wrote this answer' : ''),
+          data:{steps, fallbackUsed}, actions:[], suggestions:suggestions(), links: chat.links || [], apply: pendingApply, chatId: chat.id};
       }
       const last = steps[steps.length - 1];
-      let say = (last && last.say) || 'I ran tools but did not finish — try a more specific ask.';
-      if (steps.length) say = joinSays(steps);
+      // A missing slot the model would not ask about: ask it ourselves rather
+      // than answering a question nobody asked. Model first, code as fallback.
+      if (needSlots.length && !steps.length){
+        const q = askFor(needSlots[0], u && u.intent);
+        appendMsg(chat, 'assistant', q);
+        return {ok:true, tool:'lm_ask', say:q, asked:q, provenance:'Lithifyte AI · needs ' + needSlots.join(', '),
+          data:{steps, missing:needSlots}, actions:[], suggestions:suggestions(), links: chat.links || [], chatId: chat.id};
+      }
+      // Ran out of rounds. The user asked a real question and the Engine has
+      // real figures for it — answer with those. "Try a more specific ask" told
+      // someone who asked the most natural question in personal finance that
+      // they had phrased it wrong; it is not an answer and it should not exist.
+      let say = steps.length
+        ? joinSays(steps) + '\n\n' + LAST_RESORT.withFigures
+        : LAST_RESORT.noFigures;
+      fallbackUsed = true;
       say = Engine.minimise.revealText(say, acctMap());
       appendMsg(chat, 'assistant', say);
-      return {ok:true, tool:'lm_final', say, provenance:'Lithifyte AI · max tool rounds', data:{steps}, actions:[], suggestions:suggestions(), links: chat.links || [], apply: pendingApply, chatId: chat.id};
+      return {ok:true, tool:'lm_final', say, provenance:'Lithifyte AI · Engine wrote this answer (tool rounds exhausted)', data:{steps, fallbackUsed}, actions:[], suggestions:suggestions(), links: chat.links || [], apply: pendingApply, chatId: chat.id};
     }
 
     async function handle(q){
       const text = String(q || '').trim();
       if (!text) return null;
-      if (isSmallTalk(text)){
-        const chat = ensureChat();
-        echoUser(chat, text);
-        const say = greetSay();
-        appendMsg(chat, 'assistant', say);
-        return {ok:true, tool:'greet', say, provenance:'greet', data:null, actions:[], suggestions:suggestions(), links:[]};
-      }
+      if (isSmallTalk(text)) return await greetTurn(text);
       // explicit apply shortcuts
-      if (/^apply\b/i.test(text) && pendingApply){
+      if ((/^apply\b/i.test(text) || (assistantGranted() && wantsApply(text))) && pendingApply){
         const result = run({tool:'apply_scenario', args:{scenarioId: pendingApply.scenarioId || pendingApply, confirm:true}});
         applyActions(result.actions || []);
         const chat = ensureChat();
@@ -20972,24 +22155,39 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         touchChat(chat, result.links);
         return result;
       }
-      // Prefer deterministic tools when they match strongly.
-      // Follow-ups like "if these are deducted" only parse once we include
-      // the previous user turns (the cuts live there).
-      let intent = match(text);
-      if (!(intent && intent.score >= 0.8)){
-        const wider = match(recentAsk(text));
-        if (wider && (wider.tool === 'cashflow_whatif' || wider.tool === 'save_plan' || wider.tool === 'payment_monthly') && wider.score >= 0.8) intent = wider;
+      // One intent layer (§3). Follow-ups like "if these are deducted" only
+      // parse once we include the previous user turns — the cuts live there.
+      let u = understand(text, lastIntent);
+      if (u.confidence < 0.8){
+        const wider = understand(recentAsk(text), lastIntent);
+        if (['whatif', 'save_plan', 'standing'].indexOf(wider.intent) >= 0 && wider.confidence >= 0.8) u = wider;
       }
+      lastIntent = u;
+      let intent = u.tool ? {tool: u.tool, args: u.args || {}, score: u.confidence} : null;
+      // A strong deterministic match used to mean "do not talk": the LM was
+      // never called, so "how much is the X payment" and "how has Groceries
+      // done" were answered by an Engine paragraph however good the model was.
+      // That is the same ceiling as writing the sentence in code.
+      //
+      // It stays the whole path for the tools where there is nothing to
+      // compose. "Opening Budget." does not need a model, and putting every
+      // navigation on the hosted lane would spend a metered question to say it
+      // — so nav / range / help keep the local path and cost nothing.
+      // Everything else is a money answer: the match becomes a SEED, its result
+      // is prefetched, and the model speaks from it in one hosted call.
       if (intent && intent.score >= 0.8){
-        let result = run(intent);
-        applyActions(result.actions || []);
-        result = refill(result);
-        const chat = ensureChat();
-        echoUser(chat, text);
-        appendMsg(chat, 'assistant', result.say, {links: result.links});
-        touchChat(chat, result.links);
-        if (result.apply) pendingApply = result.apply;
-        return result;
+        const local = LOCAL_INTENTS.indexOf(intent.tool) >= 0;
+        if (local || !lmEnabled()){
+          let result = run(intent);
+          applyActions(result.actions || []);
+          result = refill(result);
+          const chat = ensureChat();
+          echoUser(chat, text);
+          appendMsg(chat, 'assistant', result.say, {links: result.links});
+          touchChat(chat, result.links);
+          if (result.apply) pendingApply = result.apply;
+          return result;
+        }
       }
       if (lmEnabled()){
         try {
@@ -21001,7 +22199,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
               '\n\nHosted AI was not sent — use Commands only, or allow the request next time.');
             return result;
           }
-          return await askLm(text);
+          return await askLm(text, u);
         } catch (e) {
           let result = match(recentAsk(text)) || match(text) || intent;
           if (result && result.tool) result = run(result);
@@ -21075,10 +22273,17 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       try { if (window.__ddSyncCam) setTimeout(window.__ddSyncCam, 0); } catch (e) {}
     }
     let thinking = false;
-    // A tool step used to be dumped into the green box as raw JSON, truncated
-    // mid-token at 320 chars — an unbroken string with nowhere to wrap, which is
-    // what made it spill over its own border. Show what the step actually did:
-    // its name, the sentence it produced, and where the figures came from.
+    // A tool step is a STATUS LINE, not a second answer.
+    //
+    // It used to print the tool's own `say`, which is why `addsNothing` had to
+    // exist: the model narrating a result it had just been handed produced two
+    // copies of the same sentence on screen, so the guard threw the model's
+    // wording away. That guard is what made the co-pilot sound like a machine.
+    // With the card reduced to "what I checked", the assistant bubble is the
+    // only prose in the thread and the model is free to write it.
+    //
+    // The figures stay auditable: the tool name and its provenance are still
+    // shown, and the full result is one click away.
     function toolBubble(m){
       let o = null;
       try { o = JSON.parse(m.content); } catch (e) {}
@@ -21088,10 +22293,40 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const name = (t && t.title) || o.tool || m.tool || 'Tool';
       const say = String(o.say || '').slice(0, 600);
       return '<div class="cp-msg tool">' +
-        '<span class="cp-tool-hd">🔧 ' + esc(name) + (o.ok === false ? ' · no result' : '') + '</span>' +
-        (say ? '<span class="cp-tool-say">' + esc(say) + '</span>' : '') +
+        '<span class="cp-tool-hd">🔧 ' + esc(checkedLabel(o.tool || m.tool, name)) +
+          (o.ok === false ? ' · no result' : '') + '</span>' +
         (o.provenance ? '<span class="cp-tool-src">' + esc(String(o.provenance).slice(0, 120)) + '</span>' : '') +
+        (say ? '<details class="cp-tool-more"><summary>figures</summary>' +
+          '<span class="cp-tool-say">' + esc(say) + '</span></details>' : '') +
         '</div>';
+    }
+    // Plain-language "what I just did", for the status line and for the
+    // progress text while a turn is running.
+    const CHECKED = {
+      cashflow_summary: 'checked your cashflow',
+      cat_monthly: 'looked at that category month by month',
+      balances: 'checked your balances',
+      summary_outlook: 'looked at next month',
+      affordability: 'checked that against your spare',
+      cashflow_whatif: 'worked out the new month-end',
+      payment_monthly: 'looked up the standing order',
+      save_plan: 'worked out what you can put aside',
+      budget_notice: 'looked over your budget',
+      spend_ranked: 'ranked your spending',
+      find_transactions: 'searched your transactions',
+      net_worth: 'added up your net worth',
+      pulse: 'scored your household pulse',
+      leaks: 'looked for leaks',
+      notes_for: 'read your notes',
+      goals_status: 'checked your goals',
+      propose_budget: 'drafted a sandbox budget',
+      propose_goal: 'drafted a sandbox goal',
+      propose_rules: 'drafted sandbox rules',
+      nav: 'opened that section',
+      set_range: 'changed the range'
+    };
+    function checkedLabel(id, fallbackName){
+      return CHECKED[id] || ('ran ' + (fallbackName || id || 'a tool'));
     }
     function renderThread(){
       const el = document.getElementById('companionThread');
@@ -21725,7 +22960,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     return {
       ask, match, run, handle, askLm, applyActions, registry, suggestions, open, close, bind, isOpen,
       isSmallTalk, greetSay,
-      systemPrompt, systemPromptStatic, systemPromptHousehold, outboundFor, acctMap, findCategory, householdSnapshot,
+      systemPrompt, systemPromptStatic, systemPromptHousehold, outboundFor, acctMap, findCategory, householdSnapshot, briefFor,
       ensureChat, newChat, deleteChat, lmEnabled, lmComplete, chats: () => chatStore.items, scenarios: () => scenarioStore.items,
       deleteScenario, applyScenario, renderScenarios, scenSummary,
       renderThread, echoUser, appendMsg, amts, moneyish, unbackedFigures, wantsDraft,
@@ -21733,7 +22968,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       echoPending: (v) => { pendingEcho = v; },
       setActiveChat: (id) => { activeChatId = id; },
       activeChat: () => activeChatId,
-      syncRangeLabel, syncLmForm, parseLmJson, joinSays, addsNothing, SECTIONS, RELAY_DEFAULT,
+      syncRangeLabel, syncLmForm, parseLmJson, joinSays, unbackedFigures, SECTIONS, RELAY_DEFAULT,
+      LOCAL_INTENTS, checkedLabel, toolBubble, LAST_RESORT, understand, prefetchFor, writeAsked,
+      __setTurnIntent: (u) => { lastIntent = u; }, sameAsk, missingSlots, ASK_FOR, askFor, tidySay,
+      wantsApply, assistantGranted, appVision,
+      greetBrief, GREET_SYS,
       refreshChips: () => { if (bound) renderChips(); },   // called when insights recompute
       personalChips
     };

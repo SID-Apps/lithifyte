@@ -92,20 +92,20 @@ say "$tax  /packs/ie-fiscal (expect 410)"
 
 say ""
 say "## 3. Headless self-test (file:// Engine + demo)"
+# Was a grep for /self-test[^<]{0,80}/ over the dumped DOM — which matches a
+# source comment, so this step reported success whether or not a single test
+# passed. selftest-headless.mjs drives the page over CDP and calls
+# window.__ddSelfTest(), which returns real counts.
 if [[ -x "$CHROME" ]]; then
-  for page in index.html demo.html; do
-    url="file://$ROOT/$page"
-    out=$(timeout 90 "$CHROME" --headless=new --disable-gpu --no-sandbox --virtual-time-budget=20000 \
-      --dump-dom "$url" 2>/dev/null | $NODE -e '
-        let s=""; process.stdin.on("data",d=>s+=d); process.stdin.on("end",()=>{
-          const m = s.match(/self-test[^<]{0,80}/i);
-          console.log(m ? m[0].replace(/\s+/g," ").slice(0,120) : "no self-test banner found");
-        });
-      ' || echo "chrome failed")
-    say "$page: $out"
-  done
+  st=$(timeout 300 $NODE "$ROOT/tools/selftest-headless.mjs" index.html 2>&1) || fail=1
+  say "$st"
+  # demo.html carries two known co-pilot failures against the sample household
+  # ("where can I cut back" ranking, what-if named cuts). Reported, not gating,
+  # until they are fixed — see vault "Lithifyte - LM Engine Redesign" §12.
+  demo=$(timeout 300 $NODE "$ROOT/tools/selftest-headless.mjs" demo.html 2>&1 || true)
+  say "$demo"
 else
-  say "chrome missing — skipped DOM walk"
+  say "chrome missing — skipped self-test"
 fi
 
 say ""
