@@ -277,13 +277,29 @@ function nanoSim(userText, nudges, state) {
 // What actually answered in a live run. A live-N run silently served by the
 // Workers AI fallback is not a live-N run, and the report has to say so.
 let liveCapability = null;
-async function liveModel(messages) {
+// Answer-only: the same envelope minus "tool". Once the Engine has already run
+// what the question needed, a tool call is not a shape the model should be able
+// to emit — the full schema below still permits one, and that permission is
+// what cost a second hosted call on Grok.
+const ANSWER_SCHEMA = {
+  type: 'json_schema',
+  json_schema: { name: 'copilot_answer', strict: true, schema: {
+    type: 'object', additionalProperties: false,
+    properties: { type: { type: 'string', enum: ['final', 'ask'] },
+                  say: { type: ['string', 'null'] }, question: { type: ['string', 'null'] } },
+    required: ['type', 'say', 'question'] } },
+};
+// Nothing missing → no ask. Mirrors the app's FINAL_SCHEMA.
+const FINAL_SCHEMA = JSON.parse(JSON.stringify(ANSWER_SCHEMA));
+FINAL_SCHEMA.json_schema.name = 'copilot_final';
+FINAL_SCHEMA.json_schema.schema.properties.type.enum = ['final'];
+async function liveModel(messages, shape) {
   const res = await fetch(RELAY + '/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Origin: 'https://app.lithifyte.com' },
     body: JSON.stringify({
       provider: 'lithifyte', purpose: 'chat', convId: 'eval', temperature: 0, max_tokens: 1600, messages,
-      response_format: {
+      response_format: shape === 'final' ? FINAL_SCHEMA : shape === 'answer' ? ANSWER_SCHEMA : {
         type: 'json_schema',
         json_schema: {
           name: 'lithifyte_turn',
@@ -363,14 +379,26 @@ async function runTurn(text) {
     { role: 'user', content: text },
   ];
   const seen = new Map();
-  const attach = (r, args) => { if (r && r.ok) { steps.push(r); path.tools.push(r.tool); seen.set(r.tool, r.say); seen.set(r.tool + ':args', args || {}); } };
+  const attach = (r, args, note) => {
+    if (!r || !r.ok) return;
+    steps.push(r);
+    path.tools.push(r.tool);
+    seen.set(r.tool, r.say);
+    seen.set(r.tool + ':args', args || {});
+    // The app's attachQuiet puts the result in front of the model. The driver
+    // did not, which went unnoticed while the model could still call the tool
+    // itself — and produced "I don't have that figure" the moment it could not.
+    messages.push({ role: 'user', content: (note || 'Engine result (computed, not a guess). Use these numbers:') +
+      '\n' + JSON.stringify({ tool: r.tool, say: r.say, data: r.data }) });
+  };
 
   const needSlots = u.missing || [];
   let asked = false;
   const pre = engine.prefetchFor(u);
   if (pre && pre.tool) attach(runTool(pre), pre.args);
   const plan = Engine.planHint(text);
-  if (pre && pre.tool) { /* prefetched */ }
+  if (needSlots.length) { /* ask first — the cascade would guess */ }
+  else if (pre && pre.tool) { /* prefetched */ }
   else if (plan.wantsPayment && plan.paymentQuery) attach(runTool({ tool: 'payment_monthly' }));
   else if (plan.wantsSavePlan) attach(runTool({ tool: 'save_plan' }));
   else if (plan.wantsWhatIf && plan.cuts.length) attach(runTool({ tool: 'cashflow_whatif' }));
@@ -392,7 +420,8 @@ async function runTurn(text) {
     path.hostedCalls++;
     const raw = MODE === 'mock'
       ? nanoSim(text, nudges, { stepCount: steps.length, grounded: engine.joinSays(steps), corrected: figureRetry, advise: !!offeredDraft, adviceOpen: u.intent === 'advice_open', needSlots, unknownIntent: u.intent === 'unknown' })
-      : await liveModel(messages);
+      : await liveModel(messages,
+          needSlots.length ? 'answer' : (steps.length && u.confidence >= 0.85) ? 'final' : null);
     const parsed = engine.parseLmJson(raw);
 
     if (parsed && parsed.type === 'tool' && parsed.name) {
@@ -448,7 +477,9 @@ async function runTurn(text) {
       messages.push({ role: 'user', content: 'You have what you need — answer.' });
       continue;
     }
-    let say = (parsed && parsed.say) ? parsed.say : String(raw).slice(0, 1500);
+    let say = (parsed && typeof parsed === 'object' && ('say' in parsed || 'question' in parsed))
+      ? String(parsed.say || parsed.question || '').trim()
+      : String(raw).slice(0, 1500);
     if (engine.moneyish(say) && !steps.length && !groundedRetry) {
       groundedRetry = true;
       for (const t of ['cashflow_summary', 'balances', 'summary_outlook']) {

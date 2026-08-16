@@ -1,8 +1,8 @@
 {
-  "version": "3.0.0",
+  "version": "3.0.1",
   "released": "2026-08-16",
-  "notes": "The assistant writes, and only when you ask.",
+  "notes": "One hosted call per grounded answer.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "d60f71b24beda6e4d0f1a8c7d89892c72b4801672f7f2994b74da6b4aaeb588f"
+  "sha256": "ef7af3c40158d2f1b522431b006f43293697c29cee2739a7a81e54cf92b4b3a7"
 }

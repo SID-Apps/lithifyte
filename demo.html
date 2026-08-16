@@ -15,7 +15,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '3.0.0';
+  var APP_VER = '3.0.1';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -16111,6 +16111,14 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const r = Companion.run({tool:'set_budget_line', args:{category:'Groceries', amount:400}});
       return (r && r.ok === false && /consent/i.test(r.say + r.provenance)) || JSON.stringify(r);
     });
+    T('speak: an empty envelope never reaches the user as raw JSON', () => {
+      // Under an answer-only schema a model can return a well-formed envelope
+      // with nothing in it. Falling back to the raw text put
+      // {"type":"final","say":null} on screen as the answer.
+      const empty = Companion.parseLmJson('{"type":"final","say":null,"question":null}');
+      if (!empty || empty.type !== 'final') return 'envelope not parsed: ' + JSON.stringify(empty);
+      return (empty.say == null || empty.say === '') || 'expected an empty say, got ' + JSON.stringify(empty.say);
+    });
     T('assistant: a write needs the USER to have asked, not just consent', () => {
       // Consent is permission to act, not permission to act unprompted. Tool
       // results carry merchant strings from the statement and bodies from
@@ -19386,6 +19394,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       temperature: typeof opts.temperature === 'number' ? opts.temperature : 0,
       max_tokens: hosted ? 1600 : 900,
       endpoint: provider === 'openai_compat' ? (lmStore.endpoint || '') : undefined,
+      // Only sent when the upstream that last answered advertises it; the relay
+      // drops it for anyone who cannot honour it and reports `applied`.
+      response_format: opts.responseFormat || undefined,
       purpose,
       convId: opts.convId || '',
       entitlement: (!sample && ent && ent.token) ? ent.token : undefined
@@ -20387,7 +20398,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const s = (intent && intent.slots) || {};
       const out = [];
       for (const k of need){
-        if (k === 'deadline'){ if (!s.by && !s.months) out.push('deadline'); continue; }
+        // A deadline is only required when they named a target: "how much can
+        // I save" is answerable without one — the Engine works out what they
+        // can put aside a month — while "can I reach 5000 by …" is not.
+        if (k === 'deadline'){ if (s.target && !s.by && !s.months) out.push('deadline'); continue; }
         const v = s[k];
         if (v == null || v === '' || (k === 'query' && EMPTY_QUERY.test(String(v).trim().toLowerCase())))
           out.push(k);
@@ -21386,6 +21400,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         purpose: (meta && meta.purpose) || 'chat',
         convId: meta && meta.convId,
         consume: meta && meta.consume,
+        responseFormat: meta && meta.responseFormat,
         temperature: meta && meta.temperature
       });
       const bytes = JSON.stringify(messages).length;
@@ -21477,6 +21492,47 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         }
         return {type:'final', say: raw.slice(0, 1200)};
       }
+    }
+
+    // When the Engine has already run the tool this question needed, another
+    // tool call is not just unnecessary — it costs a whole extra hosted call,
+    // because the round that asks for it produces no answer. Telling the model
+    // so in prose is advice it ignores: measured on Grok 4.6, a turn with the
+    // figures already attached still spent two calls, one of them re-requesting
+    // the tool it had been handed.
+    //
+    // This is the guarantee instead of the advice. Under this schema the model
+    // can only answer or ask — a tool call is not a shape it can emit. Sent
+    // only to an upstream that advertises jsonSchema (profile S today); the
+    // relay drops it for anyone else and says so in `applied`, and the envelope
+    // parser still runs on every profile.
+    const ANSWER_SCHEMA = {
+      type: 'json_schema',
+      json_schema: {
+        name: 'copilot_answer',
+        strict: true,
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            type: {type: 'string', enum: ['final', 'ask']},
+            say: {type: ['string', 'null']},
+            question: {type: ['string', 'null']}
+          },
+          required: ['type', 'say', 'question']
+        }
+      }
+    };
+    // Answer-only is right when nothing further needs fetching: the intent was
+    // confident and its tool already ran, or a slot is missing and the only
+    // correct move is to ask.
+    function answerOnly(u, prefetched, needSlots){
+      try {
+        if (!aiCapability().jsonSchema) return null;
+        if (needSlots && needSlots.length) return ANSWER_SCHEMA;
+        if (prefetched && u && u.confidence >= 0.85) return ANSWER_SCHEMA;
+      } catch (e) {}
+      return null;
     }
 
     // Split for Grok prompt caching: the first system message must be byte-identical
@@ -21832,7 +21888,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           purpose: 'chat',
           convId: chat.id,
           consume: !billed,
-          temperature: 0.2
+          temperature: 0.2,
+          // Constrain the shape only while a tool call would be pointless. If
+          // the loop is still fetching, the model must stay free to ask for a
+          // tool, so this is recomputed each round rather than set once.
+          responseFormat: answerOnly(u, steps.length > 0, needSlots)
         }, extra || {}));
         billed = true;
         return raw;
@@ -21881,11 +21941,18 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           : '';
         attachQuiet(run(pre),
           'Engine already ran ' + pre.tool + ' for this question (computed, not a guess). ' +
-          'Answer in your own words using these numbers — you do not need another tool.' + closer,
+          'You have everything you need: do NOT call a tool this turn, answer now in your own words. ' +
+          'Reply with {"type":"final","say":"…"}.' + closer,
           pre.args);
       }
       const plan = Engine.planHint ? Engine.planHint(recentAsk(userText)) : {cuts:[], wantsWhatIf:false, wantsAdvice:false};
-      if (pre && pre.tool){ /* prefetched above */ }
+      // Understand already refused to prefetch because a required detail is
+      // missing. The older cascade does not know that and would run the tool on
+      // whatever planHint scraped out of the sentence — which is how "how much
+      // is the current payment" came back naming a merchant the user never
+      // mentioned, the exact thing type:"ask" exists to prevent.
+      if (needSlots.length){ /* ask first */ }
+      else if (pre && pre.tool){ /* prefetched above */ }
       else if (plan.wantsPayment && plan.paymentQuery){
         attachQuiet(run({tool:'payment_monthly', args:{query: plan.paymentQuery}}),
           'Engine already looked up the typical monthly payment (the bill, not a year-average). Use that figure.');
@@ -22016,7 +22083,13 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
             'Reply with {"type":"final","say":"…"}.'});
           continue;
         }
-        let say = (parsed && parsed.say) ? parsed.say : String(raw).slice(0, 1500);
+        // A valid envelope with an empty say is still an answer-shaped reply, so
+        // do NOT fall back to the raw text — that puts {"type":"final","say":
+        // null} on screen as the answer. Measured on Grok under the answer-only
+        // schema. Empty means empty; the grounding fallback below handles it.
+        let say = (parsed && typeof parsed === 'object' && ('say' in parsed || 'question' in parsed))
+          ? String(parsed.say || parsed.question || '').trim()
+          : String(raw).slice(0, 1500);
         // A money answer with no tool behind it is ungrounded — but the fix is
         // to GROUND it, not to bin it. Fetch the Engine's figures, hand them
         // back and let the model answer the question that was actually asked.
