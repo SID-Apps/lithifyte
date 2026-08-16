@@ -1,8 +1,8 @@
 {
-  "version": "3.0.1",
+  "version": "3.0.2",
   "released": "2026-08-16",
-  "notes": "One hosted call per grounded answer.",
+  "notes": "Nothing missing, nothing to ask: one call.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "ef7af3c40158d2f1b522431b006f43293697c29cee2739a7a81e54cf92b4b3a7"
+  "sha256": "ece8e992e87aa0c8a378656f128f1e418ab0f3908a7533ab3d328e8c96e14541"
 }
