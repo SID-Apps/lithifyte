@@ -1,8 +1,8 @@
 {
-  "version": "3.0.2",
-  "released": "2026-08-16",
-  "notes": "Nothing missing, nothing to ask: one call.",
+  "version": "3.1.0",
+  "released": "2026-08-19",
+  "notes": "Ask a shop or a person: last date, last amount, lifetime total. No category needed.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "ece8e992e87aa0c8a378656f128f1e418ab0f3908a7533ab3d328e8c96e14541"
+  "sha256": "359e32f74d42ec157b54b0a016f576b9d5312d55b3da80c0cafd5e12a039ad3e"
 }

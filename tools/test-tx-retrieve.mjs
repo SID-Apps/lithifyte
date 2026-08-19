@@ -76,6 +76,38 @@ T('how-much-at is a retrieve question', () => {
   const h = Engine.txQueryHint('how much did I spend at tesco');
   return h.wantsRows && h.query.indexOf('tesco') >= 0;
 });
+T('how much did I pay is a lookup and pay is not a token', () => {
+  const h = Engine.txQueryHint('how much did I pay tesco');
+  return !!(h.wantsRows && h.allTime && h.query.indexOf('tesco') >= 0 && !/\bpay\b/.test(h.query));
+});
+T('when did I last pay is a lookup', () => {
+  const h = Engine.txQueryHint('when did I last pay John Smith');
+  return !!(h.wantsRows && h.recall && h.allTime && h.query.indexOf('john') >= 0);
+});
+T('search NAME is a lookup', () => {
+  const h = Engine.txQueryHint('search tesco');
+  return !!(h.wantsRows && h.query.indexOf('tesco') >= 0);
+});
+T('payeeSummary last date and lifetime total', () => {
+  if (typeof Engine.payeeSummary !== 'function') return 'payeeSummary missing';
+  const s = Engine.payeeSummary({query:'john smith', rows:[
+    {d:'2025-03-02', m:'JOHN SMITH', c:'Uncategorized', de:160, cr:0, mo:'2025-03'},
+    {d:'2026-01-04', m:'JOHN SMITH', c:'Uncategorized', de:180, cr:0, mo:'2026-01'},
+    {d:'2026-01-05', m:'TESCO', c:'Groceries', de:12, cr:0, mo:'2026-01'}
+  ]});
+  return s.matched === 2 && s.totalOut === 340 && s.last && s.last.date === '2026-01-04' && s.last.amount === 180;
+});
+T('pay token does not rank PAYPAL over JOHN', () => {
+  const got = Engine.txRetrieve({query:'how much did I pay john', rows:[
+    {d:'2026-01-02', m:'JOHN SMITH', c:'Uncategorized', de:20, cr:0, mo:'2026-01'},
+    {d:'2026-01-03', m:'PAYPAL *SOMETHING', c:'Shopping', de:99, cr:0, mo:'2026-01'}
+  ], limit:5});
+  return got.hits.length === 1 && /john/i.test(got.hits[0].m);
+});
+T('where can I find money leaks is not a row lookup', () => {
+  const h = Engine.txQueryHint('where can I find money leaks');
+  return !h.wantsRows;
+});
 T('income query keeps payroll, not tesco', () => {
   const got = Engine.txRetrieve({query:'payroll', rows, income:true, limit:5});
   return got.hits.length === 1 && got.hits[0].cr === 2400;
@@ -133,4 +165,4 @@ if (fails.length){
   for (const f of fails) console.error('  - ' + f);
   process.exit(1);
 }
-console.log('tx-retrieve: ' + '18/18');
+console.log('tx-retrieve: ' + '25/25');

@@ -8,7 +8,7 @@ Lithifyte turns your bank statements into a **full financial neural map** of you
 
 **Try it first:** [the sample household](https://app.lithifyte.com/demo) is a fully loaded sample household — two earners, four accounts, two years of invented transactions — so you can explore everything without uploading a thing. The sample keeps its own separate storage and can never touch data you later add to the real app.
 
-**Co-pilot (Ctrl/⌘+K or 💬):** ask about your money in plain language, open any section, design a **sandbox** budget or goal, then Apply when ready. Optional **Lithifyte AI** (hosted) or your own API key (OpenAI / xAI Grok / Anthropic / local OpenAI-compatible). Figures always come from Lithifyte’s Engine — the model is not allowed to invent euro amounts. Conversations can appear on the money map’s outer knowledge ring.
+**Co-pilot (Ctrl/⌘+K or 💬):** ask about your money in plain language — a shop, a person, a date, a total paid — without needing the category. Open any section, design a **sandbox** budget or goal, then Apply when ready. Optional **Lithifyte AI** (hosted) or your own API key (OpenAI / xAI Grok / Anthropic / local OpenAI-compatible). Figures always come from Lithifyte’s Engine — the model is not allowed to invent euro amounts. Conversations can appear on the money map’s outer knowledge ring.
 
 **New here?** The [Tutorial & Ask guide](https://app.lithifyte.com/tutorial) walks every feature in order of use (name → CSV → goals → budgets → wealth → backup) and includes an **Ask** box backed by a local RAG corpus (`docs/rag/chunks.json`). Optional: point Ask at your own local model for prose answers.
 

@@ -166,7 +166,7 @@ const TOOL_SAYS = {
   save_plan: `You could put aside about ${eur(F.spare)} a month.`,
   budget_notice: `You have ${eur(F.spare)} spare. Rent (${eur(1600)}) is fixed; ${topCat.category} at ${eur(topCat.avg)} is the movable one.`,
   spend_ranked: H.A.cats12.slice(0, 3).map((c) => `${c.category} ${eur(c.avg)}`).join(', ') + ' are the biggest lines.',
-  find_transactions: 'Found 8 matching rows.',
+  find_transactions: 'TESCO STORES — last 2026-06-12 · €42.10 (Groceries). 8 payments · €336.80 total across all imported statements.',
   net_worth: 'Net worth across cash, pots and holdings.',
   pulse: 'Household pulse is 72 out of 100.',
   leaks: 'Supermarket top-ups and card-machine noise are the leak groups.',
@@ -261,7 +261,7 @@ function nanoSim(userText, nudges, state) {
     if (/restructure|in order|budget/.test(n)) return 'propose_budget';
     if (/notice|how am i doing|improve|cut back/.test(n)) return 'budget_notice';
     if (/afford|installment/.test(n)) return 'affordability';
-    if (/show me|list|spent at|transactions/.test(n)) return 'find_transactions';
+    if (/show me|list|spent at|transactions|did i pay|last pay|paid to|search /.test(n)) return 'find_transactions';
     if (/payment|how much is/.test(n)) return 'payment_monthly';
     if (/save|reach/.test(n)) return 'save_plan';
     if (/cut .* by|finished/.test(n)) return 'cashflow_whatif';

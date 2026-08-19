@@ -15,7 +15,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '3.0.2';
+  var APP_VER = '3.1.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -2498,15 +2498,16 @@ So, when you change a stored shape:
   <div class="section" id="sec-search">
     <div class="section-head">
       <h2>Find any transaction</h2>
-      <p>Search by merchant name (e.g. <i>tesco</i>) or by amount (e.g. <i>1250</i>). Respects the date range at the top and shows the corrected category — and the matches <b>light up on the money map</b> while everything else fades.</p>
+      <p>Type a shop, a person, or an amount. You do not need the category. Searches <b>all imported statements</b> by default — last date, last amount, and the total paid are at the top. Matches <b>light up on the money map</b>.</p>
     </div>
         <div class="xl-bar"><button type="button" class="btn small" id="txExportXl">⬇ Export search results CSV</button>
-      <span class="hint">Exports current matches (account scope + date range + query)</span></div>
+      <span class="hint">Exports current matches</span></div>
 <div class="hint num" id="txFound" style="margin:-6px 0 10px; color:var(--ink)"></div>
     <div class="card">
-      <div style="display:flex;gap:8px;align-items:center">
-      <input id="txSearch" class="search-input" placeholder="Merchant name or amount…" aria-label="Search transactions" style="flex:1">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input id="txSearch" class="search-input" placeholder="Name, shop, person, or amount…" aria-label="Search transactions" style="flex:1; min-width:180px">
       <button class="btn small" id="txSearchClear" type="button" title="Clear search">Clear</button>
+      <label class="chk" title="When ticked, only rows in the date range on screen are shown"><input type="checkbox" id="txSearchRange"> this date range only</label>
     </div>
       <div class="filter-row" id="txBulkBar" style="margin:8px 0 4px; display:none; flex-wrap:wrap; gap:8px; align-items:center">
         <span class="filter-label" id="txSelCount">0 selected</span>
@@ -3317,7 +3318,7 @@ rewrite the static advice cards if the picture has changed.</div>
        input ~110px wide once the composer docked into the rail; this gives the
        textarea the full width in both homes and lets it grow as you type. -->
   <div class="cc-pill">
-    <textarea id="ccInput" rows="1" placeholder="How can I help with your finances?" aria-label="Message the co-pilot"></textarea>
+    <textarea id="ccInput" rows="1" placeholder="Name a shop or person…" aria-label="Message the co-pilot"></textarea>
     <div class="cc-tools">
       <button type="button" class="cc-btn" id="ccPlus" title="Attach a file (CSV, Excel, text) for the model or import">＋</button>
       <input type="file" id="ccFile" accept=".csv,.xlsx,.xls,.txt,.md,.json,.pdf,text/*,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" hidden multiple>
@@ -5022,7 +5023,12 @@ rewrite the static advice cards if the picture has changed.</div>
       about:1, into:1, than:1, over:1, under:1, just:1, please:1, can:1, you:1, give:1, tell:1,
       where:1, when:1, who:1, why:1, are:1, is:1, of:1, to:1, in:1, at:1, by:1, or:1, if:1,
       find:1, search:1, look:1, see:1, get:1, got:1, had:1, been:1, there:1, their:1, our:1,
-      some:1, these:1, those:1, they:1, them:1, your:1, we:1, it:1, its:1, do:1, does:1},
+      some:1, these:1, those:1, they:1, them:1, your:1, we:1, it:1, its:1, do:1, does:1,
+      pay:1, paid:1, paying:1, payment:1, payments:1, send:1, sent:1, sending:1, gave:1, given:1,
+      transfer:1, transferred:1, transferring:1, total:1, sum:1, times:1, time:1, first:1, latest:1,
+      recent:1, date:1, amount:1, amounts:1, up:1, lookup:1, locate:1, recall:1, remember:1,
+      specific:1, recipient:1, recipients:1, payee:1, someone:1, somebody:1, name:1, named:1,
+      across:1, history:1, imported:1, statements:1, statement:1},
     TX_MONTH: {january:'01',jan:'01',february:'02',feb:'02',march:'03',mar:'03',april:'04',apr:'04',
       may:'05',june:'06',jun:'06',july:'07',jul:'07',august:'08',aug:'08',september:'09',sept:'09',sep:'09',
       october:'10',oct:'10',november:'11',nov:'11',december:'12',dec:'12'},
@@ -5093,12 +5099,30 @@ rewrite the static advice cards if the picture has changed.</div>
         if (v >= 1) min = v;
       }
       const income = /\b(income|incoming|paid in|salary|payroll|received|wages?)\b/.test(n);
-      const query = Engine.txTokens(raw).join(' ');
       const explicit = /\b(show me|list(?: them)?|which ones|what did i|transactions?)\b/i.test(raw);
       const spendAsk = /\b(spend(?:ing)? (?:on|at|with)|spent (?:on|at|with)|paid (?:to|at)|bought (?:at|from)|how much .{0,32}(?:at|on|to|with))\b/i.test(raw);
-      return {query, month, min, income, wantsRows: explicit || (!!query && spendAsk)};
+      // Recall: date / amount / lifetime total of a named payee. The user does
+      // not know the category — they know a name. Do not treat a bare "find"
+      // mid-sentence as this ("where can I find money leaks" is not a lookup).
+      const recall = /\bwhen (?:did|was) i(?: last)? (?:pay|paid|send|sent|transfer)/i.test(raw)
+        || /\blast (?:time i (?:paid|sent|transferred)|payment (?:to|for|at)|paid|sent to)\b/i.test(raw)
+        || /\bhow much (?:did|have|has) (?:i|we) (?:pay|paid|send|sent|give|given|transfer)/i.test(raw)
+        || /\b(?:total|sum) (?:of )?(?:all )?(?:the )?(?:payments?|amounts?) (?:to|for|i (?:paid|sent)|paid to)\b/i.test(raw)
+        || /\b(?:paid|sent|gave|transferred) to\b/i.test(raw)
+        || /^(?:search|find|look up|lookup|look for)\b/i.test(n)
+        || /\b(?:search for|look up|look for)\b/i.test(raw)
+        || /\bhow much did i pay\b/i.test(raw)
+        || /\b(?:payment|transaction) to\b/i.test(raw);
+      let query = '';
+      const named = n.match(/\b(?:to|at|from|with)\s+([a-z0-9][a-z0-9 &'./-]{1,48}?)(?:\s+(?:in|on|last|this|over|under|each|every|a month|monthly|across|during)\b|[?.!,]|$)/);
+      if (named) query = Engine.txTokens(named[1]).join(' ');
+      if (!query) query = Engine.txTokens(raw).join(' ');
+      const scoped = !!month || /\b(this month|last month)\b/.test(n);
+      const wantsRows = explicit || (!!query && (spendAsk || recall));
+      const allTime = !scoped && (recall || (wantsRows && !!query));
+      return {query, month, min, income, wantsRows, allTime: !!allTime, recall: !!recall};
     },
-    txRetrieve({query, rows, month, category, min, income, limit}){
+    txRetrieve({query, rows, month, category, min, income, any, limit}){
       const tokens = Engine.txTokens(query);
       const expanded = [];
       for (const t of tokens){
@@ -5106,8 +5130,9 @@ rewrite the static advice cards if the picture has changed.</div>
         if (Engine.TX_SYN[t] && Engine.TX_SYN[t] !== t) expanded.push(Engine.TX_SYN[t]);
       }
       const catL = category ? String(category).toLowerCase() : '';
-      const cap = Math.max(1, Math.min(40, +limit || 15));
+      const cap = Math.max(1, Math.min(400, +limit || 15));
       const wantIn = !!income;
+      const wantAny = !!any;
       const scored = [];
       for (const r of (rows || [])){
         const merch = String(r.merchant || r.m || '').toLowerCase();
@@ -5115,11 +5140,13 @@ rewrite the static advice cards if the picture has changed.</div>
         const note = String(r.note || r.n || '').toLowerCase();
         const mo = r.month || r.mo || (r.date || r.d || '').slice(0, 7);
         const de = +(r.de || 0), cr = +(r.cr || 0);
-        const amt = wantIn ? cr : de;
+        const amt = wantAny ? (de > 0 ? de : cr) : (wantIn ? cr : de);
         if (month && mo !== month) continue;
         if (catL && cat !== catL && cat.indexOf(catL) < 0 && catL.indexOf(cat) < 0) continue;
-        if (wantIn){ if (!(cr > 0)) continue; }
-        else { if (!(de > 0)) continue; }
+        if (!wantAny){
+          if (wantIn){ if (!(cr > 0)) continue; }
+          else { if (!(de > 0)) continue; }
+        }
         if (min != null && !(amt >= min)) continue;
         let score = 0;
         if (!tokens.length) score = amt;
@@ -5191,6 +5218,57 @@ rewrite the static advice cards if the picture has changed.</div>
         modeAmount,
         modeCount,
         sample: got.hits[0] ? (got.hits[0].merchant || got.hits[0].m || '') : ''
+      };
+    },
+    // Lifetime lookup of a named payee. Date of last payment, last amount,
+    // count, and the sum — the answers a banking-app search gives, without
+    // needing the category. Direction is both ways so a person who sometimes
+    // sends and sometimes receives still matches.
+    payeeSummary({query, rows, month, category, min, limit}){
+      const tokens = Engine.txTokens(query);
+      const empty = {tokens, matched:0, hits:[], totalOut:0, totalIn:0, nOut:0, nIn:0, n:0,
+                     last:null, first:null, typical:0, categories:[], sample:''};
+      if (!tokens.length) return empty;
+      const got = Engine.txRetrieve({query, rows, month, category, min, any:true, limit: Math.max(200, +limit || 400)});
+      const hits = got.hits || [];
+      if (!hits.length) return empty;
+      let totalOut = 0, totalIn = 0, nOut = 0, nIn = 0;
+      const cats = {};
+      const byDate = hits.slice().sort((a, b) => String(a.d || a.date || '') < String(b.d || b.date || '') ? -1 : 1);
+      const amtOf = (r) => {
+        const de = +(r.de || 0), cr = +(r.cr || 0);
+        return de > 0 ? de : cr;
+      };
+      for (const r of hits){
+        const de = +(r.de || 0), cr = +(r.cr || 0);
+        if (de > 0){ totalOut += de; nOut++; }
+        if (cr > 0){ totalIn += cr; nIn++; }
+        const c = String(r.category || r.c || r.ec || '').trim();
+        if (c) cats[c] = (cats[c] || 0) + de + cr;
+      }
+      const lastR = byDate[byDate.length - 1] || null;
+      const firstR = byDate[0] || null;
+      const rowOf = (r) => r ? {
+        date: r.d || r.date || '',
+        merchant: r.merchant || r.m || '',
+        amount: +amtOf(r).toFixed(2),
+        category: r.category || r.c || '',
+        dir: +(r.de || 0) > 0 ? 'out' : 'in'
+      } : null;
+      const spendRows = hits.filter(r => +(r.de || 0) > 0);
+      const series = spendRows.length ? Engine.paySeries({query, rows: spendRows}) : {typical:0};
+      return {
+        tokens: got.tokens,
+        matched: got.matched,
+        hits,
+        totalOut: +totalOut.toFixed(2),
+        totalIn: +totalIn.toFixed(2),
+        nOut, nIn, n: hits.length,
+        last: rowOf(lastR),
+        first: rowOf(firstR),
+        typical: series.typical || 0,
+        categories: Object.keys(cats).sort((a, b) => cats[b] - cats[a]),
+        sample: lastR ? (lastR.merchant || lastR.m || '') : ''
       };
     },
     // Natural-language plan: "cut shoppy by 200, PTSB finished".
@@ -9389,19 +9467,9 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
     exportSearch(){
       const qRaw = (document.getElementById('txSearch') && document.getElementById('txSearch').value || '').trim();
       if (!qRaw){ alert('Run a search first, then export.'); return; }
-      const q = qRaw.toUpperCase();
-      const qNum = parseFloat(qRaw.replace(',', '.').replace('€',''));
-      const numeric = !isNaN(qNum) && /^[€]?\s*[\d.,]+$/.test(qRaw);
-      const hits = [];
-      for (const t of TX){
-        if (!RANGE.has(t.mo)) continue;
-        if (viewAcct && t.acct !== viewAcct) continue;
-        const match = numeric
-          ? (Math.abs(t.de - qNum) < 0.005 || Math.abs(t.cr - qNum) < 0.005)
-          : (t.m.toUpperCase().includes(q) || (typeof canonOf === 'function' && canonOf(t.m).toUpperCase().includes(q)));
-        if (match) hits.push(Object.assign({}, t, {ec: typeof effCatFull === 'function' ? effCatFull(t) : t.c}));
-      }
-      hits.sort((a,b) => b.d < a.d ? -1 : 1);
+      const shown = (typeof txShown !== 'undefined' && txShown.length) ? txShown : [];
+      const hits = (shown.length ? shown : []).map(t => Object.assign({}, t, {ec: typeof effCatFull === 'function' ? effCatFull(t) : t.c}));
+      if (!hits.length){ alert('No matches to export.'); return; }
       this.exportTransactions(hits, 'search');
     },
     exportForecast(){
@@ -9598,18 +9666,39 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
     const q = qRaw.toUpperCase();
     const qNum = parseFloat(qRaw.replace(',', '.').replace('€',''));
     const numeric = !isNaN(qNum) && /^[€]?\s*[\d.,]+$/.test(qRaw);
+    const rangeOnly = !!(document.getElementById('txSearchRange') && document.getElementById('txSearchRange').checked);
     let hits = [];
-    for (const t of TX){
-      if (!RANGE.has(t.mo)) continue;
-      const match = numeric
-        ? (Math.abs(t.de - qNum) < 0.005 || Math.abs(t.cr - qNum) < 0.005 ||
-           (Math.round(t.de) === Math.round(qNum) && t.de > 0) || (Math.round(t.cr) === Math.round(qNum) && t.cr > 0))
-        : (t.m.toUpperCase().includes(q) || canonOf(t.m).toUpperCase().includes(q));
-      if (match) hits.push(t);
+    const inScope = (t) => rangeOnly ? RANGE.has(t.mo) : true;
+    if (numeric){
+      for (const t of TX){
+        if (!inScope(t)) continue;
+        if (Math.abs(t.de - qNum) < 0.005 || Math.abs(t.cr - qNum) < 0.005 ||
+            (Math.round(t.de) === Math.round(qNum) && t.de > 0) || (Math.round(t.cr) === Math.round(qNum) && t.cr > 0))
+          hits.push(t);
+      }
+    } else {
+      const tokens = Engine.txTokens ? Engine.txTokens(qRaw) : [];
+      if (tokens.length && Engine.txRetrieve){
+        const pool = [];
+        for (const t of TX){
+          if (!inScope(t)) continue;
+          pool.push({d:t.d, m:t.m, merchant:canonOf(t.m)||t.m, c:effCatFull(t),
+                     category:effCatFull(t), de:t.de, cr:t.cr, mo:t.mo, note:t.note||'', _tx:t});
+        }
+        hits = Engine.txRetrieve({query:qRaw, rows:pool, any:true, limit:400}).hits.map(h => h._tx || h);
+      }
+      if (!hits.length){
+        for (const t of TX){
+          if (!inScope(t)) continue;
+          const hay = (t.m + ' ' + canonOf(t.m) + ' ' + (t.note || '') + ' ' + effCatFull(t)).toUpperCase();
+          if (hay.indexOf(q) >= 0) hits.push(t);
+        }
+      }
     }
     hits.sort((a,b) => b.d < a.d ? -1 : 1);
     const total = hits.length;
     const totalOut = hits.reduce((s,t)=>s+t.de,0), totalIn = hits.reduce((s,t)=>s+t.cr,0);
+    const lastHit = hits[0];
     hits = hits.slice(0, 100);
     txShown = hits.slice();
     tb.innerHTML = hits.map(t=>{
@@ -9637,7 +9726,12 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
         </td>
       </tr>`;
     }).join('') || '<tr><td colspan="6" style="color:var(--muted)">No transactions match in the selected date range.</td></tr>';
-    found.textContent = total ? `${total.toLocaleString(MONEY.locale)} matches${total > 100 ? ' (showing first 100)' : ''} · out ${eur(totalOut)} · in ${eur(totalIn)} — lit up on the money map` : '';
+    found.textContent = total
+      ? `${total.toLocaleString(MONEY.locale)} matches${total > 100 ? ' (showing first 100)' : ''}`
+        + (lastHit ? ` · last ${lastHit.d} ${lastHit.m} ${lastHit.de > 0 ? '−' + eur(lastHit.de) : '+' + eur(lastHit.cr)}` : '')
+        + ` · paid out ${eur(totalOut)}` + (totalIn ? ` · in ${eur(totalIn)}` : '')
+        + (rangeOnly ? ' — ' + (typeof rangeLabel === 'function' ? rangeLabel() : 'this range') : ' — all imported history')
+      : 'No matches' + (rangeOnly ? ' in the date range on screen — try unchecking “this date range only”.' : ' in imported statements.');
     tb.querySelectorAll('.tx-pick').forEach(cb => cb.addEventListener('change', ()=>{
       if (cb.checked) txSel.add(cb.dataset.key); else txSel.delete(cb.dataset.key);
       renderTxBulkBar();
@@ -9681,6 +9775,8 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
   }
   document.getElementById('txSearch').addEventListener('input', renderTxSearch);
   (function(){
+    const rng = document.getElementById('txSearchRange');
+    if (rng) rng.addEventListener('change', renderTxSearch);
     const clr = document.getElementById('txSearchClear');
     if (clr) clr.addEventListener('click', ()=>{
       const inp = document.getElementById('txSearch');
@@ -9690,6 +9786,17 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
       try { if (window.__ddMapFilter && window.__ddMapFilter.clear) window.__ddMapFilter.clear(); } catch (e) {}
     });
   })();
+  window.__ddOpenSearch = function(q, opts){
+    opts = opts || {};
+    const inp = document.getElementById('txSearch');
+    if (inp && q != null) inp.value = String(q);
+    const rng = document.getElementById('txSearchRange');
+    if (rng) rng.checked = opts.allTime === false;
+    try { goSection('search', 'sec-search'); } catch (e) {}
+    try { renderTxSearch(); } catch (e) {}
+    if (inp) setTimeout(() => { try { inp.focus(); inp.select(); } catch (e) {} }, 60);
+    return true;
+  };
 
   // ── bulk assign (multi-select → one category) ──
   function onTxCatChanged(){ save(LS.txcat, txCatStore); renderAll(); }
@@ -13884,6 +13991,41 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const h = E.txQueryHint('how much did I spend at tesco');
       return (h.wantsRows && h.query.indexOf('tesco') >= 0) || JSON.stringify(h);
     });
+    T('retrieve: how much did I pay X is a lookup, and pay is not a merchant token', () => {
+      const h = E.txQueryHint('how much did I pay tesco');
+      if (!h.wantsRows || h.query.indexOf('tesco') < 0) return JSON.stringify(h);
+      if (/\bpay\b/.test(h.query)) return 'pay leaked into query: ' + h.query;
+      return h.allTime === true || 'not all-time: ' + JSON.stringify(h);
+    });
+    T('retrieve: when did I last pay is a lookup', () => {
+      const h = E.txQueryHint('when did I last pay John Smith');
+      return (h.wantsRows && h.recall && h.query.indexOf('john') >= 0 && h.allTime) || JSON.stringify(h);
+    });
+    T('retrieve: search NAME is a lookup, not a command dump', () => {
+      const h = E.txQueryHint('search tesco');
+      return (h.wantsRows && h.query.indexOf('tesco') >= 0) || JSON.stringify(h);
+    });
+    T('retrieve: payee summary answers last date and lifetime total', () => {
+      const rows = [
+        {d:'2025-03-02', m:'JOHN SMITH', c:'Uncategorized', de:160, cr:0, mo:'2025-03'},
+        {d:'2026-01-04', m:'JOHN SMITH', c:'Uncategorized', de:180, cr:0, mo:'2026-01'},
+        {d:'2026-01-05', m:'TESCO', c:'Groceries', de:12, cr:0, mo:'2026-01'}
+      ];
+      const s = E.payeeSummary({query:'john smith', rows});
+      if (s.matched !== 2) return 'matched ' + s.matched;
+      if (s.totalOut !== 340) return 'total ' + s.totalOut;
+      if (!s.last || s.last.date !== '2026-01-04' || s.last.amount !== 180) return JSON.stringify(s.last);
+      if (!s.first || s.last.date === s.first.date) return 'first/last';
+      return true;
+    });
+    T('retrieve: a pay token does not rank PAYPAL over JOHN', () => {
+      const rows = [
+        {d:'2026-01-02', m:'JOHN SMITH', c:'Uncategorized', de:20, cr:0, mo:'2026-01'},
+        {d:'2026-01-03', m:'PAYPAL *SOMETHING', c:'Shopping', de:99, cr:0, mo:'2026-01'}
+      ];
+      const got = E.txRetrieve({query:'how much did I pay john', rows, limit:5});
+      return (got.hits.length === 1 && /john/i.test(got.hits[0].m)) || JSON.stringify(got.hits);
+    });
     T('plan: a bundle of cuts and an ended payment parse', () => {
       const h = E.planHint('if i cut back on shoppy by 200 euros, and reduce my groceries by 100, car payments PTSB are finished, and I reduce bills by around 30 euros, how does this effect my monthly outcome');
       if (!h.wantsWhatIf) return 'not flagged as what-if: ' + JSON.stringify(h);
@@ -16242,6 +16384,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         ['can i reach 5000 by December without the loan payment', 'save_plan'],
         ['how much is the Avant Money payment', 'standing'],
         ['show me what I spent at Tesco', 'rows'],
+        ['how much did I pay Tesco', 'rows'],
+        ['when did I last pay Tesco', 'rows'],
+        ['search Tesco', 'rows'],
+        ['Tesco', 'rows'],
         ['design a budget from my last 12 months', 'budget_draft'],
         ['open budget', 'nav'],
         ['show cashflow', 'nav']
@@ -16621,6 +16767,17 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (Companion.unbackedFigures(prose, say, '').length !== 1) return 'the prose-only case should still flag it';
       return Companion.unbackedFigures(withData, say, '').length === 0
              || 'the exact figure was called invented even with the data present';
+    });
+    T('companion: find_transactions named lookup reports last date and total', () => {
+      if (!TX.length) return true;
+      const r = Companion.run({tool:'find_transactions', args:{query:'tesco', limit:5}});
+      if (!r.ok) return 'tool failed: ' + r.say;
+      if (!(r.data && r.data.matched > 0)) return 'no tesco rows: ' + r.say;
+      if (!(r.data.last && r.data.last.date)) return 'no last payment: ' + JSON.stringify(r.data.last);
+      if (!(r.data.total > 0)) return 'no total: ' + r.data.total;
+      if (!/last /i.test(r.say) || !/total/i.test(r.say)) return 'say missing last/total: ' + r.say;
+      if (!r.data.allTime) return 'named lookup stayed inside the on-screen range';
+      return true;
     });
     T('companion: find_transactions reports spending, not a nonsense net total', () => {
       if (!TX.length) return true;
@@ -19792,6 +19949,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   }
   window.__ddMinimise = Engine.minimise;
   window.__ddTxRetrieve = (q, rows, extra) => Engine.txRetrieve(Object.assign({query: q, rows: rows || []}, extra || {}));
+  window.__ddPayeeSummary = (q, rows, extra) => Engine.payeeSummary(Object.assign({query: q, rows: rows || []}, extra || {}));
   window.__ddPlanHint = (text) => Engine.planHint(text);
   window.__ddAiCapability = () => aiCapability();
   window.__ddDisclose = () => (discloseStore.items || []).slice();
@@ -19824,6 +19982,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       {k:'invest', sec:'holdCard', labels:['invest','investments','holdings']},
       {k:'debts', sec:'debtCard', labels:['debts','debt','loans']},
       {k:'alerts', sec:'sec-alerts', labels:['alerts','alert']},
+      {k:'search', sec:'sec-search', labels:['search transactions','transaction search','find a transaction']},
       {k:'audit', sec:'sec-audit', labels:['audit','transactions audit']},
       {k:'rules', sec:'sec-rules', labels:['rules','categorisation rules','auto categorisation']},
       {k:'people', sec:'sec-people', labels:['people','accounts','household','opening balance']},
@@ -19917,7 +20076,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         {id:'save_plan', title:'Save plan', desc:'How much you can put aside now, and whether a target-by-date works if a payment ends', readOnly:true},
         {id:'budget_notice', title:'Budget notice', desc:'What stands out: spare, tightness, movable vs fixed lines', readOnly:true},
         {id:'spend_ranked', title:'Biggest spending', desc:'Categories ranked by monthly average — use for "where can I cut back"', readOnly:true},
-        {id:'find_transactions', title:'Find transactions', desc:'The actual rows — date, merchant, amount. Use whenever the user says "show me", "which ones", "list them"', readOnly:true},
+        {id:'find_transactions', title:'Find transactions', desc:'Look up a shop, a person, or a payment by name. Returns last date, last amount, count and total paid — does not need the category. Use for "how much did I pay X", "when did I last pay X", "search X", or a name on its own.', readOnly:true},
         {id:'net_worth', title:'Net worth', desc:'Engine.netWorth — cash, pots, holdings, assets, liabilities', readOnly:true},
         {id:'pulse', title:'Financial pulse', desc:'Engine.healthScore — 0–100 household health against absolute benchmarks', readOnly:true},
         {id:'leaks', title:'Leaks', desc:'Recurring leak groups (supermarkets, dining, Amazon…) with monthly averages', readOnly:true},
@@ -19955,7 +20114,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
               t.id === 'save_plan' ? '{target?: number, by?: "YYYY-MM", months?: number, end?: string[]}' :
               t.id === 'budget_notice' ? '{}' :
               t.id === 'spend_ranked' ? '{limit?: number}' :
-              t.id === 'find_transactions' ? '{category?: string, merchant?: string, query?: string, month?: "YYYY-MM", min?: number, income?: boolean, limit?: number}' :
+              t.id === 'find_transactions' ? '{category?: string, merchant?: string, query?: string, month?: "YYYY-MM", min?: number, income?: boolean, allTime?: boolean, limit?: number}' :
               t.id === 'propose_rules' ? '{limit?: number}' :
               t.id === 'panel_state' ? '{panel: "cashflow"|"budget"|"goals"|"forecast"|"pulse"|"net_worth"|"leaks"|"notes"|"rules"|"categories"|"people"|"alerts"}' :
               t.id === 'set_budget_line' ? '{category: string, amount: number}' :
@@ -20113,6 +20272,15 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // Payment / save / what-if BEFORE category. "current PTSB payment"
       // used to match Rent because "current" contains "rent".
       const plan = Engine.planHint ? Engine.planHint(q) : {cuts:[], wantsWhatIf:false, wantsAdvice:false};
+      const txHint = Engine.txQueryHint ? Engine.txQueryHint(q) : {wantsRows:false};
+      if (txHint.wantsRows && txHint.query){
+        return {tool:'find_transactions', args:{query: txHint.query, month: txHint.month, min: txHint.min, income: txHint.income, allTime: txHint.allTime}, score:0.9};
+      }
+      if (/^(search|find|look up|lookup|look for)\b/.test(n)){
+        const rest = n.replace(/^(search|find|look up|lookup|look for)\s+(for\s+)?/, '');
+        if (rest && rest.length >= 2 && !findSection(rest))
+          return {tool:'find_transactions', args:{query: rest, allTime:true}, score:0.9};
+      }
       if (plan.wantsPayment){
         let pq = plan.paymentQuery;
         if (!pq){
@@ -20176,6 +20344,13 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const cat2 = findCategory(n);
       if (cat2 && n.includes(cat2.toLowerCase()))
         return {tool:'cat_monthly', args:{category:cat2, rangePreset:findRangePreset(n), month:findMonth(n)}, score:0.65};
+      // A shop or a person, typed on its own, is a transaction lookup. They
+      // do not know the category — that is the whole point of Search.
+      if (n.split(/\s+/).length <= 4 && n.length >= 3 && !sec && !cat2 && !onlyRange){
+        const q2 = Engine.txTokens ? Engine.txTokens(q).join(' ') : n;
+        if (q2 && q2.length >= 3)
+          return {tool:'find_transactions', args:{query: q2, allTime:true}, score:0.86};
+      }
       return null;
     }
     // ── Understand ────────────────────────────────────────────────────────
@@ -20214,7 +20389,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       advice_open: () => ({tool:'budget_notice', args:{}}),
       whatif:      (s) => (s.cuts && s.cuts.length ? {tool:'cashflow_whatif', args:{cuts: s.cuts}} : null),
       save_plan:   (s) => ({tool:'save_plan', args:{target: s.target, by: s.by, months: s.months, cuts: s.cuts}}),
-      rows:        (s) => ({tool:'find_transactions', args:{query: s.query, month: s.month, min: s.min, income: s.income, limit: 12}}),
+      rows:        (s) => ({tool:'find_transactions', args:{query: s.query, month: s.month, min: s.min, income: s.income, allTime: !s.month && !!s.query, limit: 12}}),
       cashflow:    () => ({tool:'cashflow_summary', args:{}}),
       balances:    () => ({tool:'balances', args:{}}),
       outlook:     () => ({tool:'summary_outlook', args:{}}),
@@ -20291,6 +20466,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         query: plan.paymentQuery || rows.query || null,
         min: rows.min || null,
         income: !!rows.income,
+        allTime: !!(rows.allTime || (rows.query && !rows.month)),
         amount: amtM ? Math.round(parseFloat(String(amtM[1]).replace(/,/g, ''))) : null,
         cuts: plan.cuts || [],
         target: plan.target || null,
@@ -20300,6 +20476,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
 
       if (isSmallTalk(raw)) return out('greet', 1);
       if (/^(help|\?|commands|what can you do|examples)$/.test(n)) return out('help', 1);
+      if (/^(search|find transactions)$/.test(n))
+        return out('nav', 0.9, 'hint', {tool:'nav', args:{k:'search', sec:'sec-search', label:'Search'}});
 
       // "show cashflow" / "open Budget" is navigation. A readout without a
       // show/open verb ("balances", "next month outlook") still goes to the writer.
@@ -20317,6 +20495,15 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         return out('afford', slots.amount ? 0.9 : 0.75);
       if (plan.wantsSavePlan) return out('save_plan', 0.93);
       if (plan.wantsWhatIf && slots.cuts.length) return out('whatif', 0.92);
+      // Named-payee recall beats a standing-order lookup. "How much have I
+      // paid to X" is a lifetime total; "how much is the X payment" is the bill.
+      const searchVerb = /^(search|find|look up|lookup|look for)\b/.test(n)
+        || /\b(search for|look up|look for)\b/.test(n);
+      if (rows.recall && rows.query) return out('rows', 0.92, 'hint', {tool:'find_transactions', args:{query: rows.query, month: rows.month, min: rows.min, income: rows.income, allTime: rows.allTime !== false && !rows.month}});
+      if (searchVerb && slots.query){
+        const rest = n.replace(/^(search|find|look up|lookup|look for)\s+(for\s+)?/, '');
+        if (!findSection(rest)) return out('rows', 0.9, 'hint', {tool:'find_transactions', args:{query: slots.query, month: slots.month, allTime: true}});
+      }
       // "How much is the X payment" is a standing order however it is phrased.
       if (plan.wantsPayment && slots.query) return out('standing', 0.94);
 
@@ -20354,10 +20541,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // Groceries last month" wants the figure. When a category is named and
       // nobody asked to see anything, the total is the answer.
       const listVerb = /\b(show me|list|which ones|what are the|see the|display|each of)\b/.test(n);
-      if (rows.wantsRows && (listVerb || !slots.category)) return out('rows', 0.88);
+      const rowArgs = {query: slots.query, month: slots.month, min: slots.min, income: slots.income, allTime: slots.allTime !== false && !slots.month};
+      if (rows.wantsRows && (listVerb || !slots.category)) return out('rows', 0.88, 'hint', {tool:'find_transactions', args: rowArgs});
       if (slots.category && /\b(what did i spend|how much did i spend|how much on|spend on|spent on|how has|how have|how is my|how are my)\b/.test(n))
         return out('category', 0.85);
-      if (rows.wantsRows) return out('rows', 0.88);
+      if (rows.wantsRows) return out('rows', 0.88, 'hint', {tool:'find_transactions', args: rowArgs});
 
       // The class that used to fall through everything.
       if (ADVICE_RE.test(raw)) return out('advice_open', 0.85);
@@ -20369,6 +20557,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // A follow-up ("and last month?") carries the previous intent.
       if (prior && prior.intent && prior.intent !== 'unknown' && n.split(/\s+/).length <= 6)
         return out(prior.intent, 0.5, 'hint');
+
+      // A shop or a person, typed on its own. They do not know the category —
+      // that is why they asked the co-pilot instead of browsing Cashflow.
+      if (n.split(/\s+/).length <= 4 && slots.query && !findSection(n) && !findCategory(n) && !findRangePreset(n))
+        return out('rows', 0.86, 'hint', {tool:'find_transactions', args:{query: slots.query, allTime: true}});
 
       return out('unknown', 0.2);
     }
@@ -20413,7 +20606,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     };
     // A payment query that names nothing. planHint will hand back "current"
     // from "how much is the current payment".
-    const EMPTY_QUERY = /^(current|this|that|the|my|our|monthly|payment|bill|it|one|everything|anything|all|stuff|things)$/;
+    const EMPTY_QUERY = /^(current|this|that|the|my|our|monthly|payment|bill|it|one|everything|anything|all|stuff|things|specific|recipient|payee|someone|somebody|name|named)$/;
     function missingSlots(intent){
       const need = REQUIRED_SLOTS[intent && intent.intent] || [];
       const s = (intent && intent.slots) || {};
@@ -20438,7 +20631,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     // The same missing slot reads differently depending on what was asked.
     function askFor(slot, intent){
       if (slot === 'query' && intent === 'rows')
-        return 'What should I look for — a shop, a category, or a month?';
+        return 'What name should I look up — a shop, a person, or a payment reference?';
       return ASK_FOR[slot] || 'Which one do you mean?';
     }
     function prefetchFor(intent){
@@ -20522,6 +20715,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       }
       for (const a of actions){
         if (a.type === 'nav') goSection(a.k, a.sec);
+        if (a.type === 'search'){
+          try {
+            if (window.__ddOpenSearch) window.__ddOpenSearch(a.query || '', {allTime: a.allTime !== false});
+            else goSection('search', 'sec-search');
+          } catch (e) {}
+        }
         if (a.type === 'cat' && a.name){
           catSel = a.name; catMoSel = a.month || null; catView = 'months';
           try { renderCats(); renderCatDetail(); } catch (e) {}
@@ -20663,6 +20862,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           '• show cashflow / categories / budget / forecast / goals',
           '• last 12 months · balances · next month outlook',
           '• how has <category> done · show me the transactions',
+          '• how much did I pay Tesco · when did I last pay John · search a name',
           '• net worth · pulse · leaks',
           '• can I afford €X a month · where can I cut back',
           '• if I cut shopping by €200 and PTSB is finished…',
@@ -20928,37 +21128,80 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         const min = a.min != null ? +a.min : null;
         const limit = Math.max(1, Math.min(40, +a.limit || 15));
         const wantIn = a.income === true || a.direction === 'in';
+        // A named lookup is a banking-app search: all imported history, both
+        // directions, no category required. An unnamed "show me the transactions"
+        // stays in the range on screen so we never dump the ledger.
+        const allTime = !mo && !!q && a.allTime !== false;
         const pool = [];
         for (const tx of TX){
-          if (!RANGE.has(tx.mo)) continue;
+          if (!allTime && !RANGE.has(tx.mo)) continue;
           if (tx.ec === INT_CAT) continue;
           pool.push({d: tx.d, m: tx.m, merchant: canonOf(tx.m) || tx.m, c: effCatFull(tx),
-                     category: effCatFull(tx), de: tx.de, cr: tx.cr, mo: tx.mo, _tx: tx});
+                     category: effCatFull(tx), de: tx.de, cr: tx.cr, mo: tx.mo,
+                     note: tx.note || '', _tx: tx});
         }
-        const got = Engine.txRetrieve({query: q, rows: pool, month: mo, category: cat, min, income: wantIn, limit: 80});
-        let hits = got.hits.map(h => h._tx || h);
+        const sum = q && Engine.payeeSummary ? Engine.payeeSummary({query: q, rows: pool, month: mo, category: cat, min}) : null;
+        let hits = [];
+        let matched = 0;
+        if (sum && sum.matched){
+          hits = sum.hits.map(h => h._tx || h);
+          if (wantIn) hits = hits.filter(x => x.cr > 0);
+          else if (a.income === false || a.direction === 'out') hits = hits.filter(x => x.de > 0);
+          matched = hits.length;
+        } else {
+          const got = Engine.txRetrieve({query: q, rows: pool, month: mo, category: cat, min, income: wantIn, any: !q && false, limit: 80});
+          hits = got.hits.map(h => h._tx || h);
+          matched = got.matched;
+        }
+        const scope = allTime ? 'across all imported statements' : ('in ' + rangeLabel());
         if (!hits.length)
-          return {ok:true, tool:t, say:'No transactions match that in ' + rangeLabel() + '.', provenance:'Engine · no matches',
-                  data:{rows:[], total:0}, actions:[], suggestions:suggestions(), links:[]};
-        const amtOf = x => wantIn ? x.cr : x.de;
-        // Keep retrieve ranking (token score, then amount). Re-sorting by
-        // amount alone promoted a weak high-value hit over a strong merchant match.
-        const total = hits.reduce((s, x) => s + amtOf(x), 0);
-        const matched = got.matched;
-        const rows = hits.slice(0, limit).map(x => ({
+          return {ok:true, tool:t, say:'No transactions match' + (q ? ' “' + q + '”' : ' that') + ' ' + scope + '. Try another name, or a few letters of it.',
+                  provenance:'Engine · no matches', data:{rows:[], total:0, matched:0, last:null},
+                  actions: q ? [{type:'search', query:q, allTime:allTime}] : [],
+                  suggestions:suggestions(), links:[]};
+        const amtOf = x => wantIn ? x.cr : (x.de > 0 ? x.de : x.cr);
+        const totalOut = (sum && sum.totalOut != null) ? sum.totalOut : hits.reduce((s, x) => s + (x.de || 0), 0);
+        const totalIn = (sum && sum.totalIn != null) ? sum.totalIn : hits.reduce((s, x) => s + (x.cr || 0), 0);
+        const total = wantIn ? totalIn : totalOut;
+        // Named lookup: newest first (the "when did I pay" answer). Unnamed
+        // dump keeps retrieve ranking (amount) so the existing unfiltered
+        // self-test still holds.
+        const ordered = q
+          ? hits.slice().sort((a, b) => String(b.d) < String(a.d) ? -1 : 1)
+          : hits;
+        const rows = ordered.slice(0, limit).map(x => ({
           date: x.d, merchant: canonOf(x.m) || x.m, category: effCatFull(x),
-          amount: +( amtOf(x).toFixed(2) )
+          amount: +(amtOf(x).toFixed(2))
         }));
-        const say = matched + (wantIn ? ' incoming' : ' spending') + ' transaction' + (matched === 1 ? '' : 's')
-          + (cat ? ' in ' + cat : '') + (q ? ' matching “' + (a.merchant || a.query) + '”' : '')
-          + (mo ? ' in ' + fmtMoLbl(mo) : '')
-          + ' · ' + eur(total) + ' total, ' + rangeLabel()
-          + (!cat && !q && !mo ? ' (everything — narrow it with a category, merchant or month)' : '') + ':\n'
-          + rows.map(r => '• ' + r.date + ' · ' + r.merchant + ' — ' + eur(r.amount) + (cat ? '' : ' (' + r.category + ')')).join('\n')
-          + (matched > rows.length ? '\n• …and ' + (matched - rows.length) + ' more' : '');
-        return {ok:true, tool:t, say, provenance:'Engine · retrieve · ' + rangeLabel(),
-                data:{rows, total:+total.toFixed(2), matched},
-                actions: cat ? [{type:'nav', k:'cats', sec:'sec-cats'}] : [],
+        const last = (sum && sum.last) || (ordered[0] ? {date: ordered[0].d, merchant: canonOf(ordered[0].m) || ordered[0].m, amount: +amtOf(ordered[0]).toFixed(2), category: effCatFull(ordered[0])} : null);
+        const first = (sum && sum.first) || null;
+        const bits = [];
+        if (q && last){
+          bits.push((last.merchant || q) + ' — last ' + (last.dir === 'in' ? 'incoming ' : '') + last.date + ' · ' + eur(last.amount)
+            + (last.category ? ' (' + last.category + ')' : '') + '.');
+          const nPay = wantIn ? (sum ? sum.nIn : matched) : (sum ? sum.nOut : matched);
+          bits.push((nPay || matched) + ' ' + (wantIn ? 'incoming' : 'payment') + ((nPay || matched) === 1 ? '' : 's')
+            + ' · ' + eur(total) + ' total ' + scope + '.');
+          if (first && first.date && first.date !== last.date)
+            bits.push('First: ' + first.date + ' · ' + eur(first.amount) + '.');
+          if (sum && sum.categories && sum.categories.length)
+            bits.push('Filed as ' + sum.categories.join(', ') + '.');
+          if (allTime && RANGE.size && MONTHS.length > RANGE.size){
+            const inRange = hits.filter(x => RANGE.has(x.mo)).length;
+            if (inRange !== matched) bits.push(inRange + ' of those sit in the range on screen (' + rangeLabel() + ').');
+          }
+        } else {
+          bits.push(matched + (wantIn ? ' incoming' : ' spending') + ' transaction' + (matched === 1 ? '' : 's')
+            + (cat ? ' in ' + cat : '') + (q ? ' matching “' + q + '”' : '')
+            + (mo ? ' in ' + fmtMoLbl(mo) : '')
+            + ' · ' + eur(total) + ' total, ' + rangeLabel()
+            + (!cat && !q && !mo ? ' (everything — narrow it with a category, merchant or month)' : '') + ':');
+        }
+        bits.push(rows.map(r => '• ' + r.date + ' · ' + r.merchant + ' — ' + eur(r.amount) + (cat ? '' : ' (' + r.category + ')')).join('\n')
+          + (matched > rows.length ? '\n• …and ' + (matched - rows.length) + ' more' : ''));
+        return {ok:true, tool:t, say: bits.join('\n'), provenance:'Engine · retrieve · ' + (allTime ? 'all history' : rangeLabel()),
+                data:{rows, total:+total.toFixed(2), matched, last, first, totalOut:+totalOut.toFixed(2), totalIn:+totalIn.toFixed(2), allTime, categories: (sum && sum.categories) || []},
+                actions: [{type:'search', query:q, allTime:allTime}].concat(cat ? [{type:'nav', k:'cats', sec:'sec-cats'}] : []),
                 suggestions:suggestions(), links: cat ? ['cat:' + cat] : []};
       }
       // "Where can I cut back" had no tool at all, so the model either guessed
@@ -21611,6 +21854,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         '- "How am I doing?" with no extra ask → budget_notice (not a bare restatement of in/out).',
         '- "Show me / list / which ones / what did I spend on X" → find_transactions. This is the only tool',
         '  that returns actual rows. Never answer "show me the transactions" by navigating.',
+        '- "How much did I pay X / when did I last pay X / how much have I paid to X / search X / just a name"',
+        '  → find_transactions. They do not need the category. Quote last date, last amount, count and total.',
+        '  The tool already searched all imported history — do not say you cannot find it if rows came back.',
         '- "What is my net worth?" → net_worth. "Pulse / health score" → pulse. "Leaks" → leaks.',
         '- "Propose / suggest categorisation rules" → propose_rules (sandbox).',
         '',
@@ -21997,7 +22243,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       }
       const hint = Engine.txQueryHint(userText);
       if (hint.wantsRows && !needSlots.length && !(pre && pre.tool === 'find_transactions')){
-        const rowArgs = {query: hint.query, month: hint.month, min: hint.min, income: hint.income, limit: 12};
+        const rowArgs = {query: hint.query, month: hint.month, min: hint.min, income: hint.income, allTime: hint.allTime, limit: 12};
         const rows = run({tool:'find_transactions', args: rowArgs});
         if (rows && rows.ok && rows.data && rows.data.rows && rows.data.rows.length){
           attachQuiet(rows, 'Engine retrieved matching rows locally (not a guess). Use these numbers:', rowArgs);
@@ -22334,7 +22580,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     // clipped mid-sentence ("What's on your mind about your"). A self-test now
     // measures every one of them against the real input width.
     const PLACEHOLDERS = [
-      'How can I help with your finances?',
+      'Name a shop or person…',
       "What's on your mind?",
       'What do you want to know?',
       'Ask about cashflow or budgets…'
@@ -22370,7 +22616,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // no !value guard: setChatOpen fires while the sent text is still in the
       // box, and a placeholder is invisible whenever there is text anyway
       const ci = document.getElementById('ccInput');
-      if (ci) ci.placeholder = on ? 'Ask a follow-up…' : 'How can I help with your finances?';
+      if (ci) ci.placeholder = on ? 'Ask a follow-up…' : 'Name a shop or person…';
       // the rail moved/resized — re-centre the map on what's left of the screen
       try { if (window.__ddSyncCam) setTimeout(window.__ddSyncCam, 0); } catch (e) {}
     }
@@ -23204,6 +23450,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       {k:'invest', ic:'📊', label:'Invest',     sel:['#holdCard']},
       {k:'debts',  ic:'⛓️', label:'Debts',      sel:['#debtCard']},
       {k:'ready',  ic:'🏦', label:'Readiness',  sel:['#sec-ready']},
+      {k:'search', ic:'🔎', label:'Search',     sel:['#sec-search']},
       {k:'audit',  ic:'🏷️', label:'Audit',      sel:['#sec-audit']},
       {k:'rules',  ic:'⚙️', label:'Rules',      sel:['#sec-rules']},
       {k:'people', ic:'👥', label:'People',     sel:['#sec-people'], mode:'center'},
@@ -23213,7 +23460,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       ['Overview', ['summary', 'goals', 'alerts', 'cash', 'cats', 'leaks']],
       ['Planning', ['budget', 'sim', 'fcast', 'plan', 'notes']],
       ['Wealth',   ['pulse', 'wealth', 'invest', 'debts', 'ready']],
-      ['Data',     ['audit', 'rules', 'people', 'settings']]
+      ['Data',     ['search', 'audit', 'rules', 'people', 'settings']]
     ];
     function take(el){
       if (homes.has(el)) return;
@@ -23401,7 +23648,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (openerBtn) openerBtn.classList.add('active');
     }
     window.__ddOpenRange = () => openMini('range');
-    document.getElementById('topSearch').addEventListener('click', ()=>openMini('search'));
+    document.getElementById('topSearch').addEventListener('click', ()=>{
+      const it = items.find(i => i.k === 'search');
+      if (it) openPanel(it, {force:true});
+      else openMini('search');
+    });
     document.getElementById('miniClose').addEventListener('click', closeMini);
     document.getElementById('setClassicBtn').addEventListener('click', ()=>exit());
     document.getElementById('obClassic').addEventListener('click', ()=>exit());
@@ -23467,7 +23718,13 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
             active: () => active,
             open: (k, opts) => {
               if (!document.body.classList.contains('space')) return;
-              if (k === 'range' || k === 'search'){ openMini(k, opts || {force:true, keep:true}); return; }
+              if (k === 'range'){ openMini(k, opts || {force:true, keep:true}); return; }
+              if (k === 'search'){
+                const it = items.find(i => i.k === 'search');
+                if (it){ openPanel(it, opts || {force:true, keep:true}); return; }
+                openMini('search', opts || {force:true, keep:true});
+                return;
+              }
               if (k === 'map' || k === 'close'){ closePanel(); closeMini(); return; }
               const it = items.find(i => i.k === (ALIAS[k] || k));
               if (it) openPanel(it, opts || {force:true, keep:true});
@@ -23529,9 +23786,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       {part:3, dock:'range', target:'#miniPanel, #ssRangeBtn', title:'Date range',
        loc:'Top bar 📅',
        body:'Almost every chart and the map’s flow view follow this range. Change it when you want “this year only” or a custom window, then reopen Cashflow or Categories to read the same period.'},
-      {part:3, dock:'search', target:'#miniPanel, #sec-search, #topSearch', title:'Search',
-       loc:'Top-right 🔎',
-       body:'Find any transaction by merchant (raw or merged name). Use this when a number looks wrong — Search is the fastest path to the underlying rows, and can highlight related map nodes.'},
+      {part:3, dock:'search', target:'#spacePanel, #sec-search, #topSearch', title:'Search',
+       loc:'Data → Search 🔎',
+       body:'Type a shop, a person, or an amount. You do not need the category. Search looks through all imported statements and shows the last payment, the total paid, and the rows. Matches light up on the map. The co-pilot answers the same questions — “how much did I pay Tesco”, “when did I last pay John”.'},
 
       // Part 4 — Clean data
       {part:4, dock:'people', target:'#xferCard, #sec-people, #spacePanel', title:'Internal transfers',

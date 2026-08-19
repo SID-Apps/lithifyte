@@ -131,6 +131,23 @@ export const FIXTURES = [
     expect: { writer: true,  intent: ['rows', 'unknown'], asks: true, toolsNot: ['propose_budget'], maxRounds: 2, hostedCalls: 1, maxRowsOut: 25 } },
   { id: 40, say: '   ', group: 'honesty',
     expect: { intent: 'none', toolsNot: ['*'], maxRounds: 0, hostedCalls: 0, silent: true } },
+
+  // ── Recall — the banking-app job. They remember a name, not a category. ──
+  { id: 41, say: 'how much did I pay Tesco', group: 'recall',
+    expect: { writer: true, intent: 'rows', toolsIn: ['find_transactions'], toolsNot: ['nav', 'cat_monthly', 'payment_monthly'],
+      maxRounds: 2, hostedCalls: 1 } },
+  { id: 42, say: 'when did I last pay Tesco', group: 'recall',
+    expect: { writer: true, intent: 'rows', toolsIn: ['find_transactions'], toolsNot: ['nav'],
+      maxRounds: 2, hostedCalls: 1 } },
+  { id: 43, say: 'how much have I paid to Tesco', group: 'recall',
+    expect: { writer: true, intent: 'rows', toolsIn: ['find_transactions'], toolsNot: ['payment_monthly'],
+      maxRounds: 2, hostedCalls: 1 } },
+  { id: 44, say: 'search Tesco', group: 'recall',
+    expect: { writer: true, intent: 'rows', toolsIn: ['find_transactions'], toolsNot: ['nav'],
+      maxRounds: 2, hostedCalls: 1 } },
+  { id: 45, say: 'Tesco', group: 'recall',
+    expect: { writer: true, intent: 'rows', toolsIn: ['find_transactions'], toolsNot: ['nav', 'cat_monthly'],
+      maxRounds: 2, hostedCalls: 1 } },
 ];
 
 /** Fail loudly if a demo rebuild renamed what the fixtures talk about. */
@@ -147,4 +164,4 @@ export function assertHouseholdMatches(h) {
   return problems;
 }
 
-export const GROUPS = ['greet', 'advice', 'money', 'nav', 'status', 'draft', 'honesty'];
+export const GROUPS = ['greet', 'advice', 'money', 'nav', 'status', 'draft', 'honesty', 'recall'];
