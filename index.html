@@ -51,7 +51,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '3.12.0';
+  var APP_VER = '3.13.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -11015,7 +11015,34 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   }
 
   // ══ forecast rendering ══
+  const FC_BUF_IDS = ['bufSlider','bufInfo'];
+  function paintForecastChrome(){
+    const row = document.querySelector('#sec-forecast .chart-card .filter-row');
+    if (document.body.classList.contains('space')){
+      if (document.getElementById('fcBufSignal')) return;
+      const slot = document.createElement('div');
+      slot.id = 'fcBufSignal';
+      slot.innerHTML = Signal.togs([
+        {name:'Safety buffer', sub:'Held back from the cautious path', adopt:'bufSlider'}
+      ]);
+      if (row){
+        row.style.display = 'none';
+        row.parentNode.insertBefore(slot, row);
+      }
+      Signal.adopt(slot);
+      const ctl = slot.querySelector('[data-adopt="bufSlider"]');
+      const info = document.getElementById('bufInfo');
+      if (ctl && info) Signal.park(info, ctl);
+    } else {
+      Signal.restore(FC_BUF_IDS);
+      const slot = document.getElementById('fcBufSignal');
+      if (slot) slot.remove();
+      if (row) row.style.display = '';
+    }
+  }
   function renderForecast(fc, as){
+    as = as || [];
+    paintForecastChrome();
     const n = Math.min(fc.length, 36);
     const W = 860, H = 260, padL = 52, padR = 120, padT = 12, padB = 32;
     const plotW = W-padL-padR, plotH = H-padT-padB;
@@ -11092,10 +11119,79 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       r.addEventListener('mouseleave', ()=>{ hideTip(); guide.setAttribute('opacity', '0'); });
     });
 
+    // next-month rows (space) — same three figures the preview leads with
+    const next = fc[0];
+    const take = fc.slice(0, 12);
+    const monthItems = next ? [
+      {name:'Money in', sub: 'forecast income · ' + fmtMoLbl(next.m),
+       series: take.map(f => f.inc), color:'#38bdf8', amount: eur(next.inc), tone:'',
+       months: take.slice(-6).map(f => ({label: fmtMoLbl(f.m).slice(0,3).toUpperCase(), value: eur(f.inc)})),
+       note: 'Median-based forecast, not a mean — a one-off does not raise the plan'},
+      {name:'Money out', sub: 'forecast spending · ' + fmtMoLbl(next.m),
+       series: take.map(f => f.exp), color:'#a78bfa', amount: eur(next.exp),
+       months: take.slice(-6).map(f => ({label: fmtMoLbl(f.m).slice(0,3).toUpperCase(), value: eur(f.exp)})),
+       note: 'Recurring detection plus typical category spend'},
+      {name:'Left over', sub: 'after the buffer',
+       series: take.map(f => f.surplusC), color:'#34d399', amount: eur(next.surplusC),
+       tone: next.surplusC >= 0 ? 'pos' : 'neg',
+       months: take.slice(-6).map(f => ({label: fmtMoLbl(f.m).slice(0,3).toUpperCase(), value: eur(f.surplusC),
+                                         negative: f.surplusC < 0})),
+       note: 'Cautious path — the safety buffer is already held back'}
+    ] : [{name:'Forecast', sub:'no months to project', amount:'—'}];
+    const chartEl = document.getElementById('forecastChart');
+    if (document.body.classList.contains('space') && chartEl){
+      let monthSlot = document.getElementById('fcMonthSignal');
+      if (!monthSlot){ monthSlot = document.createElement('div'); monthSlot.id = 'fcMonthSignal';
+                       monthSlot.style.margin = '10px 0 0';
+                       chartEl.parentNode.insertBefore(monthSlot, chartEl.nextSibling); }
+      monthSlot.innerHTML = Signal.rows(monthItems);
+    } else {
+      const monthSlot = document.getElementById('fcMonthSignal');
+      if (monthSlot) monthSlot.remove();
+    }
+
     // recurring table
     const tb = document.querySelector('#recurTable tbody');
     const lastMo = MONTHS[MONTHS.length-1];
     const perTxt = {1:'monthly', 3:'every 3 mo', 6:'every 6 mo', 12:'yearly'};
+    const recurItems = REC.slice(0, 40).map(r => {
+      const manual = r.source === 'manual';
+      const isDebt = r.source === 'debt';
+      const userSet = !manual && !isDebt && !r.debtClamp && r.endMonth !== undefined;
+      const meta = (r.kind === 'income' ? 'recurring income' : r.isSave ? 'savings transfer' : 'recurring expense') + ' · ' +
+        (manual ? 'added by you'
+         : isDebt ? 'from your debt tracker — runs until payoff'
+         : r.debtClamp ? 'auto-detected · ends with your loan'
+         : (userSet ? 'fine-tuned by you' : 'auto-detected · seen ' + r.months + '×'));
+      const amt = r.period === 1 ? ((r.kind === 'income' ? '+' : '−') + eur(r.avgMo))
+        : ((r.kind === 'income' ? '+' : '−') + eur(r.avgMo) + '/mo');
+      return {
+        name: r.merchant,
+        sub: (perTxt[r.period] || (r.period + ' mo')) + ' · ' + r.cat,
+        amount: amt,
+        tone: r.kind === 'income' ? 'pos' : '',
+        months: [
+          {label:'EACH', value: perTxt[r.period] || (r.period + ' mo')},
+          {label:'ENDS', value: r.endMonth ? fmtMoLbl(r.endMonth) : 'open'},
+          {label:'CAT', value: r.cat}
+        ],
+        note: meta
+      };
+    });
+    if (document.body.classList.contains('space')){
+      const rt = document.getElementById('recurTable');
+      if (rt) rt.style.display = 'none';
+      let rslot = document.getElementById('recurSignal');
+      if (!rslot && rt){ rslot = document.createElement('div'); rslot.id = 'recurSignal';
+                         rt.parentNode.insertBefore(rslot, rt); }
+      if (rslot) rslot.innerHTML = Signal.rows(recurItems.length ? recurItems
+        : [{name:'Recurring items', sub:'none detected yet', amount:'—'}]);
+    } else {
+      const rslot = document.getElementById('recurSignal');
+      if (rslot) rslot.remove();
+      const rt = document.getElementById('recurTable');
+      if (rt) rt.style.display = '';
+    }
     tb.innerHTML = REC.slice(0, 40).map(r=>{
       const manual = r.source === 'manual';
       const isDebt = r.source === 'debt';
@@ -16525,6 +16621,23 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (!slot.contains(el)) return '#pnAge is not inside #pensionSignal';
       return document.querySelectorAll('#pnAge').length === 1 || '#pnAge was cloned';
     });
+    T('signal: forecast buffer is adopted, not cloned', () => {
+      if (!document.body.classList.contains('space')) return true;
+      const el = document.getElementById('bufSlider');
+      const slot = document.getElementById('fcBufSignal');
+      if (!el || !slot) return 'no #fcBufSignal / #bufSlider';
+      if (!slot.contains(el)) return '#bufSlider is not inside #fcBufSignal';
+      return document.querySelectorAll('#bufSlider').length === 1 || '#bufSlider was cloned';
+    });
+    T('signal: budget pace bars carry a limit mark', () => {
+      // the conversion is a budget bar, not a proportion bar: without the
+      // limit mark, 101% and 133% both look like "full"
+      if (!document.body.classList.contains('space')) return true;
+      if (!TX.length) return true;
+      const slot = document.getElementById('budgetSignal');
+      if (!slot) return 'no #budgetSignal';
+      return !!slot.querySelector('.sig-track s') || 'pace bars have no limit mark';
+    });
 
     // ── cut headroom ──
     T('headroom: a standing order has no room however large it is', () => {
@@ -19761,11 +19874,25 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     modal.style.display = 'none';
   }
 
+  function paintBudgetPlaceholder(){
+    const table = document.getElementById('budgetTable');
+    if (!table) return;
+    table.style.display = 'none';
+    let slot = document.getElementById('budgetSignal');
+    if (!slot){ slot = document.createElement('div'); slot.id = 'budgetSignal';
+                table.parentNode.insertBefore(slot, table); }
+    slot.innerHTML = Signal.bars([{name:'Spending pace', color:'#34d399', pct:0, amount:'—',
+      sub:'create a budget to see it'}], {limit:true});
+  }
   function renderBudget(){
     ensureBudgetV2();
     const setup = document.getElementById('budgetSetup'), live = document.getElementById('budgetLive');
     if (!setup) return;
-    if (!TX.length || !A){ setup.style.display = 'none'; live.style.display = 'none'; return; }
+    if (!TX.length || !A){
+      setup.style.display = 'none'; live.style.display = 'none';
+      if (document.body.classList.contains('space')) paintBudgetPlaceholder();
+      return;
+    }
     fillBudgetScopeSelects();
     const hasPacks = !!(budgetStore && budgetStore.packs && budgetStore.packs.length);
     if (!hasPacks || bgForceSetup){
@@ -19796,6 +19923,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         }
         cancel.style.display = '';
       } else if (cancel) cancel.style.display = 'none';
+      if (document.body.classList.contains('space')) paintBudgetPlaceholder();
       return;
     }
     const cancelBtn = document.getElementById('bgCancelNew');
@@ -19832,7 +19960,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
 
     const bo = computeBudgets();
-    if (!bo) return;
+    if (!bo){
+      if (document.body.classList.contains('space')) paintBudgetPlaceholder();
+      return;
+    }
     const {pm, rows, total, pack} = bo;
     const t = total.pace;
     const spentAll = t.spent;
@@ -19848,10 +19979,58 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         : {l: 'Month result', v: t.delta > 0 ? eur(t.delta) + ' over' : eur(-t.delta) + ' under', n: 'vs total budget'},
       {l: 'Projected month-end', v: eur(t.projected), n: t.projected > total.budget ? eur(t.projected - total.budget) + ' over budget' : 'inside budget'}
     ];
-    document.getElementById('budgetTiles').innerHTML = tiles.map(x =>
-      `<div class="kpi"><div class="k-label">${esc(x.l)}</div><div class="k-val num">${x.v}</div><div class="k-note">${esc(x.n)}</div></div>`).join('');
     const vLbl = {ok: 'on pace', warm: 'watch', hot: 'over'};
+    const table = document.getElementById('budgetTable');
+    if (document.body.classList.contains('space')){
+      // Mint bars with a limit mark: 101% and 133% must not both read as one
+      // full red bar. Amounts stay editable in Classic; here a click opens the
+      // existing month+transaction detail.
+      const overN = rows.filter(r => r.pace.verdict === 'hot').length;
+      document.getElementById('budgetTiles').innerHTML = Signal.stats([
+        {value: eur(t.projected), label: 'projected spend', tone: t.projected > total.budget ? 'neg' : ''},
+        {value: eur(total.budget) + '/mo', label: 'budgeted'},
+        {value: (t.delta > 0 ? '+' : '−') + eur(Math.abs(t.delta)),
+         label: t.delta > 0 ? 'over, in total' : 'under, in total',
+         tone: t.delta > 0 ? 'neg' : 'pos'},
+        {value: overN + ' of ' + rows.length, label: 'lines over'}
+      ]);
+      if (table) table.style.display = 'none';
+      let slot = document.getElementById('budgetSignal');
+      if (!slot && table){ slot = document.createElement('div'); slot.id = 'budgetSignal';
+                           table.parentNode.insertBefore(slot, table); }
+      if (slot){
+        const items = rows.length ? rows.map(r => {
+          const p = r.pace;
+          const pct = r.budget > 0 ? (p.spent / r.budget * 100) : (p.spent > 0 ? 200 : 0);
+          return {
+            name: r.cat,
+            color: '#34d399',
+            pct,
+            amount: eur(p.spent) + ' / ' + eur(r.budget),
+            sub: p.verdict === 'hot' ? 'over by ' + eur(Math.max(0, p.delta))
+               : p.verdict === 'warm' ? 'watch · ' + vLbl.warm
+               : (p.delta > 0 ? 'over pace by ' + eur(p.delta) : 'under by ' + eur(-p.delta))
+          };
+        }) : [{name:'Spending pace', color:'#34d399', pct:0, amount:'—', sub:'no lines yet'}];
+        slot.innerHTML = Signal.bars(items, {limit:true});
+        slot.querySelectorAll('.sig-bar-row').forEach((el, i) => {
+          if (!rows[i]) return;
+          el.style.cursor = 'pointer';
+          el.addEventListener('click', () => openBudgetDetail(rows[i]));
+        });
+      }
+    } else {
+      const slot = document.getElementById('budgetSignal');
+      if (slot) slot.remove();
+      if (table) table.style.display = '';
+      document.getElementById('budgetTiles').innerHTML = tiles.map(x =>
+        `<div class="kpi"><div class="k-label">${esc(x.l)}</div><div class="k-val num">${x.v}</div><div class="k-note">${esc(x.n)}</div></div>`).join('');
+    }
     const tb = document.querySelector('#budgetTable tbody');
+    if (document.body.classList.contains('space')){
+      // Classic's table listeners are not bound; the actions under the table
+      // (add a category, re-seed, turn off) stay live.
+    } else {
     tb.innerHTML = rows.map(r => {
       const p = r.pace;
       const pct = Math.min(100, r.budget > 0 ? p.spent / r.budget * 100 : 100);
@@ -19911,6 +20090,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       cell.addEventListener('click', open);
       cell.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(); } });
     });
+    } // Classic table only
     const sel = document.getElementById('bgAddCat');
     if (sel){
       const pack = activePack();
@@ -24986,7 +25166,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     {name:'wealth engine',     target:'idleSignal',  fn: () => { if (typeof FC !== 'undefined' && FC) renderWealth(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }},
     {name:'tax assumptions',   target:'taxSignal',   fn: () => paintTaxCard()},
     {name:'pension leverage',  target:'pensionSignal', fn: () => renderPensionChrome()},
-    {name:'goal realloc',      target:'reallocSignal', fn: () => { if (typeof FC !== 'undefined' && FC) renderWealth(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }}
+    {name:'goal realloc',      target:'reallocSignal', fn: () => { if (typeof FC !== 'undefined' && FC) renderWealth(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }},
+    {name:'budget pace',       target:'budgetSignal',  fn: () => { if (typeof renderBudget === 'function') renderBudget(); }},
+    {name:'forecast buffer',   target:'fcBufSignal',   fn: () => paintForecastChrome()},
+    {name:'forecast month',    target:'fcMonthSignal', fn: () => { if (typeof FC !== 'undefined' && FC) renderForecast(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }},
+    {name:'forecast recurring',target:'recurSignal',   fn: () => { if (typeof FC !== 'undefined' && FC) renderForecast(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }}
   ];
   function signalRerender(){
     for (const r of SIGNAL_RENDERERS){ try{ r.fn(); }catch(e){} }
@@ -25424,10 +25608,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // slots and hidden tables are undone FIRST, then one re-render through
       // the same registry the space view uses.
       try { setTimeout(function(){
-        ['leakSignal','debtSignal','holdSignal','idleSignal','reallocSignal'].forEach(function(id){
+        ['leakSignal','debtSignal','holdSignal','idleSignal','reallocSignal','budgetSignal','fcMonthSignal','recurSignal'].forEach(function(id){
           const n = document.getElementById(id); if (n) n.remove();
         });
-        ['leakTable','debtTable','hdTable','idleTable','reallocTable'].forEach(function(id){
+        ['leakTable','debtTable','hdTable','idleTable','reallocTable','budgetTable','recurTable'].forEach(function(id){
           const n = document.getElementById(id); if (n) n.style.display = '';
         });
         const lsc = document.getElementById('leakShapeCard'); if (lsc) lsc.style.display = '';

@@ -1,8 +1,8 @@
 {
-  "version": "3.12.0",
+  "version": "3.13.0",
   "released": "2026-08-23",
-  "notes": "Net worth's remaining cards: tax, pension, and post-goal realloc, in the Signal language.",
+  "notes": "Budget pace bars with a limit mark, and Forecast as ledger rows, in the Signal language.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "c5fc1f3bfb330227f55eeb2f8c8dbe01ca39d8112f453c758e5a3ebb4a8acaa7"
+  "sha256": "d37f17d02c82450c64c3d6530b4c94c57ad57903829a61db6138a9c6b33d5188"
 }
