@@ -51,7 +51,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '3.8.1';
+  var APP_VER = '3.9.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -5171,6 +5171,87 @@ rewrite the static advice cards if the picture has changed.</div>
       return {rows, total: sum, avg, avgActive, typical, months: rows.length,
               activeMonths: active.length, emptyMonths: rows.length - active.length,
               peak, low: lowActive, trend, txCount: rows.reduce((s, r) => s + r.n, 0)};
+    },
+    // ── where can this household actually cut? ────────────────────────────
+    // flexOf() below is a KEYWORD GUESS: "rent|insurance" fixed, "dining|amazon"
+    // movable. It cannot know that this household's "Kita" is childcare or that
+    // their "Shopping" is mostly one unavoidable pharmacy run, and it says the
+    // same thing to every household in every language. It stays as a weak prior
+    // for when evidence is thin; it is no longer the answer.
+    //
+    // The evidence is the household's own history. The floor for a category is
+    // THE LEANEST MONTH THEY ACTUALLY LIVED ON — not a percentage anyone chose.
+    // If they got through March on 64 EUR of Dining, 64 is demonstrably possible
+    // for them; the gap between that and their typical month is what is really
+    // available. A category that is entirely a standing order has no headroom
+    // however large it is, because the variance says nobody can move it.
+    //
+    // Pure: takes measurements, returns an assessment. No DOM, no globals.
+    cutHeadroom({lines, minMonths} = {}){
+      const MIN = minMonths || 3;
+      // The floor is NOT the single leanest month. One freak month — a holiday,
+      // a gap in the statements — would otherwise become the target, and on real
+      // data that produced "you could cut all 495 of your groceries" because one
+      // month happened to be zero. A quartile is the same evidence without
+      // letting one outlier speak for the year.
+      const quartileLow = (arr) => {
+        const v = (arr || []).filter(n => typeof n === 'number' && isFinite(n)).sort((a, b) => a - b);
+        if (!v.length) return null;
+        if (v.length < 4) return v[0];
+        const i = (v.length - 1) * 0.25;
+        const lo = Math.floor(i), hi = Math.ceil(i);
+        return lo === hi ? v[lo] : v[lo] + (v[hi] - v[lo]) * (i - lo);
+      };
+      const out = (lines || []).map(l => {
+        const spend    = Math.max(0, +l.typical || 0);
+        const series   = Array.isArray(l.monthly) ? l.monthly : null;
+        const q        = series ? quartileLow(series) : null;
+        const low      = Math.max(0, q != null ? q : (+l.low || 0));
+        const active   = +l.activeMonths || 0;
+        const months   = +l.months || 0;
+        const committed = Math.max(0, Math.min(spend, +l.committed || 0));
+        // evidence floor: the leanest month they lived on, but never below what
+        // is contractually committed in that category
+        const floorEvidence = active >= MIN ? low : spend;
+        const floor = Math.max(floorEvidence, committed);
+        const headroom = Math.max(0, spend - floor);
+        const share = spend > 0 ? headroom / spend : 0;
+
+        let confidence = 'low', basis;
+        if (spend <= 0){
+          confidence = 'none'; basis = 'nothing spent here in this range';
+        } else if (active < MIN){
+          confidence = 'low';
+          basis = active + ' month' + (active === 1 ? '' : 's') + ' of history — too few to say';
+        } else if (committed >= spend - 0.5){
+          confidence = 'high';
+          basis = 'all of it is committed payments, so there is nothing to trim';
+        } else if (headroom < 1){
+          confidence = 'high';
+          basis = 'every month costs about the same, so there is no slack to find';
+        } else {
+          confidence = active >= 6 ? 'high' : 'medium';
+          basis = 'their leaner months run about ' + Math.round(low) + ' against a typical ' + Math.round(spend);
+          if (committed > 0.5) basis += ', of which ' + Math.round(committed) + ' is committed';
+          // Where the prior and the evidence disagree, SAY SO rather than
+          // silently siding with either. A category the world calls fixed that
+          // swings by hundreds is usually a labelling problem, not an
+          // opportunity — and telling a household to cut their rent because the
+          // numbers wobbled would be worse than saying nothing.
+          if ((l.flexPrior || 'ask') === 'fixed'){
+            confidence = 'low';
+            basis += ' — but this is normally a fixed commitment, so the variation is more likely mixed-in spending than room to cut';
+          }
+        }
+        return {category: l.category, spend: +spend.toFixed(2), floor: +floor.toFixed(2),
+                headroom: +headroom.toFixed(2), committed: +committed.toFixed(2),
+                share: +share.toFixed(3), activeMonths: active, months,
+                confidence, basis, prior: l.flexPrior || 'ask'};
+      });
+      out.sort((a, b) => b.headroom - a.headroom);
+      const total = +out.reduce((s, r) => s + r.headroom, 0).toFixed(2);
+      return {rows: out, totalHeadroom: total,
+              reachable: out.filter(r => r.headroom >= 1 && r.confidence !== 'low')};
     },
     flexOf(label){
       const s = String(label || '').toLowerCase();
@@ -16078,6 +16159,101 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       return (CAT_PAL.light[i] && CAT_PAL.dark[i] && i < CAT_PAL.light.length) || 'slot ' + i + ' out of range';
     });
 
+    // ── cut headroom ──
+    T('headroom: a standing order has no room however large it is', () => {
+      // the case a keyword guess gets wrong in the expensive direction: a big
+      // category that cannot move at all
+      const H = E.cutHeadroom({lines:[
+        {category:'Rent', typical:1600, low:1600, activeMonths:12, months:12, committed:1600}
+      ]});
+      const r = H.rows[0];
+      return (r.headroom === 0 && /nothing to trim|no slack/.test(r.basis)) || JSON.stringify(r);
+    });
+    T('headroom: the floor comes from their own leaner months', () => {
+      const H = E.cutHeadroom({lines:[
+        {category:'Dining', typical:200, low:64, activeMonths:12, months:12, committed:0}
+      ]});
+      const r = H.rows[0];
+      return (r.floor === 64 && r.headroom === 136 && /leaner months run about 64/.test(r.basis))
+        || JSON.stringify(r);
+    });
+    T('headroom: one freak month cannot set the target', () => {
+      // The bug this guards: passing the single leanest month made ONE zero
+      // month mean "you could cut all 495 of your groceries". A quartile keeps
+      // the evidence and drops the outlier.
+      const monthly = [0, 470, 480, 490, 500, 505, 510, 515, 520, 525, 530, 540];
+      const H = E.cutHeadroom({lines:[
+        {category:'Groceries', typical:495, monthly, activeMonths:12, months:12, committed:0}
+      ]});
+      const r = H.rows[0];
+      if (r.floor <= 1) return 'a single zero month became the floor: ' + JSON.stringify(r);
+      return (r.headroom < 200) || 'headroom still implies cutting most of it: ' + JSON.stringify(r);
+    });
+    T('headroom: a fixed commitment that wobbles is flagged, not recommended', () => {
+      // Real data ranked Rent first because it varied 250-450. The evidence was
+      // right that it moved; recommending a rent cut would still be bad advice.
+      const H = E.cutHeadroom({lines:[
+        {category:'Rent', typical:450, monthly:[250,260,300,420,450,450,450,450,450,450,460,470],
+         activeMonths:12, months:12, committed:0, flexPrior:'fixed'}
+      ]});
+      const r = H.rows[0];
+      if (r.confidence !== 'low') return 'a fixed category kept confidence ' + r.confidence;
+      if (!/normally a fixed commitment/.test(r.basis)) return r.basis;
+      return H.reachable.length === 0 || 'a rent cut was offered as reachable';
+    });
+    T('headroom: never proposes cutting into a committed payment', () => {
+      // half the category is a direct debit; the lean month is below that, and
+      // the floor must not follow it down
+      const H = E.cutHeadroom({lines:[
+        {category:'Bills', typical:400, low:120, activeMonths:12, months:12, committed:300}
+      ]});
+      const r = H.rows[0];
+      return (r.floor === 300 && r.headroom === 100) || JSON.stringify(r);
+    });
+    T('headroom: too little history says so instead of guessing', () => {
+      const H = E.cutHeadroom({lines:[
+        {category:'Travel', typical:300, low:10, activeMonths:2, months:12, committed:0}
+      ]});
+      const r = H.rows[0];
+      return (r.headroom === 0 && r.confidence === 'low' && /too few/.test(r.basis)) || JSON.stringify(r);
+    });
+    T('headroom: ranks by what is reachable, not by what is biggest', () => {
+      // Rent is four times Dining and completely immovable — a ranking by size
+      // sends the household at the one thing they cannot change
+      const H = E.cutHeadroom({lines:[
+        {category:'Rent',   typical:1600, low:1600, activeMonths:12, months:12, committed:1600},
+        {category:'Dining', typical:200,  low:64,   activeMonths:12, months:12, committed:0}
+      ]});
+      return (H.rows[0].category === 'Dining' && H.reachable.length === 1 &&
+              H.totalHeadroom === 136) || JSON.stringify(H.rows);
+    });
+    T('headroom: a flat category offers nothing and admits it', () => {
+      const H = E.cutHeadroom({lines:[
+        {category:'Transport', typical:160, low:160, activeMonths:12, months:12, committed:0}
+      ]});
+      return (H.rows[0].headroom === 0 && H.reachable.length === 0) || JSON.stringify(H.rows[0]);
+    });
+    T('headroom: the model is told about it on cut-shaped questions', () => {
+      if (typeof Companion.briefFor !== 'function' || !TX.length || !A) return true;
+      const b = Companion.briefFor(Companion.understand('where can I cut back to save more'));
+      const text = (b.facts || []).join('\n');
+      // either it hands over the assessment, or it says plainly there is none
+      return /Room to cut|No category has measurable room/.test(text) || text.slice(0, 160);
+    });
+    T('headroom: what-if says why a cut was trimmed', () => {
+      if (!TX.length || !A || !A.cats12 || !A.cats12.length) return true;
+      const small = [...A.cats12].filter(c => c.avgMonth > 0)
+        .sort((a, b) => a.avgMonth - b.avgMonth)[0];
+      if (!small) return true;
+      const r = Companion.run({tool:'cashflow_whatif',
+        args:{cuts:[{label: small.category, monthly: Math.round(small.avgMonth * 10) + 500}]}});
+      if (!r.ok) return r.say;
+      const cut = (r.data.cuts || [])[0];
+      if (!cut) return 'no cut applied';
+      if (!(cut.asked > cut.take)) return true;              // nothing was trimmed, nothing to explain
+      return /that is all it costs/.test(r.say) || r.say;
+    });
+
     // ── Signal renderers ──
     T('signal: a sparkline plots every point inside its box', () => {
       const h = Signal.spark([10, 20, 15, 30]);
@@ -20995,6 +21171,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         {id:'save_plan', title:'Save plan', desc:'How much you can put aside now, and whether a target-by-date works if a payment ends', readOnly:true},
         {id:'budget_notice', title:'Budget notice', desc:'What stands out: spare, tightness, movable vs fixed lines', readOnly:true},
         {id:'spend_ranked', title:'Biggest spending', desc:'Categories ranked by monthly average — use for "where can I cut back"', readOnly:true},
+        {id:'cut_headroom', title:'Where there is room to cut', desc:'How much each category could realistically give up, measured against the household\'s own leanest month — use before proposing any cut', readOnly:true},
         {id:'find_transactions', title:'Find transactions', desc:'Look up a shop, a person, or a payment by name. Returns last date, last amount, count and total paid — does not need the category. Use for "how much did I pay X", "when did I last pay X", "search X", or a name on its own.', readOnly:true},
         {id:'net_worth', title:'Net worth', desc:'Engine.netWorth — cash, pots, holdings, assets, liabilities', readOnly:true},
         {id:'pulse', title:'Financial pulse', desc:'Engine.healthScore — 0–100 household health against absolute benchmarks', readOnly:true},
@@ -21694,6 +21871,33 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       else s += ' Tell me if this one is fixed or if we can move it.';
       return s;
     }
+    // Builds the measurements Engine.cutHeadroom assesses. The committed figure
+    // is the part of a category already promised to a standing order — that is
+    // what makes a big category immovable and a small one worth looking at.
+    function cutHeadroomModel(){
+      if (!A || !A.cats12) return {rows: [], totalHeadroom: 0, reachable: []};
+      const rec = (typeof REC !== 'undefined' && REC) || [];
+      const committedFor = (cat) => rec
+        .filter(r => r && r.kind === 'expense' && !r.isSave && r.cat === cat && r.period === 1)
+        .reduce((sum, r) => sum + (+(r.avg || r.avgMo) || 0), 0);
+      const lines = A.cats12
+        .filter(c => c.category !== SAVE_CAT && c.category !== INT_CAT && c.avgMonth > 0)
+        .slice(0, 14)
+        .map(c => {
+          const M = catMonthlyModel(c.category);
+          // M.low is an OBJECT {month,total,n} — passing it as a number gave
+          // NaN, a floor of 0, and "you could cut all of it" for every category.
+          const activeTotals = (M.rows || []).filter(r => r.n > 0).map(r => r.total);
+          return {category: c.category,
+                  typical: M.typical || M.avgActive || c.avgMonth,
+                  monthly: activeTotals,
+                  low: M.low && typeof M.low.total === 'number' ? M.low.total : 0,
+                  activeMonths: M.activeMonths, months: M.months,
+                  committed: committedFor(c.category),
+                  flexPrior: Engine.flexOf(c.category)};
+        });
+      return Engine.cutHeadroom({lines});
+    }
     function historyBudgetLines(){
       if (!A || !A.cats12) return [];
       return A.cats12
@@ -21892,10 +22096,25 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
             applied.push({label: label || query || cat || 'that payment', take:0, current:0, missing:true, end:ending});
             continue;
           }
+          // Clamping to what the category costs is right but it is not an
+          // answer — "you asked for 200, here is 121" leaves the household to
+          // work out why. Record what was asked and what the evidence supports
+          // so the reply can explain itself.
+          const asked = take;
           if (current > 0 && take > current) take = current;
+          item.asked = asked;
           take = +(+take).toFixed(2);
           freed += take;
-          applied.push({label: cat || label || query, category: cat || '', take, current, end: ending, source, missing:false});
+          let head = null;
+          if (cat){
+            const H = cutHeadroomModel();
+            head = (H.rows || []).find(r => r.category.toLowerCase() === cat.toLowerCase()) || null;
+          }
+          applied.push({label: cat || label || query, category: cat || '', take, current, asked,
+                        end: ending, source, missing:false,
+                        headroom: head ? head.headroom : null,
+                        basis: head ? head.basis : null,
+                        beyondEvidence: !!(head && take > head.headroom + 0.5)});
         }
         freed = +freed.toFixed(2);
         const afterSpend = fig.spend - freed;
@@ -21908,7 +22127,18 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           for (const row of applied){
             if (row.missing) bits.push('• ' + row.label + ' — I could not find that payment in this range, so I did not count it.');
             else if (row.end) bits.push('• ' + row.label + ' ends — ' + eur(row.take) + '/mo comes back' + (row.current ? ' (recently ' + eur(row.current) + '/mo)' : '') + '.');
-            else bits.push('• ' + row.label + ' −' + eur(row.take) + '/mo' + (row.current ? ' (from ' + eur(row.current) + ')' : '') + '.');
+            else {
+              // Say what happened to the ask AND what the evidence supports. A
+              // household that asked for 200 and got 121 deserves the reason on
+              // the same line, not a smaller number and silence.
+              let line = '• ' + row.label + ' −' + eur(row.take) + '/mo' +
+                         (row.current ? ' (from ' + eur(row.current) + ')' : '');
+              if (row.asked > row.take + 0.5)
+                line += ' — you asked for ' + eur(row.asked) + ', but that is all it costs';
+              else if (row.beyondEvidence && row.headroom != null)
+                line += ' — a stretch: ' + row.basis + ', so about ' + eur(row.headroom) + ' is the realistic room';
+              bits.push(line + '.');
+            }
           }
           bits.push('Freed ' + eur(freed) + '/mo. New outgoings ' + eur(afterSpend) + ', new left over ' + eur(afterSpare) + ' a month.');
           if (fig.income > 0) bits.push('That is ' + (Math.round((afterSpare / fig.income) * 1000) / 10) + '% of income, versus ' + (Math.round(fig.rate * 1000) / 10) + '% now.');
@@ -22137,6 +22367,22 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       }
       // "Where can I cut back" had no tool at all, so the model either guessed
       // or got a single category. Rank real spending instead.
+      if (t === 'cut_headroom'){
+        const H = cutHeadroomModel();
+        const top = H.reachable.slice(0, Math.max(1, Math.min(8, +a.limit || 5)));
+        if (!top.length){
+          return {ok:true, tool:t, say:'Nothing here has room to cut with any confidence — every category either costs the same every month or is already committed.',
+                  provenance:'Engine · cut headroom · ' + rangeLabel(), data:H,
+                  actions:[{type:'nav', k:'cats', sec:'sec-cats'}], suggestions:suggestions(), links:[]};
+        }
+        const say = 'Where there is actually room, ' + rangeLabel() + ':\n' +
+          top.map(r => '• ' + r.category + ' — about ' + eur(r.headroom) + '/mo (' + r.basis + ')').join('\n') +
+          '\nTotal realistically reachable: ' + eur(H.totalHeadroom) + '/mo.';
+        return {ok:true, tool:t, say, provenance:'Engine · cut headroom · ' + rangeLabel(), data:H,
+                actions:[{type:'nav', k:'cats', sec:'sec-cats'}],
+                suggestions:['model those cuts', 'design a budget from my last 12 months'],
+                links: top.map(r => 'cat:' + r.category)};
+      }
       if (t === 'spend_ranked'){
         // historyBudgetLines() slices the top 12 by avgMonth and THEN recomputes
         // each amount from recurring sums or the typical month — a different
@@ -22787,7 +23033,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         '  Never use the deposit-savings average as "how much they can save". Never answer 0 when the deadline is missing — ask for the date.',
         '- "What do you notice / how am I doing / anything I can improve / improve cashflow" → budget_notice.',
         '- "Can I afford X a month / an X installment?" → affordability {"monthly":X}. It does the sum for you.',
-        '- "Where can I cut back?" / "how do I save money?" → spend_ranked.',
+        '- "Where can I cut back?" / "how do I save money?" → spend_ranked for the biggest, then cut_headroom for what is actually movable. Never propose a cut larger than a category\'s headroom.',
         '- "How am I doing?" with no extra ask → budget_notice (not a bare restatement of in/out).',
         '- "Show me / list / which ones / what did I spend on X" → find_transactions. This is the only tool',
         '  that returns actual rows. Never answer "show me the transactions" by navigating.',
@@ -22889,6 +23135,24 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           provenance.push('standing order · ' + needle);
         } else {
           facts.push('No standing order matched "' + (slots.query || '') + '". Use payment_monthly; do not quote a category average.');
+        }
+      } else if (kind === 'whatif' || kind === 'advice_open' || kind === 'save_plan'){
+        // The question is "where can this give?", so hand over the assessment
+        // rather than a keyword label and a hope. Without this the model was
+        // reasoning about what SOUNDS discretionary; now it reasons about what
+        // this household has actually managed before.
+        const H = cutHeadroomModel();
+        const top = H.reachable.slice(0, 6);
+        if (top.length){
+          facts.push('Room to cut, measured against this household\'s own leaner months:');
+          top.forEach(r => facts.push('  ' + r.category + ' — up to ' + Math.round(r.headroom) +
+            '/mo of ' + Math.round(r.spend) + ' (' + r.basis + '; confidence ' + r.confidence + ')'));
+          facts.push('Total realistically reachable: ' + Math.round(H.totalHeadroom) + '/mo. ' +
+            'Do not propose a cut larger than a category\'s headroom, and never larger than it costs.');
+          provenance.push(range + ' · cut headroom');
+        } else if (H.rows.length){
+          facts.push('No category has measurable room to cut: every one is either committed or costs the same each month. Say so rather than inventing a saving.');
+          provenance.push(range + ' · cut headroom');
         }
       } else if (kind === 'category'){
         const mine = slots.category

@@ -1,8 +1,8 @@
 {
-  "version": "3.8.1",
+  "version": "3.9.0",
   "released": "2026-08-23",
-  "notes": "The what-if self-test asserted a total that only held if the household spent at least what the test asked to cut. It now asserts what the engine actually promises: a cut never frees more than the category costs.",
+  "notes": "Cuts are now assessed, not guessed. A new engine measures how much each category could realistically give up against the household's own leanest month, and the co-pilot is given that assessment instead of a keyword label.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "5b400832757ca54a2c9a49b0810d3de9a04161c589c1fda6199d476ccc92b9f0"
+  "sha256": "482aab24034966281c58037ff8d7379f0829ef9d31c4fd299dbc7f262c3d1e19"
 }
