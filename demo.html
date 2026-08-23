@@ -51,7 +51,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '3.11.1';
+  var APP_VER = '3.12.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -1311,6 +1311,11 @@ So, when you change a stored shape:
      it had when it sat under a paragraph */
   .sig-ctl > *{margin:0}
   .sig-ctl .btn{white-space:nowrap}
+  .sig-ctl input[type="number"],
+  .sig-ctl input[type="date"],
+  .sig-ctl input[type="text"],
+  .sig-ctl .inp{width:12em; max-width:min(16em, 46vw)}
+  .sig-ctl input[type="range"]{width:140px; max-width:42vw; margin:0}
 
   .sig-stats{display:grid; grid-template-columns:1fr 1fr; gap:10px}
   .sig-stat{padding:13px 14px; border-radius:14px; background:var(--card-bg); border:1px solid var(--card-line)}
@@ -4144,13 +4149,34 @@ rewrite the static advice cards if the picture has changed.</div>
     }
     // Move real controls into the slots togs() left for them. Adoption, not
     // recreation: cloning an input would orphan its listeners and its state.
+    // Homes are remembered so Classic can put them back — tax and pension
+    // live on the same nodes as Classic, unlike Settings which is space-only.
+    const adoptHomes = new Map();
+    function park(el, slot){
+      if (!el || !slot || slot.contains(el)) return;
+      if (el.id && !adoptHomes.has(el.id))
+        adoptHomes.set(el.id, {parent: el.parentNode, next: el.nextSibling});
+      slot.appendChild(el);
+    }
     function adopt(root){
       root.querySelectorAll('.sig-ctl[data-adopt]').forEach(function(slot){
         var id = slot.getAttribute('data-adopt');
         if (!id) return;
-        var el = document.getElementById(id);
-        if (el && el !== slot && !slot.contains(el)) slot.appendChild(el);
+        park(document.getElementById(id), slot);
       });
+    }
+    function restore(ids){
+      var list = ids == null ? Array.from(adoptHomes.keys()) : [].concat(ids);
+      for (var i = list.length - 1; i >= 0; i--){
+        var id = list[i];
+        var el = document.getElementById(id);
+        var home = adoptHomes.get(id);
+        if (el && home && home.parent){
+          try { home.parent.insertBefore(el, home.next); }
+          catch (e) { home.parent.appendChild(el); }
+        }
+        adoptHomes.delete(id);
+      }
     }
     // ── 6. stat tiles ─────────────────────────────────────────────────────
     function stats(items){
@@ -4160,7 +4186,7 @@ rewrite the static advice cards if the picture has changed.</div>
           '<small>' + esc2(t.label) + '</small></div>';
       }).join('') + '</div>';
     }
-    return {spark, ring, rows, bars, stats, togs, adopt, tc};
+    return {spark, ring, rows, bars, stats, togs, adopt, park, restore, tc};
   })();
   window.__ddSignal = Signal;
 
@@ -13479,7 +13505,45 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     const grossYr = net / FISCAL.netToGross;
     return {netYr: net, grossYr, taxYr: taxSet('payeShareOfGross') ? grossYr * FISCAL.payeShareOfGross : null};
   }
+  const PEN_SIGNAL_IDS = ['pnAge','pnAvc','pnAvcLbl'];
+  function renderPensionChrome(){
+    const card = document.getElementById('pensionCard');
+    if (!card) return;
+    const row = card.querySelector('.filter-row');
+    if (document.body.classList.contains('space')){
+      if (document.getElementById('pensionSignal')) return;
+      const slot = document.createElement('div');
+      slot.id = 'pensionSignal';
+      slot.innerHTML = Signal.togs([
+        {name:'Your age', sub:'Used to count years to 65', adopt:'pnAge'},
+        {name:'Extra contribution / month', sub:'Modelled at the relief rate you entered', adopt:'pnAvc'}
+      ]);
+      if (row){
+        row.style.display = 'none';
+        row.parentNode.insertBefore(slot, row);
+      } else {
+        const out = document.getElementById('pnOut');
+        if (out) out.parentNode.insertBefore(slot, out);
+        else card.appendChild(slot);
+      }
+      Signal.adopt(slot);
+      const avcSlot = slot.querySelector('[data-adopt="pnAvc"]');
+      const lbl = document.getElementById('pnAvcLbl');
+      if (avcSlot && lbl) Signal.park(lbl, avcSlot);
+    } else {
+      Signal.restore(PEN_SIGNAL_IDS);
+      const slot = document.getElementById('pensionSignal');
+      if (slot) slot.remove();
+      if (row) row.style.display = '';
+    }
+  }
   function renderWealth(fc, as){
+    as = as || [];
+    // used by the pension trade-off line; previously read a name that only
+    // renderNetWorth declared, so the line threw whenever this ran first
+    const machine = fc && fc.length
+      ? fc.slice(0, 12).reduce((s, f) => s + f.surplusC, 0) / 12 : 0;
+    renderPensionChrome();
     // freshness of the household's own assumptions — the app never claims to
     // have verified anything itself
     const fn = document.getElementById('fiscalNote');
@@ -13556,40 +13620,102 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
     // ── post-goal reallocation ──
     const card = document.getElementById('reallocCard');
+    const table = document.getElementById('reallocTable');
     const allDone = as.length && as.every(r => r.gap === 0 || r.realisticMonth);
-    if (!allDone){ card.style.display = 'none'; return; }
-    const last = MONTHS[MONTHS.length-1];
-    const freeIdx = Math.max(0, ...as.map(r => r.gap === 0 ? 0 : monthDiff(last, r.realisticMonth)));
-    const sAfter = Math.max(0, fc[Math.min(Math.max(freeIdx,0), fc.length-1)].surplusC);
-    if (sAfter < 25){ card.style.display = 'none'; return; }
+    let model = {show:false, items:[]};
+    if (allDone && fc && fc.length){
+      const last = MONTHS[MONTHS.length-1];
+      const freeIdx = Math.max(0, ...as.map(r => r.gap === 0 ? 0 : monthDiff(last, r.realisticMonth)));
+      const sAfter = Math.max(0, fc[Math.min(Math.max(freeIdx,0), fc.length-1)].surplusC);
+      if (sAfter >= 25){
+        const contrib = sAfter * 120;
+        const fvAt = r => fvMonthly(sAfter, r, 10);
+        // A destination whose tax treatment the household has not told us
+        // about is simply not listed, rather than listed with a guessed rate.
+        // Mortgage overpayment and gross growth need no tax input, so those
+        // two always stand.
+        const items = [];
+        if (taxSet('pensionReliefRate')){
+          const pensionFv = fvMonthly(sAfter / (1 - FISCAL.pensionReliefRate), FISCAL.growthNominal, 10);
+          const bought = sAfter / (1 - FISCAL.pensionReliefRate);
+          const note = eur(sAfter) + '/mo of take-home buys ' + eur(bought) + '/mo of contributions at the ' +
+            Math.round(FISCAL.pensionReliefRate*100) + '% relief you entered; usually taxed on the way out';
+          items.push({name:'Pension contributions', sub: eur(sAfter) + '/mo take-home',
+            amount: '≈ ' + eur(pensionFv), tone:'pos',
+            months:[{label:'10YR', value:'≈ ' + eur(pensionFv)}], note});
+        }
+        const fundRate = taxSet('fundsExitTax') ? FISCAL.fundsExitTax : (taxSet('cgtRate') ? FISCAL.cgtRate : null);
+        if (fundRate != null){
+          const fundsNet = contrib + (fvAt(FISCAL.growthNominal) - contrib) * (1 - fundRate);
+          const note = Math.round(FISCAL.growthNominal*100) + '% nominal (assumption), minus the ' +
+            Math.round(fundRate*100) + '% rate you entered on the gain';
+          items.push({name:'Index funds', sub: note, amount: '≈ ' + eur(fundsNet), tone:'pos',
+            months:[{label:'10YR', value:'≈ ' + eur(fundsNet)}], note});
+        }
+        {
+          const note = 'a guaranteed “return” at your mortgage rate (~' +
+            (FISCAL.mortgageRate*100).toFixed(1) + '%) and years off the term';
+          const amt = '≈ ' + eur(fvAt(FISCAL.mortgageRate));
+          items.push({name:'Mortgage overpayment', sub: note, amount: amt,
+            months:[{label:'10YR', value: amt}], note});
+        }
+        if (taxSet('dirtRate')){
+          const amtN = contrib + (fvAt(FISCAL.cashRate)-contrib)*(1-FISCAL.dirtRate);
+          const note = '~' + Math.round(FISCAL.cashRate*100) + '% before the ' +
+            Math.round(FISCAL.dirtRate*100) + '% interest tax you entered — the price of maximum flexibility';
+          items.push({name:'Cash savings', sub: note, amount: '≈ ' + eur(amtN),
+            months:[{label:'10YR', value:'≈ ' + eur(amtN)}], note});
+        } else {
+          const amt = '≈ ' + eur(fvAt(FISCAL.cashRate));
+          const note = '~' + Math.round(FISCAL.cashRate*100) + '% gross — before whatever tax applies to interest where you live';
+          items.push({name:'Cash savings', sub: note, amount: amt,
+            months:[{label:'10YR', value: amt}], note});
+        }
+        model = {
+          show: true, items,
+          title: 'After your goals: ' + eur(sAfter) + '/mo comes free ' +
+            (freeIdx === 0 ? 'now' : 'around ' + fmtMoLbl(addMonths(last, freeIdx))),
+          sub: 'Every goal is funded on the cautious forecast. The same monthly surplus, ' +
+            items.length + ' destinations, 10 years — rough outcomes on your own assumptions' +
+            (TAX_KEYS.some(taxSet) ? '.' : '; add tax assumptions above to see after-tax figures.')
+        };
+      }
+    }
+    if (!model.show){
+      if (card) card.style.display = 'none';
+      if (document.body.classList.contains('space') && table){
+        table.style.display = 'none';
+        let slot = document.getElementById('reallocSignal');
+        if (!slot){ slot = document.createElement('div'); slot.id = 'reallocSignal';
+                    table.parentNode.insertBefore(slot, table); }
+        // Hidden card, but the slot must still hold Signal markup or the
+        // registry test looks exactly like the conversion never ran.
+        slot.innerHTML = Signal.rows([{name:'After your goals',
+          sub:'appears when every goal is funded', amount:'—'}]);
+      } else {
+        const slot = document.getElementById('reallocSignal');
+        if (slot) slot.remove();
+        if (table) table.style.display = '';
+      }
+      return;
+    }
     card.style.display = '';
-    document.getElementById('reallocTitle').textContent = 'After your goals: ' + eur(sAfter) + '/mo comes free ' + (freeIdx === 0 ? 'now' : 'around ' + fmtMoLbl(addMonths(last, freeIdx)));
-    const contrib = sAfter * 120;
-    const fvAt = r => fvMonthly(sAfter, r, 10);
-    // Rows are built one at a time: a destination whose tax treatment the
-    // household has not told us about is simply not listed, rather than listed
-    // with a guessed rate. Mortgage overpayment and gross growth need no tax
-    // input, so those two always stand.
-    const rows = [];
-    if (taxSet('pensionReliefRate')){
-      const pensionFv = fvMonthly(sAfter / (1 - FISCAL.pensionReliefRate), FISCAL.growthNominal, 10);
-      rows.push(`<tr><td><b>Pension contributions</b><div class="rule-meta">${eur(sAfter)}/mo of take-home buys ${eur(sAfter/(1-FISCAL.pensionReliefRate))}/mo of contributions at the ${Math.round(FISCAL.pensionReliefRate*100)}% relief you entered; usually taxed on the way out</div></td><td class="r num">≈ ${eur(pensionFv)}</td></tr>`);
-    }
-    const fundRate = taxSet('fundsExitTax') ? FISCAL.fundsExitTax : (taxSet('cgtRate') ? FISCAL.cgtRate : null);
-    if (fundRate != null){
-      const fundsNet = contrib + (fvAt(FISCAL.growthNominal) - contrib) * (1 - fundRate);
-      rows.push(`<tr><td><b>Index funds</b><div class="rule-meta">${Math.round(FISCAL.growthNominal*100)}% nominal (assumption), minus the ${Math.round(fundRate*100)}% rate you entered on the gain</div></td><td class="r num">≈ ${eur(fundsNet)}</td></tr>`);
-    }
-    rows.push(`<tr><td><b>Mortgage overpayment</b><div class="rule-meta">a guaranteed “return” at your mortgage rate (~${(FISCAL.mortgageRate*100).toFixed(1)}%) and years off the term</div></td><td class="r num">≈ ${eur(fvAt(FISCAL.mortgageRate))}</td></tr>`);
-    if (taxSet('dirtRate')){
-      rows.push(`<tr><td><b>Cash savings</b><div class="rule-meta">~${Math.round(FISCAL.cashRate*100)}% before the ${Math.round(FISCAL.dirtRate*100)}% interest tax you entered — the price of maximum flexibility</div></td><td class="r num">≈ ${eur(contrib + (fvAt(FISCAL.cashRate)-contrib)*(1-FISCAL.dirtRate))}</td></tr>`);
+    document.getElementById('reallocTitle').textContent = model.title;
+    document.getElementById('reallocSub').textContent = model.sub;
+    if (document.body.classList.contains('space') && table){
+      table.style.display = 'none';
+      let slot = document.getElementById('reallocSignal');
+      if (!slot){ slot = document.createElement('div'); slot.id = 'reallocSignal';
+                  table.parentNode.insertBefore(slot, table); }
+      slot.innerHTML = Signal.rows(model.items);
     } else {
-      rows.push(`<tr><td><b>Cash savings</b><div class="rule-meta">~${Math.round(FISCAL.cashRate*100)}% gross — before whatever tax applies to interest where you live</div></td><td class="r num">≈ ${eur(fvAt(FISCAL.cashRate))}</td></tr>`);
+      const slot = document.getElementById('reallocSignal');
+      if (slot) slot.remove();
+      if (table) table.style.display = '';
+      document.querySelector('#reallocTable tbody').innerHTML = model.items.map(it =>
+        `<tr><td><b>${esc(it.name)}</b><div class="rule-meta">${esc(it.note)}</div></td>` +
+        `<td class="r num">${esc(it.amount)}</td></tr>`).join('');
     }
-    document.getElementById('reallocSub').textContent = 'Every goal is funded on the cautious forecast. The same monthly surplus, ' +
-      rows.length + ' destinations, 10 years — rough outcomes on your own assumptions' +
-      (TAX_KEYS.some(taxSet) ? '.' : '; add tax assumptions above to see after-tax figures.');
-    document.querySelector('#reallocTable tbody').innerHTML = rows.join('');
   }
 
   // ══ update checking (P7-2) ══
@@ -13928,6 +14054,23 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   // "I have not told you", which is different from zero — a household in a
   // country with no capital gains tax should be able to enter 0 and get real
   // zero-tax arithmetic, so blank and 0 must not collapse together.
+  const TAX_SIGNAL_IDS = ['tx-cgt','tx-cgtex','tx-fund','tx-dirt','tx-prel','tx-pmax',
+    'tx-n2g','tx-paye','tx-cap','tx-label','tx-ver','tx-save','tx-clear'];
+  const TAX_SIGNAL_SPEC = [
+    {name:'Capital gains rate', sub:'On shares or crypto · blank = off', adopt:'tx-cgt'},
+    {name:'Annual gains exemption', sub:'0 if none', adopt:'tx-cgtex'},
+    {name:'Fund / ETF gains rate', sub:'Blank = same as gains', adopt:'tx-fund'},
+    {name:'Savings interest tax', sub:'Withheld on ordinary savings', adopt:'tx-dirt'},
+    {name:'Pension relief', sub:'Marginal relief on a contribution', adopt:'tx-prel'},
+    {name:'Pension cap', sub:'% of gross, if you have one', adopt:'tx-pmax'},
+    {name:'Net-to-gross ratio', sub:'Take-home ÷ gross, e.g. 0.68', adopt:'tx-n2g'},
+    {name:'Income tax share of gross', sub:'e.g. 0.24', adopt:'tx-paye'},
+    {name:'Capacity per 1,000 borrowed', sub:'From your own lender’s calculator', adopt:'tx-cap'},
+    {name:'Label', sub:'A note to yourself — the app does not use it', adopt:'tx-label'},
+    {name:'You verified these on', sub:'When you last checked the actual rules', adopt:'tx-ver'},
+    {name:'Save assumptions', sub:'Write these into this vault', adopt:'tx-save'},
+    {name:'Clear', sub:'Every tax calculator goes back to hidden', adopt:'tx-clear'}
+  ];
   function paintTaxCard(){
     const set = (id, v, pct) => {
       const el = document.getElementById(id);
@@ -13951,6 +14094,28 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       st.innerHTML = n === 0
         ? 'Nothing set — every tax calculator is hidden and Lithifyte is showing you no tax figures at all.'
         : n + ' assumption' + (n === 1 ? '' : 's') + ' set' + (FISCAL.verifiedOn ? ', verified by you on ' + esc(FISCAL.verifiedOn) : ' — <b>add the date you checked them</b>') + '.';
+    }
+    const card = document.getElementById('taxCard');
+    const form = card && card.querySelector('.goal-form');
+    if (document.body.classList.contains('space') && card){
+      // Idempotent: the live inputs live inside the slot once adopted, so
+      // rebuilding innerHTML would destroy them. Values are painted above.
+      if (!document.getElementById('taxSignal')){
+        const slot = document.createElement('div');
+        slot.id = 'taxSignal';
+        const rows = TAX_SIGNAL_SPEC.filter(r => document.getElementById(r.adopt));
+        slot.innerHTML = Signal.togs(rows);
+        if (form){
+          form.style.display = 'none';
+          form.parentNode.insertBefore(slot, form);
+        } else card.appendChild(slot);
+        Signal.adopt(slot);
+      }
+    } else {
+      Signal.restore(TAX_SIGNAL_IDS);
+      const slot = document.getElementById('taxSignal');
+      if (slot) slot.remove();
+      if (form) form.style.display = '';
     }
   }
   function saveTaxCard(){
@@ -16309,6 +16474,25 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (!Array.isArray(reg) || !reg.length) return 'no registry';
       const bad = reg.filter(r => typeof r.fn !== 'function' || !r.name);
       return !bad.length || 'malformed entries: ' + bad.length;
+    });
+    T('signal: tax inputs are adopted, not cloned', () => {
+      // A clone looks identical and does nothing: listeners were bound to the
+      // original element objects at init. Settings established the pattern;
+      // tax is the first shared Classic/Space form to use it.
+      if (!document.body.classList.contains('space')) return true;
+      const el = document.getElementById('tx-cgt');
+      const slot = document.getElementById('taxSignal');
+      if (!el || !slot) return 'no #taxSignal / #tx-cgt';
+      if (!slot.contains(el)) return '#tx-cgt is not inside #taxSignal';
+      return document.querySelectorAll('#tx-cgt').length === 1 || '#tx-cgt was cloned';
+    });
+    T('signal: pension controls are adopted, not cloned', () => {
+      if (!document.body.classList.contains('space')) return true;
+      const el = document.getElementById('pnAge');
+      const slot = document.getElementById('pensionSignal');
+      if (!el || !slot) return 'no #pensionSignal / #pnAge';
+      if (!slot.contains(el)) return '#pnAge is not inside #pensionSignal';
+      return document.querySelectorAll('#pnAge').length === 1 || '#pnAge was cloned';
     });
 
     // ── cut headroom ──
@@ -24768,7 +24952,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     {name:'debts',             target:null,          fn: () => { if (typeof DP !== 'undefined' && DP) renderDebts(); }},
     {name:'holdings',          target:null,          fn: () => { if (typeof HV !== 'undefined' && HV) renderHoldings(); }},
     {name:'net worth',         target:'nwStrip',     fn: () => { if (typeof NW !== 'undefined' && NW) renderNetWorth(typeof FC !== 'undefined' ? FC : null); }},
-    {name:'wealth engine',     target:'idleSignal',  fn: () => { if (typeof FC !== 'undefined' && FC) renderWealth(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }}
+    {name:'wealth engine',     target:'idleSignal',  fn: () => { if (typeof FC !== 'undefined' && FC) renderWealth(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }},
+    {name:'tax assumptions',   target:'taxSignal',   fn: () => paintTaxCard()},
+    {name:'pension leverage',  target:'pensionSignal', fn: () => renderPensionChrome()},
+    {name:'goal realloc',      target:'reallocSignal', fn: () => { if (typeof FC !== 'undefined' && FC) renderWealth(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }}
   ];
   function signalRerender(){
     for (const r of SIGNAL_RENDERERS){ try{ r.fn(); }catch(e){} }
@@ -25206,10 +25393,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // slots and hidden tables are undone FIRST, then one re-render through
       // the same registry the space view uses.
       try { setTimeout(function(){
-        ['leakSignal','debtSignal','holdSignal','idleSignal'].forEach(function(id){
+        ['leakSignal','debtSignal','holdSignal','idleSignal','reallocSignal'].forEach(function(id){
           const n = document.getElementById(id); if (n) n.remove();
         });
-        ['leakTable','debtTable','hdTable','idleTable'].forEach(function(id){
+        ['leakTable','debtTable','hdTable','idleTable','reallocTable'].forEach(function(id){
           const n = document.getElementById(id); if (n) n.style.display = '';
         });
         const lsc = document.getElementById('leakShapeCard'); if (lsc) lsc.style.display = '';

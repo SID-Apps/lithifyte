@@ -1,8 +1,8 @@
 {
-  "version": "3.11.1",
+  "version": "3.12.0",
   "released": "2026-08-23",
-  "notes": "The three lists that decided which cards re-render for the space view are now one, with a test that fails if a converted card does not actually appear.",
+  "notes": "Net worth's remaining cards: tax, pension, and post-goal realloc, in the Signal language.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "5f3d7b7cbfb43c0babad44bfca25cd78b898934376491d32854ccb3addc0ffbf"
+  "sha256": "c5fc1f3bfb330227f55eeb2f8c8dbe01ca39d8112f453c758e5a3ebb4a8acaa7"
 }
