@@ -1,8 +1,8 @@
 {
-  "version": "3.7.0",
+  "version": "3.8.0",
   "released": "2026-08-23",
-  "notes": "Categories and Leaks in the Signal language: the category legend becomes four stat tiles, and each leak becomes a ledger row with its own monthly shape and the exact figures behind a click.",
+  "notes": "Cashflow's balance table becomes ledger rows: twelve months as shape, the figures on click, and the negative-month count and opening date carried in the row rather than a tooltip.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "75310db4972df4f5fa47ddbd196679decb4bbde5f52af4e9ee08e3d275867d87"
+  "sha256": "97e95ca0ce26fc0bcc3405689e30dcd9ea326316edb820f669b7e8af7d3d62eb"
 }
