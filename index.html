@@ -51,7 +51,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '3.6.0';
+  var APP_VER = '3.7.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -1231,7 +1231,10 @@ So, when you change a stored shape:
      where a renderer emitted them, so they cannot leak into Classic's markup
      the way a .card rule would. */
   .sig-rows{display:flex; flex-direction:column; gap:2px}
-  .sig-row{display:grid; grid-template-columns:minmax(0,1fr) 88px 82px; gap:13px; align-items:center;
+  /* the sparkline shrinks before the name does — a starved label wraps one word
+     per line, an 8px-narrower chart costs nothing */
+  .sig-row{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,88px) minmax(62px,auto);
+    gap:13px; align-items:center;
     width:100%; text-align:left; padding:11px; border-radius:12px; border:1px solid transparent;
     background:none; color:inherit; font:inherit; cursor:pointer; transition:background .15s, border-color .15s}
   .sig-row.sig-flat{cursor:default}
@@ -1246,7 +1249,7 @@ So, when you change a stored shape:
     text-transform:uppercase; color:var(--sv-ink-3); margin-top:3px}
   .sig-amt{text-align:right; font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:14px}
   .sig-spark{display:block}
-  .sig-spark-empty{display:block; width:88px}
+  .sig-spark-empty{display:block; width:100%; max-width:88px}
   /* Figures, not chrome. --critical measured 3.90 on the dark card and 4.44 on
      the light one — both under AA for the most important number in the row.
      These are separate tokens so the app-wide alert colours stay untouched. */
@@ -1277,6 +1280,18 @@ So, when you change a stored shape:
     text-transform:uppercase; color:var(--sv-ink-3); margin:4px 0 12px}
   .sig-settings .card > .hint.sig-why{font:400 12.5px/1.55 var(--font-sans); letter-spacing:0;
     text-transform:none; color:var(--sv-ink-2)}
+  /* The panel is not the window. With the co-pilot open at a 753px viewport the
+     panel is 333px, which left the name column 83px and wrapped every label one
+     word per line. A container query sizes the row to the PANEL, which is the
+     thing that actually varies. */
+  #panelBody{container-type:inline-size; container-name:sigpanel}
+  @container sigpanel (max-width: 460px){
+    .sig-row{grid-template-columns:minmax(0,1fr) minmax(62px,auto); gap:10px}
+    .sig-row .sig-spark, .sig-row .sig-spark-empty{display:none}
+    .sig-months{grid-template-columns:repeat(3,1fr)}
+    .sig-bar-row{grid-template-columns:minmax(0,1fr) minmax(62px,auto)}
+    .sig-stats{grid-template-columns:1fr}
+  }
   .sig-togs{display:flex; flex-direction:column; gap:2px}
   /* Wraps rather than starves. A setting's control has a natural width it will
      not give up, so on a narrow panel the label was being squeezed to nothing
@@ -4075,7 +4090,7 @@ rewrite the static advice cards if the picture has changed.</div>
       });
       const col = tc(opts.color || '#38bdf8');
       const last = pts[pts.length - 1].split(',');
-      return '<svg class="sig-spark" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h +
+      return '<svg class="sig-spark" width="100%" height="' + h + '" viewBox="0 0 ' + w + ' ' + h +
         '" aria-hidden="true" focusable="false"><polyline points="' + pts.join(' ') +
         '" fill="none" stroke="' + col + '" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>' +
         '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="2.5" fill="' + col + '"/></svg>';
@@ -9040,6 +9055,17 @@ rewrite the static advice cards if the picture has changed.</div>
         <b class="num">${eur(avg)}<small> /mo</small></b>
         <span class="cl-sub num">${eur(total)} over ${L.months} month${L.months === 1 ? '' : 's'}${sub ? ' · ' + esc(sub) : ''}</span>
       </div>`;
+    if (document.body.classList.contains('space') && L){
+      const over = L.months + ' month' + (L.months === 1 ? '' : 's');
+      el.innerHTML = Signal.stats([
+        {value: eur(L.incomeAvg) + '/mo', label: 'income · ' + eur(L.income) + ' over ' + over},
+        {value: eur(L.spendAvg) + '/mo',  label: 'spending · ' + (L.catCount + ' categories')},
+        {value: eur(L.saveAvg) + '/mo',   label: 'saved' + (L.savedRate != null ? ' · ' + pct(L.savedRate) : ''), tone: 'pos'},
+        {value: (L.netAvg < 0 ? '−' : '') + eur(Math.abs(L.netAvg)) + '/mo',
+         label: 'left over · income − expenses − saved', tone: L.netAvg >= 0 ? 'pos' : 'neg', wide: true}
+      ]);
+      return;
+    }
     el.innerHTML = `<div class="cat-legend">
         ${cell('cl-inc', 'Income', L.incomeAvg, L.income, L.incomeN + ' credits')}
         ${cell('cl-exp', 'Expenses', L.spendAvg, L.spend, (L.spentRate != null ? pct(L.spentRate) : '') || (L.catCount + ' categories'))}
@@ -9351,6 +9377,48 @@ rewrite the static advice cards if the picture has changed.</div>
     guard('leak shape', renderLeakShape);
     const tb = document.querySelector('#leakTable tbody');
     const verdictLabel = {hot:'Cut hard', warm:'Trim', ok:'Healthy'};
+    if (document.body.classList.contains('space') && A && Array.isArray(A.leaks)){
+      const host = document.getElementById('leakTable');
+      if (!host || !host.parentNode) return;
+      let slot = document.getElementById('leakSignal');
+      if (!slot){
+        slot = document.createElement('div'); slot.id = 'leakSignal';
+        host.parentNode.insertBefore(slot, host);
+      }
+      host.style.display = 'none';
+      // The shape card drew the same twelve months as bars. Two pictures of one
+      // series is exactly the density the rebuild is removing — the sparkline
+      // carries the shape and the row's note carries the spikes and the worst
+      // month, which is all the card was adding.
+      const shape = document.getElementById('leakShapeCard');
+      if (shape) shape.style.display = 'none';
+      const byName = new Map(LEAK_DEFS.map(d => [d.name, d]));
+      const toneOf = {hot:'neg', warm:'am', ok:'pos'};
+      const colOf  = {hot:'#fb7185', warm:'#f7c95c', ok:'#34d399'};
+      slot.innerHTML = Signal.rows(A.leaks.map(l => {
+        const def = byName.get(l.name);
+        const M = def ? leakModel(def) : null;
+        const rws = (M && M.rows) || [];
+        return {
+          name: l.name,
+          sub: l.note + ' · ' + verdictLabel[l.verdict],
+          series: rws.map(r => r.total),
+          color: colOf[l.verdict] || '#6f8bab',
+          amount: eur(l.avgMonth) + '/mo',
+          tone: toneOf[l.verdict],
+          months: rws.slice(-6).map(r => ({
+            label: fmtMoLbl(r.month).slice(0,3).toUpperCase(),
+            value: r.n ? eur(r.total) : '—'
+          })),
+          note: eur(l.total12) + ' across ' + l.txCount + ' payment' + (l.txCount === 1 ? '' : 's') +
+                (M && M.peak && M.peak.month ? ' · worst ' + fmtMoLbl(M.peak.month) + ' ' + eur(M.peak.total) : '') +
+                (M && M.spikes && M.spikes.length
+                  ? ' · ' + M.spikes.length + ' spike' + (M.spikes.length === 1 ? '' : 's') : '')
+        };
+      }));
+      if (!A.leaks.length) slot.innerHTML = '<p class="hint">No leaks in this range.</p>';
+      return;
+    }
     tb.innerHTML = A.leaks.map(l=>`<tr>
       <td>${l.name}<div class="rule-meta">${l.note}</div></td>
       <td class="r">${eur(l.total12)}</td>
@@ -24233,6 +24301,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   // on a light card and drops to 2.36:1, under the 3:1 a graphic needs.
   function signalRerender(){
     try{ renderSummaryBalances(); }catch(e){}
+    if (!A) return;                      // blank shell: nothing to draw, and
+    try{ renderCatLegend(); }catch(e){}  // these read A.txe through leakModel
+    try{ renderLeaks(); }catch(e){}
   }
   window.__ddSignalRerender = signalRerender;
   new MutationObserver(()=>{
@@ -24638,6 +24709,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // and the first render happens BEFORE this class exists — so without a
       // re-render here the space view keeps whatever Classic drew on load.
       try { renderSummaryBalances(); } catch (e) {}
+      if (A){
+        try { renderCatLegend(); } catch (e) {}
+        try { renderLeaks(); } catch (e) {}
+      }
       const card = document.getElementById('graphCard');
       take(card); stage.appendChild(card);
       if (TX.length === 0){
@@ -24663,7 +24738,13 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
     function exit(){
       // and back the other way, or Classic inherits the Signal rows
-      try { setTimeout(renderSummaryBalances, 0); } catch (e) {}
+      try { setTimeout(function(){
+        renderSummaryBalances();
+        if (A){ renderCatLegend(); renderLeaks(); }
+        const lt = document.getElementById('leakTable'); if (lt) lt.style.display = '';
+        const lsc = document.getElementById('leakShapeCard'); if (lsc) lsc.style.display = '';
+        const ls = document.getElementById('leakSignal'); if (ls) ls.remove();
+      }, 0); } catch (e) {}
       closePanel(); closeMini();
       document.body.classList.remove('space');
       restore(document.getElementById('graphCard'));
