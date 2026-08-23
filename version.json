@@ -1,8 +1,8 @@
 {
-  "version": "3.5.0",
+  "version": "3.6.0",
   "released": "2026-08-23",
-  "notes": "The five Signal shapes are in: sparklines, expandable ledger rows, budget bars with a limit mark, progress rings and stat tiles — all theme-aware. Summary's account balances are the first card rendered with them.",
+  "notes": "Settings rebuilt in the Signal language: a label, a quiet sub-line and one control per row, with the explanations folded behind a ?. Adds the togs shape the design uses everywhere.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "187616439a26a2efe8bdfe95c5e7f1dc6a60a59000de0c2280c0a92b110491e8"
+  "sha256": "c603cfa1017092857151d06dcc3aad5d7082e0a495d08d30445a9a3febac1907"
 }

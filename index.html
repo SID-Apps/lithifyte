@@ -51,7 +51,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '3.5.0';
+  var APP_VER = '3.6.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -1271,6 +1271,31 @@ So, when you change a stored shape:
   .sig-track s{position:absolute; top:-3px; width:1px; height:11px; background:var(--sv-ink-3)}
   .sig-bar-row .sig-sub{grid-column:1/-1; font:500 9.5px/1.5 var(--font-mono); letter-spacing:.1em;
     text-transform:uppercase; color:var(--sv-ink-3); margin-top:6px}
+
+  .sig-settings .card{margin:0 0 12px}
+  .sig-settings .card > .hint.sig-deck{font:500 10px/1.6 var(--font-mono); letter-spacing:.11em;
+    text-transform:uppercase; color:var(--sv-ink-3); margin:4px 0 12px}
+  .sig-settings .card > .hint.sig-why{font:400 12.5px/1.55 var(--font-sans); letter-spacing:0;
+    text-transform:none; color:var(--sv-ink-2)}
+  .sig-togs{display:flex; flex-direction:column; gap:2px}
+  /* Wraps rather than starves. A setting's control has a natural width it will
+     not give up, so on a narrow panel the label was being squeezed to nothing
+     and every sub-line broke one word per line. Below ~200px of label the
+     control drops to its own line instead. */
+  .sig-tog{display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px;
+    padding:11px; border-radius:12px}
+  .sig-tog:hover{background:var(--hoverish)}
+  .sig-tog .sig-nm{flex:1 1 200px; min-width:0}
+  /* MUST out-specify `.sig-nm small` (0,1,1), which sets the uppercase mono
+     used for a ledger row's sub-label. At equal weight that rule won and every
+     setting's sub-line rendered as uppercase mono, one word per line. */
+  .sig-tog .sig-nm small.sig-tog-sub{display:block; font:400 11.5px/1.5 var(--font-sans);
+    color:var(--sv-ink-3); letter-spacing:0; text-transform:none; margin-top:3px; white-space:normal}
+  .sig-ctl{flex:0 1 auto; margin-left:auto; display:flex; align-items:center; gap:6px; flex-wrap:wrap}
+  /* an adopted control keeps its own styling; it only loses the block layout
+     it had when it sat under a paragraph */
+  .sig-ctl > *{margin:0}
+  .sig-ctl .btn{white-space:nowrap}
 
   .sig-stats{display:grid; grid-template-columns:1fr 1fr; gap:10px}
   .sig-stat{padding:13px 14px; border-radius:14px; background:var(--card-bg); border:1px solid var(--card-line)}
@@ -4119,7 +4144,31 @@ rewrite the static advice cards if the picture has changed.</div>
           (b.sub ? '<span class="sig-sub">' + esc2(b.sub) + '</span>' : '') + '</div>';
       }).join('') + '</div>';
     }
-    // ── 5. stat tiles ─────────────────────────────────────────────────────
+    // ── 5. setting rows ───────────────────────────────────────────────────
+    // The preview's second most-used shape and the one Settings is made of: a
+    // label, a quiet sub-line, and ONE control on the right. It does not own the
+    // control — it adopts the app's existing input, so every handler, id and
+    // binding already attached to that element keeps working.
+    function togs(items){
+      return '<div class="sig-togs">' + (items || []).map(function(t){
+        return '<div class="sig-tog">' +
+          '<span class="sig-nm">' + esc2(t.name) +
+            (t.sub ? '<small class="sig-tog-sub">' + esc2(t.sub) + '</small>' : '') + '</span>' +
+          '<span class="sig-ctl" data-adopt="' + esc2(t.adopt || '') + '">' + (t.control || '') + '</span>' +
+        '</div>';
+      }).join('') + '</div>';
+    }
+    // Move real controls into the slots togs() left for them. Adoption, not
+    // recreation: cloning an input would orphan its listeners and its state.
+    function adopt(root){
+      root.querySelectorAll('.sig-ctl[data-adopt]').forEach(function(slot){
+        var id = slot.getAttribute('data-adopt');
+        if (!id) return;
+        var el = document.getElementById(id);
+        if (el && el !== slot && !slot.contains(el)) slot.appendChild(el);
+      });
+    }
+    // ── 6. stat tiles ─────────────────────────────────────────────────────
     function stats(items){
       return '<div class="sig-stats">' + (items || []).map(function(t){
         return '<div class="sig-stat' + (t.wide ? ' sig-wide' : '') + '">' +
@@ -4127,9 +4176,101 @@ rewrite the static advice cards if the picture has changed.</div>
           '<small>' + esc2(t.label) + '</small></div>';
       }).join('') + '</div>';
     }
-    return {spark, ring, rows, bars, stats, tc};
+    return {spark, ring, rows, bars, stats, togs, adopt, tc};
   })();
   window.__ddSignal = Signal;
+
+  // ── Settings, in the Signal language ──────────────────────────────────
+  // #settingsCard is space-only (display:none outside body.space), so unlike
+  // every other section this one can be restructured without touching Classic.
+  //
+  // The controls are ADOPTED, never rebuilt: their listeners were bound to those
+  // element objects during init, and a clone would look identical and do
+  // nothing. Everything else — the paragraphs of explanation — becomes a
+  // sub-line or moves behind the ?, which is the whole point of the design.
+  const SETTINGS_SPEC = [
+    {title:'View', deck:'This browser only',
+     why:'Stored per browser, not in your data — a backup does not carry them and a vault lock does not change them.',
+     rows:[
+      {name:'Theme', sub:'Match your device, or pick one', adopt:'__themePicker'},
+      {name:'Classic view', sub:'Every section on one scrolling page — the keyboard and screen-reader path', adopt:'setClassicBtn'},
+      {name:'Guided tutorial', sub:'A walkthrough of the map, in the app', adopt:'setTourBtn'},
+      {name:'Written guide', sub:'Long-form help and product Q&A', adopt:'setTutorialAskLink'}
+     ]},
+    {title:'Updates', deck:'Off until you turn it on',
+     why:'Lithifyte asks GitHub, never us — so we do not learn that you exist, what version you run, or that you ran it today. At most once a week.',
+     rows:[
+      {name:'Check for updates', sub:'Ask GitHub whether a newer version exists', adopt:'updOptIn'},
+      {name:'No thanks', sub:'Never check', adopt:'updOff'},
+      {name:'Check now', sub:'Ask once, right now', adopt:'updNow'},
+      {name:'Stop checking', sub:'Turn the weekly check back off', adopt:'updDisable'}
+     ]},
+    {title:'Your account', deck:'Hosted features only',
+     rows:[
+      {name:'Lithifyte Plus', sub:'Cloud vault and bank-import presets', adopt:'plusOpenBtn'},
+      {name:'Sign out', sub:'This browser', adopt:'acctSignOut'}
+     ]},
+    {title:'Google Drive', deck:'Your Drive, your files',
+     why:'Lithifyte reads and writes only the files you choose. It never browses your Drive.',
+     rows:[
+      {name:'Connect', sub:'Authorise this browser', adopt:'driveConnect'},
+      {name:'Back up to Drive', sub:'One file, everything', adopt:'driveBackup'},
+      {name:'Restore from Drive', sub:'Shows a diff before it writes', adopt:'driveRestore'},
+      {name:'Import a statement', sub:'Read a statement straight from Drive', adopt:'drivePickStmt'}
+     ]},
+    {title:'Cloud vault', deck:'Plus · encrypted before it leaves',
+     rows:[
+      {name:'Save encrypted vault', sub:'Encrypted in this tab, then uploaded', adopt:'vaultBackup'},
+      {name:'Restore from vault', sub:'Needs your passphrase', adopt:'vaultRestore'},
+      {name:'Delete cloud copy', sub:'Removes the uploaded vault', adopt:'vaultDelete'}
+     ]},
+    {title:'AI & what left this device', deck:'Every request is logged here',
+     why:'The ledger never lives on our servers. With consent the co-pilot can read every panel and make reversible edits; imported statement amounts are never changed. Commands-only sends nothing.',
+     rows:[
+      {name:'Let the co-pilot read panels and edit', sub:'Budgets, goals, rules and notes — reversible, and revocable any time', adopt:'aiAssistantVision'},
+      {name:'Revoke consent', sub:'Withdraw it now', adopt:'aiConsentRevoke'},
+      {name:'Clear the log', sub:'Forget what was sent', adopt:'aiDiscloseClear'},
+      {name:'What was sent', sub:'Read the full outbound log', adopt:'integToggle'}
+     ]},
+    {title:'Backup & integrity', deck:'The vault lives in this browser',
+     why:'A cleared cache is a lost vault. The backup file is the only copy that survives it.',
+     rows:[
+      {name:'Export everything', sub:'One file, readable JSON', adopt:'bkExport'},
+      {name:'Import a backup', sub:'Shows a diff before it writes', adopt:'bkImport'},
+      {name:'Lock this browser', sub:'Passphrase — there is no recovery', adopt:'bkLock'},
+      {name:'Self-test', sub:'Runs on every load', adopt:'stRun'},
+      {name:'Self-test detail', sub:'What each check asserts', adopt:'stToggle'}
+     ]}
+  ];
+  function renderSettingsSignal(){
+    const card = document.getElementById('settingsCard');
+    if (!card || !document.body.classList.contains('space')) return;
+    if (card.dataset.signal === '1') return;             // idempotent
+    const holder = document.createElement('div');
+    holder.className = 'sig-settings';
+    holder.innerHTML = SETTINGS_SPEC.map(function(g){
+      const rows = g.rows.filter(function(r){
+        return r.adopt === '__themePicker' || document.getElementById(r.adopt);
+      });
+      if (!rows.length) return '';
+      return '<div class="card"><h3>' + g.title + '</h3>' +
+        (g.deck ? '<p class="hint sig-deck">' + g.deck + '</p>' : '') +
+        (g.why ? '<p class="hint sig-why">' + g.why + '</p>' : '') +
+        Signal.togs(rows) + '</div>';
+    }).join('');
+    // both structures are in the document at this point, so getElementById can
+    // still find the live controls to move them
+    card.appendChild(holder);
+    const pick = document.querySelector('.sig-ctl[data-adopt="__themePicker"]');
+    const grp = document.querySelector('[role="group"][aria-label="Theme"]');
+    if (pick && grp) pick.appendChild(grp);
+    Signal.adopt(holder);
+    // whatever is left of the old layout is prose and empty wrappers
+    [...card.children].forEach(function(el){ if (el !== holder) el.remove(); });
+    card.dataset.signal = '1';
+    signalDecorate(card);
+  }
+  window.__ddRenderSettingsSignal = renderSettingsSignal;
 
   // one delegated listener for every expandable row, anywhere
   document.addEventListener('click', function(e){
@@ -24316,6 +24457,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     function signalDecorate(root){
       root.querySelectorAll('p.hint, span.hint').forEach(h => {
         if (h.classList.contains('sig-folded')) return;          // idempotent
+        if (h.classList.contains('sig-deck')) return;            // a deck is a label
         const txt = (h.textContent || '').trim();
         if (txt.length < 24) return;                             // a label, not prose
         // the heading this prose belongs to: previous sibling, else the parent's
@@ -24356,6 +24498,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         const el = document.querySelector(s);
         if (el){ take(el); pBody.appendChild(el); mounted.push(el); }
       }
+      if (item.k === 'settings'){ try{ renderSettingsSignal(); }catch(e){} }
       signalDecorate(pBody);
       pBody.scrollTop = 0;
       panel.dataset.surface = item.surface || 'data';
