@@ -1,8 +1,8 @@
 {
-  "version": "3.11.0",
+  "version": "3.11.1",
   "released": "2026-08-23",
-  "notes": "Net worth: the KPI strip becomes stat tiles and the idle-money advice becomes a row you can open for the range it is based on.",
+  "notes": "The three lists that decided which cards re-render for the space view are now one, with a test that fails if a converted card does not actually appear.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "1797555cfd0c0674dee7b7b5b9c3a2dc19b188064ff736959e3d3724325e9083"
+  "sha256": "5f3d7b7cbfb43c0babad44bfca25cd78b898934376491d32854ccb3addc0ffbf"
 }
