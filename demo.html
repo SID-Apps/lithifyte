@@ -51,7 +51,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '3.9.1';
+  var APP_VER = '3.10.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -14009,6 +14009,50 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         <div class="kpi"><div class="k-label">Weighted APR</div><div class="k-val num">${DP.wApr.toFixed(1)}%</div><div class="k-note">across open balances</div></div>
         <div class="kpi"><div class="k-label">Debt-service ratio</div><div class="k-val num">${dsr != null ? dsr.toFixed(0) + '%' : '—'}</div><div class="k-note">${dsr != null ? 'of net income — lenders read under ~35% as safe' : 'needs income history'}</div></div>`;
     } else strip.style.display = 'none';
+    if (document.body.classList.contains('space')){
+      // The columns here are not a time series, so there is no sparkline to
+      // draw — a row carries the balance and the rest of the schedule opens
+      // underneath it, which is what the extra five columns were for.
+      if (DP.open > 0){
+        const netInc2 = A.allMonthly.slice(-6).reduce((s, m) => s + m.income, 0) / Math.max(1, Math.min(6, A.allMonthly.length));
+        const dsr2 = netInc2 > 0 ? DP.service / netInc2 * 100 : null;
+        strip.style.display = '';
+        strip.innerHTML = Signal.stats([
+          {value: eur(DP.totBal), label: 'total debt · ' + DP.open + ' open', tone:'neg'},
+          {value: eur(DP.service) + '/mo', label: 'debt service'},
+          {value: DP.wApr.toFixed(1) + '%', label: 'weighted APR'},
+          {value: dsr2 != null ? dsr2.toFixed(0) + '%' : '—', label: 'of income goes to debt'}
+        ]);
+      }
+      const dt = document.getElementById('debtTable');
+      if (dt) dt.style.display = 'none';
+      let slot = document.getElementById('debtSignal');
+      if (!slot){ slot = document.createElement('div'); slot.id = 'debtSignal';
+                  dt.parentNode.insertBefore(slot, dt); }
+      slot.innerHTML = Signal.rows(DP.rows.map(d => {
+        const warn = [];
+        if (d.underwater) warn.push('payment below interest');
+        if (d.done) warn.push('paid off? update it');
+        if (!d.done && d.fixedUntil && d.fixedUntil >= lastMo && monthDiff(lastMo, d.fixedUntil) <= 6)
+          warn.push('fixed ends ' + fmtMoLbl(d.fixedUntil));
+        const sub = [debtKinds[d.kind] || d.kind, (d.apr || 0).toFixed(2) + '% APR'].concat(warn).join(' · ');
+        return {
+          name: d.name, sub,
+          amount: eur(d.balance),
+          tone: d.underwater ? 'neg' : (d.done ? 'pos' : ''),
+          months: [
+            {label:'PAY',   value: d.pay > 0 ? eur(d.pay) : '—'},
+            {label:'APR',   value: (d.apr || 0).toFixed(2) + '%'},
+            {label:'AS OF', value: d.asOfMonth || '—'}
+          ],
+          note: d.done ? 'Paid off by the schedule'
+              : d.underwater ? 'At this payment the balance never falls'
+              : 'Debt-free ' + fmtMoLbl(d.payoffMonth) + (d.merchant ? ' · matched to ' + d.merchant : ' · not in statements')
+        };
+      }));
+      if (!DP.rows.length) slot.innerHTML = '';
+      return;
+    }
     // table
     const table = document.getElementById('debtTable');
     const tb = table.querySelector('tbody');
@@ -14170,6 +14214,43 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           : `<div class="kpi"><div class="k-label">Tax if sold today</div><div class="k-val num">—</div><div class="k-note">no rates set · <a href="#taxCard">add your own</a></div></div>`}
         <div class="kpi"><div class="k-label">${HV.conc.length ? 'Concentration' : 'Positions'}</div><div class="k-val num">${HV.conc.length ? '⚠ ' + Math.round(Math.max(...HV.rows.map(r => r.weight))) + '%' : HV.rows.length + (HV.unpriced.length ? ' + ' + HV.unpriced.length : '')}</div><div class="k-note">${HV.conc.length ? esc(HV.conc[0]) + ' dominates — over 25% of the portfolio' : HV.unpriced.length ? HV.unpriced.length + ' awaiting a quote' : 'priced positions'}</div></div>`;
     } else strip.style.display = 'none';
+    if (document.body.classList.contains('space')){
+      if (HV.rows.length){
+        strip.style.display = '';
+        strip.innerHTML = Signal.stats([
+          {value: eur(HV.total), label: 'portfolio value'},
+          {value: (HV.gain < 0 ? '−' : '') + eur(Math.abs(HV.gain)), label: 'unrealised gain',
+           tone: HV.gain >= 0 ? 'pos' : 'neg'},
+          {value: HV.haveTax ? eur(HV.taxAll) : '—', label: HV.haveTax ? 'est. tax if sold today' : 'tax — no rates set'},
+          {value: String(HV.rows.length), label: kindsTxt || 'positions', wide: true}
+        ]);
+      }
+      const ht = document.getElementById('hdTable');
+      if (ht) ht.style.display = 'none';
+      let hslot = document.getElementById('holdSignal');
+      if (!hslot){ hslot = document.createElement('div'); hslot.id = 'holdSignal';
+                   ht.parentNode.insertBefore(hslot, ht); }
+      const allH = HV.rows.concat(HV.unpriced.map(u => Object.assign({unpricedRow:true}, u)));
+      hslot.innerHTML = Signal.rows(allH.map(h => {
+        const warn = [];
+        if (h.unpricedRow) warn.push('no quote');
+        else if (h.stale) warn.push('stale quote');
+        return {
+          name: h.name,
+          sub: [h.symbol, holdKinds[h.kind] || h.kind].concat(warn).join(' · '),
+          amount: h.unpricedRow ? '—' : eur(h.value),
+          tone: h.unpricedRow ? '' : ((h.gain || 0) >= 0 ? 'pos' : 'neg'),
+          months: h.unpricedRow ? null : [
+            {label:'UNITS', value: (+h.units).toLocaleString(MONEY.locale, {maximumFractionDigits:4})},
+            {label:'QUOTE', value: eur(h.quote)},
+            {label:'GAIN',  value: ((h.gain||0) < 0 ? '−' : '') + eur(Math.abs(h.gain||0)), negative:(h.gain||0) < 0}
+          ],
+          note: h.unpricedRow ? 'Enter a quote to price this position' : null
+        };
+      }));
+      if (!allH.length) hslot.innerHTML = '';
+      return;
+    }
     const table = document.getElementById('hdTable');
     const tb = table.querySelector('tbody');
     const all = HV.rows.concat(HV.unpriced.map(u => Object.assign({unpricedRow: true}, u)));
@@ -24609,7 +24690,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   function signalRerender(){
     try{ renderSummaryBalances(); }catch(e){}
     try{ renderBalances(); }catch(e){}
-    if (!A) return;                      // blank shell: nothing to draw, and
+    if (!A) return;
+    try{ if (typeof DP !== 'undefined' && DP) renderDebts(); }catch(e){}
+    try{ if (typeof HV !== 'undefined' && HV) renderHoldings(); }catch(e){}                      // blank shell: nothing to draw, and
     try{ renderCatLegend(); }catch(e){}  // these read A.txe through leakModel
     try{ renderLeaks(); }catch(e){}
   }
@@ -25018,6 +25101,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // re-render here the space view keeps whatever Classic drew on load.
       try { renderSummaryBalances(); } catch (e) {}
       try { renderBalances(); } catch (e) {}
+      try { if (typeof DP !== 'undefined' && DP) renderDebts(); } catch (e) {}
+      try { if (typeof HV !== 'undefined' && HV) renderHoldings(); } catch (e) {}
       if (A){
         try { renderCatLegend(); } catch (e) {}
         try { renderLeaks(); } catch (e) {}
@@ -25052,7 +25137,14 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         if (A){ renderCatLegend(); renderLeaks(); }
         const lt = document.getElementById('leakTable'); if (lt) lt.style.display = '';
         const lsc = document.getElementById('leakShapeCard'); if (lsc) lsc.style.display = '';
-        const ls = document.getElementById('leakSignal'); if (ls) ls.remove();
+        ['leakSignal','debtSignal','holdSignal'].forEach(function(id){
+          const n = document.getElementById(id); if (n) n.remove();
+        });
+        ['debtTable','hdTable'].forEach(function(id){
+          const n = document.getElementById(id); if (n) n.style.display = '';
+        });
+        try{ if (typeof DP !== 'undefined' && DP) renderDebts(); }catch(e){}
+        try{ if (typeof HV !== 'undefined' && HV) renderHoldings(); }catch(e){}
       }, 0); } catch (e) {}
       closePanel(); closeMini();
       document.body.classList.remove('space');
