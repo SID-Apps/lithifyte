@@ -51,7 +51,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '3.16.0';
+  var APP_VER = '3.17.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -3142,7 +3142,7 @@ So, when you change a stored shape:
       <div id="nwTrend" style="margin-top:10px"></div>
       <div style="overflow-x:auto; margin-top:12px"><table id="asTable" style="display:none"><tbody></tbody></table></div>
       <div class="gf-editbar" id="asEditBar"><span id="asEditMsg"></span><button class="btn small" id="asCancel" type="button">Cancel</button></div>
-      <div class="goal-form" style="grid-template-columns:1.2fr 1fr .8fr .8fr 1.2fr auto">
+      <div class="goal-form" id="asForm" style="grid-template-columns:1.2fr 1fr .8fr .8fr 1.2fr auto">
         <div><label for="as-name">Asset</label><input id="as-name" class="inp" placeholder="e.g. Family home"></div>
         <div><label for="as-class">Class</label><select id="as-class" class="inp">
           <option value="property">Property</option><option value="vehicle">Vehicle</option>
@@ -9026,9 +9026,37 @@ rewrite the static advice cards if the picture has changed.</div>
       creditOwed: NW ? NW.creditOwed : 0, kindLabels: DEBT_LABELS});
     return Engine.donutSlices({items: mix.items, max: 8, otherLabel: 'Other debt'});
   }
+  const SIG_NW = {cash:'#34d399', pots:'#38bdf8', invest:'#7dd3fc', property:'#a78bfa',
+    vehicle:'#fb923c', pension:'#38bdf8', valuables:'#f7c95c', business:'#a78bfa',
+    'cash-elsewhere':'#34d399', other:'#6f8bab'};
+  const SIG_LIAB = {personal:'#fb7185', car:'#fb923c', mortgage:'#a78bfa',
+    'credit-card':'#f7c95c', student:'#38bdf8', other:'#6f8bab',
+    '__cards':'#fb7185', '__other':'#6f8bab'};
+  function mixToBars(M, emptyName, emptySub, colors){
+    if (!(M && M.total > 0 && M.slices && M.slices.length))
+      return Signal.bars([{name: emptyName, color:'#6f8bab', pct:0, amount:'—', sub: emptySub}]);
+    return Signal.bars(M.slices.map((sl, i) => ({
+      name: sl.label,
+      color: colors[sl.key] || ['#38bdf8','#34d399','#a78bfa','#f7c95c','#fb7185','#fb923c','#7dd3fc','#6f8bab'][i % 8],
+      pct: sl.pct * 100,
+      amount: eur(sl.value),
+      sub: Math.round(sl.pct * 100) + '%' + (sl.folded ? ' · ' + sl.folded + ' smaller folded in' : '')
+    })));
+  }
   function renderMixCharts(){
     const aHost = document.getElementById('assetMix');
     const lHost = document.getElementById('liabMix');
+    const aCell = aHost && aHost.closest('.mix-cell');
+    if (document.body.classList.contains('space')){
+      // Asset composition is already drawn as bars in #nwComp. A second
+      // picture of the same series is the leak-shape duplication, so the
+      // asset mix cell is retired here and the liability mix becomes bars.
+      if (aCell) aCell.style.display = 'none';
+      if (lHost) lHost.innerHTML = mixToBars(liabMixModel(),
+        'Liabilities', 'no tracked debt', SIG_LIAB);
+      return;
+    }
+    if (aCell) aCell.style.display = '';
     if (aHost){
       const M = assetMixModel();
       aHost.innerHTML = M.total > 0
@@ -15275,9 +15303,39 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   const nwColors = {cash:'var(--save)', pots:'#14b8a6', invest:'var(--income)', property:'var(--violet)',
     vehicle:'var(--serious)', pension:'#0ea5e9', valuables:'var(--warning)', business:'#a855f7',
     'cash-elsewhere':'#84cc16', other:'var(--muted)'};
+  const AS_SIGNAL_IDS = ['as-name','as-class','as-val','as-asof','as-note','as-save'];
+  const AS_SIGNAL_SPEC = [
+    {name:'Asset', sub:'A name is the minimum', adopt:'as-name'},
+    {name:'Class', sub:'Where it sits on the asset side', adopt:'as-class'},
+    {name:'Est. value', sub:'Rough is fine', adopt:'as-val'},
+    {name:'Valued as of', sub:'Goes amber as it ages', adopt:'as-asof'},
+    {name:'Source / note', sub:'What you checked, and when', adopt:'as-note'},
+    {name:'Add asset', sub:'Counted once, never guessed', adopt:'as-save'}
+  ];
+  function paintAssetForm(){
+    const form = document.getElementById('asForm');
+    if (document.body.classList.contains('space')){
+      if (document.getElementById('asFormSignal')) return;
+      const slot = document.createElement('div');
+      slot.id = 'asFormSignal';
+      slot.innerHTML = Signal.togs(AS_SIGNAL_SPEC.filter(r => document.getElementById(r.adopt)));
+      if (form){
+        form.style.display = 'none';
+        form.parentNode.insertBefore(slot, form);
+      }
+      Signal.adopt(slot);
+    } else {
+      Signal.restore(AS_SIGNAL_IDS);
+      const slot = document.getElementById('asFormSignal');
+      if (slot) slot.remove();
+      if (form) form.style.display = '';
+    }
+  }
   function renderNetWorth(fc){
     if (!NW) return;
+    paintAssetForm();
     const machine = fc ? fc.slice(0, 12).reduce((s, f) => s + f.surplusC, 0) / 12 : 0;
+    const space = document.body.classList.contains('space');
     if (document.body.classList.contains('space')){
       const liabNote = [NW.debtsTotal ? 'debts ' + eur(NW.debtsTotal) : '',
                         NW.creditOwed ? 'cards ' + eur(NW.creditOwed) : ''].filter(Boolean).join(' · ');
@@ -15302,9 +15360,21 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         <div class="k-note">${NW.liab > 0 ? (NW.debtsTotal ? 'debts ' + eur(NW.debtsTotal) : '') + (NW.creditOwed ? (NW.debtsTotal ? ' · ' : '') + 'credit cards ' + eur(NW.creditOwed) : '') : 'no tracked debt'}</div></div>
       <div class="kpi"><div class="k-label">The machine</div><div class="k-val num pos">${eur(machine)}/mo</div>
         <div class="k-note">cautious surplus, next 12 months — this is what compounds</div></div>`;
-    // composition bar
+    // composition bar — in space this is Signal.bars, and the asset mix
+    // donut is retired so the same series is not drawn twice
     const comp = document.getElementById('nwComp');
-    if (NW.comp.length){
+    if (space){
+      const items = (NW.comp && NW.comp.length)
+        ? NW.comp.map(c => ({
+            name: nwLabels[c.k] || c.k,
+            color: SIG_NW[c.k] || '#6f8bab',
+            pct: NW.gross > 0 ? c.v / NW.gross * 100 : 0,
+            amount: eur(c.v),
+            sub: (NW.gross > 0 ? Math.round(c.v / NW.gross * 100) + '% of assets' : '')
+          }))
+        : [{name:'Asset mix', color:'#6f8bab', pct:0, amount:'—', sub:'nothing on the asset side yet'}];
+      if (comp) comp.innerHTML = Signal.bars(items);
+    } else if (NW.comp.length){
       comp.innerHTML = `<div class="track" style="display:flex; margin:0 0 6px">` +
         NW.comp.map(c => `<div title="${esc(nwLabels[c.k] || c.k)} ${eur(c.v)}" style="width:${(c.v / NW.gross * 100).toFixed(2)}%; background:${nwColors[c.k] || 'var(--muted)'}"></div>`).join('') + `</div>
         <div class="hint num">${NW.comp.map(c => `<span style="white-space:nowrap"><span style="display:inline-block; width:9px; height:9px; border-radius:2px; background:${nwColors[c.k] || 'var(--muted)'}; margin-right:4px"></span>${esc(nwLabels[c.k] || c.k)} ${eur(c.v)} · ${Math.round(c.v / NW.gross * 100)}%</span>`).join('  ')}</div>`;
@@ -15332,9 +15402,36 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (nwLog.length > 730) nwLog = nwLog.slice(-730);
       save(LS.nwlog, nwLog);
     }
-    guard('net worth graph', renderNwGraph);
+    const gHost = document.getElementById('nwGraph');
+    if (space){
+      if (gHost) gHost.style.display = 'none';
+    } else {
+      if (gHost) gHost.style.display = '';
+      guard('net worth graph', renderNwGraph);
+    }
     const tr = document.getElementById('nwTrend');
-    if (nwLog.length >= 2){
+    if (space){
+      const d0 = nwLog[0], dN = nwLog[nwLog.length - 1];
+      const delta = (d0 && dN) ? dN.t - d0.t : 0;
+      const note = nwLog.length < 2
+        ? 'a point is logged each day you open the dashboard — history can’t be backfilled'
+        : ((delta === 0 ? 'steady' : (delta > 0 ? 'up ' : 'down ') + eur(Math.abs(delta))) + ' since ' + d0.d);
+      tr.innerHTML = Signal.rows([{
+        name: 'Net worth',
+        sub: nwLog.length >= 2 ? (d0.d + ' → ' + dN.d) : 'first reading',
+        series: nwLog.map(e => e.t),
+        color: '#34d399',
+        amount: eur(NW.total),
+        tone: NW.total >= 0 ? 'pos' : 'neg',
+        months: (nwLog.length ? nwLog.slice(-6) : [{d: today, t: NW.total}]).map(e => ({
+          label: String(e.d).slice(5).replace('-', '/'),
+          value: eur(e.t),
+          negative: e.t < 0
+        })),
+        note: note,
+        prose: true
+      }]);
+    } else if (nwLog.length >= 2){
       const vals = nwLog.map(e => e.t);
       const mn = Math.min(...vals), mx = Math.max(...vals);
       const pad = Math.max(1, (mx - mn) * 0.1);
@@ -15352,6 +15449,59 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     // assets table
     const table = document.getElementById('asTable');
     const tb = table.querySelector('tbody');
+    const bindAssetActions = (root) => {
+      root.querySelectorAll('.as-edit').forEach(b => b.addEventListener('click', ()=>{
+        const a = assetStore.items.find(x => x.id === b.dataset.id);
+        if (!a) return;
+        asEditing = a.id;
+        document.getElementById('as-name').value = a.name;
+        document.getElementById('as-class').value = a.class || 'other';
+        document.getElementById('as-val').value = a.value;
+        document.getElementById('as-asof').value = a.asOf || '';
+        document.getElementById('as-note').value = a.note || '';
+        document.getElementById('as-save').textContent = 'Save changes';
+        document.getElementById('asEditMsg').textContent = 'Editing: ' + a.name;
+        document.getElementById('asEditBar').classList.add('on');
+      }));
+      root.querySelectorAll('.as-del').forEach(b => b.addEventListener('click', ()=>{
+        const a = assetStore.items.find(x => x.id === b.dataset.id);
+        assetStore.items = assetStore.items.filter(x => x.id !== b.dataset.id);
+        save(LS.assets, assetStore);
+        if (asEditing === b.dataset.id) assetFormReset();
+        renderDerived();
+        if (a) undoToast('Deleted “' + a.name + '”', ()=>{ assetStore.items.push(a); save(LS.assets, assetStore); renderDerived(); });
+      }));
+    };
+    if (space){
+      table.style.display = 'none';
+      let slot = document.getElementById('asSignal');
+      if (!slot){ slot = document.createElement('div'); slot.id = 'asSignal';
+                  table.parentNode.insertBefore(slot, table); }
+      slot.innerHTML = Signal.rows(NW.rows.length ? NW.rows.map(a => ({
+        name: a.name,
+        sub: (nwLabels[a.class] || a.class) + (a.stale || a.veryStale ? ' · stale' : '') + (a.note ? ' · ' + a.note : ''),
+        amount: eur(a.value || 0),
+        months: [
+          {label:'CLASS', value: nwLabels[a.class] || a.class || '—'},
+          {label:'AS OF', value: a.asOf || '—'}
+        ],
+        note: a.note || (a.veryStale ? 'over a year old — recheck' : (a.stale ? 'valued more than 6 months ago' : 'counted once')),
+        prose: true
+      })) : [{name:'No manual assets', sub:'add one below — property, a vehicle, a pension valuation', amount:'—'}]);
+      slot.querySelectorAll('.sig-detail').forEach((d, i) => {
+        const a = NW.rows[i];
+        if (!a) return;
+        const actions = document.createElement('div');
+        actions.className = 'rule-actions';
+        actions.style.marginTop = '8px';
+        actions.innerHTML = '<button class="btn small as-edit" data-id="' + esc(a.id) + '" type="button">Edit</button>' +
+          '<button class="btn small danger as-del" data-id="' + esc(a.id) + '" type="button">Delete</button>';
+        d.appendChild(actions);
+      });
+      bindAssetActions(slot);
+    } else {
+      const leftover = document.getElementById('asSignal');
+      if (leftover) leftover.remove();
     table.style.display = NW.rows.length ? '' : 'none';
     tb.innerHTML = NW.rows.length ? `<tr><th>Asset</th><th class="r">Est. value</th><th>Valued as of</th><th></th></tr>` +
       NW.rows.map(a => {
@@ -15366,27 +15516,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
             <button class="btn small danger as-del" data-id="${esc(a.id)}" type="button">Delete</button></td>
         </tr>`;
       }).join('') : '';
-    tb.querySelectorAll('.as-edit').forEach(b => b.addEventListener('click', ()=>{
-      const a = assetStore.items.find(x => x.id === b.dataset.id);
-      if (!a) return;
-      asEditing = a.id;
-      document.getElementById('as-name').value = a.name;
-      document.getElementById('as-class').value = a.class || 'other';
-      document.getElementById('as-val').value = a.value;
-      document.getElementById('as-asof').value = a.asOf || '';
-      document.getElementById('as-note').value = a.note || '';
-      document.getElementById('as-save').textContent = 'Save changes';
-      document.getElementById('asEditMsg').textContent = 'Editing: ' + a.name;
-      document.getElementById('asEditBar').classList.add('on');
-    }));
-    tb.querySelectorAll('.as-del').forEach(b => b.addEventListener('click', ()=>{
-      const a = assetStore.items.find(x => x.id === b.dataset.id);
-      assetStore.items = assetStore.items.filter(x => x.id !== b.dataset.id);
-      save(LS.assets, assetStore);
-      if (asEditing === b.dataset.id) assetFormReset();
-      renderDerived();
-      if (a) undoToast('Deleted “' + a.name + '”', ()=>{ assetStore.items.push(a); save(LS.assets, assetStore); renderDerived(); });
-    }));
+      bindAssetActions(tb);
+    }
   }
   function assetFormReset(){
     asEditing = null;
@@ -17224,6 +17355,21 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (!el || !slot) return 'no #peopleTogs / #hhName';
       if (!slot.contains(el)) return '#hhName is not inside #peopleTogs';
       return document.querySelectorAll('#hhName').length === 1 || '#hhName was cloned';
+    });
+    T('signal: add-asset inputs are adopted, not cloned', () => {
+      if (!document.body.classList.contains('space')) return true;
+      const el = document.getElementById('as-name');
+      const slot = document.getElementById('asFormSignal');
+      if (!el || !slot) return 'no #asFormSignal / #as-name';
+      if (!slot.contains(el)) return '#as-name is not inside #asFormSignal';
+      return document.querySelectorAll('#as-name').length === 1 || '#as-name was cloned';
+    });
+    T('signal: net worth composition is bars, not a stacked track', () => {
+      if (!document.body.classList.contains('space')) return true;
+      if (typeof NW === 'undefined' || !NW) return true;
+      const el = document.getElementById('nwComp');
+      if (!el) return 'no #nwComp';
+      return !!el.querySelector('.sig-bar-row') || 'composition has no Signal bars';
     });
     T('signal: budget pace bars carry a limit mark', () => {
       // the conversion is a budget bar, not a proportion bar: without the
@@ -25849,6 +25995,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     {name:'debts',             target:null,          fn: () => { if (typeof DP !== 'undefined' && DP) renderDebts(); }},
     {name:'holdings',          target:null,          fn: () => { if (typeof HV !== 'undefined' && HV) renderHoldings(); }},
     {name:'net worth',         target:'nwStrip',     fn: () => { if (typeof NW !== 'undefined' && NW) renderNetWorth(typeof FC !== 'undefined' ? FC : null); }},
+    {name:'nw composition',    target:'nwComp',      fn: () => { if (typeof NW !== 'undefined' && NW) renderNetWorth(typeof FC !== 'undefined' ? FC : null); }},
+    {name:'liability mix',     target:'liabMix',     fn: () => { if (typeof renderMixCharts === 'function') renderMixCharts(); }},
+    {name:'nw trend',          target:'nwTrend',     fn: () => { if (typeof NW !== 'undefined' && NW) renderNetWorth(typeof FC !== 'undefined' ? FC : null); }},
+    {name:'nw assets',         target:'asSignal',    fn: () => { if (typeof NW !== 'undefined' && NW) renderNetWorth(typeof FC !== 'undefined' ? FC : null); }},
+    {name:'nw add asset',      target:'asFormSignal',fn: () => paintAssetForm()},
     {name:'wealth engine',     target:'idleSignal',  fn: () => { if (typeof FC !== 'undefined' && FC) renderWealth(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }},
     {name:'tax assumptions',   target:'taxSignal',   fn: () => paintTaxCard()},
     {name:'pension leverage',  target:'pensionSignal', fn: () => renderPensionChrome()},
@@ -26309,12 +26460,13 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // slots and hidden tables are undone FIRST, then one re-render through
       // the same registry the space view uses.
       try { setTimeout(function(){
-        ['leakSignal','debtSignal','holdSignal','idleSignal','reallocSignal','budgetSignal','fcMonthSignal','recurSignal','mrSignal','simSignal','txSearchSignal','auditSignal','rulesSignal','xferSignal'].forEach(function(id){
+        ['leakSignal','debtSignal','holdSignal','idleSignal','reallocSignal','budgetSignal','fcMonthSignal','recurSignal','mrSignal','simSignal','txSearchSignal','auditSignal','rulesSignal','xferSignal','asSignal'].forEach(function(id){
           const n = document.getElementById(id); if (n) n.remove();
         });
-        ['leakTable','debtTable','hdTable','idleTable','reallocTable','budgetTable','recurTable','mrTable','txTable','auditTable','rulesTable','xferTable'].forEach(function(id){
+        ['leakTable','debtTable','hdTable','idleTable','reallocTable','budgetTable','recurTable','mrTable','txTable','auditTable','rulesTable','xferTable','asTable'].forEach(function(id){
           const n = document.getElementById(id); if (n) n.style.display = '';
         });
+        const nwg = document.getElementById('nwGraph'); if (nwg) nwg.style.display = '';
         const lsc = document.getElementById('leakShapeCard'); if (lsc) lsc.style.display = '';
         signalRerender();
       }, 0); } catch (e) {}

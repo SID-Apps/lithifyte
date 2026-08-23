@@ -1,8 +1,8 @@
 {
-  "version": "3.16.0",
+  "version": "3.17.0",
   "released": "2026-08-23",
-  "notes": "People, Audit, Rules and Search in the Signal language — tables as rows, live controls adopted not cloned.",
+  "notes": "Net worth composition, mix, trend and add-asset form in the Signal language.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "4f6f98d7cd6895accb63d014def08b21e57dc18b2139056394f54486e8eaad75"
+  "sha256": "c00f4f432b9c421335c0b6a3a0812e80d9bec194aa095e12fcacd3c0b3b626f7"
 }
