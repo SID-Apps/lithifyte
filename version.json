@@ -1,8 +1,8 @@
 {
-  "version": "3.14.0",
+  "version": "3.15.0",
   "released": "2026-08-23",
-  "notes": "Goals as progress rings, and Alerts as ledger rows, in the Signal language.",
+  "notes": "Pulse as bars, Readiness/Plan/Notes as rows, Simulate as stats, in the Signal language.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "e90630bb8c0e9f07a3d941848a8d6afee024c5607d02bb2277ef6ae89b202ea5"
+  "sha256": "ab3d4bd97ad82ca56061eccc75815c0e1fc4373161110fdd089de0b086a0dfa4"
 }

@@ -51,7 +51,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '3.14.0';
+  var APP_VER = '3.15.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -1266,6 +1266,10 @@ So, when you change a stored shape:
   .sig-months div.sig-neg{color:var(--sig-neg)}
   .sig-note{font:500 9.5px/1.6 var(--font-mono); letter-spacing:.09em; text-transform:uppercase;
     color:var(--sv-ink-3); margin:10px 0 0}
+  /* Plan, notes and readiness write sentences, not figure captions. Must
+     out-specify .sig-note or the body renders as uppercase mono. */
+  .sig-note.sig-prose{font:400 12.5px/1.55 var(--font-sans); letter-spacing:0; text-transform:none;
+    color:var(--sv-ink-2)}
 
   .sig-bars{display:flex; flex-direction:column; gap:2px}
   .sig-bar-row{display:grid; grid-template-columns:1fr 92px; gap:12px; align-items:center;
@@ -4134,6 +4138,8 @@ rewrite the static advice cards if the picture has changed.</div>
     // ── 3. ledger rows, with the exact figures behind a click ─────────────
     // The sparkline carries twelve months; the numbers come back on demand. A
     // row without months is not clickable and says so to a screen reader.
+    // r.prose marks a sentence-length note (plan, notes, readiness) so it is
+    // not forced through the uppercase mono used for figure captions.
     let uid = 0;
     function rows(items, opts){
       opts = opts || {};
@@ -4153,7 +4159,7 @@ rewrite the static advice cards if the picture has changed.</div>
               return '<div' + (m.negative ? ' class="sig-neg"' : '') + '><span>' + esc2(m.label) + '</span>' +
                      esc2(m.value) + '</div>';
             }).join('') + '</div>' +
-            (r.note ? '<p class="sig-note">' + esc2(r.note) + '</p>' : '') + '</div>';
+            (r.note ? '<p class="sig-note' + (r.prose ? ' sig-prose' : '') + '">' + esc2(r.note) + '</p>' : '') + '</div>';
         }
         return h;
       }).join('') + '</div>';
@@ -7857,6 +7863,32 @@ rewrite the static advice cards if the picture has changed.</div>
     document.getElementById('simWhen').textContent = !P ? 'no goal set'
       : P.gap === 0 ? 'already there' : (P.projMonth ? fmtMoLbl(P.projMonth) : 'out of reach');
     renderProjection(P);
+    paintSimSummary();
+  }
+  function paintSimSummary(){
+    const row = document.querySelector('#sec-sim .sim-summary');
+    if (!row) return;
+    if (document.body.classList.contains('space')){
+      let slot = document.getElementById('simSignal');
+      if (!slot){
+        slot = document.createElement('div');
+        slot.id = 'simSignal';
+        row.parentNode.insertBefore(slot, row);
+      }
+      row.style.display = 'none';
+      const extra = document.getElementById('simExtra');
+      const rate = document.getElementById('simRate');
+      const when = document.getElementById('simWhen');
+      slot.innerHTML = Signal.stats([
+        {value: extra ? extra.textContent : '€0', label:'extra saved / mo'},
+        {value: rate ? rate.textContent : '€0', label:'new savings rate / mo'},
+        {value: when ? when.textContent : '—', label:'primary goal', wide:true}
+      ]);
+    } else {
+      const slot = document.getElementById('simSignal');
+      if (slot) slot.remove();
+      row.style.display = '';
+    }
   }
 
   function showTip(html, x, y){
@@ -8587,13 +8619,49 @@ rewrite the static advice cards if the picture has changed.</div>
     if (cnt) cnt.textContent = docStore.items.length
       ? items.length + ' of ' + docStore.items.length + ' note' + (docStore.items.length === 1 ? '' : 's')
       : '';
-    if (!docStore.items.length){
+    if (document.body.classList.contains('space')){
+      if (!docStore.items.length){
+        list.innerHTML = Signal.rows([{name:'No notes yet', sub:'what the statements cannot say', amount:'—'}]);
+        return;
+      }
+      if (!items.length){
+        list.innerHTML = Signal.rows([{name:'No matching notes', sub:'try a different filter', amount:'—'}]);
+        return;
+      }
+      list.innerHTML = Signal.rows(items.map(n => {
+        const {links, broken} = Engine.noteLinks({note: n, users, accounts});
+        const linkTxt = links.length
+          ? links.map(l => l.name).join(' · ')
+          : (broken.length ? broken.length + ' broken link' + (broken.length === 1 ? '' : 's') : 'not linked');
+        const when = n.updated ? String(n.updated).slice(0, 10) : '—';
+        return {
+          name: n.title || '(untitled)',
+          sub: linkTxt + ((n.tags || []).length ? ' · ' + n.tags.map(t => '#' + t).join(' ') : ''),
+          amount: when,
+          months: [
+            {label:'WHEN', value: when},
+            {label:'LINKS', value: String(links.length)}
+          ],
+          note: n.body || '',
+          prose: true
+        };
+      }));
+      list.querySelectorAll('.sig-detail').forEach((d, i) => {
+        const n = items[i];
+        if (!n) return;
+        const actions = document.createElement('div');
+        actions.className = 'rule-actions';
+        actions.style.marginTop = '8px';
+        actions.innerHTML = '<button class="btn small nd-edit" data-id="' + esc(n.id) + '" type="button">Edit</button>' +
+          '<button class="btn small danger nd-del" data-id="' + esc(n.id) + '" type="button">Delete</button>';
+        d.appendChild(actions);
+      });
+    } else if (!docStore.items.length){
       list.innerHTML = `<div class="hint" style="padding:14px 2px">No notes yet. The first one is usually the most valuable:
         <b>what changed recently, and what you are actually planning</b>. Press <b>＋ New note</b>. Each note has <b>Delete</b> if you no longer need it.</div>`;
       return;
-    }
-    if (!items.length){ list.innerHTML = '<div class="hint" style="padding:12px 2px">No notes match that filter.</div>'; return; }
-    list.innerHTML = items.map(n => {
+    } else if (!items.length){ list.innerHTML = '<div class="hint" style="padding:12px 2px">No notes match that filter.</div>'; return; }
+    else list.innerHTML = items.map(n => {
       const {links, broken} = Engine.noteLinks({note: n, users, accounts});
       return `<div class="nd-item">
           <div class="nd-top">
@@ -13638,6 +13706,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     return checks;
   }
   function renderReadiness(){
+    if (!A) return;
     const checks = assessReadiness();
     const counted = checks.filter(c => c.verdict !== 'unknown');
     const passing = counted.filter(c => c.verdict === 'pass').length;
@@ -13649,7 +13718,61 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       : warns.length ? 'No hard flags. Tighten before applying: ' + warns.join(' · ')
       : 'Application-grade on every measurable check — keep it that way for the 6 months before you apply.';
     const chip = {pass:['ok','Pass'], warn:['warm','Watch'], fail:['hot','Fix'], unknown:['','—']};
+    const host = document.getElementById('mrTable');
     const tb = document.querySelector('#mrTable tbody');
+    if (document.body.classList.contains('space')){
+      if (host) host.style.display = 'none';
+      let slot = document.getElementById('mrSignal');
+      if (!slot && host && host.parentNode){
+        slot = document.createElement('div'); slot.id = 'mrSignal';
+        host.parentNode.insertBefore(slot, host);
+      }
+      if (slot){
+        const items = checks.length ? checks.map(c => ({
+          name: c.name,
+          sub: chip[c.verdict][1],
+          amount: c.value,
+          tone: c.verdict === 'fail' ? 'neg' : (c.verdict === 'pass' ? 'pos' : ''),
+          months: [{label: (chip[c.verdict][1] || '—').toUpperCase(), value: c.value}],
+          note: c.note,
+          prose: true
+        })) : [{name:'Mortgage readiness', sub:'no checks yet', amount:'—'}];
+        slot.innerHTML = Signal.rows(items);
+        slot.querySelectorAll('.sig-detail').forEach((d, i) => {
+          const c = checks[i];
+          if (!c) return;
+          let h = '';
+          if (c.fixAmbig && c.fixAmbig.length) h += c.fixAmbig.map(m =>
+            '<span style="white-space:nowrap">' + esc(m) + ': <button class="btn small mr-yg" data-m="' + esc(m) + '" type="button">gambling</button> <button class="btn small mr-ng" data-m="' + esc(m) + '" type="button">not gambling</button></span>'
+          ).join(' ');
+          if (c.fixStrong && c.fixStrong.length) h += (h ? ' ' : '') + c.fixStrong.map(m =>
+            '<button class="btn small mr-ng" data-m="' + esc(m) + '" type="button">' + esc(m) + ': not gambling</button>'
+          ).join(' ');
+          if (!h) return;
+          const wrap = document.createElement('div');
+          wrap.style.marginTop = '8px';
+          wrap.innerHTML = h;
+          d.appendChild(wrap);
+        });
+        slot.querySelectorAll('.mr-ng').forEach(b => b.addEventListener('click', e => {
+          e.stopPropagation();
+          FCONF.gambIgnore = FCONF.gambIgnore || [];
+          FCONF.gambIgnore.push(b.dataset.m);
+          FCONF.gambConfirm = (FCONF.gambConfirm || []).filter(m => m !== b.dataset.m);
+          save(LS.fcast, FCONF); renderDerived();
+        }));
+        slot.querySelectorAll('.mr-yg').forEach(b => b.addEventListener('click', e => {
+          e.stopPropagation();
+          FCONF.gambConfirm = FCONF.gambConfirm || [];
+          FCONF.gambConfirm.push(b.dataset.m);
+          save(LS.fcast, FCONF); renderDerived();
+        }));
+      }
+      return;
+    }
+    const leftover = document.getElementById('mrSignal');
+    if (leftover) leftover.remove();
+    if (host) host.style.display = '';
     tb.innerHTML = checks.map(c => `<tr>
       <td style="width:70px"><span class="flag ${chip[c.verdict][0]}">${chip[c.verdict][1]}</span></td>
       <td><b>${c.name}</b><div class="rule-meta">${c.note}${
@@ -14998,7 +15121,20 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         <div class="hint num">${PULSE.active} of 7 measures scored · ${esc(dTxt)}</div>
         ${PULSE.best && PULSE_META[PULSE.best.k] ? `<div class="hint" style="margin-top:4px"><b>+${PULSE.best.pts} pts:</b> ${PULSE_META[PULSE.best.k].act}</div>` : ''}</div>`;
     // component rows
-    document.getElementById('pulseComps').innerHTML = PULSE.comps.map(c => {
+    const compsEl = document.getElementById('pulseComps');
+    if (document.body.classList.contains('space') && compsEl){
+      const items = (PULSE.comps || []).map(c => {
+        const m = PULSE_META[c.k];
+        const winTag = c.k === 'rate' || c.k === 'bills' ? 'this window' : 'as of today';
+        if (c.excluded) return {name: m.label, pct: 0, amount: '—', color: '#6f8bab',
+          sub: (c.pillar || '') + ' · ' + winTag + ' · not scored — ' + c.why};
+        const col = c.score >= 60 ? '#34d399' : c.score >= 40 ? '#f7c95c' : '#fb7185';
+        return {name: m.label, pct: c.score, amount: String(c.score), color: col,
+          sub: (c.pillar || '') + ' · ' + winTag + ' · ' + m.ev(pc.inputs) + (c.score < 80 ? ' — ' + m.act : '')};
+      });
+      compsEl.innerHTML = Signal.bars(items.length ? items
+        : [{name:'Pulse', pct:0, amount:'—', color:'#6f8bab', sub:'no measures scored'}]);
+    } else if (compsEl) compsEl.innerHTML = PULSE.comps.map(c => {
       const m = PULSE_META[c.k];
       const winTag = c.k === 'rate' || c.k === 'bills' ? 'this window' : 'as of today';
       if (c.excluded) return `<div style="margin-bottom:9px; opacity:.6">
@@ -16851,6 +16987,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (/<button/.test(noM)) return 'a row with no detail was made clickable';
       return /aria-controls="(sigd\d+)"[\s\S]*id="\1"/.test(withM) || 'aria-controls does not point at the detail';
     });
+    T('signal: a prose note is not forced to uppercase', () => {
+      const h = Signal.rows([{name:'A', amount:'1', months:[{label:'X', value:'1'}], note:'Ben hours drop.', prose:true}]);
+      if (!/sig-prose/.test(h) || !/Ben hours drop/.test(h)) return 'missing prose note: ' + h.slice(0, 120);
+      const no = Signal.rows([{name:'B', amount:'2', months:[{label:'X', value:'1'}], note:'across 12 payments'}]);
+      return !/sig-prose/.test(no) || 'prose class leaked onto a figure note';
+    });
     T('signal: over-budget bars stay distinguishable from each other', () => {
       // the bug this guards: 101% and 133% both rendering as one full red bar,
       // which destroys the only thing a budget bar exists to show
@@ -17362,7 +17504,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     T('live: plan cards computed from data', () => {
       if (!TX.length) return true;
       const el = document.getElementById('planCards');
-      return (el && el.querySelectorAll('.play').length >= 2) || 'plan cards empty';
+      const n = el ? el.querySelectorAll('.play, .sig-row').length : 0;
+      return n >= 2 || 'plan cards empty';
     });
     T('live: backup serialises with schema', () =>
       JSON.parse(JSON.stringify(buildBackup())).schema === BACKUP_SCHEMA || 'backup broken');
@@ -19434,6 +19577,17 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         ? bad.map(c => `${c.name} (${c.value})`).join(' · ') + ' — details and one-click fixes live in the Readiness section.'
         : 'Every measurable underwriting check is green. Keep it that way for the six months before you apply.',
       worth:'approval instead of a decline'});
+    if (document.body.classList.contains('space')){
+      el.innerHTML = Signal.rows(cards.map(c => ({
+        name: c.title,
+        sub: c.tag,
+        amount: c.worth,
+        months: [{label:'WHEN', value: c.tag}, {label:'WORTH', value: c.worth}],
+        note: c.body,
+        prose: true
+      })));
+      return;
+    }
     el.innerHTML = cards.map(c => `<div class="play ${c.cls}">
       <div class="p-tag">${esc(c.tag)}</div><h3>${esc(c.title)}</h3><p>${esc(c.body)}</p>
       <div class="p-worth">Worth: ${esc(c.worth)}</div></div>`).join('');
@@ -25305,7 +25459,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     {name:'forecast recurring',target:'recurSignal',   fn: () => { if (typeof FC !== 'undefined' && FC) renderForecast(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }},
     {name:'goals',             target:'goalGrid',      fn: () => renderGoals((typeof lastAs !== 'undefined' && lastAs) || [])},
     {name:'alerts',            target:'alertList',     fn: () => renderAlerts()},
-    {name:'alert prefs',       target:'alertTogs',     fn: () => paintAlertTogs()}
+    {name:'alert prefs',       target:'alertTogs',     fn: () => paintAlertTogs()},
+    {name:'pulse',             target:'pulseComps',    fn: () => { if (typeof renderPulse === 'function') renderPulse(); }},
+    {name:'readiness',         target:'mrSignal',      fn: () => { if (A) renderReadiness(); }},
+    {name:'plan',              target:'planCards',     fn: () => { if (A && typeof FC !== 'undefined' && FC) renderPlan(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }},
+    {name:'notes',             target:'ndList',        fn: () => renderNotes()},
+    {name:'simulate',          target:'simSignal',     fn: () => paintSimSummary()}
   ];
   function signalRerender(){
     for (const r of SIGNAL_RENDERERS){ try{ r.fn(); }catch(e){} }
@@ -25743,10 +25902,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // slots and hidden tables are undone FIRST, then one re-render through
       // the same registry the space view uses.
       try { setTimeout(function(){
-        ['leakSignal','debtSignal','holdSignal','idleSignal','reallocSignal','budgetSignal','fcMonthSignal','recurSignal'].forEach(function(id){
+        ['leakSignal','debtSignal','holdSignal','idleSignal','reallocSignal','budgetSignal','fcMonthSignal','recurSignal','mrSignal','simSignal'].forEach(function(id){
           const n = document.getElementById(id); if (n) n.remove();
         });
-        ['leakTable','debtTable','hdTable','idleTable','reallocTable','budgetTable','recurTable'].forEach(function(id){
+        ['leakTable','debtTable','hdTable','idleTable','reallocTable','budgetTable','recurTable','mrTable'].forEach(function(id){
           const n = document.getElementById(id); if (n) n.style.display = '';
         });
         const lsc = document.getElementById('leakShapeCard'); if (lsc) lsc.style.display = '';
