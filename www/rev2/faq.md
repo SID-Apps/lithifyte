@@ -50,7 +50,7 @@ It is a chat panel inside the app, opened with Ctrl/Cmd+K. You can ask about you
 
 ### Which AI models can I use?
 
-**Lithifyte AI** (hosted, metered); **your own model** via an OpenAI-compatible URL (Ollama, LM Studio, a fine-tuned Qwen — this is how we will swap the hosted brain later); or Commands-only. Grok / ChatGPT / Claude BYOK is built at the relay and marked Coming soon in the picker. A local or self-hosted model is the option where nothing about your finances leaves your machine.
+**Lithifyte Pro** (hosted Qwen 3.8 on our GPU, the default); **Lithifyte AI** (hosted Grok); **your own model** via an OpenAI-compatible URL (Ollama, LM Studio, any compatible URL); or Commands-only. ChatGPT / Claude BYOK is built at the relay and marked Coming soon in the picker. A local or self-hosted model is the option where nothing about your finances leaves your machine.
 
 ### Can the AI make up numbers?
 

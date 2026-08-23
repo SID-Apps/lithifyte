@@ -1,6 +1,6 @@
 # Lithifyte — full content library
 
-Every page on lithifyte.com as plain markdown, generated 2026-08-14. Canonical HTML lives at https://lithifyte.com. Licence: content CC-BY-4.0, software AGPL-3.0-or-later.
+Every page on lithifyte.com as plain markdown, generated 2026-08-23. Canonical HTML lives at https://lithifyte.com. Licence: content CC-BY-4.0, software AGPL-3.0-or-later.
 
 
 
@@ -99,7 +99,7 @@ It is a chat panel inside the app, opened with Ctrl/Cmd+K. You can ask about you
 
 ### Which AI models can I use?
 
-**Lithifyte AI** (hosted, metered); **your own model** via an OpenAI-compatible URL (Ollama, LM Studio, a fine-tuned Qwen — this is how we will swap the hosted brain later); or Commands-only. Grok / ChatGPT / Claude BYOK is built at the relay and marked Coming soon in the picker. A local or self-hosted model is the option where nothing about your finances leaves your machine.
+**Lithifyte Pro** (hosted Qwen 3.8 on our GPU, the default); **Lithifyte AI** (hosted Grok); **your own model** via an OpenAI-compatible URL (Ollama, LM Studio, any compatible URL); or Commands-only. ChatGPT / Claude BYOK is built at the relay and marked Coming soon in the picker. A local or self-hosted model is the option where nothing about your finances leaves your machine.
 
 ### Can the AI make up numbers?
 
@@ -282,7 +282,7 @@ Press **Ctrl/Cmd+K** for the co-pilot. Ask in plain language — *how have groce
 
 Anything it designs lands in a **sandbox** beside your real data. You can iterate on it in the chat — *cut dining, protect rent* — and nothing touches your live stores until you press **Apply**. Conversations and scenarios are kept like notes: re-openable, linkable, included in your backups, and shown on the money map's outer ring so you can find the discussion that produced a decision months later.
 
-**Connect a model first.** Your own API key with Anthropic, OpenAI or xAI; any OpenAI-compatible endpoint, including Ollama or LM Studio on your own machine; or **Lithifyte AI**, the hosted option that needs no key. The local option is the one where nothing about your finances leaves your computer — see [security and privacy](/security-and-privacy) for exactly what is sent in each case.
+**Connect a model first.** **Lithifyte Pro** (hosted Qwen 3.8, the default) or **Lithifyte AI** (hosted Grok) need no key; any OpenAI-compatible endpoint, including Ollama or LM Studio on your own machine, stays local. The local option is the one where nothing about your finances leaves your computer — see [security and privacy](/security-and-privacy) for exactly what is sent in each case.
 
 **The model never produces a number.** It works out what you asked for, the engine computes the figures, and the answer renders from those computed values. If a figure appears in a co-pilot answer, it came from the same code that draws your charts.
 
@@ -487,7 +487,7 @@ Self-hosted copies write nothing to the email or product-event rows. The code th
 
 ## The AI co-pilot, stated without spin
 
-The co-pilot is a chat panel inside the app that can answer questions about your finances and operate the app for you. **Commands-only** works with no model at all. Lithifyte AI is the hosted convenience; a local model stays on your machine.
+The co-pilot is a chat panel inside the app that can answer questions about your finances and operate the app for you. **Commands-only** works with no model at all. **Lithifyte Pro** is the hosted default (our Qwen 3.8); **Lithifyte AI** is hosted Grok. A local model stays on your machine.
 
 **What is sent, when you use hosted AI.** Not your ledger. Every request is assembled by one function (`Engine.minimise`) at one of three tiers:
 
@@ -508,7 +508,8 @@ Household notes are **not** sent on every turn. The model can ask for a scoped n
 | Commands only | Nowhere |
 | A local model — Ollama, LM Studio, any OpenAI-compatible endpoint on your machine | Nowhere. It stays on your computer. This is the private option |
 | Your own API key — Anthropic, OpenAI, xAI (built, marked Coming soon in the picker) | To that provider, under your own account and their terms |
-| **Lithifyte AI** (the hosted convenience) | Through our relay worker. The relay asks OpenRouter not to route to providers that store or train on inputs (`data_collection: deny`). If no such route can answer, it falls back to Cloudflare Workers AI rather than a training-allowed free model |
+| **Lithifyte Pro** (hosted Qwen 3.8, default) | Through our relay to a GPU we run. The relay does not store the prompt. The slice does not go to xAI or OpenRouter |
+| **Lithifyte AI** (hosted Grok) | Through our relay to xAI (Grok). If Grok cannot answer, OpenRouter is tried with `data_collection: deny`, then Cloudflare Workers AI rather than a training-allowed free model |
 
 **What the relay is, and is not.** It is a pass-through: it forwards the request and returns the answer. It counts tokens to meter usage later. It does **not** store your ledger, the prompt, or the answer. It is not a step toward a finance database. If that ever changed it would be a different product and this page would say so.
 
