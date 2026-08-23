@@ -1,8 +1,8 @@
 {
-  "version": "3.18.0",
+  "version": "3.18.1",
   "released": "2026-08-23",
-  "notes": "Cashflow, Categories and Goals Space ergonomics: stats+rows, bars, compact rings; no wide SVGs in the panel.",
+  "notes": "The transfers card was converted but never registered, so entering the space view left a 41-row table showing. Registered, plus a test that catches an unregistered conversion from the other side.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "fc168fdc7bd28cf199a2e5505b7699f14e5fd7ae640b06dbb3f20a284411df7c"
+  "sha256": "41c7947b38e71ece7530d942657abcb1616c73a07380030b8f05ff42d316c9e7"
 }
