@@ -1,8 +1,8 @@
 {
-  "version": "3.8.0",
+  "version": "3.8.1",
   "released": "2026-08-23",
-  "notes": "Cashflow's balance table becomes ledger rows: twelve months as shape, the figures on click, and the negative-month count and opening date carried in the row rather than a tooltip.",
+  "notes": "The what-if self-test asserted a total that only held if the household spent at least what the test asked to cut. It now asserts what the engine actually promises: a cut never frees more than the category costs.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "97e95ca0ce26fc0bcc3405689e30dcd9ea326316edb820f669b7e8af7d3d62eb"
+  "sha256": "5b400832757ca54a2c9a49b0810d3de9a04161c589c1fda6199d476ccc92b9f0"
 }
