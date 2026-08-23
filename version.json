@@ -1,8 +1,8 @@
 {
-  "version": "3.9.0",
+  "version": "3.9.1",
   "released": "2026-08-23",
-  "notes": "Cuts are now assessed, not guessed. A new engine measures how much each category could realistically give up against the household's own leanest month, and the co-pilot is given that assessment instead of a keyword label.",
+  "notes": "The where-to-cut headline counted room it had already refused to recommend, and the analysis was rebuilt once per cut.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "482aab24034966281c58037ff8d7379f0829ef9d31c4fd299dbc7f262c3d1e19"
+  "sha256": "e93359c541846905528f4c8d8fca41f7c6496998b996d873ca2d3f15bb1bf243"
 }
