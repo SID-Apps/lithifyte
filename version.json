@@ -1,8 +1,8 @@
 {
-  "version": "3.3.0",
+  "version": "3.3.1",
   "released": "2026-08-23",
-  "notes": "Geist throughout (embedded, no third-party font request); the money map and Space view now follow your theme, with a Match system / Light / Dark picker in Settings; contrast fixes across the Space chrome. Also ships Lithifyte Pro (hosted Qwen) as the default co-pilot model.",
+  "notes": "Fixes: \"where can I cut back\" now ranks spending instead of answering with a budget notice, and the ranking is actually sorted. Light theme reaches the model picker, the node card, the sample-household badge and the nav hover; an open section now dims the map behind it.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "02f900ebd1d89c42eec3ee89640a83bc762d3d6c772db5e9c3f56e3f2b40330b"
+  "sha256": "fe8fb4689d25112e8958b9d830af94cca3b37f3b02d8c70f3f5767a25338979b"
 }

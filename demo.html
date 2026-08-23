@@ -51,7 +51,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '3.3.0';
+  var APP_VER = '3.3.1';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -609,6 +609,10 @@ So, when you change a stored shape:
     --sv-slab-2:#0d2540;   /* its hover */
     --sv-shadow:0 22px 60px rgba(0,0,0,.6);
     --sv-chat-ink:#f3edff;   /* text on the co-pilot's violet */
+    --sv-scrim:rgba(2,8,20,.45);
+    --sv-scrim-strong:rgba(2,8,20,.55);
+    --sv-scrim-panel:transparent;   /* dark separates without help */
+    --warn-chip-bg:rgba(16,20,34,.92); --warn-chip-line:rgba(240,180,60,.55); --warn-chip-ink:#f0c464;
   }
   @media (prefers-color-scheme: dark){
     :root{
@@ -705,7 +709,7 @@ So, when you change a stored shape:
 
   /* ── Companion Phase 1: command bar (no LM) ── */
   #companionBar{display:none; position:fixed; inset:0; z-index:640; align-items:flex-start; justify-content:center;
-    padding:12vh 16px 24px; background:rgba(2,8,20,.55); backdrop-filter:blur(4px)}
+    padding:12vh 16px 24px; background:var(--sv-scrim-strong); backdrop-filter:blur(4px)}
   #companionBar.open{display:flex}
   #companionPanel{width:min(560px,100%); background:var(--page,#0a1628); border:1px solid rgba(var(--sv-line),.45);
     border-radius:14px; box-shadow:0 24px 70px rgba(0,0,0,.55); overflow:hidden}
@@ -788,7 +792,7 @@ So, when you change a stored shape:
   .model-btn .caret{font-size:9px; opacity:.75}
   .model-pop{position:absolute; bottom:calc(100% + 10px); right:0; z-index:5;
     width:min(290px, calc(100vw - 40px)); padding:7px; border-radius:14px;
-    background:rgba(6,18,36,.98); border:1px solid rgba(var(--sv-line),.45);
+    background:rgba(var(--sv-glass),.98); border:1px solid rgba(var(--sv-line),.45);
     box-shadow:0 18px 50px rgba(0,0,0,.6); text-align:left}
   .model-pop[hidden]{display:none}
   .model-pop .pop-label{font:700 9.5px var(--font-sans); letter-spacing:.14em; text-transform:uppercase;
@@ -805,7 +809,7 @@ So, when you change a stored shape:
   .cc-chips{display:flex; flex-wrap:wrap; gap:6px; justify-content:center}
   body.space.chat-open .cc-chips{display:none}
   .cc-chip{font:600 11.5px var(--font-sans); padding:4px 10px; border-radius:999px;
-    border:1px solid rgba(var(--sv-line),.28); background:rgba(4,14,30,.8); color:var(--sv-ink-2); cursor:pointer;
+    border:1px solid rgba(var(--sv-line),.28); background:rgba(var(--sv-glass),.8); color:var(--sv-ink-2); cursor:pointer;
     backdrop-filter:blur(8px)}
   .cc-chip:hover{border-color:rgba(var(--sv-line),.6)}
   .cc-attach{font-size:11.5px; color:var(--sv-ink-3); display:flex; flex-wrap:wrap; gap:4px; align-self:flex-start;
@@ -1056,7 +1060,7 @@ So, when you change a stored shape:
   .ico-btn .lbl{display:none}
   body.space.nav-labels .ico-btn .lbl{display:inline}
   body.space:not(.nav-labels) .ico-btn{justify-content:center; padding:0}
-  .ico-btn:hover{background:rgba(var(--sv-line),.12); color:#fff}
+  .ico-btn:hover{background:rgba(var(--sv-line),.12); color:var(--sv-ink)}
   .ico-btn.active{background:rgba(var(--sv-line),.2); color:var(--sv-ink); border-color:rgba(var(--sv-line),.45)}
   .ico-sep{height:1px; background:rgba(var(--sv-line),.22); margin:5px 6px; flex:0 0 auto}
   /* 9px uppercase at #557799 measured 4.08:1 on the dark rail — under AA for the
@@ -1118,7 +1122,7 @@ So, when you change a stored shape:
   .dock-th-title[aria-expanded="true"]{background:rgba(var(--sv-line),.14); border-color:rgba(var(--sv-line),.45)}
   .dock-th-title .caret{flex:0 0 auto; font-size:9px; opacity:.7}
   .chat-switch-pop{position:absolute; z-index:14; left:8px; right:8px; margin-top:2px; padding:7px;
-    border:1px solid rgba(var(--sv-line),.4); border-radius:11px; background:rgba(4,14,30,.98);
+    border:1px solid rgba(var(--sv-line),.4); border-radius:11px; background:rgba(var(--sv-glass),.98);
     box-shadow:0 16px 40px rgba(0,0,0,.6); max-height:min(52vh,340px); overflow:auto}
   .chat-switch-pop .pop-label{margin:0 0 5px; padding:0 3px; font:600 10px var(--font-sans);
     letter-spacing:.06em; text-transform:uppercase; color:#7fa5cc}
@@ -1181,7 +1185,20 @@ So, when you change a stored shape:
   body.space #spacePanel.open.center .panel-body{max-height:calc(min(90vh, 920px) - 54px)}
   /* Dim the map slightly behind a centered panel */
   body.space #spaceStage.panel-dim::after{
-    content:''; position:absolute; inset:0; background:rgba(2,8,20,.45); pointer-events:none; z-index:5}
+    content:''; position:absolute; inset:0; background:var(--sv-scrim); pointer-events:none; z-index:5}
+  /* the sample-household badge — amber warning chip, both themes */
+  #demoBadge{background:var(--warn-chip-bg); border:1px solid var(--warn-chip-line);
+    color:var(--warn-chip-ink); font:700 12px var(--font-sans);
+    box-shadow:0 4px 16px rgba(0,0,0,.18)}
+
+  /* (e) a section is open — let the map fall back so the panel reads */
+  /* body.panel-open is maintained by syncCamShift() and already means "a side
+     panel is open, and it is not the centred one" — which is exactly the case
+     that needs this. A centred panel keeps the stronger .panel-dim above. */
+  body.space.panel-open #spaceStage::after{
+    content:''; position:absolute; inset:0; background:var(--sv-scrim-panel);
+    pointer-events:none; z-index:4; transition:background .18s ease}
+  @media (prefers-reduced-motion: reduce){ body.space.panel-open #spaceStage::after{transition:none} }
   .panel-head{display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--border); font-weight:700; color:var(--ink)}
   .hh-banner{display:flex; flex-wrap:wrap; gap:10px 14px; align-items:flex-end; margin-bottom:14px;
     padding:14px 16px; border:1px solid var(--border); border-radius:12px; background:var(--surface)}
@@ -1565,7 +1582,7 @@ So, when you change a stored shape:
   .ins-track{display:flex; gap:10px; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; padding:2px}
   .ins-track::-webkit-scrollbar{display:none}
   .ins-card{flex:0 0 250px; scroll-snap-align:start; cursor:pointer; padding:10px 12px; border-radius:12px;
-    background:rgba(4,18,38,.86); border:1px solid rgba(var(--sv-line),.3); backdrop-filter:blur(8px)}
+    background:rgba(var(--sv-glass),.86); border:1px solid rgba(var(--sv-line),.3); backdrop-filter:blur(8px)}
   .ins-card:hover{border-color:rgba(var(--sv-line),.65)}
   .ins-title{font:700 10.5px var(--font-sans); color:var(--sv-ink-3); letter-spacing:.07em; text-transform:uppercase;
     display:flex; gap:6px; align-items:center}
@@ -1603,7 +1620,7 @@ So, when you change a stored shape:
   .panel-head .panel-max + .panel-close{margin-left:0}
   #alertStack{position:fixed; top:112px; right:16px; z-index:26; display:flex; flex-direction:column; gap:8px; pointer-events:none}
   .alert-card{pointer-events:auto; cursor:pointer; display:flex; gap:8px; align-items:center; padding:9px 12px;
-    border-radius:10px; background:rgba(4,18,38,.92); border:1px solid rgba(236,131,90,.55); color:#ffd9c4;
+    border-radius:10px; background:rgba(var(--sv-glass),.92); border:1px solid rgba(236,131,90,.55); color:#ffd9c4;
     font-size:12.5px; max-width:300px; opacity:0; transform:translateX(16px); transition:opacity .25s, transform .25s}
   .alert-card.show{opacity:1; transform:none}
   @media (prefers-reduced-motion: reduce){ .alert-card{transition:none} }
@@ -1928,7 +1945,7 @@ So, when you change a stored shape:
   .imp-note-line.warn{color:var(--critical)}
   .imp-note-line.good{color:var(--ink-2)}
   .node-card{position:absolute; right:14px; bottom:44px; z-index:3; width:min(320px, 78vw);
-    background:rgba(4,18,38,.9); border:1px solid rgba(var(--sv-line),.42); border-radius:12px;
+    background:rgba(var(--sv-glass),.92); border:1px solid rgba(var(--sv-line),.42); border-radius:12px;
     padding:12px 14px; color:var(--sv-ink); backdrop-filter:blur(8px);
     transform:translateY(14px); opacity:0; pointer-events:none; transition:opacity .25s, transform .25s}
   .node-card.show{opacity:1; transform:none; pointer-events:auto}
@@ -2106,7 +2123,7 @@ So, when you change a stored shape:
   /* a message is the one thing that must stay perfectly readable, so bubbles
      get MORE opacity as the panel around them loses it */
   body.space.chat-open:not(.mobile) .cp-msg.bot{background:rgba(var(--sv-glass),.82)}
-  body.space.chat-open:not(.mobile) .cp-msg.tool{background:rgba(8,26,26,.80)}
+  body.space.chat-open:not(.mobile) .cp-msg.tool{background:rgba(var(--sv-glass),.80)}
   body.space.chat-open:not(.mobile) .cp-msg.think{background:rgba(var(--sv-glass),.72)}
 
   /* plan = slab. No blur, no glass: it is the only opaque surface in Space. */
@@ -2144,6 +2161,12 @@ So, when you change a stored shape:
     --sv-slab-2:#e4eefa;
     --sv-shadow:0 22px 50px rgba(18,48,86,.16);
     --sv-chat-ink:#2e1d6b;
+    --sv-scrim:rgba(18,48,86,.22);
+    --sv-scrim-strong:rgba(18,48,86,.34);
+    /* light: panel and map are both pale, so the map recedes behind an
+       open panel instead of competing with the figures on top of it */
+    --sv-scrim-panel:rgba(18,48,86,.16);
+    --warn-chip-bg:#fff6e0; --warn-chip-line:#c8912a; --warn-chip-ink:#6b4708;
   }
   /* system-light, for a household that never made an explicit choice */
   @media (prefers-color-scheme: light){
@@ -2152,6 +2175,9 @@ So, when you change a stored shape:
       --sv-ink:#0b1626; --sv-ink-2:#33506e; --sv-ink-3:#4d6982;
       --sv-slab:#f2f7fc; --sv-slab-2:#e4eefa; --sv-shadow:0 22px 50px rgba(18,48,86,.16);
       --sv-chat-ink:#2e1d6b;
+      --sv-scrim:rgba(18,48,86,.22); --sv-scrim-strong:rgba(18,48,86,.34);
+      --sv-scrim-panel:rgba(18,48,86,.16);
+      --warn-chip-bg:#fff6e0; --warn-chip-line:#c8912a; --warn-chip-ink:#6b4708;
     }
   }
 </style>
@@ -3866,10 +3892,12 @@ rewrite the static advice cards if the picture has changed.</div>
     db.title = 'Sample data only — changes are not saved (refresh resets). Click to open the real app';
     // top-RIGHT, clear of the search button: top-left is the rail's household
     // header now, and the badge was landing on top of it
+    // Layout stays inline; COLOUR does not. An inline declaration beats every
+    // stylesheet rule, so colours set here could never follow the theme — the
+    // badge stayed dark on the light theme. #demoBadge is styled in CSS.
     db.style.cssText = 'position:fixed;top:18px;right:64px;z-index:62;' +
-      'background:rgba(16,20,34,.92);border:1px solid rgba(240,180,60,.55);color:#f0c464;' +
-      'padding:6px 12px;border-radius:999px;font:700 12px system-ui,sans-serif;text-decoration:none;white-space:nowrap;' +
-      'backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,.35)';
+      'padding:6px 12px;border-radius:999px;text-decoration:none;white-space:nowrap;' +
+      'backdrop-filter:blur(8px)';
     document.body.appendChild(db);
   } else if (/^https?:$/.test(location.protocol)){
     // hosted real app: onboarding offers the sample household (a separate build whose
@@ -20585,11 +20613,18 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         const amt = m ? Math.round(parseFloat(m[1].replace(/,/g, ''))) : 0;
         if (amt > 0) return {tool:'affordability', args:{monthly:amt}, score:0.9};
       }
+      // Specific before catch-all. This sequence is first-match-wins, but every
+      // entry also carries a confidence score — so a rule placed above a better
+      // one wins on POSITION even when it scores lower. wantsAdvice matches
+      // "where can i (cut|improve|save)", which swallowed "where can i cut back"
+      // and answered with a budget notice (0.75) instead of ranked spending
+      // (0.88). Anything added to the advice catch-all has the same hazard:
+      // put the narrow rule first, or it becomes unreachable.
+      if (/\b(cut back|cut down|save money|spend less|savings? opportunit|where.*(money|spending) go|biggest (spend|expense))\b/.test(n))
+        return {tool:'spend_ranked', args:{}, score:0.88};
       if (plan.wantsAdvice){
         return {tool:'budget_notice', args:{}, score:0.75};
       }
-      if (/\b(cut back|cut down|save money|spend less|savings? opportunit|where.*(money|spending) go|biggest (spend|expense))\b/.test(n))
-        return {tool:'spend_ranked', args:{}, score:0.88};
       if (/\bnet\s*worth\b/.test(n) || (/\bwealth\b/.test(n) && /\b(how|what|show|total)\b/.test(n)))
         return {tool:'net_worth', args:{}, score:0.9};
       if (/\b(financial )?pulse\b/.test(n) || /\bhealth score\b/.test(n))
@@ -21484,7 +21519,13 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // "Where can I cut back" had no tool at all, so the model either guessed
       // or got a single category. Rank real spending instead.
       if (t === 'spend_ranked'){
-        const lines = historyBudgetLines();
+        // historyBudgetLines() slices the top 12 by avgMonth and THEN recomputes
+        // each amount from recurring sums or the typical month — a different
+        // measure — so its output is not in amount order. This tool's whole
+        // promise is "biggest first", so it sorts on the figure it actually
+        // shows. Left in place for the other six callers, which use the list as
+        // a set of categories rather than a ranking.
+        const lines = historyBudgetLines().slice().sort((x, y) => y.amount - x.amount);
         if (!lines.length) return {ok:false, tool:t, say:'No category history to rank yet.', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
         const top = lines.slice(0, Math.max(1, Math.min(10, +a.limit || 6)));
         const say = 'Biggest monthly spending, ' + rangeLabel() + ':\n'
