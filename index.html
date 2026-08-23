@@ -51,7 +51,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '3.3.1';
+  var APP_VER = '3.4.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -613,6 +613,7 @@ So, when you change a stored shape:
     --sv-scrim-strong:rgba(2,8,20,.55);
     --sv-scrim-panel:transparent;   /* dark separates without help */
     --warn-chip-bg:rgba(16,20,34,.92); --warn-chip-line:rgba(240,180,60,.55); --warn-chip-ink:#f0c464;
+    --card-bg:rgba(255,255,255,.035); --card-line:rgba(255,255,255,.07);
   }
   @media (prefers-color-scheme: dark){
     :root{
@@ -1186,6 +1187,45 @@ So, when you change a stored shape:
   /* Dim the map slightly behind a centered panel */
   body.space #spaceStage.panel-dim::after{
     content:''; position:absolute; inset:0; background:var(--sv-scrim); pointer-events:none; z-index:5}
+  /* ══ Signal cards ═════════════════════════════════════════════════════
+     Scoped to the space panel ON PURPOSE. openPanel() does not render anything —
+     it MOVES the live #sec-* nodes into the panel and puts them back on close,
+     so these are the very same elements the classic document view uses. Styling
+     them unscoped would restyle Classic too, and Classic is the keyboard and
+     accessibility path. Everything here is therefore body.space #spacePanel.
+     Design source: ~/lithifyte-design-preview-v2.html (five card shapes). */
+  body.space #spacePanel .section > .section-head{padding:0 2px 2px}
+  body.space #spacePanel .section > .section-head h2{font:var(--dw,700) 16px/1.2 var(--font-sans);
+    letter-spacing:-.022em; margin:0}
+  /* the deck: one quiet line, uppercase, never a paragraph */
+  body.space #spacePanel .section > .section-head > p{font:500 10px/1.6 var(--font-mono);
+    letter-spacing:.11em; text-transform:uppercase; color:var(--sv-ink-3); margin:6px 0 0}
+
+  body.space #spacePanel .card{background:var(--card-bg); border:1px solid var(--card-line);
+    border-radius:18px; padding:17px 17px 14px; box-shadow:none; margin:0 0 12px}
+  body.space #spacePanel .card h3{font:600 14.5px/1.2 var(--font-sans); letter-spacing:-.005em; margin:0}
+  body.space #spacePanel .card h4{font:600 13px/1.2 var(--font-sans); margin:0 0 8px}
+
+  /* figures carry Geist's tabular numerals so columns line up */
+  body.space #spacePanel .num,
+  body.space #spacePanel td.num,
+  body.space #spacePanel .hero-val{font-variant-numeric:tabular-nums; letter-spacing:-.01em}
+
+  /* ── 0 words of prose by default ──────────────────────────────────────
+     Every .hint in a panel folds behind a ? next to its heading. The button is
+     injected on open and removed on close (signalDecorate/-Undecorate), because
+     the node travels back to Classic and must arrive exactly as it left. */
+  body.space #spacePanel .hint.sig-folded{display:none}
+  body.space #spacePanel .hint.sig-folded.sig-open{display:block;
+    margin:8px 0 10px; padding:10px 12px; border-radius:10px;
+    background:rgba(var(--sv-line),.08); border:1px solid rgba(var(--sv-line),.18);
+    font-size:12.5px; line-height:1.55; color:var(--sv-ink-2)}
+  .sig-qm{width:16px; height:16px; flex:0 0 16px; border-radius:50%; padding:0; margin-left:7px;
+    border:1px solid rgba(var(--sv-line),.4); background:transparent; color:var(--sv-ink);
+    font:600 9.5px/1 var(--font-mono); cursor:pointer; vertical-align:middle}
+  .sig-qm:hover{background:rgba(var(--sv-line),.2)}
+  .sig-qm[aria-expanded="true"]{background:rgba(var(--sv-line),.28)}
+
   /* the sample-household badge — amber warning chip, both themes */
   #demoBadge{background:var(--warn-chip-bg); border:1px solid var(--warn-chip-line);
     color:var(--warn-chip-ink); font:700 12px var(--font-sans);
@@ -2167,6 +2207,7 @@ So, when you change a stored shape:
        open panel instead of competing with the figures on top of it */
     --sv-scrim-panel:rgba(18,48,86,.16);
     --warn-chip-bg:#fff6e0; --warn-chip-line:#c8912a; --warn-chip-ink:#6b4708;
+    --card-bg:rgba(14,40,72,.045); --card-line:rgba(14,40,72,.10);
   }
   /* system-light, for a household that never made an explicit choice */
   @media (prefers-color-scheme: light){
@@ -2178,6 +2219,7 @@ So, when you change a stored shape:
       --sv-scrim:rgba(18,48,86,.22); --sv-scrim-strong:rgba(18,48,86,.34);
       --sv-scrim-panel:rgba(18,48,86,.16);
       --warn-chip-bg:#fff6e0; --warn-chip-line:#c8912a; --warn-chip-ink:#6b4708;
+      --card-bg:rgba(14,40,72,.045); --card-line:rgba(14,40,72,.10);
     }
   }
 </style>
@@ -23929,6 +23971,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
     window.__ddSyncCam = syncCamShift;
     function closePanel(){
+      // BEFORE restore(): once the nodes are handed back they are no longer
+      // inside pBody, so cleaning the panel afterwards cleans nothing and the
+      // ? buttons ride back into the classic document view.
+      signalUndecorate(pBody);
       mounted.forEach(restore);
       mounted = []; active = null;
       panel.classList.remove('open', 'center', 'max');
@@ -23940,6 +23986,41 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       document.querySelectorAll('#spaceIcoRail .ico-btn').forEach(b => b.classList.remove('active'));
       syncCamShift();
     }
+    // ── Signal: fold prose behind a ? ────────────────────────────────────
+    // These nodes are BORROWED from the document view and handed back on close,
+    // so every change made here has to be exactly reversible. Nothing is
+    // rewritten: a class goes on, a button goes in, and both come off again.
+    function signalDecorate(root){
+      root.querySelectorAll('p.hint, span.hint').forEach(h => {
+        if (h.classList.contains('sig-folded')) return;          // idempotent
+        const txt = (h.textContent || '').trim();
+        if (txt.length < 24) return;                             // a label, not prose
+        // the heading this prose belongs to: previous sibling, else the parent's
+        let head = h.previousElementSibling;
+        while (head && !/^H[2-6]$/.test(head.tagName)) head = head.previousElementSibling;
+        if (!head){
+          const p = h.parentElement;
+          head = p && p.querySelector('h2, h3, h4, h5, h6');
+        }
+        if (!head || head.querySelector('.sig-qm')) return;
+        h.classList.add('sig-folded');
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'sig-qm'; b.textContent = '?';
+        b.setAttribute('aria-expanded', 'false');
+        b.setAttribute('aria-label', 'Why this figure');
+        b.addEventListener('click', e => {
+          e.stopPropagation();
+          const on = h.classList.toggle('sig-open');
+          b.setAttribute('aria-expanded', on ? 'true' : 'false');
+        });
+        head.appendChild(b);
+      });
+    }
+    function signalUndecorate(root){
+      root.querySelectorAll('.sig-qm').forEach(b => b.remove());
+      root.querySelectorAll('.sig-folded').forEach(h => h.classList.remove('sig-folded', 'sig-open'));
+    }
+
     function openPanel(item, opts){
       opts = opts || {};
       if (active === item.k && !opts.force){ if (!opts.keep) closePanel(); return; }
@@ -23952,6 +24033,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         const el = document.querySelector(s);
         if (el){ take(el); pBody.appendChild(el); mounted.push(el); }
       }
+      signalDecorate(pBody);
       pBody.scrollTop = 0;
       panel.dataset.surface = item.surface || 'data';
       panel.classList.toggle('center', item.mode === 'center');

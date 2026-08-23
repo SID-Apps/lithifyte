@@ -1,8 +1,8 @@
 {
-  "version": "3.3.1",
+  "version": "3.4.0",
   "released": "2026-08-23",
-  "notes": "Fixes: \"where can I cut back\" now ranks spending instead of answering with a budget notice, and the ranking is actually sorted. Light theme reaches the model picker, the node card, the sample-household badge and the nav hover; an open section now dims the map behind it.",
+  "notes": "Signal cards begin: the space panel gets the card surface from the design rebuild, and every explanatory line folds behind a ? so a panel opens with the figures, not the prose.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "fe8fb4689d25112e8958b9d830af94cca3b37f3b02d8c70f3f5767a25338979b"
+  "sha256": "1ce4679fdc91ccb7bdf8fcc48da6a056664208f06ec8a9dfbdcb622a1945d602"
 }
