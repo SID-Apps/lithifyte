@@ -51,7 +51,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '3.17.0';
+  var APP_VER = '3.18.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -1197,11 +1197,14 @@ So, when you change a stored shape:
   body.space #spacePanel .section > .section-head{padding:0 2px 2px}
   body.space #spacePanel .section > .section-head h2{font:var(--dw,700) 16px/1.2 var(--font-sans);
     letter-spacing:-.022em; margin:0}
-  /* the deck: one quiet line, uppercase, never a paragraph */
-  body.space #spacePanel .section > .section-head > p{font:500 10px/1.6 var(--font-mono);
-    letter-spacing:.11em; text-transform:uppercase; color:var(--sv-ink-3); margin:6px 0 0}
+  /* A real deck is `.sig-deck` (one uppercase line). These <p>s are paragraphs
+     — forcing mono uppercase wrapped them one word per line in a 333px panel. */
+  body.space #spacePanel .section > .section-head > p{font:400 12.5px/1.55 var(--font-sans);
+    letter-spacing:0; text-transform:none; color:var(--sv-ink-2); margin:6px 0 0}
 
-  body.space #spacePanel .card{background:var(--card-bg); border:1px solid var(--card-line);
+  /* --card-bg is 3.5% white on the navy stage: nested cards and stat tiles read
+     as holes, not as surfaces. A cyan-tinted lift sits on the glass mix instead. */
+  body.space #spacePanel .card{background:rgba(var(--sv-line),.10); border:1px solid rgba(var(--sv-line),.20);
     border-radius:18px; padding:17px 17px 14px; box-shadow:none; margin:0 0 12px}
   body.space #spacePanel .card h3{font:600 14.5px/1.2 var(--font-sans); letter-spacing:-.005em; margin:0}
   body.space #spacePanel .card h4{font:600 13px/1.2 var(--font-sans); margin:0 0 8px}
@@ -1298,7 +1301,9 @@ So, when you change a stored shape:
     .sig-row .sig-spark, .sig-row .sig-spark-empty{display:none}
     .sig-months{grid-template-columns:repeat(3,1fr)}
     .sig-bar-row{grid-template-columns:minmax(0,1fr) minmax(62px,auto)}
-    .sig-stats{grid-template-columns:1fr}
+    /* two compact tiles still fit at 333px; a single column made four stats
+       taller than the month rows they introduce */
+    .sig-stats{grid-template-columns:1fr 1fr}
     .sig-goal{grid-template-columns:40px minmax(0,1fr) minmax(62px,auto); gap:10px}
   }
   .sig-togs{display:flex; flex-direction:column; gap:2px}
@@ -1327,7 +1332,10 @@ So, when you change a stored shape:
   .sig-ctl input[type="range"]{width:140px; max-width:42vw; margin:0}
 
   .sig-stats{display:grid; grid-template-columns:1fr 1fr; gap:10px}
-  .sig-stat{padding:13px 14px; border-radius:14px; background:var(--card-bg); border:1px solid var(--card-line)}
+  .sig-stat{padding:13px 14px; border-radius:14px;
+    background:rgba(var(--sv-line),.12); border:1px solid rgba(var(--sv-line),.22)}
+  .sig-bar-row.sig-hit{cursor:pointer}
+  .sig-bar-row.sig-hit:hover, .sig-bar-row.sig-open{background:var(--hoverish)}
   .sig-stat.sig-wide{grid-column:1/-1}
   .sig-stat b{display:block; font:600 20px/1.15 var(--font-mono); font-variant-numeric:tabular-nums;
     letter-spacing:-.02em}
@@ -1376,6 +1384,41 @@ So, when you change a stored shape:
   body.space .panel-body .goal-card, body.space .panel-body .kpi, body.space .panel-body .org-user,
   body.space .panel-body details{
     background:color-mix(in srgb, var(--surface) 72%, transparent)}
+
+  /* Cashflow / Categories / Goals — the 640px SVG, 860px bars and 4-col 42px
+     hero cannot sit in a 333px panel. Hide the Classic chrome; the renderers
+     write Signal into the same nodes. Filters stack instead of wrapping. */
+  body.space #spacePanel #cashXlBar,
+  body.space #spacePanel #catXlBar,
+  body.space #spacePanel #sec-cashflow .legend,
+  body.space #spacePanel #skCard,
+  body.space #spacePanel #goalHero .hero-top,
+  body.space #spacePanel #goalHero > .track,
+  body.space #spacePanel #goalHero > .track-meta,
+  body.space #spacePanel #goalHero #provCallout,
+  body.space #spacePanel .kpis{display:none}
+  body.space #spacePanel #cashflowChartWrap{overflow:visible}
+  body.space #spacePanel #sec-cashflow .filter-row,
+  body.space #spacePanel #sec-cats .filter-row{
+    flex-direction:column; align-items:stretch; gap:8px;
+    padding:10px 12px; border-radius:12px; margin:0 0 10px;
+    background:rgba(var(--sv-line),.08); border:1px solid rgba(var(--sv-line),.16)}
+  body.space #spacePanel #sec-cashflow .filter-row .inp,
+  body.space #spacePanel #sec-cats .filter-row .inp,
+  body.space #spacePanel #sec-cashflow .filter-row select,
+  body.space #spacePanel #sec-cats .filter-row select{max-width:100% !important; width:100%}
+  body.space #spacePanel #sec-cashflow .chart-card,
+  body.space #spacePanel #sec-cats .chart-card{padding:14px 12px 10px; overflow:visible}
+  body.space #spacePanel .sig-stats + .sig-rows{margin-top:12px}
+  body.space #spacePanel #catLegend{margin-bottom:8px}
+  body.space #spacePanel #catLegend .sig-stat small{white-space:nowrap}
+  body.space #spacePanel #goalHero{padding:12px; margin:0}
+  body.space #spacePanel #goalGrid.goal-grid{display:block; margin-top:0}
+  body.space #spacePanel #goalHero #goalsVerdict{margin-top:0}
+  body.space #spacePanel #goalHero .goal-form{grid-template-columns:1fr 1fr !important; gap:10px}
+  body.space #spacePanel #goalHero .goal-form > div:first-child,
+  body.space #spacePanel #goalHero .goal-form > div:nth-child(6),
+  body.space #spacePanel #goalHero .goal-form > div:last-child{grid-column:1/-1}
 
   /* ── In-app Space tutorial (guided playthrough) ── */
   #tourRoot{display:none; position:fixed; inset:0; z-index:400; pointer-events:none}
@@ -1848,7 +1891,7 @@ So, when you change a stored shape:
   .flag.hot{background:color-mix(in srgb, var(--critical) 14%, var(--surface)); color:var(--critical)}
   .flag.warm{background:color-mix(in srgb, var(--serious) 16%, var(--surface)); color:var(--serious)}
   .flag.ok{background:color-mix(in srgb, var(--good) 14%, var(--surface)); color:var(--good-text)}
-  .goal-form{display:grid; grid-template-columns:1.3fr .8fr .8fr .8fr auto; gap:8px; align-items:end; margin-top:14px; padding-top:14px; border-top:1px solid var(--border)}
+  .goal-form{display:grid; grid-template-columns:1.2fr .7fr .8fr .7fr .8fr auto; gap:8px; align-items:end; margin-top:14px; padding-top:14px; border-top:1px solid var(--border)}
   @media (max-width:820px){ .goal-form{grid-template-columns:1fr 1fr} }
   .goal-form label{display:block; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:4px}
   .goal-form input{width:100%}
@@ -2519,7 +2562,7 @@ So, when you change a stored shape:
     <div class="goal-grid" id="goalGrid"></div>
 
     <div class="gf-editbar" id="gfEditBar"><span id="gfEditMsg"></span><button class="btn small" id="gfCancel" type="button">Cancel</button></div>
-    <div class="goal-form" style="grid-template-columns:1.2fr .7fr .8fr .7fr .8fr auto">
+    <div class="goal-form">
       <div><label for="gf-name">Goal name</label><input id="gf-name" class="inp" placeholder="e.g. Emergency fund"></div>
       <div><label for="gf-target">Target €</label><input id="gf-target" class="inp" type="number" min="100" step="100" placeholder="10000"></div>
       <div><label for="gf-month">By (optional)</label><input id="gf-month" class="inp" type="month"></div>
@@ -2548,7 +2591,7 @@ So, when you change a stored shape:
   <div class="section" id="sec-cashflow">
     <div class="section-head">
       <h2>Cashflow, month by month</h2>
-      <p>Income vs spending for the selected <b>account scope</b> and date range — with your category corrections applied. Pick <b>All accounts</b> for the household picture, or one account to see only that ledger. <b>Hover any month</b> for totals; <b>click a month</b> for the full breakdown. The Sankey below follows the same scope.</p>
+      <p class="hint">Income vs spending for the selected <b>account scope</b> and date range — with your category corrections applied. Pick <b>All accounts</b> for the household picture, or one account to see only that ledger. <b>Hover any month</b> for totals; <b>click a month</b> for the full breakdown. The Sankey below follows the same scope.</p>
     </div>
     <div class="xl-bar" id="cashXlBar">
       <button type="button" class="btn small" id="cashExportXl">⬇ Export cashflow CSV</button>
@@ -2598,7 +2641,7 @@ So, when you change a stored shape:
   <div class="section" id="sec-cats">
     <div class="section-head">
       <h2>Where a month goes</h2>
-      <p>Average monthly outgoings for the selected <b>account scope</b> and date range. Pick one account or all; <b>click a bar</b> to isolate that category (list every transaction and light it on the money map).</p>
+      <p class="hint">Average monthly outgoings for the selected <b>account scope</b> and date range. Pick one account or all; <b>click a bar</b> to isolate that category (list every transaction and light it on the money map).</p>
     </div>
     <div class="xl-bar" id="catXlBar">
       <button type="button" class="btn small" id="catExportXl">⬇ Export categories CSV</button>
@@ -7688,8 +7731,6 @@ rewrite the static advice cards if the picture has changed.</div>
         const pct = r.g.target > 0 ? Math.round(Math.min(100, r.pot / r.g.target * 100)) : 0;
         const bits = [vLbl[r.verdict] || r.verdict];
         if (r.g.targetMonth) bits.push(fmtMoLbl(r.g.targetMonth));
-        else bits.push('no deadline');
-        if (r.reqMo != null && isFinite(r.reqMo) && r.gap > 0) bits.push('needs ' + eur(r.reqMo) + '/mo');
         return {
           name: r.g.name,
           sub: bits.join(' · '),
@@ -8027,8 +8068,59 @@ rewrite the static advice cards if the picture has changed.</div>
     const y = v => padT + plotH - (v / yMax) * plotH;
     const group = plotW / n, bw = Math.max(4, Math.min(14, (group - 10) / 2));
     if (!M.length){
-      document.getElementById('cashflowChart').innerHTML =
-        '<div class="hint" style="padding:28px 8px">No months in the selected date range for this account scope. Widen 📅 range or pick another account.</div>';
+      const empty = document.getElementById('cashflowChart');
+      if (document.body.classList.contains('space') && empty){
+        empty.innerHTML = Signal.stats([
+          {value:'—', label:'money in'}, {value:'—', label:'money out'},
+          {value:'—', label:'saved'}, {value:'—', label:'saving rate'}
+        ]) + '<p class="hint">No months in this range for this account.</p>';
+      } else if (empty){
+        empty.innerHTML =
+          '<div class="hint" style="padding:28px 8px">No months in the selected date range for this account scope. Widen 📅 range or pick another account.</div>';
+      }
+      renderCashDetail();
+      return;
+    }
+    if (document.body.classList.contains('space')){
+      // The grouped-bar SVG is min 640px. In a 333px panel it scrolled sideways
+      // and the Sankey under it did the same. Stats carry the period totals;
+      // three sparkline rows carry the twelve-month shape — same Engine figures.
+      const el = document.getElementById('cashflowChart');
+      const inTot = M.reduce((s, m) => s + (m.income || 0), 0);
+      const outTot = M.reduce((s, m) => s + (m.spend || 0), 0);
+      const stayed = inTot - outTot;
+      const rate = inTot > 0 ? stayed / inTot : 0;
+      const last = M[M.length - 1];
+      const lastNet = (last.income || 0) - (last.spend || 0);
+      const money = v => (v < -0.005 ? '−' : '') + eur(Math.abs(v));
+      const moLbl = m => fmtMoLbl(m.month).slice(0, 3).toUpperCase();
+      el.innerHTML = Signal.stats([
+        {value: eur(inTot), label: 'money in', tone: 'cy'},
+        {value: eur(outTot), label: 'money out'},
+        {value: money(stayed), label: 'saved', tone: stayed >= 0 ? 'pos' : 'neg'},
+        {value: (Math.abs(rate) * 100).toFixed(1) + '%', label: 'saving rate',
+         tone: rate >= 0 ? 'pos' : 'neg'}
+      ]) + Signal.rows([
+        {name: 'Money in', sub: n + ' month' + (n === 1 ? '' : 's'),
+         series: M.map(m => m.income || 0), color: '#38bdf8',
+         amount: eur(last.income || 0), tone: 'cy',
+         months: M.slice(-6).map(m => ({label: moLbl(m), value: eur(m.income || 0)})),
+         note: 'Average ' + eur(inTot / n) + ' a month'},
+        {name: 'Money out', sub: 'all categories',
+         series: M.map(m => m.spend || 0), color: '#a78bfa',
+         amount: eur(last.spend || 0),
+         months: M.slice(-6).map(m => ({label: moLbl(m), value: eur(m.spend || 0)})),
+         note: 'Average ' + eur(outTot / n) + ' a month'},
+        {name: 'What stayed', sub: 'in − out',
+         series: M.map(m => (m.income || 0) - (m.spend || 0)),
+         color: lastNet >= 0 ? '#34d399' : '#fb7185',
+         amount: money(lastNet), tone: lastNet >= 0 ? 'pos' : 'neg',
+         months: M.slice(-6).map(m => {
+           const v = (m.income || 0) - (m.spend || 0);
+           return {label: moLbl(m), value: money(v), negative: v < -0.005};
+         }),
+         note: 'Average ' + money(stayed / n) + ' a month'}
+      ]);
       renderCashDetail();
       return;
     }
@@ -9335,13 +9427,12 @@ rewrite the static advice cards if the picture has changed.</div>
         <span class="cl-sub num">${eur(total)} over ${L.months} month${L.months === 1 ? '' : 's'}${sub ? ' · ' + esc(sub) : ''}</span>
       </div>`;
     if (document.body.classList.contains('space') && L){
-      const over = L.months + ' month' + (L.months === 1 ? '' : 's');
       el.innerHTML = Signal.stats([
-        {value: eur(L.incomeAvg) + '/mo', label: 'income · ' + eur(L.income) + ' over ' + over},
-        {value: eur(L.spendAvg) + '/mo',  label: 'spending · ' + (L.catCount + ' categories')},
-        {value: eur(L.saveAvg) + '/mo',   label: 'saved' + (L.savedRate != null ? ' · ' + pct(L.savedRate) : ''), tone: 'pos'},
+        {value: eur(L.incomeAvg) + '/mo', label: 'income'},
+        {value: eur(L.spendAvg) + '/mo',  label: 'spending'},
+        {value: eur(L.saveAvg) + '/mo',   label: 'saved', tone: 'pos'},
         {value: (L.netAvg < 0 ? '−' : '') + eur(Math.abs(L.netAvg)) + '/mo',
-         label: 'left over · income − expenses − saved', tone: L.netAvg >= 0 ? 'pos' : 'neg', wide: true}
+         label: 'left over', tone: L.netAvg >= 0 ? 'pos' : 'neg'}
       ]);
       return;
     }
@@ -9363,6 +9454,41 @@ rewrite the static advice cards if the picture has changed.</div>
     syncLocalRanges();
     guard('categories legend', renderCatLegend);
     const C = catsFromTxe(scopedTxe());
+    if (document.body.classList.contains('space')){
+      // Horizontal SVG is 860px with a 200px label column — every name wrapped
+      // one word per line in the panel. Bars are a share of the largest, and
+      // the dot is catColor so the row matches the map node behind the glass.
+      const el = document.getElementById('catChart');
+      const Cspend = C.filter(c => c.category !== SAVE_CAT && c.avgMonth > 0);
+      if (!el){ renderCatDetail(); return; }
+      if (!Cspend.length){
+        el.innerHTML = Signal.stats([{value:'—', label:'no spending in this range', wide:true}]);
+        renderCatDetail();
+        return;
+      }
+      const maxV = Math.max(...Cspend.map(c => c.avgMonth), 1);
+      const tot = Cspend.reduce((s, c) => s + c.avgMonth, 0);
+      el.innerHTML = Signal.bars(Cspend.map(c => ({
+        name: c.category,
+        amount: eur(c.avgMonth),
+        pct: c.avgMonth / maxV * 100,
+        color: catColor(c.category),
+        sub: tot > 0 ? Math.round(c.avgMonth / tot * 100) + '% of spending' : ''
+      })));
+      el.querySelectorAll('.sig-bar-row').forEach((row, i) => {
+        row.classList.add('sig-hit');
+        if (catSel === Cspend[i].category) row.classList.add('sig-open');
+        row.addEventListener('click', () => {
+          const name = Cspend[i].category;
+          catSel = catSel === name ? null : name;
+          catMoSel = null;
+          renderCats();
+          syncScopeMapHighlight();
+        });
+      });
+      renderCatDetail();
+      return;
+    }
     const W = 860, rowH = 30, padL = 200, padR = 74, padT = 4;
     const H = padT + Math.max(1, C.length)*rowH + 8;
     const maxV = Math.max(...C.map(c=>c.avgMonth), 1);
@@ -17264,6 +17390,25 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           missing.push(r.name + ' (#' + r.target + ' has no Signal markup)');
       }
       return !missing.length || 'not converted on screen: ' + missing.join('; ');
+    });
+    T('signal: cashflow in space is stats and month rows, not a 640px SVG', () => {
+      if (!document.body.classList.contains('space') || !TX.length || !A) return true;
+      const el = document.getElementById('cashflowChart');
+      if (!el) return 'no #cashflowChart';
+      const svg = el.querySelector('svg:not(.sig-spark)');
+      if (svg){
+        const w = parseFloat(svg.getAttribute('width') || '0');
+        if (w >= 640) return 'wide SVG still in the panel (width ' + w + ')';
+      }
+      return !!(el.querySelector('.sig-stat') && el.querySelector('.sig-row'))
+        || 'expected stats + rows in #cashflowChart';
+    });
+    T('signal: categories in space is proportion bars, not an 860px SVG', () => {
+      if (!document.body.classList.contains('space') || !TX.length || !A) return true;
+      const el = document.getElementById('catChart');
+      if (!el) return 'no #catChart';
+      if (el.querySelector('svg[style*="min-width"]')) return 'wide SVG still in the panel';
+      return !!el.querySelector('.sig-bar-row') || 'expected bars in #catChart';
     });
     T('signal: the re-render path is one list, not three', () => {
       // enter(), exit() and the theme observer all went through hand-copied
@@ -25959,7 +26104,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   const SIGNAL_RENDERERS = [
     {name:'summary balances',  target:'sumBalances', fn: () => renderSummaryBalances()},
     {name:'cashflow balances', target:'balBody',     fn: () => renderBalances()},
+    {name:'cashflow months',   target:'cashflowChart', fn: () => { if (A) renderCashflow(); }},
     {name:'category legend',   target:'catLegend',   fn: () => { if (A) renderCatLegend(); }},
+    {name:'category bars',     target:'catChart',    fn: () => { if (A) renderCats(); }},
     {name:'leaks',             target:'leakSignal',  fn: () => { if (A) renderLeaks(); }},
     {name:'debts',             target:null,          fn: () => { if (typeof DP !== 'undefined' && DP) renderDebts(); }},
     {name:'holdings',          target:null,          fn: () => { if (typeof HV !== 'undefined' && HV) renderHoldings(); }},
@@ -26110,7 +26257,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     // view/tutorial + backup/integrity.
     const items = [
       {k:'summary', ic:'🧭', label:'Summary',   sel:['#sec-summary']},
-      {k:'goals',  ic:'🎯', label:'Goals',      sel:['#goalHero', '.kpis']},
+      {k:'goals',  ic:'🎯', label:'Goals',      sel:['#goalHero']},
       {k:'alerts', ic:'🔔', label:'Alerts',     sel:['#sec-alerts']},
       {k:'cash',   ic:'📈', label:'Cashflow',   sel:['#sec-cashflow']},
       {k:'cats',   ic:'🧩', label:'Categories', sel:['#sec-cats']},
@@ -26512,7 +26659,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       {part:2, dock:'people', target:'#hhBanner, #orgAddUser, #sec-people', title:'People, accounts & statements',
        loc:'Data → People 👥',
        body:'Edit the household name (map root). Add partners or businesses with ＋ Add person. Each person gets accounts (current / credit / savings / cash). Upload your bank\u2019s own CSV or Excel export under the right account: Prepare & preview shows which column it read as what, lets you change any of it, and shows the finished transactions beside your raw file before anything is saved. Where the statement carries a running balance it is checked against it, and the opening balance can be set from that check. Opening balances power cash-on-hand, net worth, and linked goals.'},
-      {part:2, dock:'goals', target:'#goalHero, .kpis', title:'Goals',
+      {part:2, dock:'goals', target:'#goalHero', title:'Goals',
        loc:'Overview → Goals',
        body:'Goals are funded from the cautious forecast surplus in priority order. Link a goal to a savings account (with an opening balance) for the strongest pot. Verdicts always quote the cautious date first.'},
 

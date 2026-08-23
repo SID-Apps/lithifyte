@@ -1,8 +1,8 @@
 {
-  "version": "3.17.0",
+  "version": "3.18.0",
   "released": "2026-08-23",
-  "notes": "Net worth composition, mix, trend and add-asset form in the Signal language.",
+  "notes": "Cashflow, Categories and Goals Space ergonomics: stats+rows, bars, compact rings; no wide SVGs in the panel.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "c00f4f432b9c421335c0b6a3a0812e80d9bec194aa095e12fcacd3c0b3b626f7"
+  "sha256": "fc168fdc7bd28cf199a2e5505b7699f14e5fd7ae640b06dbb3f20a284411df7c"
 }
