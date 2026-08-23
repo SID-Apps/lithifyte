@@ -11,14 +11,53 @@ chapters and force-directed nodes.
 
 | # | Chapter | Scene |
 |---|---------|--------|
-| 00 | Enter | First-person void → “Fly into your money map” |
-| 01 | Living map | Approach: map grows as you scroll; nodes are draggable |
-| 02 | Household | People, then accounts with balances |
-| 03 | Merchants | Category hubs bloom into shops; transaction pulses on links |
-| 04 | Goals & debts | Progress rings on goals; hollow debt nodes |
-| 05 | Flow | Animated Sankey — €6,000 income splits by category |
-| 06 | Privacy | Vault ring — statements stay on the device; hosted AI is optional |
-| 07 | Enter | Sample + start account CTAs + footer (no extra scroll past this page) |
+| 00 | Enter | Release badge, one-line pitch, sample + sign-in |
+| 01 | **Ask** | Co-pilot job replay: six question chips, one device panel, real answers |
+| 02 | **Proof** | Four preview plays — scripted clips of the product being used |
+| 03 | Living map | Approach: map grows as you scroll; nodes are draggable |
+| 04 | Household | People, then accounts with balances |
+| 05 | Merchants | Category hubs bloom into shops; transaction pulses on links |
+| 06 | Goals & debts | Progress rings on goals; hollow debt nodes |
+| 07 | Flow + inside the app | Animated Sankey, then horizontal frames (budgets → goals → debts → holdings → crypto) |
+| 08 | Privacy | Vault scene — statements stay on the device; hosted AI is optional |
+| 09 | Price | €0 core, forever |
+| 10 | Inside | What the single file contains |
+| 11 | Enter | Sample + sign-in CTAs + footer (no extra scroll past this page) |
+
+Ask and Proof open the tour: the argument now lands before the map tour rather
+than after it. Because chapters move, the canvas camera is keyed by each
+section's `data-scene`, never by its index — an index-keyed switch points every
+scene at the wrong camera the moment anything is reordered.
+
+**Type.** The page is set in **Geist** (`--fd`) with **Geist Mono** (`--fm`) for
+tabular numbers and small labels, both from Google Fonts, falling back to
+`system-ui` / `ui-monospace`. `page.css` carries the same pair for the content
+pages, so the landing and the library match.
+
+**Ask (01)** and **Proof (02)** are driven by one plain 50ms interval in a
+`<script>` at the end of `index.html` — deliberately outside the React runtime,
+like the mobile menu, because the runtime re-renders the body and would detach
+anything bound at load. The opening Ask thread ships already revealed in the markup and its clock
+starts at that thread's last cue, so arriving at the section shows a finished
+answer rather than an empty panel filling in while the page boots; every later
+thread, and any chip a visitor clicks, animates. All their markup is static; the driver only toggles
+classes and keeps its clock in `data-` attributes. The clock is anchored to
+`Date.now()`, not accumulated from the interval delta: these clips now start
+while the page is still booting React and settling the force layout, and an
+accumulated clock turned that jank into a slow first play. Proof is the one
+chapter that is **not** pinned: four players do not fit a 900px viewport, and
+it carries no `[data-copy]`, which is what opts a chapter out of the scroll fade.
+
+**Scroll rhythm.** Chapters are ~1.2–1.4 viewports, not the 1.7–2.2 they were:
+a pinned screen that holds for a full extra viewport after its copy has landed
+reads as a pause, not as pacing. The whole page is ~19 viewports (was ~26). The
+in-app slide (07) compresses its horizontal travel at `RATE = 0.36` — six
+full-width frames are 500vw of track, and mapping that 1:1 onto scroll cost
+four viewports of dragging on its own. The copy fade-out is measured in pixels
+of scroll (`fadePx`), not as a fixed share of the section, so short chapters
+hand over instead of blinking. Ask (01) carries no `[data-copy]` at all: it
+stays pinned and slides away under the header as Proof arrives, which is why
+the header background has to cover rather than tint.
 
 ### Interaction (beyond Rev 1)
 

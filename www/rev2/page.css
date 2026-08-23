@@ -2,8 +2,8 @@
 :root{
   --void:#020b1a; --deep:#041224; --cyan:#38bdf8; --cyan-hot:#7dd3fc;
   --mint:#34d399; --ink:#e8f1ff; --muted:#8fb0d0; --line:rgba(56,189,248,.28);
-  --font-display:"Syne",system-ui,sans-serif;
-  --font-mono:"IBM Plex Mono",ui-monospace,monospace;
+  --font-display:"Geist",system-ui,sans-serif;
+  --font-mono:"Geist Mono",ui-monospace,monospace;
 }
 *,*::before,*::after{box-sizing:border-box}
 body{
