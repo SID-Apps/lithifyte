@@ -51,7 +51,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '3.4.0';
+  var APP_VER = '3.4.1';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -21359,7 +21359,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         const bill = pay.modeAmount || pay.monthly;
         const bits = [];
         if (pay.modeCount && pay.nTx){
-          bits.push((pay.sample || q) + ' — standing order ' + eur(bill) + ' (' + pay.modeCount + ' of ' + pay.nTx + ' payments were ' + eur(bill) + ').');
+          // Lead with the figure and the words the household actually asked
+          // ("how much am I paying each month"). The old wording opened with
+          // "standing order €270" and never said "each month" anywhere, so the
+          // answer made the reader do the translation.
+          bits.push((pay.sample || q) + ' — ' + eur(bill) + ' each month (standing order; ' +
+                    pay.modeCount + ' of ' + pay.nTx + ' payments were ' + eur(bill) + ').');
         } else {
           bits.push((pay.sample || q) + ' is ' + eur(pay.monthly) + ' each month.');
         }

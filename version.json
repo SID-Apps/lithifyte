@@ -1,8 +1,8 @@
 {
-  "version": "3.4.0",
+  "version": "3.4.1",
   "released": "2026-08-23",
-  "notes": "Signal cards begin: the space panel gets the card surface from the design rebuild, and every explanatory line folds behind a ? so a panel opens with the figures, not the prose.",
+  "notes": "A standing-order answer now leads with the figure and the words asked for — \"PTSB — €270 each month\" rather than opening with \"standing order\" and never saying each month.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "1ce4679fdc91ccb7bdf8fcc48da6a056664208f06ec8a9dfbdcb622a1945d602"
+  "sha256": "58dd23a9b821a0561fee68612847d67bb9c8a48c8897edda82c1b45df4b06124"
 }
