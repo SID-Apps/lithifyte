@@ -51,7 +51,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '3.13.0';
+  var APP_VER = '3.14.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -1238,6 +1238,10 @@ So, when you change a stored shape:
     width:100%; text-align:left; padding:11px; border-radius:12px; border:1px solid transparent;
     background:none; color:inherit; font:inherit; cursor:pointer; transition:background .15s, border-color .15s}
   .sig-row.sig-flat{cursor:default}
+  .sig-goals{display:flex; flex-direction:column; gap:2px}
+  .sig-goal{display:grid; grid-template-columns:46px minmax(0,1fr) minmax(62px,auto);
+    gap:13px; align-items:center; padding:11px; border-radius:12px}
+  .sig-goal:hover{background:var(--hoverish)}
   .sig-row:not(.sig-flat):hover{background:var(--hoverish); border-color:var(--hover-line-ish)}
   .sig-row.sig-open{background:var(--hoverish); border-color:var(--hover-line-ish)}
   /* NOT a flex container: the sub-label is a block UNDER the name. Making this
@@ -1291,6 +1295,7 @@ So, when you change a stored shape:
     .sig-months{grid-template-columns:repeat(3,1fr)}
     .sig-bar-row{grid-template-columns:minmax(0,1fr) minmax(62px,auto)}
     .sig-stats{grid-template-columns:1fr}
+    .sig-goal{grid-template-columns:40px minmax(0,1fr) minmax(62px,auto); gap:10px}
   }
   .sig-togs{display:flex; flex-direction:column; gap:2px}
   /* Wraps rather than starves. A setting's control has a natural width it will
@@ -4082,6 +4087,19 @@ rewrite the static advice cards if the picture has changed.</div>
         '" transform="rotate(-90 18 18)"/><text x="18" y="21" text-anchor="middle" font-size="10" ' +
         'font-weight="600" fill="' + col + '">' + p + '%</text></svg>';
     }
+    // ── 2b. goal rows: the preview's ring + name + amount ─────────────────
+    // Not a sixth primitive — it is ring() composed the way the design file
+    // composes it, so every conversion uses the same ring.
+    function goals(items){
+      return '<div class="sig-goals">' + (items || []).map(function(g){
+        return '<div class="sig-goal">' +
+          ring(g.pct, {color: g.color, size: g.size || 46}) +
+          '<span class="sig-nm">' + esc2(g.name) +
+            (g.sub ? '<small>' + esc2(g.sub) + '</small>' : '') + '</span>' +
+          '<span class="sig-amt' + (g.tone ? ' sig-' + g.tone : '') + '">' + esc2(g.amount) + '</span>' +
+        '</div>';
+      }).join('') + '</div>';
+    }
     // ── 3. ledger rows, with the exact figures behind a click ─────────────
     // The sparkline carries twelve months; the numbers come back on demand. A
     // row without months is not clickable and says so to a screen reader.
@@ -4186,7 +4204,7 @@ rewrite the static advice cards if the picture has changed.</div>
           '<small>' + esc2(t.label) + '</small></div>';
       }).join('') + '</div>';
     }
-    return {spark, ring, rows, bars, stats, togs, adopt, park, restore, tc};
+    return {spark, ring, goals, rows, bars, stats, togs, adopt, park, restore, tc};
   })();
   window.__ddSignal = Signal;
 
@@ -7601,7 +7619,11 @@ rewrite the static advice cards if the picture has changed.</div>
       const b = document.getElementById('goalHeroWiz');
       if (b) b.addEventListener('click', openGoalWizard);
       document.getElementById('goalsVerdict').style.display = 'none';
-      document.getElementById('goalGrid').innerHTML = '';
+      const emptyGrid = document.getElementById('goalGrid');
+      if (document.body.classList.contains('space') && emptyGrid){
+        emptyGrid.innerHTML = Signal.goals([{name:'Set your first goal', sub:'turns surplus into a date',
+          pct:0, amount:'—'}]);
+      } else if (emptyGrid) emptyGrid.innerHTML = '';
       return;
     }
     const P = as[0];
@@ -7654,6 +7676,44 @@ rewrite the static advice cards if the picture has changed.</div>
     const grid = document.getElementById('goalGrid');
     const vLbl = {ok:'On track', warm:'Tight', hot:'At risk', done:'Reached'};
     const vCls = {ok:'ok', warm:'warm', hot:'hot', done:'ok'};
+    if (document.body.classList.contains('space') && grid){
+      const colOf = {ok:'#34d399', done:'#34d399', warm:'#f7c95c', hot:'#fb7185'};
+      grid.innerHTML = Signal.goals(as.map(r => {
+        const pct = r.g.target > 0 ? Math.round(Math.min(100, r.pot / r.g.target * 100)) : 0;
+        const bits = [vLbl[r.verdict] || r.verdict];
+        if (r.g.targetMonth) bits.push(fmtMoLbl(r.g.targetMonth));
+        else bits.push('no deadline');
+        if (r.reqMo != null && isFinite(r.reqMo) && r.gap > 0) bits.push('needs ' + eur(r.reqMo) + '/mo');
+        return {
+          name: r.g.name,
+          sub: bits.join(' · '),
+          pct,
+          color: colOf[r.verdict] || '#f7c95c',
+          amount: eur(r.pot),
+          tone: r.verdict === 'hot' ? 'neg' : (r.verdict === 'done' || r.verdict === 'ok' ? 'pos' : '')
+        };
+      }));
+      grid.querySelectorAll('.sig-goal').forEach((el, i) => {
+        el.style.cursor = 'pointer';
+        el.title = 'Edit this goal';
+        el.addEventListener('click', () => {
+          const g = goals[i];
+          if (!g) return;
+          document.getElementById('gf-name').value = g.name;
+          document.getElementById('gf-target').value = g.target;
+          document.getElementById('gf-month').value = g.targetMonth || '';
+          document.getElementById('gf-pot').value = g.pot != null ? g.pot : '';
+          document.getElementById('gf-asof').value = g.potAsOf || '';
+          document.getElementById('gf-acct').value = g.accountId || '';
+          document.getElementById('gf-save').textContent = 'Save changes';
+          document.getElementById('gf-save').dataset.editing = g.id;
+          document.getElementById('gfEditMsg').textContent = 'Editing: ' + g.name;
+          document.getElementById('gfEditBar').classList.add('on');
+          document.getElementById('gf-name').focus({preventScroll:true});
+        });
+      });
+      return as;
+    }
     grid.innerHTML = as.map((r,i)=>{
       const lk = goalLink(r.g);
       return `
@@ -16557,7 +16617,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       for (const r of want){
         const el = document.getElementById(r.target);
         if (!el) { missing.push(r.name + ' (no #' + r.target + ')'); continue; }
-        if (!el.querySelector('.sig-row, .sig-stat, .sig-bar-row, .sig-tog'))
+        if (!el.querySelector('.sig-row, .sig-stat, .sig-bar-row, .sig-tog, .sig-goal'))
           missing.push(r.name + ' (#' + r.target + ' has no Signal markup)');
       }
       return !missing.length || 'not converted on screen: ' + missing.join('; ');
@@ -16737,6 +16797,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     });
     T('signal: one point or none renders nothing rather than a broken path', () => {
       return (!/polyline/.test(Signal.spark([5])) && !/polyline/.test(Signal.spark([]))) || 'drew a path from < 2 points';
+    });
+    T('signal: a goals row carries a ring, a name and an amount', () => {
+      const h = Signal.goals([{name:'House deposit', sub:'tight', pct:54, amount:'€21,600', color:'#f7c95c'}]);
+      if (!/sig-goal/.test(h) || !/sig-ring/.test(h)) return 'missing the goals shape: ' + h.slice(0, 80);
+      if (!h.includes('>54%<')) return 'ring did not show 54%';
+      return (h.includes('House deposit') && h.includes('€21,600')) || h.slice(0, 120);
     });
     T('signal: a ring clamps to 0–100 and never emits a negative dash', () => {
       for (const [inp, want] of [[-20, 0], [0, 0], [54, 54], [140, 100]]){
@@ -20193,12 +20259,78 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     if (a.days === 1) return lbl + ' · tomorrow';
     return lbl + ' · in ' + a.days + ' days';
   }
+  const AL_AUTO_IDS = ['alAutoUp','alAutoGoal'];
+  function paintAlertTogs(){
+    const up = document.getElementById('alAutoUp');
+    const gp = document.getElementById('alAutoGoal');
+    const upLab = up && up.closest('label');
+    const gpLab = gp && gp.closest('label');
+    const wrap = document.getElementById('alertAddWrap');
+    if (document.body.classList.contains('space')){
+      if (document.getElementById('alertTogs')) return;
+      const slot = document.createElement('div');
+      slot.id = 'alertTogs';
+      slot.innerHTML = Signal.togs([
+        {name:'Predict upcoming bills', sub:'From recurring history', adopt:'alAutoUp'},
+        {name:'Warn when a goal falls behind', sub:'Computed against the forecast', adopt:'alAutoGoal'}
+      ]);
+      if (wrap) wrap.parentNode.insertBefore(slot, wrap);
+      Signal.adopt(slot);
+      if (upLab) upLab.style.display = 'none';
+      if (gpLab) gpLab.style.display = 'none';
+    } else {
+      Signal.restore(AL_AUTO_IDS);
+      const slot = document.getElementById('alertTogs');
+      if (slot) slot.remove();
+      if (upLab) upLab.style.display = '';
+      if (gpLab) gpLab.style.display = '';
+    }
+  }
   function renderAlerts(){
     computeAlerts();
+    paintAlertTogs();
     const list = document.getElementById('alertList');
     if (!list) return;
     const IC = {reminder: '⏰', predicted: '📅', goalPace: '🎯'};
     const CHIP = {reminder: 'yours', predicted: 'predicted', goalPace: 'goal pace'};
+    if (document.body.classList.contains('space')){
+      const items = ALERTS.length ? ALERTS.map(a => {
+        const sub = a.kind === 'goalPace' ? (a.msg || 'Behind pace') :
+          a.kind === 'predicted' && a.days < 0 ? 'was expected — check it posted' :
+          (a.due ? fmtAlertDue(a) : '') + (a.kind === 'predicted' ? ' · from your history' : '');
+        return {
+          name: a.name,
+          sub: (CHIP[a.kind] || a.kind) + (sub ? ' · ' + sub : ''),
+          amount: a.amount != null ? '~' + eur(a.amount)
+                : (a.days != null ? (a.days < 0 ? 'overdue' : a.days + 'd') : '—'),
+          tone: a.overdue || a.kind === 'goalPace' ? 'neg' : ''
+        };
+      }) : [{name:'Nothing needs attention', sub:'add a reminder below', amount:'—'}];
+      list.innerHTML = Signal.rows(items);
+      list.querySelectorAll('.sig-row').forEach((el, i) => {
+        const a = ALERTS[i];
+        if (!a) return;
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', e => {
+          if (e.target.closest && e.target.closest('.sig-detail')) return;
+          if (a.kind === 'reminder'){
+            const it = alertStore.items.find(x => x.id === a.id);
+            if (it){
+              it.done = it.done || {}; it.done[a.due] = true;
+              if (it.period === 'once') alertStore.items = alertStore.items.filter(x => x.id !== a.id);
+            }
+          } else {
+            alertStore.ack[a.key] = a.kind === 'goalPace' ? a.ackVal : a.due;
+          }
+          save(LS.alerts, alertStore); renderAlerts();
+        });
+      });
+      const up = document.getElementById('alAutoUp'), gp = document.getElementById('alAutoGoal');
+      if (up) up.checked = alertStore.auto.upcoming !== false;
+      if (gp) gp.checked = alertStore.auto.goalPace !== false;
+      updateAlertsBadge();
+      return;
+    }
     list.innerHTML = ALERTS.length ? '' : '<div class="al-empty">Nothing needs attention right now — add a reminder below, or let the automatic alerts watch your recurring bills and goals.</div>';
     for (const a of ALERTS){
       const row = document.createElement('div');
@@ -25139,7 +25271,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     {name:'budget pace',       target:'budgetSignal',  fn: () => { if (typeof renderBudget === 'function') renderBudget(); }},
     {name:'forecast buffer',   target:'fcBufSignal',   fn: () => paintForecastChrome()},
     {name:'forecast month',    target:'fcMonthSignal', fn: () => { if (typeof FC !== 'undefined' && FC) renderForecast(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }},
-    {name:'forecast recurring',target:'recurSignal',   fn: () => { if (typeof FC !== 'undefined' && FC) renderForecast(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }}
+    {name:'forecast recurring',target:'recurSignal',   fn: () => { if (typeof FC !== 'undefined' && FC) renderForecast(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }},
+    {name:'goals',             target:'goalGrid',      fn: () => renderGoals((typeof lastAs !== 'undefined' && lastAs) || [])},
+    {name:'alerts',            target:'alertList',     fn: () => renderAlerts()},
+    {name:'alert prefs',       target:'alertTogs',     fn: () => paintAlertTogs()}
   ];
   function signalRerender(){
     for (const r of SIGNAL_RENDERERS){ try{ r.fn(); }catch(e){} }
