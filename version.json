@@ -1,8 +1,8 @@
 {
-  "version": "3.15.0",
+  "version": "3.16.0",
   "released": "2026-08-23",
-  "notes": "Pulse as bars, Readiness/Plan/Notes as rows, Simulate as stats, in the Signal language.",
+  "notes": "People, Audit, Rules and Search in the Signal language — tables as rows, live controls adopted not cloned.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "ab3d4bd97ad82ca56061eccc75815c0e1fc4373161110fdd089de0b086a0dfa4"
+  "sha256": "4f6f98d7cd6895accb63d014def08b21e57dc18b2139056394f54486e8eaad75"
 }

@@ -51,7 +51,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '3.15.0';
+  var APP_VER = '3.16.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -2671,13 +2671,13 @@ So, when you change a stored shape:
     </div>
     <div class="hh-banner" id="hhBanner">
       <h3>🏠 Household</h3>
-      <div class="hh-fields">
+      <div class="hh-fields" id="hhFieldsName">
         <label style="flex:1 1 200px">Household name
           <input id="hhName" class="inp" placeholder="e.g. The Byrnes" aria-label="Household name"></label>
         <button class="btn small" id="hhNameSave" type="button">Save name</button>
       </div>
       <p class="hint" style="margin:6px 0 0; flex:1 1 100%">Shown as the root node on the money map when you have people. Rename anytime — it does not change your bank data.</p>
-      <div class="hh-fields" style="margin-top:12px">
+      <div class="hh-fields" id="hhFieldsMoney" style="margin-top:12px">
         <label style="flex:0 1 190px">Currency
           <select id="hhCcy" class="inp" aria-label="Display currency"></select></label>
         <label style="flex:0 1 190px">Number &amp; date format
@@ -2734,7 +2734,7 @@ So, when you change a stored shape:
     </div>
     <div class="hint num" style="margin:-6px 0 10px"><span id="auditCount">0</span> distinct merchant → category mappings</div>
     <div class="card">
-      <div class="filter-row">
+      <div class="filter-row" id="auditSrcRow">
         <span class="filter-label">Source</span>
         <label class="chk"><input type="checkbox" id="fltAI" checked> AI-assigned</label>
         <label class="chk"><input type="checkbox" id="fltUser" checked> Overridden by your rules</label>
@@ -2795,7 +2795,7 @@ So, when you change a stored shape:
       <span class="hint">Exports current matches</span></div>
 <div class="hint num" id="txFound" style="margin:-6px 0 10px; color:var(--ink)"></div>
     <div class="card">
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <div id="txSearchChrome" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <input id="txSearch" class="search-input" placeholder="Name, shop, person, or amount…" aria-label="Search transactions" style="flex:1; min-width:180px">
       <button class="btn small" id="txSearchClear" type="button" title="Clear search">Clear</button>
       <label class="chk" title="When ticked, only rows in the date range on screen are shown"><input type="checkbox" id="txSearchRange"> this date range only</label>
@@ -9751,7 +9751,33 @@ rewrite the static advice cards if the picture has changed.</div>
     }));
     document.getElementById('fltAllCats').checked = cats.every(c => auditFilters.catSel.get(c));
   }
+  const AUDIT_SIGNAL_IDS = ['fltAI','fltUser','auditSearch'];
+  function paintAuditChrome(){
+    const src = document.getElementById('auditSrcRow');
+    const search = document.getElementById('auditSearch');
+    if (document.body.classList.contains('space')){
+      if (document.getElementById('auditTogs')) return;
+      const slot = document.createElement('div');
+      slot.id = 'auditTogs';
+      slot.innerHTML = Signal.togs([
+        {name:'AI-assigned', sub:'The auto-categoriser’s own call', adopt:'fltAI'},
+        {name:'Overridden by your rules', sub:'Your rules always win', adopt:'fltUser'},
+        {name:'Search mappings', sub:'Merchant or category', adopt:'auditSearch'}
+      ]);
+      const card = src && src.parentNode;
+      if (card && src) card.insertBefore(slot, src);
+      Signal.adopt(slot);
+      if (src) src.style.display = 'none';
+    } else {
+      Signal.restore(AUDIT_SIGNAL_IDS);
+      const slot = document.getElementById('auditTogs');
+      if (slot) slot.remove();
+      if (src) src.style.display = '';
+      if (search) search.style.display = '';
+    }
+  }
   function renderAudit(keepFilters){
+    paintAuditChrome();
     const q = (document.getElementById('auditSearch').value || '').trim().toUpperCase();
     const all = auditRows();
     if (!keepFilters) renderAuditFilters(all);
@@ -9762,7 +9788,79 @@ rewrite the static advice cards if the picture has changed.</div>
     rows.sort((a,b)=>b.total-a.total);
     const total = rows.length;
     rows = rows.slice(0, auditLimit);
+    const host = document.getElementById('auditTable');
     const tb = document.querySelector('#auditTable tbody');
+    if (document.body.classList.contains('space')){
+      if (host) host.style.display = 'none';
+      let slot = document.getElementById('auditSignal');
+      if (!slot && host && host.parentNode){
+        slot = document.createElement('div'); slot.id = 'auditSignal';
+        host.parentNode.insertBefore(slot, host);
+      }
+      if (slot){
+        slot.innerHTML = Signal.rows(rows.length ? rows.map(e => {
+          const confLbl = e.conf >= 0.85 ? 'high' : e.conf >= 0.5 ? 'med' : 'low';
+          return {
+            name: e.m,
+            sub: e.shown + (e.ov ? ' · your rule' : '') + ' · ' + confLbl + ' ' + Math.round(e.conf * 100) + '%',
+            amount: eur(e.total),
+            tone: e.conf < 0.5 ? 'neg' : '',
+            months: [
+              {label:'TX', value: String(e.n)},
+              {label:'CONF', value: Math.round(e.conf * 100) + '%'}
+            ],
+            note: e.ov ? 'your rule overrides this to “' + e.ov.setCategory + '”' : (e.raws.length > 1 ? e.raws.length + ' statement names grouped' : 'auto-categorised'),
+            prose: true
+          };
+        }) : [{name:'No mappings match', sub:'try a different filter', amount:'—'}]);
+        slot.querySelectorAll('.sig-detail').forEach((d, i) => {
+          const e = rows[i];
+          if (!e) return;
+          const actions = document.createElement('div');
+          actions.className = 'rule-actions';
+          actions.style.marginTop = '8px';
+          actions.innerHTML =
+            '<select class="inp audit-re" data-m="' + esc(e.mc) + '" data-shown="' + esc(e.shown) + '" aria-label="Reassign ' + esc(e.m) + '" style="max-width:160px"><option value="">reassign…</option></select>' +
+            '<button class="btn small audit-fix" data-m="' + esc(e.mc) + '"' +
+              (e.pat ? ' data-pat="' + esc(e.pat.pattern) + '" data-why="' + esc(e.pat.why) + '"' : '') +
+              ' type="button">Fix</button>';
+          d.appendChild(actions);
+        });
+        slot.querySelectorAll('.audit-re').forEach(sel => sel.addEventListener('focus', ()=>{
+          if (sel.options.length > 1 || !A) return;
+          sel.insertAdjacentHTML('beforeend',
+            A.allCats.filter(c => c !== sel.dataset.shown).map(c => '<option value="' + esc(c) + '">' + esc(c) + '</option>').join(''));
+        }));
+        slot.querySelectorAll('.audit-re').forEach(sel => sel.addEventListener('change', ()=>{
+          if (!sel.value) return;
+          const m = sel.dataset.m, cat = sel.value;
+          const existing = rules.find(r => r.merchantContains && r.match !== 'wildcard' &&
+            r.merchantContains.toUpperCase() === m.toUpperCase() && (r.amountEquals == null || r.amountEquals === ''));
+          let undo;
+          if (existing){
+            const prevCat = existing.setCategory, prevOn = existing.enabled;
+            existing.setCategory = cat; existing.enabled = true;
+            undo = ()=>{ existing.setCategory = prevCat; existing.enabled = prevOn; onRulesChanged(); };
+          } else {
+            const rule = {label:'', merchantContains:m, amountEquals:null, setCategory:cat, note:'set from audit', enabled:true};
+            rules.unshift(rule);
+            undo = ()=>{ const i = rules.indexOf(rule); if (i >= 0) rules.splice(i, 1); onRulesChanged(); };
+          }
+          onRulesChanged();
+          undoToast(m + ' → ' + cat, undo);
+        }));
+        hookFixButtons(slot, '.audit-fix');
+      }
+      document.getElementById('auditCount').textContent = total.toLocaleString(MONEY.locale);
+      const more = document.getElementById('auditMore');
+      more.style.display = total > auditLimit ? '' : 'none';
+      more.textContent = 'Show ' + Math.min(200, total - auditLimit) + ' more (' + (total - auditLimit) + ' of ' + total + ' hidden)';
+      renderMerchRules();
+      return;
+    }
+    const leftover = document.getElementById('auditSignal');
+    if (leftover) leftover.remove();
+    if (host) host.style.display = '';
     tb.innerHTML = rows.map((e, ri)=>{
       const confCls = e.conf >= 0.85 ? 'ok' : e.conf >= 0.5 ? 'warm' : 'hot';
       const confLbl = e.conf >= 0.85 ? 'High' : e.conf >= 0.5 ? 'Med' : 'Low';
@@ -10595,16 +10693,63 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
   // transaction objects that rebuildTX() replaces.
   const txSel = new Set();
   let txShown = [];                     // the rows currently listed, for select-all
+  const TX_SEARCH_IDS = ['txSearch','txSearchClear','txSearchRange'];
+  function paintSearchChrome(){
+    const row = document.getElementById('txSearchChrome');
+    if (document.body.classList.contains('space')){
+      if (document.getElementById('searchTogs')) return;
+      const slot = document.createElement('div');
+      slot.id = 'searchTogs';
+      slot.innerHTML = Signal.togs([
+        {name:'Find', sub:'Shop, person, or amount — all imported history', adopt:'txSearch'},
+        {name:'Clear', sub:'Remove the query and the map highlight', adopt:'txSearchClear'},
+        {name:'This date range only', sub:'Otherwise every imported statement', adopt:'txSearchRange'}
+      ]);
+      if (row){
+        row.style.display = 'none';
+        row.parentNode.insertBefore(slot, row);
+      }
+      Signal.adopt(slot);
+    } else {
+      Signal.restore(TX_SEARCH_IDS);
+      const slot = document.getElementById('searchTogs');
+      if (slot) slot.remove();
+      if (row) row.style.display = '';
+    }
+  }
   function renderTxSearch(){
+    paintSearchChrome();
     const qRaw = (document.getElementById('txSearch').value || '').trim();
     const tb = document.querySelector('#txTable tbody');
     const found = document.getElementById('txFound');
+    const table = document.getElementById('txTable');
+    const space = document.body.classList.contains('space');
+    const ensureSearchSlot = () => {
+      if (!table || !table.parentNode) return null;
+      let slot = document.getElementById('txSearchSignal');
+      if (!slot){
+        slot = document.createElement('div'); slot.id = 'txSearchSignal';
+        table.parentNode.insertBefore(slot, table);
+      }
+      return slot;
+    };
     if (!qRaw){
-      tb.innerHTML = '<tr><td colspan="6" style="color:var(--muted)">Type above to search all transactions.</td></tr>';
+      if (space){
+        if (table) table.style.display = 'none';
+        const slot = ensureSearchSlot();
+        if (slot) slot.innerHTML = Signal.rows([{name:'Search transactions', sub:'type a shop, a person, or an amount', amount:'—'}]);
+        const bulk = document.getElementById('txBulkBar');
+        if (bulk) bulk.style.display = 'none';
+      } else {
+        const slot = document.getElementById('txSearchSignal');
+        if (slot) slot.remove();
+        if (table) table.style.display = '';
+        tb.innerHTML = '<tr><td colspan="6" style="color:var(--muted)">Type above to search all transactions.</td></tr>';
+      }
       found.textContent = '';
       txShown = [];
       txSel.clear();
-      renderTxBulkBar();
+      if (!space) renderTxBulkBar();
       if (graph) graph.highlight(null);
       MapFilter.set('search', null);
       if (typeof syncScopeMapHighlight === 'function') syncScopeMapHighlight();
@@ -10648,7 +10793,69 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
     const lastHit = hits[0];
     hits = hits.slice(0, 100);
     txShown = hits.slice();
-    tb.innerHTML = hits.map(t=>{
+    found.textContent = total
+      ? `${total.toLocaleString(MONEY.locale)} matches${total > 100 ? ' (showing first 100)' : ''}`
+        + (lastHit ? ` · last ${lastHit.d} ${lastHit.m} ${lastHit.de > 0 ? '−' + eur(lastHit.de) : '+' + eur(lastHit.cr)}` : '')
+        + ` · paid out ${eur(totalOut)}` + (totalIn ? ` · in ${eur(totalIn)}` : '')
+        + (rangeOnly ? ' — ' + (typeof rangeLabel === 'function' ? rangeLabel() : 'this range') : ' — all imported history')
+      : 'No matches' + (rangeOnly ? ' in the date range on screen — try unchecking “this date range only”.' : ' in imported statements.');
+    const txWhy = (t, ec, ov) => {
+      if (ec === t.c) return '';
+      const rr = rules.find(r => Engine.ruleMatches(r, t));
+      return xferMark.has(t) ? 'internal-transfer pair'
+          : ov ? 'you moved this transaction'
+          : (rr && rr.setCategory === ec) ? 'your rule “' + rr.merchantContains + '”'
+          : 'credit-card credit';
+    };
+    if (space){
+      if (table) table.style.display = 'none';
+      const bulk = document.getElementById('txBulkBar');
+      if (bulk) bulk.style.display = 'none';
+      const slot = ensureSearchSlot();
+      if (slot){
+        slot.innerHTML = Signal.rows(hits.length ? hits.map(t => {
+          const ec = effCatFull(t);
+          const ov = txOverride(t);
+          const why = txWhy(t, ec, ov);
+          const acct = allAccounts().length > 1 ? ((acctOf(t.acct)||{}).name || t.acct) : '';
+          return {
+            name: t.m,
+            sub: t.d + (acct ? ' · ' + acct : '') + (ec ? ' · ' + ec : ''),
+            amount: t.de > 0 ? '−' + eur(t.de) : '+' + eur(t.cr),
+            tone: t.de > 0 ? 'neg' : 'pos',
+            months: [{label:'DATE', value: t.d}, {label:'CAT', value: ec}],
+            note: (why ? 'was ' + t.c + ' · via ' + why : 'as categorised'),
+            prose: true
+          };
+        }) : [{name:'No matches', sub:'try a different query', amount:'—'}]);
+        slot.querySelectorAll('.sig-detail').forEach((d, i) => {
+          const t = hits[i];
+          if (!t) return;
+          const key = Engine.txKey(t);
+          const ov = txOverride(t);
+          const pat = Engine.suggestPattern(rawNamesFor(t));
+          const actions = document.createElement('div');
+          actions.className = 'rule-actions';
+          actions.style.marginTop = '8px';
+          actions.innerHTML = '<button class="btn small audit-fix" data-m="' + esc(t.m) + '"' +
+            (pat ? ' data-pat="' + esc(pat.pattern) + '" data-why="' + esc(pat.why) + '"' : '') +
+            ' type="button">＋ Rule</button>' +
+            (ov ? '<button class="btn small tx-unset" data-key="' + esc(key) + '" type="button" title="Undo the manual move">↺</button>' : '');
+          d.appendChild(actions);
+        });
+        slot.querySelectorAll('.tx-unset').forEach(b => b.addEventListener('click', ()=>{
+          const key = b.dataset.key, prev = txCatStore.overrides[key];
+          delete txCatStore.overrides[key];
+          onTxCatChanged();
+          undoToast('Manual move undone', ()=>{ txCatStore.overrides[key] = prev; onTxCatChanged(); });
+        }));
+        hookFixButtons(slot, '.audit-fix');
+      }
+    } else {
+      const slot = document.getElementById('txSearchSignal');
+      if (slot) slot.remove();
+      if (table) table.style.display = '';
+      tb.innerHTML = hits.map(t=>{
       const ec = effCatFull(t);
       const key = Engine.txKey(t);
       const ov = txOverride(t);
@@ -10673,24 +10880,19 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
         </td>
       </tr>`;
     }).join('') || '<tr><td colspan="6" style="color:var(--muted)">No transactions match in the selected date range.</td></tr>';
-    found.textContent = total
-      ? `${total.toLocaleString(MONEY.locale)} matches${total > 100 ? ' (showing first 100)' : ''}`
-        + (lastHit ? ` · last ${lastHit.d} ${lastHit.m} ${lastHit.de > 0 ? '−' + eur(lastHit.de) : '+' + eur(lastHit.cr)}` : '')
-        + ` · paid out ${eur(totalOut)}` + (totalIn ? ` · in ${eur(totalIn)}` : '')
-        + (rangeOnly ? ' — ' + (typeof rangeLabel === 'function' ? rangeLabel() : 'this range') : ' — all imported history')
-      : 'No matches' + (rangeOnly ? ' in the date range on screen — try unchecking “this date range only”.' : ' in imported statements.');
-    tb.querySelectorAll('.tx-pick').forEach(cb => cb.addEventListener('change', ()=>{
-      if (cb.checked) txSel.add(cb.dataset.key); else txSel.delete(cb.dataset.key);
+      tb.querySelectorAll('.tx-pick').forEach(cb => cb.addEventListener('change', ()=>{
+        if (cb.checked) txSel.add(cb.dataset.key); else txSel.delete(cb.dataset.key);
+        renderTxBulkBar();
+      }));
+      tb.querySelectorAll('.tx-unset').forEach(b => b.addEventListener('click', ()=>{
+        const key = b.dataset.key, prev = txCatStore.overrides[key];
+        delete txCatStore.overrides[key];
+        onTxCatChanged();
+        undoToast('Manual move undone', ()=>{ txCatStore.overrides[key] = prev; onTxCatChanged(); });
+      }));
       renderTxBulkBar();
-    }));
-    tb.querySelectorAll('.tx-unset').forEach(b => b.addEventListener('click', ()=>{
-      const key = b.dataset.key, prev = txCatStore.overrides[key];
-      delete txCatStore.overrides[key];
-      onTxCatChanged();
-      undoToast('Manual move undone', ()=>{ txCatStore.overrides[key] = prev; onTxCatChanged(); });
-    }));
-    renderTxBulkBar();
-    hookFixButtons(tb, '.audit-fix');
+      hookFixButtons(tb, '.audit-fix');
+    }
     // matches illuminate the money map: their categories, merchants and
     // accounts glow while everything else fades (hover still wins)
     if (graph){
@@ -10819,7 +11021,74 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
 
   // ══ rules UI ══
   function renderRules(){
+    if (!A) return;
+    const host = document.getElementById('rulesTable');
     const tb = document.querySelector('#rulesTable tbody');
+    if (document.body.classList.contains('space')){
+      if (host) host.style.display = 'none';
+      let slot = document.getElementById('rulesSignal');
+      if (!slot && host && host.parentNode){
+        slot = document.createElement('div'); slot.id = 'rulesSignal';
+        host.parentNode.insertBefore(slot, host);
+      }
+      if (slot){
+        slot.innerHTML = Signal.rows(rules.length ? rules.map((r, i) => {
+          const st = A.ruleStats[i] || {n:0, net:0};
+          const wc = r.match === 'wildcard';
+          const how = wc ? 'pattern' : 'contains';
+          const amtBits = [];
+          if (r.amountEquals != null && r.amountEquals !== '') amtBits.push('amount €' + r.amountEquals);
+          if (r.amountMin != null && r.amountMin !== '') amtBits.push('≥ €' + r.amountMin);
+          if (r.amountMax != null && r.amountMax !== '') amtBits.push('≤ €' + r.amountMax);
+          return {
+            name: r.label || ('Merchant ' + how + ' “' + r.merchantContains + '”'),
+            sub: how + ' · ' + st.n + ' tx' + (r.enabled ? '' : ' · off'),
+            amount: eur(Math.abs(st.net)),
+            tone: r.enabled ? '' : 'neg',
+            months: [
+              {label:'MATCH', value: r.merchantContains || '—'},
+              {label:'AS', value: r.setCategory || '—'}
+            ],
+            note: (amtBits.length ? amtBits.join(' · ') + (r.note ? ' — ' + r.note : '') : (r.note || 'first match wins')),
+            prose: true
+          };
+        }) : [{name:'No rules', sub:'add one below', amount:'—'}]);
+        slot.querySelectorAll('.sig-detail').forEach((d, i) => {
+          const r = rules[i];
+          if (!r) return;
+          const catOpts = [...new Set([r.setCategory, ...A.allCats])]
+            .map(c => '<option value="' + esc(c) + '"' + (c === r.setCategory ? ' selected' : '') + '>' + esc(c) + '</option>').join('');
+          const actions = document.createElement('div');
+          actions.className = 'rule-actions';
+          actions.style.marginTop = '8px';
+          actions.innerHTML =
+            '<select data-i="' + i + '" class="rule-cat inp" aria-label="Recategorise as" style="max-width:180px">' + catOpts + '</select>' +
+            '<label class="chk"><input type="checkbox" data-i="' + i + '" class="rule-on"' + (r.enabled ? ' checked' : '') + '> on</label>' +
+            (i > 0 ? '<button class="btn small rule-up" data-i="' + i + '" type="button" title="Higher priority">▲</button>' : '') +
+            (i < rules.length - 1 ? '<button class="btn small rule-dn" data-i="' + i + '" type="button" title="Lower priority">▼</button>' : '') +
+            '<button class="btn small danger rule-del" data-i="' + i + '" type="button">Delete</button>';
+          d.appendChild(actions);
+        });
+        slot.querySelectorAll('.rule-up').forEach(el => el.addEventListener('click', ()=>{
+          const i = +el.dataset.i; [rules[i-1], rules[i]] = [rules[i], rules[i-1]]; onRulesChanged();
+        }));
+        slot.querySelectorAll('.rule-dn').forEach(el => el.addEventListener('click', ()=>{
+          const i = +el.dataset.i; [rules[i], rules[i+1]] = [rules[i+1], rules[i]]; onRulesChanged();
+        }));
+        slot.querySelectorAll('.rule-cat').forEach(el => el.addEventListener('change', ()=>{ rules[+el.dataset.i].setCategory = el.value; onRulesChanged(); }));
+        slot.querySelectorAll('.rule-on').forEach(el => el.addEventListener('change', ()=>{ rules[+el.dataset.i].enabled = el.checked; onRulesChanged(); }));
+        slot.querySelectorAll('.rule-del').forEach(el => el.addEventListener('click', ()=>{
+          const i = +el.dataset.i, r = rules[i];
+          rules.splice(i, 1); onRulesChanged();
+          undoToast('Deleted rule for “' + (r.merchantContains || r.label) + '”', ()=>{ rules.splice(Math.min(i, rules.length), 0, r); onRulesChanged(); });
+        }));
+      }
+      document.getElementById('catList').innerHTML = A.allCats.map(c=>`<option value="${esc(c)}"></option>`).join('');
+      return;
+    }
+    const leftover = document.getElementById('rulesSignal');
+    if (leftover) leftover.remove();
+    if (host) host.style.display = '';
     tb.innerHTML = rules.map((r,i)=>{
       const st = A.ruleStats[i];
       const catOpts = [...new Set([r.setCategory, ...A.allCats])]
@@ -12373,22 +12642,60 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     save(LS.org, org);
     return id;
   }
+  const PEOPLE_SIGNAL_IDS = ['hhName','hhNameSave','hhCcy','hhLoc','hhMoneyPreview','orgNewName','orgNewType','orgAddUserBtn'];
+  function paintPeopleChrome(){
+    const banner = document.getElementById('hhBanner');
+    const add = document.getElementById('orgAddUser');
+    if (document.body.classList.contains('space')){
+      if (document.getElementById('peopleTogs')) return;
+      const slot = document.createElement('div');
+      slot.id = 'peopleTogs';
+      slot.innerHTML = Signal.togs([
+        {name:'Household name', sub:'Root node on the money map', adopt:'hhName'},
+        {name:'Save name', sub:'Does not change bank data', adopt:'hhNameSave'},
+        {name:'Currency', sub:'Reformats, does not convert', adopt:'hhCcy'},
+        {name:'Number & date format', sub:'How every figure is written', adopt:'hhLoc'},
+        {name:'Add a person or business', sub:'Then attach accounts to them', adopt:'orgNewName'},
+        {name:'Type', sub:'Personal or a business branch', adopt:'orgNewType'},
+        {name:'Add to the household', sub:'Partners, co-owners, businesses', adopt:'orgAddUserBtn'}
+      ]);
+      const head = document.querySelector('#sec-people > .section-head');
+      if (head) head.parentNode.insertBefore(slot, head.nextSibling);
+      else if (banner) banner.parentNode.insertBefore(slot, banner);
+      Signal.adopt(slot);
+      const locSlot = slot.querySelector('[data-adopt="hhLoc"]');
+      const prev = document.getElementById('hhMoneyPreview');
+      if (locSlot && prev) Signal.park(prev, locSlot);
+      if (banner) banner.style.display = 'none';
+      if (add) add.style.display = 'none';
+    } else {
+      Signal.restore(PEOPLE_SIGNAL_IDS);
+      const slot = document.getElementById('peopleTogs');
+      if (slot) slot.remove();
+      if (banner) banner.style.display = '';
+      if (add) add.style.display = '';
+    }
+  }
   function renderOrg(){
     renderOrgControls();
+    paintPeopleChrome();
     const hhInp = document.getElementById('hhName');
     if (hhInp && document.activeElement !== hhInp) hhInp.value = org.householdName || '';
     const box = document.getElementById('orgList');
     const people = allUsers();
+    const space = document.body.classList.contains('space');
     if (!people.length){
-      box.innerHTML = '<div class="card hint" style="padding:14px">No people yet — add someone above, or finish onboarding on the map.</div>';
+      box.innerHTML = space
+        ? Signal.rows([{name:'No people yet', sub:'add someone above', amount:'—'}])
+        : '<div class="card hint" style="padding:14px">No people yet — add someone above, or finish onboarding on the map.</div>';
       return;
     }
-    box.innerHTML = people.map(u=>{
+    const models = people.map(u=>{
       const accts = allAccounts().filter(a => a.userId === u.id);
       const isOrg = org.users.some(x => x.id === u.id);
       const canDel = isOrg && !accts.some(a => raw.accounts.some(x => x.id === a.id));
-      return `<div class="org-user">
-        <div class="org-user-head">
+      const nTxAll = accts.reduce((s, a) => s + TX.filter(t => t.acct === a.id).length, 0);
+      const html = `<div class="org-user-head">
           <input value="${esc(u.name)}" data-u="${esc(u.id)}" class="user-rename" aria-label="Rename ${esc(u.name)}">
           <span class="flag">${u.type === 'business' ? 'Business' : 'Personal'}</span>
           <span class="hint">${accts.length} account${accts.length===1?'':'s'}</span>
@@ -12451,9 +12758,36 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
               <button class="btn small danger stmt-del" data-s="${esc(s.id)}" type="button">Delete</button>
             </div>
             <div class="stmt-view" id="view-${esc(s.id)}" style="display:none"></div>`).join('')}`;
-        }).join('') || '<div class="acct-row hint">No accounts yet.</div>'}
-      </div>`;
-    }).join('');
+        }).join('') || '<div class="acct-row hint">No accounts yet.</div>'}`;
+      return {u, html, nTx: nTxAll, accts};
+    });
+    if (space){
+      box.innerHTML = Signal.rows(models.map(m => ({
+        name: m.u.name,
+        sub: (m.u.type === 'business' ? 'business' : 'personal') + ' · ' + m.accts.length + ' account' + (m.accts.length === 1 ? '' : 's'),
+        amount: m.nTx ? m.nTx.toLocaleString(MONEY.locale) + ' tx' : '—',
+        months: (m.accts.length ? m.accts.slice(0, 6).map(a => ({
+          label: String(a.name || '').slice(0, 8).toUpperCase(),
+          value: String(TX.filter(t => t.acct === a.id).length)
+        })) : [{label:'ACCTS', value:'0'}]),
+        note: m.accts.length ? m.accts.map(a => a.name).join(' · ') : 'no accounts yet',
+        prose: true
+      })));
+      box.querySelectorAll('.sig-detail').forEach((d, i) => {
+        const m = models[i];
+        if (!m) return;
+        const w = document.createElement('div');
+        w.className = 'org-user';
+        w.style.border = 'none';
+        w.style.background = 'transparent';
+        w.style.padding = '8px 0 0';
+        w.style.margin = '0';
+        w.innerHTML = m.html;
+        d.appendChild(w);
+      });
+    } else {
+      box.innerHTML = models.map(m => '<div class="org-user">' + m.html + '</div>').join('');
+    }
     const setBal = (id, patch) => {
       const b = org.balances[id] || {};
       Object.assign(b, patch);
@@ -12541,6 +12875,52 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       ? XFERS.length + ' pair' + (XFERS.length === 1 ? '' : 's') + ' detected · ' + eur(activeTotal) + ' excluded from income & spending'
       : '';
     const rows = [...XFERS].sort((a,b) => b.d.d < a.d.d ? -1 : 1).slice(0, 40);
+    const host = document.getElementById('xferTable');
+    const setDecision = (k, v) => {
+      if (v === null) delete xferStore[k]; else xferStore[k] = v;
+      save(LS.xfers, xferStore); renderAll();
+    };
+    if (document.body.classList.contains('space')){
+      if (host) host.style.display = 'none';
+      let slot = document.getElementById('xferSignal');
+      if (!slot && host && host.parentNode){
+        slot = document.createElement('div'); slot.id = 'xferSignal';
+        host.parentNode.insertBefore(slot, host);
+      }
+      if (slot){
+        slot.innerHTML = Signal.rows(rows.length ? rows.map(x => {
+          const st = x.decision === 'no' ? 'rejected' : x.decision === 'yes' ? 'confirmed' : (x.auto ? 'auto' : 'suggested');
+          return {
+            name: nm(x.d.acct) + ' → ' + nm(x.c.acct),
+            sub: x.d.d + ' · ' + st + ' · ' + Math.round((x.score || 0) * 100) + '%',
+            amount: eur(x.amt),
+            tone: x.decision === 'no' ? 'neg' : (x.active ? 'pos' : ''),
+            months: [{label:'FROM', value: x.d.m}, {label:'TO', value: x.c.m}],
+            note: x.d.m + ' → ' + x.c.m,
+            prose: true
+          };
+        }) : [{name:'No matching amounts', sub:'pairs appear as statements are uploaded', amount:'—'}]);
+        slot.querySelectorAll('.sig-detail').forEach((d, i) => {
+          const x = rows[i];
+          if (!x) return;
+          const actions = document.createElement('div');
+          actions.className = 'rule-actions';
+          actions.style.marginTop = '8px';
+          actions.innerHTML = (x.active
+            ? '<button class="btn small xf-no" data-k="' + esc(x.key) + '" type="button">Not a transfer</button>'
+            : '<button class="btn small xf-yes" data-k="' + esc(x.key) + '" type="button">Confirm</button>') +
+            (x.decision ? '<button class="btn small xf-reset" data-k="' + esc(x.key) + '" type="button">↺</button>' : '');
+          d.appendChild(actions);
+        });
+        slot.querySelectorAll('.xf-no').forEach(b => b.addEventListener('click', ()=>setDecision(b.dataset.k, 'no')));
+        slot.querySelectorAll('.xf-yes').forEach(b => b.addEventListener('click', ()=>setDecision(b.dataset.k, 'yes')));
+        slot.querySelectorAll('.xf-reset').forEach(b => b.addEventListener('click', ()=>setDecision(b.dataset.k, null)));
+      }
+      return;
+    }
+    const leftover = document.getElementById('xferSignal');
+    if (leftover) leftover.remove();
+    if (host) host.style.display = '';
     tb.innerHTML = rows.map(x=>{
       const st = x.decision === 'no' ? ['hot','Rejected'] :
                  x.decision === 'yes' ? ['ok','Confirmed'] :
@@ -12557,10 +12937,6 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         </td>
       </tr>`;
     }).join('') || '<tr><td colspan="5" style="color:var(--muted)">No matching amounts between accounts yet — pairs appear here as statements are uploaded.</td></tr>';
-    const setDecision = (k, v) => {
-      if (v === null) delete xferStore[k]; else xferStore[k] = v;
-      save(LS.xfers, xferStore); renderAll();
-    };
     tb.querySelectorAll('.xf-no').forEach(b => b.addEventListener('click', ()=>setDecision(b.dataset.k, 'no')));
     tb.querySelectorAll('.xf-yes').forEach(b => b.addEventListener('click', ()=>setDecision(b.dataset.k, 'yes')));
     tb.querySelectorAll('.xf-reset').forEach(b => b.addEventListener('click', ()=>setDecision(b.dataset.k, null)));
@@ -16824,6 +17200,30 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (!el || !slot) return 'no #fcBufSignal / #bufSlider';
       if (!slot.contains(el)) return '#bufSlider is not inside #fcBufSignal';
       return document.querySelectorAll('#bufSlider').length === 1 || '#bufSlider was cloned';
+    });
+    T('signal: search input is adopted, not cloned', () => {
+      if (!document.body.classList.contains('space')) return true;
+      const el = document.getElementById('txSearch');
+      const slot = document.getElementById('searchTogs');
+      if (!el || !slot) return 'no #searchTogs / #txSearch';
+      if (!slot.contains(el)) return '#txSearch is not inside #searchTogs';
+      return document.querySelectorAll('#txSearch').length === 1 || '#txSearch was cloned';
+    });
+    T('signal: audit search is adopted, not cloned', () => {
+      if (!document.body.classList.contains('space')) return true;
+      const el = document.getElementById('auditSearch');
+      const slot = document.getElementById('auditTogs');
+      if (!el || !slot) return 'no #auditTogs / #auditSearch';
+      if (!slot.contains(el)) return '#auditSearch is not inside #auditTogs';
+      return document.querySelectorAll('#auditSearch').length === 1 || '#auditSearch was cloned';
+    });
+    T('signal: household name is adopted, not cloned', () => {
+      if (!document.body.classList.contains('space')) return true;
+      const el = document.getElementById('hhName');
+      const slot = document.getElementById('peopleTogs');
+      if (!el || !slot) return 'no #peopleTogs / #hhName';
+      if (!slot.contains(el)) return '#hhName is not inside #peopleTogs';
+      return document.querySelectorAll('#hhName').length === 1 || '#hhName was cloned';
     });
     T('signal: budget pace bars carry a limit mark', () => {
       // the conversion is a budget bar, not a proportion bar: without the
@@ -25464,7 +25864,14 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     {name:'readiness',         target:'mrSignal',      fn: () => { if (A) renderReadiness(); }},
     {name:'plan',              target:'planCards',     fn: () => { if (A && typeof FC !== 'undefined' && FC) renderPlan(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }},
     {name:'notes',             target:'ndList',        fn: () => renderNotes()},
-    {name:'simulate',          target:'simSignal',     fn: () => paintSimSummary()}
+    {name:'simulate',          target:'simSignal',     fn: () => paintSimSummary()},
+    {name:'search chrome',     target:'searchTogs',    fn: () => paintSearchChrome()},
+    {name:'search results',    target:'txSearchSignal',fn: () => renderTxSearch()},
+    {name:'audit chrome',      target:'auditTogs',     fn: () => paintAuditChrome()},
+    {name:'audit mappings',    target:'auditSignal',   fn: () => renderAudit(true)},
+    {name:'rules',             target:'rulesSignal',   fn: () => { if (A) renderRules(); }},
+    {name:'people chrome',     target:'peopleTogs',    fn: () => paintPeopleChrome()},
+    {name:'people list',       target:'orgList',       fn: () => renderOrg()}
   ];
   function signalRerender(){
     for (const r of SIGNAL_RENDERERS){ try{ r.fn(); }catch(e){} }
@@ -25902,10 +26309,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // slots and hidden tables are undone FIRST, then one re-render through
       // the same registry the space view uses.
       try { setTimeout(function(){
-        ['leakSignal','debtSignal','holdSignal','idleSignal','reallocSignal','budgetSignal','fcMonthSignal','recurSignal','mrSignal','simSignal'].forEach(function(id){
+        ['leakSignal','debtSignal','holdSignal','idleSignal','reallocSignal','budgetSignal','fcMonthSignal','recurSignal','mrSignal','simSignal','txSearchSignal','auditSignal','rulesSignal','xferSignal'].forEach(function(id){
           const n = document.getElementById(id); if (n) n.remove();
         });
-        ['leakTable','debtTable','hdTable','idleTable','reallocTable','budgetTable','recurTable','mrTable'].forEach(function(id){
+        ['leakTable','debtTable','hdTable','idleTable','reallocTable','budgetTable','recurTable','mrTable','txTable','auditTable','rulesTable','xferTable'].forEach(function(id){
           const n = document.getElementById(id); if (n) n.style.display = '';
         });
         const lsc = document.getElementById('leakShapeCard'); if (lsc) lsc.style.display = '';
