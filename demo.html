@@ -51,7 +51,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '3.10.0';
+  var APP_VER = '3.11.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -13494,6 +13494,27 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     // ── idle money (no tax content: this is arithmetic on your own balance) ──
     const tax = estimateTax();
     const pot = as.length ? as[0].pot : 0;
+    if (document.body.classList.contains('space')){
+      const it = document.getElementById('idleTable');
+      if (it){
+        it.style.display = 'none';
+        let islot = document.getElementById('idleSignal');
+        if (!islot){ islot = document.createElement('div'); islot.id = 'idleSignal';
+                     it.parentNode.insertBefore(islot, it); }
+        islot.innerHTML = pot > 0 ? Signal.rows([{
+          name: 'Is the pot earning anything?',
+          sub: eur(pot) + ' sitting at about 0%',
+          amount: eur(pot * (FISCAL.depositRateLow + FISCAL.depositRateHigh) / 2) + '/yr',
+          tone: 'pos',
+          months: [
+            {label:'AT LOW',  value: eur(pot * FISCAL.depositRateLow) + '/yr'},
+            {label:'AT HIGH', value: eur(pot * FISCAL.depositRateHigh) + '/yr'},
+            {label:'POT',     value: eur(pot)}
+          ],
+          note: 'Forgone interest on money sitting still — your own balance, not a tax figure'
+        }]) : '';
+      }
+    } else
     document.querySelector('#idleTable tbody').innerHTML = `
       <tr><td style="width:70px"><span class="flag warm">Act</span></td>
         <td><b>Is the pot earning anything?</b><div class="rule-meta">${eur(pot)} sitting at ~0% forgoes ${eur(pot*FISCAL.depositRateLow)}–${eur(pot*FISCAL.depositRateHigh)} a year versus a ${Math.round(FISCAL.depositRateLow*100)}–${Math.round(FISCAL.depositRateHigh*100)}% savings account — about ${eur(pot*(FISCAL.depositRateLow+FISCAL.depositRateHigh)/2/12)} a month. Rates are an assumption, not an offer; check what is actually available to you.</div></td>
@@ -14406,6 +14427,21 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   function renderNetWorth(fc){
     if (!NW) return;
     const machine = fc ? fc.slice(0, 12).reduce((s, f) => s + f.surplusC, 0) / 12 : 0;
+    if (document.body.classList.contains('space')){
+      const liabNote = [NW.debtsTotal ? 'debts ' + eur(NW.debtsTotal) : '',
+                        NW.creditOwed ? 'cards ' + eur(NW.creditOwed) : ''].filter(Boolean).join(' · ');
+      const assetNote = ['cash ' + eur(NW.cash),
+                         NW.pots ? 'pots ' + eur(NW.pots) : '',
+                         NW.holdings ? 'invested ' + eur(NW.holdings) : ''].filter(Boolean).join(' · ');
+      document.getElementById('nwStrip').innerHTML = Signal.stats([
+        {value: eur(NW.total), label: 'net worth · ' + eur(NW.gross) + ' assets − ' + eur(NW.liab) + ' owed',
+         tone: NW.total >= 0 ? 'pos' : 'neg', wide: true},
+        {value: eur(NW.gross), label: assetNote || 'asset side'},
+        {value: (NW.liab > 0 ? '−' : '') + eur(NW.liab), label: liabNote || 'liabilities',
+         tone: NW.liab > 0 ? 'neg' : ''},
+        {value: eur(machine) + '/mo', label: 'the machine · cautious surplus, next 12 months', tone: 'pos', wide: true}
+      ]);
+    } else
     document.getElementById('nwStrip').innerHTML = `
       <div class="kpi"><div class="k-label">Net worth</div><div class="k-val num">${eur(NW.total)}</div>
         <div class="k-note">${eur(NW.gross)} of assets − ${eur(NW.liab)} owed</div></div>
@@ -24692,7 +24728,9 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     try{ renderBalances(); }catch(e){}
     if (!A) return;
     try{ if (typeof DP !== 'undefined' && DP) renderDebts(); }catch(e){}
-    try{ if (typeof HV !== 'undefined' && HV) renderHoldings(); }catch(e){}                      // blank shell: nothing to draw, and
+    try{ if (typeof HV !== 'undefined' && HV) renderHoldings(); }catch(e){}
+    try{ if (typeof NW !== 'undefined' && NW) renderNetWorth(typeof FC !== 'undefined' ? FC : null); }catch(e){}
+    try{ if (typeof FC !== 'undefined' && FC) renderWealth(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }catch(e){}                      // blank shell: nothing to draw, and
     try{ renderCatLegend(); }catch(e){}  // these read A.txe through leakModel
     try{ renderLeaks(); }catch(e){}
   }
@@ -25103,6 +25141,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       try { renderBalances(); } catch (e) {}
       try { if (typeof DP !== 'undefined' && DP) renderDebts(); } catch (e) {}
       try { if (typeof HV !== 'undefined' && HV) renderHoldings(); } catch (e) {}
+      try { if (typeof NW !== 'undefined' && NW) renderNetWorth(typeof FC !== 'undefined' ? FC : null); } catch (e) {}
+      try { if (typeof FC !== 'undefined' && FC) renderWealth(FC, (typeof lastAs !== 'undefined' && lastAs) || []); } catch (e) {}
       if (A){
         try { renderCatLegend(); } catch (e) {}
         try { renderLeaks(); } catch (e) {}
@@ -25137,10 +25177,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         if (A){ renderCatLegend(); renderLeaks(); }
         const lt = document.getElementById('leakTable'); if (lt) lt.style.display = '';
         const lsc = document.getElementById('leakShapeCard'); if (lsc) lsc.style.display = '';
-        ['leakSignal','debtSignal','holdSignal'].forEach(function(id){
+        ['leakSignal','debtSignal','holdSignal','idleSignal'].forEach(function(id){
           const n = document.getElementById(id); if (n) n.remove();
         });
-        ['debtTable','hdTable'].forEach(function(id){
+        ['debtTable','hdTable','idleTable'].forEach(function(id){
           const n = document.getElementById(id); if (n) n.style.display = '';
         });
         try{ if (typeof DP !== 'undefined' && DP) renderDebts(); }catch(e){}
