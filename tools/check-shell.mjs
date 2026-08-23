@@ -67,17 +67,22 @@ ok('app: hosted chrome wrapper', /id="hostedChrome"/.test(app));
 // shell must not carry code that writes statutory rates into FISCAL from a
 // remote pack, because Lithifyte ships no tax figures for any jurisdiction.
 // Inverted deliberately — the old check asserted its presence.
-// The sign-in gate is the first <script> block and only executes on
-// app.lithifyte.com, so nothing in the self-test ever runs it — which is how a
-// dangling `localeStored()` reference shipped and threw on the live /demo page
-// while every check stayed green. Actually EXECUTE it here, on the hosted-demo
-// path, with enough of a browser stubbed to get through. Any undefined
-// identifier throws, exactly as it would in the browser.
+// The sign-in gate only executes on app.lithifyte.com, so nothing in the
+// self-test ever runs it — which is how a dangling `localeStored()` reference
+// shipped and threw on the live /demo page while every check stayed green.
+// Actually EXECUTE it here, on the hosted-demo path, with enough of a browser
+// stubbed to get through. Any undefined identifier throws, exactly as it would
+// in the browser.
+//
+// The gate is found by CONTENT, not by position. It used to be matched as "the
+// first <script> block", which meant adding any earlier script (the pre-paint
+// theme applier, 2026-08-23) failed this check without the gate having changed
+// at all. Searching for the block that defines isHostedApp still fails loudly
+// if the gate is renamed or removed — it just no longer cares what precedes it.
 ok('app: sign-in gate executes without throwing (hosted demo path)', (() => {
-  const m = app.match(/<script\b[^>]*>([\s\S]*?)<\/script>/);
-  if (!m) return false;
-  const src = m[1];
-  if (!/isHostedApp/.test(src)) return false;   // wrong block; fail loudly
+  const blocks = [...app.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)].map(x => x[1]);
+  const src = blocks.find(b => /isHostedApp/.test(b));
+  if (!src) return false;   // gate missing entirely; fail loudly
   const noop = () => {};
   const el = new Proxy({}, {
     get: (t, k) => (k === 'style' || k === 'dataset' || k === 'classList'

@@ -84,7 +84,7 @@ Press **Ctrl/Cmd+K** for the co-pilot. Ask in plain language — *how have groce
 
 Anything it designs lands in a **sandbox** beside your real data. You can iterate on it in the chat — *cut dining, protect rent* — and nothing touches your live stores until you press **Apply**. Conversations and scenarios are kept like notes: re-openable, linkable, included in your backups, and shown on the money map's outer ring so you can find the discussion that produced a decision months later.
 
-**Connect a model first.** Your own API key with Anthropic, OpenAI or xAI; any OpenAI-compatible endpoint, including Ollama or LM Studio on your own machine; or **Lithifyte AI**, the hosted option that needs no key. The local option is the one where nothing about your finances leaves your computer — see [security and privacy](/security-and-privacy) for exactly what is sent in each case.
+**Connect a model first.** **Lithifyte Pro** (hosted Qwen 3.8, the default) or **Lithifyte AI** (hosted Grok) need no key; any OpenAI-compatible endpoint, including Ollama or LM Studio on your own machine, stays local. The local option is the one where nothing about your finances leaves your computer — see [security and privacy](/security-and-privacy) for exactly what is sent in each case.
 
 **The model never produces a number.** It works out what you asked for, the engine computes the figures, and the answer renders from those computed values. If a figure appears in a co-pilot answer, it came from the same code that draws your charts.
 

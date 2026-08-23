@@ -49,7 +49,7 @@ Self-hosted copies write nothing to the email or product-event rows. The code th
 
 ## The AI co-pilot, stated without spin
 
-The co-pilot is a chat panel inside the app that can answer questions about your finances and operate the app for you. **Commands-only** works with no model at all. Lithifyte AI is the hosted convenience; a local model stays on your machine.
+The co-pilot is a chat panel inside the app that can answer questions about your finances and operate the app for you. **Commands-only** works with no model at all. **Lithifyte Pro** is the hosted default (our Qwen 3.8); **Lithifyte AI** is hosted Grok. A local model stays on your machine.
 
 **What is sent, when you use hosted AI.** Not your ledger. Every request is assembled by one function (`Engine.minimise`) at one of three tiers:
 
@@ -70,7 +70,8 @@ Household notes are **not** sent on every turn. The model can ask for a scoped n
 | Commands only | Nowhere |
 | A local model — Ollama, LM Studio, any OpenAI-compatible endpoint on your machine | Nowhere. It stays on your computer. This is the private option |
 | Your own API key — Anthropic, OpenAI, xAI (built, marked Coming soon in the picker) | To that provider, under your own account and their terms |
-| **Lithifyte AI** (the hosted convenience) | Through our relay worker. The relay asks OpenRouter not to route to providers that store or train on inputs (`data_collection: deny`). If no such route can answer, it falls back to Cloudflare Workers AI rather than a training-allowed free model |
+| **Lithifyte Pro** (hosted Qwen 3.8, default) | Through our relay to a GPU we run. The relay does not store the prompt. The slice does not go to xAI or OpenRouter |
+| **Lithifyte AI** (hosted Grok) | Through our relay to xAI (Grok). If Grok cannot answer, OpenRouter is tried with `data_collection: deny`, then Cloudflare Workers AI rather than a training-allowed free model |
 
 **What the relay is, and is not.** It is a pass-through: it forwards the request and returns the answer. It counts tokens to meter usage later. It does **not** store your ledger, the prompt, or the answer. It is not a step toward a finance database. If that ever changed it would be a different product and this page would say so.
 

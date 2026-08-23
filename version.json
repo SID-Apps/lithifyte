@@ -1,8 +1,8 @@
 {
-  "version": "3.1.0",
-  "released": "2026-08-19",
-  "notes": "Ask a shop or a person: last date, last amount, lifetime total. No category needed.",
+  "version": "3.3.0",
+  "released": "2026-08-23",
+  "notes": "Geist throughout (embedded, no third-party font request); the money map and Space view now follow your theme, with a Match system / Light / Dark picker in Settings; contrast fixes across the Space chrome. Also ships Lithifyte Pro (hosted Qwen) as the default co-pilot model.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "359e32f74d42ec157b54b0a016f576b9d5312d55b3da80c0cafd5e12a039ad3e"
+  "sha256": "02f900ebd1d89c42eec3ee89640a83bc762d3d6c772db5e9c3f56e3f2b40330b"
 }
