@@ -1,8 +1,8 @@
 {
-  "version": "3.4.1",
+  "version": "3.5.0",
   "released": "2026-08-23",
-  "notes": "A standing-order answer now leads with the figure and the words asked for — \"PTSB — €270 each month\" rather than opening with \"standing order\" and never saying each month.",
+  "notes": "The five Signal shapes are in: sparklines, expandable ledger rows, budget bars with a limit mark, progress rings and stat tiles — all theme-aware. Summary's account balances are the first card rendered with them.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "58dd23a9b821a0561fee68612847d67bb9c8a48c8897edda82c1b45df4b06124"
+  "sha256": "187616439a26a2efe8bdfe95c5e7f1dc6a60a59000de0c2280c0a92b110491e8"
 }

@@ -51,7 +51,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '3.4.1';
+  var APP_VER = '3.5.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -1225,6 +1225,69 @@ So, when you change a stored shape:
     font:600 9.5px/1 var(--font-mono); cursor:pointer; vertical-align:middle}
   .sig-qm:hover{background:rgba(var(--sv-line),.2)}
   .sig-qm[aria-expanded="true"]{background:rgba(var(--sv-line),.28)}
+
+  /* ══ Signal shapes ════════════════════════════════════════════════════
+     Unscoped on purpose, unlike the panel surface: these classes only exist
+     where a renderer emitted them, so they cannot leak into Classic's markup
+     the way a .card rule would. */
+  .sig-rows{display:flex; flex-direction:column; gap:2px}
+  .sig-row{display:grid; grid-template-columns:minmax(0,1fr) 88px 82px; gap:13px; align-items:center;
+    width:100%; text-align:left; padding:11px; border-radius:12px; border:1px solid transparent;
+    background:none; color:inherit; font:inherit; cursor:pointer; transition:background .15s, border-color .15s}
+  .sig-row.sig-flat{cursor:default}
+  .sig-row:not(.sig-flat):hover{background:var(--hoverish); border-color:var(--hover-line-ish)}
+  .sig-row.sig-open{background:var(--hoverish); border-color:var(--hover-line-ish)}
+  /* NOT a flex container: the sub-label is a block UNDER the name. Making this
+     flex for the bars' colour dot pushed the sub-label alongside the name and
+     squeezed both into a wrapping column. Only bars get the inline treatment. */
+  .sig-nm{font-size:13.5px; font-weight:500; min-width:0}
+  .sig-bar-row .sig-nm{display:flex; align-items:center; gap:8px}
+  .sig-nm small{display:block; font:500 9.5px/1.5 var(--font-mono); letter-spacing:.1em;
+    text-transform:uppercase; color:var(--sv-ink-3); margin-top:3px}
+  .sig-amt{text-align:right; font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:14px}
+  .sig-spark{display:block}
+  .sig-spark-empty{display:block; width:88px}
+  /* Figures, not chrome. --critical measured 3.90 on the dark card and 4.44 on
+     the light one — both under AA for the most important number in the row.
+     These are separate tokens so the app-wide alert colours stay untouched. */
+  .sig-neg{color:var(--sig-neg)} .sig-pos{color:var(--sig-pos)} .sig-cy{color:var(--sig-cy)}
+  .sig-detail{padding:2px 11px 12px; margin-top:-4px}
+  .sig-months{display:grid; grid-template-columns:repeat(6,1fr); gap:2px 8px}
+  .sig-months div{font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:11px;
+    padding:5px 0; text-align:right; color:var(--sv-ink-2)}
+  .sig-months div span{display:block; font-size:8.5px; letter-spacing:.1em; color:var(--sv-ink-3)}
+  .sig-months div.sig-neg{color:var(--sig-neg)}
+  .sig-note{font:500 9.5px/1.6 var(--font-mono); letter-spacing:.09em; text-transform:uppercase;
+    color:var(--sv-ink-3); margin:10px 0 0}
+
+  .sig-bars{display:flex; flex-direction:column; gap:2px}
+  .sig-bar-row{display:grid; grid-template-columns:1fr 92px; gap:12px; align-items:center;
+    padding:9px 11px; border-radius:12px}
+  .sig-dot{width:8px; height:8px; border-radius:50%; flex:0 0 8px; display:inline-block}
+  .sig-track{position:relative; grid-column:1/-1; height:5px; border-radius:99px;
+    background:var(--card-line); margin-top:7px}
+  .sig-track i{position:absolute; top:0; left:0; height:100%; border-radius:99px}
+  .sig-track u{position:absolute; top:0; height:100%; border-radius:0 99px 99px 0; background:var(--sig-neg)}
+  .sig-track s{position:absolute; top:-3px; width:1px; height:11px; background:var(--sv-ink-3)}
+  .sig-bar-row .sig-sub{grid-column:1/-1; font:500 9.5px/1.5 var(--font-mono); letter-spacing:.1em;
+    text-transform:uppercase; color:var(--sv-ink-3); margin-top:6px}
+
+  .sig-stats{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .sig-stat{padding:13px 14px; border-radius:14px; background:var(--card-bg); border:1px solid var(--card-line)}
+  .sig-stat.sig-wide{grid-column:1/-1}
+  .sig-stat b{display:block; font:600 20px/1.15 var(--font-mono); font-variant-numeric:tabular-nums;
+    letter-spacing:-.02em}
+  .sig-stat small{display:block; font:500 9.5px/1.5 var(--font-mono); letter-spacing:.11em;
+    text-transform:uppercase; color:var(--sv-ink-3); margin-top:5px}
+  :root{--hoverish:rgba(56,189,248,.08); --hover-line-ish:rgba(56,189,248,.2);
+    --sig-neg:#fb7185; --sig-pos:#34d399; --sig-cy:#7dd3fc}
+  :root[data-theme="light"]{--hoverish:rgba(11,127,196,.09); --hover-line-ish:rgba(11,127,196,.28);
+    --sig-neg:#b32438; --sig-pos:#07714c; --sig-cy:#0369a1}
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]):not([data-theme="light"]){
+      --hoverish:rgba(11,127,196,.09); --hover-line-ish:rgba(11,127,196,.28);
+      --sig-neg:#b32438; --sig-pos:#07714c; --sig-cy:#0369a1}
+  }
 
   /* the sample-household badge — amber warning chip, both themes */
   #demoBadge{background:var(--warn-chip-bg); border:1px solid var(--warn-chip-line);
@@ -3917,6 +3980,137 @@ rewrite the static advice cards if the picture has changed.</div>
   // P6-5: the map colour legend (People/Accounts/…, top-left of the map) is
   // PARKED, not deleted — flip to true to restore it; markup remains in place.
   const MAP_LEGEND = false;
+
+  // ══ Signal — the five card shapes from the design rebuild ══════════════
+  // Design source: ~/lithifyte-design-preview-v2.html. These take live Engine
+  // figures and return markup; they hold no data and read no globals except the
+  // theme. Exposed as window.__ddSignal for the self-test.
+  //
+  // Every shape is theme-aware through tc(). That is not decoration: measured
+  // against the light stage, all nine of the dark palette's data colours land
+  // between 1.46:1 and 2.60:1 — every one below the 3:1 a graphic that carries
+  // meaning needs. A sparkline nobody can see is not a sparkline.
+  const SIGNAL_LIGHT_INK = {
+    '#34d399':'#0b8f60', '#38bdf8':'#0b7fc4', '#7dd3fc':'#0369a1', '#f7c95c':'#a8761a',
+    '#fb7185':'#d1344f', '#a78bfa':'#7c3aed', '#e879f9':'#c026d3', '#fb923c':'#ea580c',
+    '#6f8bab':'#547a9e', '#ffffff':'#22405f', '#67e8f9':'#0e7490', '#f87171':'#c02a44',
+    '#c4b5fd':'#6d4fd6', '#6ee7b7':'#0d7c6a', '#9fb3c8':'#52708c'
+  };
+  const Signal = (function(){
+    const esc2 = v => String(v == null ? '' : v);
+    function tc(c){
+      if (!c || prefersDark()) return c;
+      return SIGNAL_LIGHT_INK[String(c).toLowerCase()] || c;
+    }
+    // ── 1. sparkline ──────────────────────────────────────────────────────
+    // A flat series must still draw a line, not collapse onto one edge, so a
+    // zero range is centred rather than divided by.
+    function spark(vals, opts){
+      opts = opts || {};
+      const v = (vals || []).filter(n => typeof n === 'number' && isFinite(n));
+      if (v.length < 2) return '<span class="sig-spark-empty" aria-hidden="true"></span>';
+      const w = opts.w || 88, h = opts.h || 26, pad = 3;
+      const mn = Math.min.apply(null, v), mx = Math.max.apply(null, v), rg = (mx - mn) || 1;
+      const flat = (mx - mn) < 1e-9;
+      const pts = v.map((n, i) => {
+        const x = pad + i * ((w - pad * 2) / (v.length - 1));
+        const y = flat ? h / 2 : h - pad - ((n - mn) / rg) * (h - pad * 2);
+        return x.toFixed(1) + ',' + y.toFixed(1);
+      });
+      const col = tc(opts.color || '#38bdf8');
+      const last = pts[pts.length - 1].split(',');
+      return '<svg class="sig-spark" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h +
+        '" aria-hidden="true" focusable="false"><polyline points="' + pts.join(' ') +
+        '" fill="none" stroke="' + col + '" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="2.5" fill="' + col + '"/></svg>';
+    }
+    // ── 2. progress ring ──────────────────────────────────────────────────
+    function ring(pct, opts){
+      opts = opts || {};
+      const p = Math.max(0, Math.min(100, Math.round(+pct || 0)));
+      const size = opts.size || 46, C = 94.2, d = (C * p / 100).toFixed(1);
+      const col = tc(opts.color || '#f7c95c');
+      return '<svg class="sig-ring" viewBox="0 0 36 36" width="' + size + '" height="' + size +
+        '" role="img" aria-label="' + p + '%"><circle cx="18" cy="18" r="15" fill="none" ' +
+        'stroke="var(--card-line)" stroke-width="3.6"/><circle cx="18" cy="18" r="15" fill="none" stroke="' + col +
+        '" stroke-width="3.6" stroke-linecap="round" stroke-dasharray="' + d + ' ' + C +
+        '" transform="rotate(-90 18 18)"/><text x="18" y="21" text-anchor="middle" font-size="10" ' +
+        'font-weight="600" fill="' + col + '">' + p + '%</text></svg>';
+    }
+    // ── 3. ledger rows, with the exact figures behind a click ─────────────
+    // The sparkline carries twelve months; the numbers come back on demand. A
+    // row without months is not clickable and says so to a screen reader.
+    let uid = 0;
+    function rows(items, opts){
+      opts = opts || {};
+      return '<div class="sig-rows">' + (items || []).map(function(r){
+        const id = 'sigd' + (++uid);
+        const has = !!(r.months && r.months.length);
+        const amtCls = r.tone ? ' sig-' + r.tone : '';
+        let h = '<' + (has ? 'button type="button"' : 'div') + ' class="sig-row' + (has ? '' : ' sig-flat') + '"' +
+          (has ? ' aria-expanded="false" aria-controls="' + id + '"' : '') + '>' +
+          '<span class="sig-nm">' + esc2(r.name) + (r.sub ? '<small>' + esc2(r.sub) + '</small>' : '') + '</span>' +
+          (r.series ? spark(r.series, {color: r.color}) : '<span class="sig-spark-empty"></span>') +
+          '<span class="sig-amt' + amtCls + '">' + esc2(r.amount) + '</span>' +
+          '</' + (has ? 'button' : 'div') + '>';
+        if (has){
+          h += '<div class="sig-detail" id="' + id + '" hidden><div class="sig-months">' +
+            r.months.map(function(m){
+              return '<div' + (m.negative ? ' class="sig-neg"' : '') + '><span>' + esc2(m.label) + '</span>' +
+                     esc2(m.value) + '</div>';
+            }).join('') + '</div>' +
+            (r.note ? '<p class="sig-note">' + esc2(r.note) + '</p>' : '') + '</div>';
+        }
+        return h;
+      }).join('') + '</div>';
+    }
+    // ── 4. proportion bars ────────────────────────────────────────────────
+    // With opts.limit the bar is a BUDGET: the limit sits at 72% of the track
+    // so an overspend has somewhere to go. Without it every value is a share of
+    // the largest. A single full red bar for 101% and 133% alike destroys the
+    // one thing the card exists to show.
+    function bars(items, opts){
+      opts = opts || {};
+      const L = 72;
+      return '<div class="sig-bars">' + (items || []).map(function(b){
+        const pct = Math.max(0, +b.pct || 0);
+        const over = opts.limit && pct > 100;
+        const w = opts.limit ? Math.min(pct * L / 100, 100) : Math.min(pct, 100);
+        const col = tc(b.color || '#38bdf8');
+        let bar = '<i style="width:' + Math.min(w, opts.limit ? L : 100).toFixed(1) + '%;background:' + col + '"></i>';
+        if (over) bar += '<u style="left:' + L + '%;width:' + Math.min(w - L, 100 - L).toFixed(1) + '%"></u>';
+        if (opts.limit) bar += '<s style="left:' + L + '%"></s>';
+        return '<div class="sig-bar-row">' +
+          '<span class="sig-nm">' + (b.color ? '<i class="sig-dot" style="background:' + col + '"></i>' : '') +
+            esc2(b.name) + '</span>' +
+          '<span class="sig-amt' + (over ? ' sig-neg' : '') + '">' + esc2(b.amount) + '</span>' +
+          '<span class="sig-track">' + bar + '</span>' +
+          (b.sub ? '<span class="sig-sub">' + esc2(b.sub) + '</span>' : '') + '</div>';
+      }).join('') + '</div>';
+    }
+    // ── 5. stat tiles ─────────────────────────────────────────────────────
+    function stats(items){
+      return '<div class="sig-stats">' + (items || []).map(function(t){
+        return '<div class="sig-stat' + (t.wide ? ' sig-wide' : '') + '">' +
+          '<b' + (t.tone ? ' class="sig-' + t.tone + '"' : '') + '>' + esc2(t.value) + '</b>' +
+          '<small>' + esc2(t.label) + '</small></div>';
+      }).join('') + '</div>';
+    }
+    return {spark, ring, rows, bars, stats, tc};
+  })();
+  window.__ddSignal = Signal;
+
+  // one delegated listener for every expandable row, anywhere
+  document.addEventListener('click', function(e){
+    const btn = e.target.closest && e.target.closest('.sig-row[aria-expanded]');
+    if (!btn) return;
+    const d = document.getElementById(btn.getAttribute('aria-controls'));
+    if (!d) return;
+    const open = d.hasAttribute('hidden');
+    if (open) d.removeAttribute('hidden'); else d.setAttribute('hidden', '');
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    btn.classList.toggle('sig-open', open);
+  });
 
   // ══ persistent stores (all in this browser — self-hosted) ══
   const LS = {rules:'dd-rules-v2', cats:'dd-cats-v2', goals:'dd-goals-v1', org:'dd-org-v1', recur:'dd-recur-v1', uploads:'dd-uploads-v1', xfers:'dd-xfers-v1', manrec:'dd-manrec-v1', fcast:'dd-fcast-v1', cuts:'dd-cuts-v1', visit:'dd-visit-v1', budget:'dd-budget-v1', priv:'dd-privacy-v1', debts:'dd-debts-v1', holds:'dd-holdings-v1', assets:'dd-assets-v1', nwlog:'dd-nwlog-v1', merch:'dd-merch-v1', notes:'dd-notes-v1', lm:'dd-lm-v1', cash:'dd-cash-v1', alerts:'dd-alerts-v1', txcat:'dd-txcat-v1', docs:'dd-docs-v1', imports:'dd-imports-v1', chats:'dd-chats-v1', scenarios:'dd-scenarios-v1', disclose:'dd-disclose-v1', tax:'dd-tax-v1', fx:'dd-fx-v1', upd:'dd-updates-v1'};
@@ -8249,6 +8443,33 @@ rewrite the static advice cards if the picture has changed.</div>
     if (!runs.length){ el.innerHTML = '<div class="hint">No accounts yet.</div>'; return; }
     const known = runs.filter(r => !r.relative);
     const total = known.reduce((s, r) => s + r.endBal, 0);
+    // Signal treatment in the space view only — Classic keeps its own list,
+    // because these are the same nodes and Classic is the a11y path.
+    if (document.body.classList.contains('space')){
+      const money = v => (v < -0.005 ? '−' : '') + eur(Math.abs(v));
+      el.innerHTML = Signal.rows(runs.map(r => {
+        const series = (r.rows || []).filter(x => !x.unknown).map(x => x.closing);
+        const trend = series.length > 1 ? series[series.length-1] - series[0] : 0;
+        const months = (r.rows || []).slice(-6).map(x => ({
+          label: fmtMoLbl(x.month).slice(0, 3).toUpperCase(),
+          value: x.unknown ? '—' : money(x.closing),
+          negative: !!x.negative
+        }));
+        return {
+          name: r.name,
+          sub: r.kind + (r.relative ? ' · movement only' : ''),
+          series,
+          color: r.endBal < -0.005 ? '#fb7185' : (trend >= 0 ? '#34d399' : '#f7c95c'),
+          amount: money(r.endBal),
+          tone: r.endBal < -0.005 ? 'neg' : 'pos',
+          months,
+          note: r.relative
+            ? 'No opening balance set — this is movement, not a balance'
+            : 'Opening ' + eur(r.opening) + ' on ' + esc(r.asOf) + ', rolled forward'
+        };
+      }));
+      return;
+    }
     el.innerHTML = `<div class="sum-bal">
         ${runs.map(r => `<button type="button" class="sum-bal-row" data-k="people" data-sec="sec-people"
             title="${r.relative ? 'No opening balance set — this is movement over the range, not a real balance. Click to set one.' : 'Opening balance ' + eur(r.opening) + ' on ' + esc(r.asOf) + ', rolled forward'}">
@@ -15604,6 +15825,95 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // identity when the user's system flips to dark
       const i = hashCat('Groceries');
       return (CAT_PAL.light[i] && CAT_PAL.dark[i] && i < CAT_PAL.light.length) || 'slot ' + i + ' out of range';
+    });
+
+    // ── Signal renderers ──
+    T('signal: a sparkline plots every point inside its box', () => {
+      const h = Signal.spark([10, 20, 15, 30]);
+      const m = h.match(/points="([^"]+)"/);
+      if (!m) return 'no polyline: ' + h.slice(0, 80);
+      const pts = m[1].split(' ').map(p => p.split(',').map(Number));
+      if (pts.length !== 4) return 'plotted ' + pts.length + ' of 4';
+      const bad = pts.find(([x, y]) => x < 0 || x > 88 || y < 0 || y > 26);
+      return !bad || ('point outside the 88x26 box: ' + bad);
+    });
+    T('signal: a flat series draws a line instead of dividing by zero', () => {
+      const h = Signal.spark([270, 270, 270, 270]);
+      const m = h.match(/points="([^"]+)"/);
+      if (!m) return 'no polyline for a flat series';
+      const ys = m[1].split(' ').map(p => +p.split(',')[1]);
+      if (ys.some(y => !isFinite(y))) return 'NaN in the path: ' + m[1];
+      return ys.every(y => Math.abs(y - ys[0]) < 0.001) || 'a flat series should be level: ' + m[1];
+    });
+    T('signal: one point or none renders nothing rather than a broken path', () => {
+      return (!/polyline/.test(Signal.spark([5])) && !/polyline/.test(Signal.spark([]))) || 'drew a path from < 2 points';
+    });
+    T('signal: a ring clamps to 0–100 and never emits a negative dash', () => {
+      for (const [inp, want] of [[-20, 0], [0, 0], [54, 54], [140, 100]]){
+        const h = Signal.ring(inp);
+        if (!h.includes('>' + want + '%<')) return inp + ' rendered as something other than ' + want + '%';
+        const d = h.match(/stroke-dasharray="([\d.]+)/);
+        if (!d || +d[1] < 0) return 'negative dash for ' + inp;
+      }
+      return true;
+    });
+    T('signal: a row with months is a button, one without is not clickable', () => {
+      const withM = Signal.rows([{name:'A', amount:'1', months:[{label:'JAN', value:'1'}]}]);
+      const noM   = Signal.rows([{name:'B', amount:'2'}]);
+      if (!/<button[^>]+aria-expanded="false"/.test(withM)) return 'expandable row is not a button';
+      if (/<button/.test(noM)) return 'a row with no detail was made clickable';
+      return /aria-controls="(sigd\d+)"[\s\S]*id="\1"/.test(withM) || 'aria-controls does not point at the detail';
+    });
+    T('signal: over-budget bars stay distinguishable from each other', () => {
+      // the bug this guards: 101% and 133% both rendering as one full red bar,
+      // which destroys the only thing a budget bar exists to show
+      const h = Signal.bars([{name:'a', pct:101, amount:'x'}, {name:'b', pct:133, amount:'y'}], {limit:true});
+      const over = [...h.matchAll(/<u style="left:72%;width:([\d.]+)%/g)].map(m => +m[1]);
+      if (over.length !== 2) return 'expected 2 overshoots, got ' + over.length;
+      if (!(over[1] > over[0] + 1)) return 'overshoots are indistinguishable: ' + JSON.stringify(over);
+      return /<s style="left:72%"/.test(h) || 'no limit mark';
+    });
+    T('signal: bars without a limit never draw an overshoot or a mark', () => {
+      const h = Signal.bars([{name:'a', pct:100, amount:'x'}]);
+      return (!/<u /.test(h) && !/<s /.test(h)) || 'a proportion bar drew budget furniture';
+    });
+    T('signal: every data colour is remapped for the light theme', () => {
+      // all nine dark-palette colours fail 3:1 on the light stage; a shape that
+      // forgets to remap is a graphic nobody can read
+      const before = document.documentElement.getAttribute('data-theme');
+      try{
+        document.documentElement.setAttribute('data-theme', 'light');
+        const bad = ['#34d399', '#38bdf8', '#f7c95c', '#fb7185', '#a78bfa']
+          .filter(c => Signal.tc(c).toLowerCase() === c);
+        if (bad.length) return 'not remapped on light: ' + bad.join(', ');
+        document.documentElement.setAttribute('data-theme', 'dark');
+        return Signal.tc('#34d399') === '#34d399' || 'dark must pass the colour through unchanged';
+      } finally {
+        if (before) document.documentElement.setAttribute('data-theme', before);
+        else document.documentElement.removeAttribute('data-theme');
+      }
+    });
+    T('signal: stat tiles render a value and a label for each entry', () => {
+      const h = Signal.stats([{value:'€90,156', label:'net worth'}, {value:'3', label:'debts', wide:true}]);
+      return ((h.match(/sig-stat/g) || []).length === 3 && h.includes('€90,156') && h.includes('sig-wide'))
+        || h.slice(0, 120);
+    });
+
+    T('signal: shapes are rebuilt when the theme moves, not left on old colours', () => {
+      // an SVG stroke is an attribute, not a stylesheet rule — nothing restyles
+      // it, so a card that is not re-rendered keeps the palette it was born with
+      const el = document.getElementById('sumBalances');
+      if (!el || !document.body.classList.contains('space')) return true;
+      const before = window.__lfTheme ? window.__lfTheme.get() : null;
+      const stroke = () => { const p = el.querySelector('svg.sig-spark polyline');
+                             return p ? (p.getAttribute('stroke') || '').toLowerCase() : null; };
+      try{
+        if (!window.__lfTheme) return true;
+        window.__lfTheme.set('dark');  window.__ddSignalRerender(); const d = stroke();
+        window.__lfTheme.set('light'); window.__ddSignalRerender(); const l = stroke();
+        if (!d || !l) return true;                    // no accounts to draw
+        return d !== l || ('the sparkline kept ' + d + ' across both themes');
+      } finally { if (before) window.__lfTheme.set(before); window.__ddSignalRerender(); }
     });
 
     // ── theme picker ──
@@ -23745,15 +24055,23 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   });
   // The map is painted to a canvas, so no stylesheet reaches it — when the
   // theme moves it has to be told, or the stage stays the colour it was.
+  // Signal shapes bake their colours into the markup they emit (an SVG stroke is
+  // an attribute, not a stylesheet rule), so like the canvas they have to be
+  // rebuilt when the theme moves — otherwise a sparkline keeps the dark palette
+  // on a light card and drops to 2.36:1, under the 3:1 a graphic needs.
+  function signalRerender(){
+    try{ renderSummaryBalances(); }catch(e){}
+  }
+  window.__ddSignalRerender = signalRerender;
   new MutationObserver(()=>{
-    renderCats(); renderCatManager();
+    renderCats(); renderCatManager(); signalRerender();
     try{ if (graph) graph.draw(); }catch(e){}
   }).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
   // and the same when the OS flips underneath a household that never chose
   try{
     matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{
       if (document.documentElement.getAttribute('data-theme')) return;  // an explicit choice wins
-      renderCats(); renderCatManager();
+      renderCats(); renderCatManager(); signalRerender();
       try{ if (graph) graph.draw(); }catch(e){}
     });
   }catch(e){}
@@ -24142,6 +24460,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     });
     function enter(){
       document.body.classList.add('space');
+      // Cards that render differently per view read body.space at render time,
+      // and the first render happens BEFORE this class exists — so without a
+      // re-render here the space view keeps whatever Classic drew on load.
+      try { renderSummaryBalances(); } catch (e) {}
       const card = document.getElementById('graphCard');
       take(card); stage.appendChild(card);
       if (TX.length === 0){
@@ -24166,6 +24488,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       } catch (e) {}
     }
     function exit(){
+      // and back the other way, or Classic inherits the Signal rows
+      try { setTimeout(renderSummaryBalances, 0); } catch (e) {}
       closePanel(); closeMini();
       document.body.classList.remove('space');
       restore(document.getElementById('graphCard'));
