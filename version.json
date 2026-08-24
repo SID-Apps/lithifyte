@@ -1,8 +1,8 @@
 {
-  "version": "3.18.1",
-  "released": "2026-08-23",
-  "notes": "The transfers card was converted but never registered, so entering the space view left a 41-row table showing. Registered, plus a test that catches an unregistered conversion from the other side.",
+  "version": "3.19.0",
+  "released": "2026-08-24",
+  "notes": "Classic restore from the registry; Audit chips; Forecast in household language; Budget seeded from lived-on months.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "41c7947b38e71ece7530d942657abcb1616c73a07380030b8f05ff42d316c9e7"
+  "sha256": "80ea20ba6c5c50f162d6fbb9cdba1930e8b6b65584b2343b2ca2841f0fa7e717"
 }

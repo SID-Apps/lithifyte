@@ -51,7 +51,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '3.18.1';
+  var APP_VER = '3.19.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -1930,6 +1930,16 @@ So, when you change a stored shape:
   .filter-label{font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin-right:2px}
   .chk{display:inline-flex; align-items:center; gap:5px; cursor:pointer; white-space:nowrap}
   .chk input{accent-color:var(--income); width:15px; height:15px}
+  /* Audit category filters: wrapping chips with a consistent height, not a
+     two-column flow of checkboxes whose labels never lined up. */
+  .sig-chips{display:flex; flex-wrap:wrap; gap:6px; flex:1 1 100%}
+  .sig-chip{font:500 12px/1 var(--font-sans); padding:7px 11px; border-radius:999px;
+    border:1px solid var(--border-strong); background:transparent; color:var(--ink-2);
+    cursor:pointer; white-space:nowrap}
+  .sig-chip:hover{color:var(--ink); border-color:var(--ink-2)}
+  .sig-chip.on{background:rgba(var(--sv-line),.14); border-color:rgba(var(--sv-line),.45);
+    color:var(--ink)}
+  .filter-row.cat-chip-row{align-items:flex-start; flex-wrap:wrap}
 
   /* ── money map (neural / cyber — deliberately single-theme) ── */
   .graph-card{position:relative; padding:0; overflow:hidden; background:var(--sv-stage); border:1px solid rgba(var(--sv-line),.18); border-radius:12px}
@@ -2782,10 +2792,9 @@ So, when you change a stored shape:
         <label class="chk"><input type="checkbox" id="fltAI" checked> AI-assigned</label>
         <label class="chk"><input type="checkbox" id="fltUser" checked> Overridden by your rules</label>
       </div>
-      <div class="filter-row">
+      <div class="filter-row cat-chip-row" id="auditCatRow">
         <span class="filter-label">Category</span>
-        <label class="chk"><input type="checkbox" id="fltAllCats" checked> <b>All</b></label>
-        <span id="catFilterChips" style="display:contents"></span>
+        <div id="catFilterChips" class="sig-chips"></div>
       </div>
       <input id="auditSearch" class="search-input" placeholder="Search merchant or category…" aria-label="Search auto-categorisation mappings">
       <div style="overflow-x:auto">
@@ -3013,8 +3022,8 @@ So, when you change a stored shape:
       <div id="bgSetupCategory" style="margin-top:8px">
         <p class="rule-hint" style="margin:0 0 10px">Seed the category lines:</p>
         <div class="rule-actions" style="align-items:flex-start; flex-wrap:wrap">
-          <div style="max-width:340px"><button class="btn primary" id="bgSeedHist" type="button">📊 Match my history</button>
-            <p class="rule-hint" style="margin:6px 0 0">Each category gets the median of your recent complete months — a budget you already live within. Start here, then trim.</p></div>
+          <div style="max-width:340px"><button class="btn primary" id="bgSeedHist" type="button">📊 Match months I have already lived</button>
+            <p class="rule-hint" style="margin:6px 0 0">Each line is a leaner month you actually had, never below a standing order. Categories without enough history stay at typical spend.</p></div>
           <div style="max-width:340px"><button class="btn primary" id="bgSeedGoal" type="button">🎯 Align to my goal</button>
             <p class="rule-hint" style="margin:6px 0 0" id="bgSeedGoalHint">History-based, then day-to-day categories are trimmed so total spending fits what the primary goal needs each month.</p></div>
         </div>
@@ -3058,7 +3067,7 @@ So, when you change a stored shape:
       <span class="hint">Current lever positions and suggested cuts</span></div>
 <div class="sim">
       <div>
-        <div class="sim-summary">
+        <div class="sim-summary" id="simSummary">
           <span>Extra saved <b class="num" id="simExtra">€0</b>/mo</span>
           <span>New savings rate <b class="num" id="simRate">€0</b>/mo</span>
           <span>Primary goal <b class="num" id="simWhen">—</b></span>
@@ -3085,11 +3094,12 @@ So, when you change a stored shape:
         <div class="xl-bar"><button type="button" class="btn small" id="fcExportXl">⬇ Export forecast CSV</button>
       <span class="hint">Recurring lines + month-by-month expected/cautious paths</span></div>
 <div class="chart-card" style="margin-bottom:14px">
-      <div class="filter-row" style="margin-bottom:8px">
+      <div class="filter-row" id="fcBufRow" style="margin-bottom:8px">
         <span class="filter-label">Safety buffer</span>
         <input type="range" id="bufSlider" min="0" max="100" step="5" style="width:180px; margin:0" aria-label="Safety buffer percentage">
         <span class="hint" id="bufInfo"></span>
       </div>
+      <p class="hint" id="bufWhy" style="margin:0 0 10px"></p>
       <div class="legend">
         <span><i class="sw" style="background:var(--save)"></i>Cautious (buffered)</span>
         <span><i class="sw" style="background:transparent;border-top:2px dashed var(--save);height:0;border-radius:0"></i>If trends hold</span>
@@ -5350,6 +5360,20 @@ rewrite the static advice cards if the picture has changed.</div>
       const total = +reachable.reduce((s, r) => s + r.headroom, 0).toFixed(2);
       const totalAll = +out.reduce((s, r) => s + r.headroom, 0).toFixed(2);
       return {rows: out, totalHeadroom: total, totalAllRows: totalAll, reachable};
+    },
+    // A budget line from the same assessment: what they have already lived on
+    // (the floor), never below a standing order, and no invented cut where
+    // confidence is low — those stay at typical spend so the pack is complete.
+    budgetFromHeadroom(assessment){
+      const cats = {};
+      for (const r of (assessment && assessment.rows) || []){
+        if (!(r.spend > 0) || r.confidence === 'none') continue;
+        const raw = r.confidence === 'low'
+          ? r.spend
+          : Math.max(+r.floor || 0, +r.committed || 0);
+        cats[r.category] = Math.round(raw / 10) * 10;
+      }
+      return {cats};
     },
     flexOf(label){
       const s = String(label || '').toLowerCase();
@@ -9866,13 +9890,21 @@ rewrite the static advice cards if the picture has changed.</div>
     const cats = [...new Set(all.map(e => e.shown))].sort();
     for (const c of cats) if (!auditFilters.catSel.has(c)) auditFilters.catSel.set(c, true);
     const box = document.getElementById('catFilterChips');
-    box.innerHTML = cats.map(c => `<label class="chk"><input type="checkbox" class="flt-cat" data-c="${esc(c)}" ${auditFilters.catSel.get(c) ? 'checked' : ''}> ${esc(c)}</label>`).join('');
-    box.querySelectorAll('.flt-cat').forEach(cb => cb.addEventListener('change', ()=>{
-      auditFilters.catSel.set(cb.dataset.c, cb.checked);
-      document.getElementById('fltAllCats').checked = cats.every(c => auditFilters.catSel.get(c));
+    if (!box) return;
+    const allOn = cats.every(c => auditFilters.catSel.get(c));
+    const chip = (label, on, attrs) =>
+      '<button type="button" class="sig-chip' + (on ? ' on' : '') + '" ' + attrs + '>' + esc(label) + '</button>';
+    box.innerHTML = chip('All', allOn, 'data-all="1"') +
+      cats.map(c => chip(c, !!auditFilters.catSel.get(c), 'data-c="' + esc(c) + '"')).join('');
+    box.querySelectorAll('.sig-chip').forEach(b => b.addEventListener('click', () => {
+      if (b.dataset.all){
+        const next = !cats.every(c => auditFilters.catSel.get(c));
+        for (const k of auditFilters.catSel.keys()) auditFilters.catSel.set(k, next);
+      } else {
+        auditFilters.catSel.set(b.dataset.c, !auditFilters.catSel.get(b.dataset.c));
+      }
       renderAudit(true);
     }));
-    document.getElementById('fltAllCats').checked = cats.every(c => auditFilters.catSel.get(c));
   }
   const AUDIT_SIGNAL_IDS = ['fltAI','fltUser','auditSearch'];
   function paintAuditChrome(){
@@ -10083,10 +10115,6 @@ rewrite the static advice cards if the picture has changed.</div>
   document.getElementById('auditMore').addEventListener('click', ()=>{ auditLimit += 200; renderAudit(true); });
   document.getElementById('fltAI').addEventListener('change', e=>{ auditFilters.ai = e.target.checked; renderAudit(true); });
   document.getElementById('fltUser').addEventListener('change', e=>{ auditFilters.user = e.target.checked; renderAudit(true); });
-  document.getElementById('fltAllCats').addEventListener('change', e=>{
-    for (const k of auditFilters.catSel.keys()) auditFilters.catSel.set(k, e.target.checked);
-    renderAudit();
-  });
 
   // ══ merchant merge/split (P7-32) ══
   function onMerchChanged(){ save(LS.merch, merchStore); merchCanon.clear(); renderAll(); }
@@ -11535,9 +11563,10 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   }
 
   // ══ forecast rendering ══
-  const FC_BUF_IDS = ['bufSlider','bufInfo'];
+  const FC_BUF_IDS = ['bufSlider','bufInfo','bufWhy'];
   function paintForecastChrome(){
-    const row = document.querySelector('#sec-forecast .chart-card .filter-row');
+    const row = document.getElementById('fcBufRow') || document.querySelector('#sec-forecast .chart-card .filter-row');
+    const why = document.getElementById('bufWhy');
     if (document.body.classList.contains('space')){
       if (document.getElementById('fcBufSignal')) return;
       const slot = document.createElement('div');
@@ -11553,8 +11582,24 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const ctl = slot.querySelector('[data-adopt="bufSlider"]');
       const info = document.getElementById('bufInfo');
       if (ctl && info) Signal.park(info, ctl);
+      const nm = slot.querySelector('.sig-nm');
+      if (nm && why && !nm.querySelector('.sig-qm')){
+        why.classList.add('sig-folded');
+        Signal.park(why, slot);
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'sig-qm'; b.textContent = '?';
+        b.setAttribute('aria-expanded', 'false');
+        b.setAttribute('aria-label', 'How the buffer is measured');
+        b.addEventListener('click', e => {
+          e.stopPropagation();
+          const on = why.classList.toggle('sig-open');
+          b.setAttribute('aria-expanded', on ? 'true' : 'false');
+        });
+        nm.appendChild(b);
+      }
     } else {
       Signal.restore(FC_BUF_IDS);
+      if (why) why.classList.remove('sig-folded', 'sig-open');
       const slot = document.getElementById('fcBufSignal');
       if (slot) slot.remove();
       if (row) row.style.display = '';
@@ -11577,9 +11622,17 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     const slider = document.getElementById('bufSlider');
     if (document.activeElement !== slider) slider.value = FCONF.bufferPct;
     document.getElementById('bufInfo').textContent =
-      FCONF.bufferPct + '% — holding back ' + eur(buf) + '/mo for spending swings (robust σ ' + eur(fc.meta ? fc.meta.irrSd : 0) + ')' +
-      (fc.meta && fc.meta.decUplift > 1 ? ' · Decembers +' + eur(fc.meta.decUplift) : '') +
-      (fc.meta && fc.meta.trimmed && fc.meta.trimmed.length ? ' · one-off months ignored: ' + fc.meta.trimmed.map(fmtMoLbl).join(', ') : '');
+      FCONF.bufferPct + '% — holding back ' + eur(buf) + '/mo for your month-to-month swing' +
+      (fc.meta && fc.meta.decUplift > 1 ? ' · Decembers usually run +' + eur(fc.meta.decUplift) : '');
+    const why = document.getElementById('bufWhy');
+    if (why){
+      const bits = [];
+      if (fc.meta) bits.push('The spread of irregular spending is ' + eur(fc.meta.irrSd));
+      if (fc.meta && fc.meta.trimmed && fc.meta.trimmed.length)
+        bits.push('one-off months ignored: ' + fc.meta.trimmed.map(fmtMoLbl).join(', '));
+      why.textContent = bits.join(' · ');
+      why.style.display = bits.length ? '' : 'none';
+    }
     const x = i => padL + i/n*plotW;
     const y = v => padT + plotH - Math.max(0,v)/yTop*plotH;
     let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:640px" role="img" aria-label="36-month savings forecast">`;
@@ -17450,6 +17503,34 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const bad = reg.filter(r => typeof r.fn !== 'function' || !r.name);
       return !bad.length || 'malformed entries: ' + bad.length;
     });
+    T('signal: Classic cleanup walks the registry, not a parallel list', () => {
+      // The same fragility 3.11.1 removed from the render path was living in
+      // exit() as two hand-copied id arrays. A missed id left Signal markup
+      // in Classic — the keyboard path.
+      if (typeof window.__ddSignalRestoreClassic !== 'function') return 'no restore helper';
+      const reg = window.__ddSignalRenderers || [];
+      const slots = new Set(reg.map(r => r.slot).filter(Boolean));
+      const hides = new Set();
+      for (const r of reg) for (const id of [].concat(r.hides || [])) if (id) hides.add(id);
+      if (slots.size < 12) return 'too few slot declarations: ' + slots.size;
+      for (const need of ['xferSignal','leakSignal','budgetSignal','auditSignal'])
+        if (!slots.has(need)) return 'missing slot: ' + need;
+      for (const need of ['xferTable','leakTable','budgetTable','auditTable','nwGraph','leakShapeCard'])
+        if (!hides.has(need)) return 'missing hides: ' + need;
+      return true;
+    });
+    T('signal: audit category filters are chips, not a checkbox grid', () => {
+      if (!TX.length || !A) return true;
+      const box = document.getElementById('catFilterChips');
+      if (!box) return 'no #catFilterChips';
+      if (box.querySelector('input[type="checkbox"]')) return 'still checkboxes';
+      return !!box.querySelector('.sig-chip') || 'no .sig-chip';
+    });
+    T('forecast: the buffer readout does not say robust sigma', () => {
+      const t = ((document.getElementById('bufInfo') || {}).textContent || '');
+      if (!t) return true;
+      return !/robust|\bσ\b|\bsigma\b/i.test(t) || t;
+    });
     T('signal: tax inputs are adopted, not cloned', () => {
       // A clone looks identical and does nothing: listeners were bound to the
       // original element objects at init. Settings established the pattern;
@@ -17607,6 +17688,19 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       ]});
       return (H.rows[0].category === 'Dining' && H.reachable.length === 1 &&
               H.totalHeadroom === 136) || JSON.stringify(H.rows);
+    });
+    T('headroom: a budget seed is the floor they lived on, never below committed', () => {
+      const H = E.cutHeadroom({lines:[
+        {category:'Dining', typical:200, low:64, activeMonths:12, months:12, committed:0},
+        {category:'Bills', typical:400, low:120, activeMonths:12, months:12, committed:300},
+        {category:'Travel', typical:300, low:10, activeMonths:2, months:12, committed:0}
+      ]});
+      if (typeof E.budgetFromHeadroom !== 'function') return 'Engine.budgetFromHeadroom missing';
+      const s = E.budgetFromHeadroom(H);
+      if (s.cats.Bills !== 300) return 'bills went below committed: ' + s.cats.Bills;
+      if (s.cats.Travel !== 300) return 'low-confidence travel was cut: ' + s.cats.Travel;
+      if (!(s.cats.Dining >= 60 && s.cats.Dining <= 70)) return 'dining should be the lived-on floor, got ' + s.cats.Dining;
+      return true;
     });
     T('headroom: a flat category offers nothing and admits it', () => {
       const H = E.cutHeadroom({lines:[
@@ -20622,17 +20716,53 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     return {month: bo.pm.mo, over: bo.rows.filter(r => r.pace.verdict === 'hot').map(r => r.cat)};
   }
 
+  // Shared with the co-pilot: the measurements Engine.cutHeadroom assesses.
+  // `limit` keeps the chat brief; Budget seeds from the full list.
+  function cutHeadroomModel(opts){
+    opts = opts || {};
+    if (!A || !A.cats12) return {rows: [], totalHeadroom: 0, reachable: []};
+    const rec = (typeof REC !== 'undefined' && REC) || [];
+    const committedFor = (cat) => rec
+      .filter(r => r && r.kind === 'expense' && !r.isSave && r.cat === cat && r.period === 1)
+      .reduce((sum, r) => sum + (+(r.avg || r.avgMo) || 0), 0);
+    let lines = A.cats12
+      .filter(c => c.category !== SAVE_CAT && c.category !== INT_CAT && c.avgMonth > 0)
+      .map(c => {
+        const M = catMonthlyModel(c.category);
+        const activeTotals = (M.rows || []).filter(r => r.n > 0).map(r => r.total);
+        return {category: c.category,
+                typical: M.typical || M.avgActive || c.avgMonth,
+                monthly: activeTotals,
+                low: M.low && typeof M.low.total === 'number' ? M.low.total : 0,
+                activeMonths: M.activeMonths, months: M.months,
+                committed: committedFor(c.category),
+                flexPrior: Engine.flexOf(c.category)};
+      });
+    if (opts.limit) lines = lines.slice(0, opts.limit);
+    return Engine.cutHeadroom({lines});
+  }
+
   function seedBudgets(goalAligned){
     const months = budgetMonths();
     if (!months.length || !A) return;
     const scope = setupScopeValue();
     const scopeTxe = scope ? A.txe.filter(t => t.acct === scope) : A.txe;
     const sug = Engine.suggestBudgets({txe: scopeTxe, months, intCat: INT_CAT, saveCat: SAVE_CAT});
-    const top = sug.slice(0, 7);
-    const cats = {}; top.forEach(r => { cats[r.cat] = r.median; });
-    let other = Math.round(sug.slice(7).reduce((s, r) => s + r.median, 0) / 10) * 10;
-    let note = 'Seeded from the median of ' + months.length + ' complete months' +
-      (scope ? ' on ' + acctLabel(scope) : '') + '.';
+    let cats = {}, other = 0, note;
+    const H = scope ? {rows: []} : cutHeadroomModel();
+    const seeded = Engine.budgetFromHeadroom(H);
+    if (Object.keys(seeded.cats).length){
+      cats = Object.assign({}, seeded.cats);
+      const covered = new Set(Object.keys(cats));
+      other = Math.round(sug.filter(r => !covered.has(r.cat)).reduce((s, r) => s + r.median, 0) / 10) * 10;
+      note = 'Each line is a month you have already lived on — leaner months, never below a standing order.';
+    } else {
+      const top = sug.slice(0, 7);
+      top.forEach(r => { cats[r.cat] = r.median; });
+      other = Math.round(sug.slice(7).reduce((s, r) => s + r.median, 0) / 10) * 10;
+      note = 'Seeded from the median of ' + months.length + ' complete months' +
+        (scope ? ' on ' + acctLabel(scope) : '') + '.';
+    }
     if (goalAligned && lastAs && lastAs[0] && FC && FC.meta){
       const P = lastAs[0];
       const required = Math.max(P.reqMo != null && isFinite(P.reqMo) ? P.reqMo : 0, A.saveAvg12);
@@ -23409,33 +23539,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       else s += ' Tell me if this one is fixed or if we can move it.';
       return s;
     }
-    // Builds the measurements Engine.cutHeadroom assesses. The committed figure
-    // is the part of a category already promised to a standing order — that is
-    // what makes a big category immovable and a small one worth looking at.
-    function cutHeadroomModel(){
-      if (!A || !A.cats12) return {rows: [], totalHeadroom: 0, reachable: []};
-      const rec = (typeof REC !== 'undefined' && REC) || [];
-      const committedFor = (cat) => rec
-        .filter(r => r && r.kind === 'expense' && !r.isSave && r.cat === cat && r.period === 1)
-        .reduce((sum, r) => sum + (+(r.avg || r.avgMo) || 0), 0);
-      const lines = A.cats12
-        .filter(c => c.category !== SAVE_CAT && c.category !== INT_CAT && c.avgMonth > 0)
-        .slice(0, 14)
-        .map(c => {
-          const M = catMonthlyModel(c.category);
-          // M.low is an OBJECT {month,total,n} — passing it as a number gave
-          // NaN, a floor of 0, and "you could cut all of it" for every category.
-          const activeTotals = (M.rows || []).filter(r => r.n > 0).map(r => r.total);
-          return {category: c.category,
-                  typical: M.typical || M.avgActive || c.avgMonth,
-                  monthly: activeTotals,
-                  low: M.low && typeof M.low.total === 'number' ? M.low.total : 0,
-                  activeMonths: M.activeMonths, months: M.months,
-                  committed: committedFor(c.category),
-                  flexPrior: Engine.flexOf(c.category)};
-        });
-      return Engine.cutHeadroom({lines});
-    }
+    // cutHeadroomModel lives with Budget so a seed and a co-pilot answer cannot
+    // drift. Chat keeps the first 14 so the brief stays short.
     function historyBudgetLines(){
       if (!A || !A.cats12) return [];
       return A.cats12
@@ -23614,7 +23719,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         }
         // Hoisted: this scans every category's monthly history, and it was being
         // rebuilt once PER CUT inside the loop below.
-        const HEAD = cutHeadroomModel();
+        const HEAD = cutHeadroomModel({limit:14});
         for (const item of merged){
           const label = item.label;
           const cat = item.cat;
@@ -23908,7 +24013,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // "Where can I cut back" had no tool at all, so the model either guessed
       // or got a single category. Rank real spending instead.
       if (t === 'cut_headroom'){
-        const H = cutHeadroomModel();
+        const H = cutHeadroomModel({limit:14});
         const top = H.reachable.slice(0, Math.max(1, Math.min(8, +a.limit || 5)));
         if (!top.length){
           return {ok:true, tool:t, say:'Nothing here has room to cut with any confidence — every category either costs the same every month or is already committed.',
@@ -24681,7 +24786,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         // rather than a keyword label and a hope. Without this the model was
         // reasoning about what SOUNDS discretionary; now it reasons about what
         // this household has actually managed before.
-        const H = cutHeadroomModel();
+        const H = cutHeadroomModel({limit:14});
         const top = H.reachable.slice(0, 6);
         if (top.length){
           facts.push('Room to cut, measured against this household\'s own leaner months:');
@@ -26138,48 +26243,70 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     {name:'cashflow months',   target:'cashflowChart', fn: () => { if (A) renderCashflow(); }},
     {name:'category legend',   target:'catLegend',   fn: () => { if (A) renderCatLegend(); }},
     {name:'category bars',     target:'catChart',    fn: () => { if (A) renderCats(); }},
-    {name:'leaks',             target:'leakSignal',  fn: () => { if (A) renderLeaks(); }},
-    {name:'debts',             target:null,          fn: () => { if (typeof DP !== 'undefined' && DP) renderDebts(); }},
-    {name:'holdings',          target:null,          fn: () => { if (typeof HV !== 'undefined' && HV) renderHoldings(); }},
+    {name:'leaks',             target:'leakSignal',  slot:'leakSignal', hides:['leakTable','leakShapeCard'], fn: () => { if (A) renderLeaks(); }},
+    {name:'debts',             target:null,          slot:'debtSignal', hides:['debtTable'], fn: () => { if (typeof DP !== 'undefined' && DP) renderDebts(); }},
+    {name:'holdings',          target:null,          slot:'holdSignal', hides:['hdTable'], fn: () => { if (typeof HV !== 'undefined' && HV) renderHoldings(); }},
     {name:'net worth',         target:'nwStrip',     fn: () => { if (typeof NW !== 'undefined' && NW) renderNetWorth(typeof FC !== 'undefined' ? FC : null); }},
     {name:'nw composition',    target:'nwComp',      fn: () => { if (typeof NW !== 'undefined' && NW) renderNetWorth(typeof FC !== 'undefined' ? FC : null); }},
     {name:'liability mix',     target:'liabMix',     fn: () => { if (typeof renderMixCharts === 'function') renderMixCharts(); }},
-    {name:'nw trend',          target:'nwTrend',     fn: () => { if (typeof NW !== 'undefined' && NW) renderNetWorth(typeof FC !== 'undefined' ? FC : null); }},
-    {name:'nw assets',         target:'asSignal',    fn: () => { if (typeof NW !== 'undefined' && NW) renderNetWorth(typeof FC !== 'undefined' ? FC : null); }},
+    {name:'nw trend',          target:'nwTrend',     hides:['nwGraph'], fn: () => { if (typeof NW !== 'undefined' && NW) renderNetWorth(typeof FC !== 'undefined' ? FC : null); }},
+    {name:'nw assets',         target:'asSignal',    slot:'asSignal', hides:['asTable'], fn: () => { if (typeof NW !== 'undefined' && NW) renderNetWorth(typeof FC !== 'undefined' ? FC : null); }},
     {name:'nw add asset',      target:'asFormSignal',fn: () => paintAssetForm()},
-    {name:'wealth engine',     target:'idleSignal',  fn: () => { if (typeof FC !== 'undefined' && FC) renderWealth(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }},
+    {name:'wealth engine',     target:'idleSignal',  slot:'idleSignal', hides:['idleTable'], fn: () => { if (typeof FC !== 'undefined' && FC) renderWealth(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }},
     {name:'tax assumptions',   target:'taxSignal',   fn: () => paintTaxCard()},
     {name:'pension leverage',  target:'pensionSignal', fn: () => renderPensionChrome()},
-    {name:'goal realloc',      target:'reallocSignal', fn: () => { if (typeof FC !== 'undefined' && FC) renderWealth(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }},
-    {name:'budget pace',       target:'budgetSignal',  fn: () => { if (typeof renderBudget === 'function') renderBudget(); }},
+    {name:'goal realloc',      target:'reallocSignal', slot:'reallocSignal', hides:['reallocTable'], fn: () => { if (typeof FC !== 'undefined' && FC) renderWealth(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }},
+    {name:'budget pace',       target:'budgetSignal',  slot:'budgetSignal', hides:['budgetTable'], fn: () => { if (typeof renderBudget === 'function') renderBudget(); }},
     {name:'forecast buffer',   target:'fcBufSignal',   fn: () => paintForecastChrome()},
-    {name:'forecast month',    target:'fcMonthSignal', fn: () => { if (typeof FC !== 'undefined' && FC) renderForecast(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }},
-    {name:'forecast recurring',target:'recurSignal',   fn: () => { if (typeof FC !== 'undefined' && FC) renderForecast(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }},
+    {name:'forecast month',    target:'fcMonthSignal', slot:'fcMonthSignal', fn: () => { if (typeof FC !== 'undefined' && FC) renderForecast(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }},
+    {name:'forecast recurring',target:'recurSignal',   slot:'recurSignal', hides:['recurTable'], fn: () => { if (typeof FC !== 'undefined' && FC) renderForecast(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }},
     {name:'goals',             target:'goalGrid',      fn: () => renderGoals((typeof lastAs !== 'undefined' && lastAs) || [])},
     {name:'alerts',            target:'alertList',     fn: () => renderAlerts()},
     {name:'alert prefs',       target:'alertTogs',     fn: () => paintAlertTogs()},
     {name:'pulse',             target:'pulseComps',    fn: () => { if (typeof renderPulse === 'function') renderPulse(); }},
-    {name:'readiness',         target:'mrSignal',      fn: () => { if (A) renderReadiness(); }},
+    {name:'readiness',         target:'mrSignal',      slot:'mrSignal', hides:['mrTable'], fn: () => { if (A) renderReadiness(); }},
     {name:'plan',              target:'planCards',     fn: () => { if (A && typeof FC !== 'undefined' && FC) renderPlan(FC, (typeof lastAs !== 'undefined' && lastAs) || []); }},
     {name:'notes',             target:'ndList',        fn: () => renderNotes()},
-    {name:'simulate',          target:'simSignal',     fn: () => paintSimSummary()},
+    {name:'simulate',          target:'simSignal',     slot:'simSignal', hides:['simSummary'], fn: () => paintSimSummary()},
     {name:'search chrome',     target:'searchTogs',    fn: () => paintSearchChrome()},
-    {name:'search results',    target:'txSearchSignal',fn: () => renderTxSearch()},
+    {name:'search results',    target:'txSearchSignal',slot:'txSearchSignal', hides:['txTable'], fn: () => renderTxSearch()},
     {name:'audit chrome',      target:'auditTogs',     fn: () => paintAuditChrome()},
-    {name:'audit mappings',    target:'auditSignal',   fn: () => renderAudit(true)},
-    {name:'rules',             target:'rulesSignal',   fn: () => { if (A) renderRules(); }},
+    {name:'audit mappings',    target:'auditSignal',   slot:'auditSignal', hides:['auditTable'], fn: () => renderAudit(true)},
+    {name:'rules',             target:'rulesSignal',   slot:'rulesSignal', hides:['rulesTable'], fn: () => { if (A) renderRules(); }},
     {name:'people chrome',     target:'peopleTogs',    fn: () => paintPeopleChrome()},
     // target:null — the transfers card returns early for a single-account
     // household, so demanding its slot would fail on real data. The "no raw
     // table showing" test guards this one instead, and does not need data.
-    {name:'transfers',         target:null,          fn: () => { if (typeof XFERS !== 'undefined') renderXfers(); }},
+    {name:'transfers',         target:null,          slot:'xferSignal', hides:['xferTable'], fn: () => { if (typeof XFERS !== 'undefined') renderXfers(); }},
     {name:'people list',       target:'orgList',       fn: () => renderOrg()}
   ];
   function signalRerender(){
     for (const r of SIGNAL_RENDERERS){ try{ r.fn(); }catch(e){} }
   }
+  // Classic restore: one walk of the same registry. Adopt slots (togs that
+  // hold live inputs) are NOT listed as `slot` — those renderers restore the
+  // original element, then remove themselves. `slot` is a replacement node
+  // that is safe to tear out; `hides` is what it covered.
+  function signalRestoreClassic(){
+    const seenSlot = new Set(), seenHide = new Set();
+    for (const r of SIGNAL_RENDERERS){
+      if (r.slot && !seenSlot.has(r.slot)){
+        seenSlot.add(r.slot);
+        const n = document.getElementById(r.slot);
+        if (n) n.remove();
+      }
+      for (const id of [].concat(r.hides || [])){
+        if (!id || seenHide.has(id)) continue;
+        seenHide.add(id);
+        const n = document.getElementById(id);
+        if (n) n.style.display = '';
+      }
+    }
+    signalRerender();
+  }
   window.__ddSignalRenderers = SIGNAL_RENDERERS;
   window.__ddSignalRerender = signalRerender;
+  window.__ddSignalRestoreClassic = signalRestoreClassic;
   new MutationObserver(()=>{
     renderCats(); renderCatManager(); signalRerender();
     try{ if (graph) graph.draw(); }catch(e){}
@@ -26610,17 +26737,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       // and back the other way, or Classic inherits the Signal rows. The
       // slots and hidden tables are undone FIRST, then one re-render through
       // the same registry the space view uses.
-      try { setTimeout(function(){
-        ['leakSignal','debtSignal','holdSignal','idleSignal','reallocSignal','budgetSignal','fcMonthSignal','recurSignal','mrSignal','simSignal','txSearchSignal','auditSignal','rulesSignal','xferSignal','asSignal'].forEach(function(id){
-          const n = document.getElementById(id); if (n) n.remove();
-        });
-        ['leakTable','debtTable','hdTable','idleTable','reallocTable','budgetTable','recurTable','mrTable','txTable','auditTable','rulesTable','xferTable','asTable'].forEach(function(id){
-          const n = document.getElementById(id); if (n) n.style.display = '';
-        });
-        const nwg = document.getElementById('nwGraph'); if (nwg) nwg.style.display = '';
-        const lsc = document.getElementById('leakShapeCard'); if (lsc) lsc.style.display = '';
-        signalRerender();
-      }, 0); } catch (e) {}
+      try { setTimeout(signalRestoreClassic, 0); } catch (e) {}
       closePanel(); closeMini();
       document.body.classList.remove('space');
       restore(document.getElementById('graphCard'));
