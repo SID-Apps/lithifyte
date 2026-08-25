@@ -10,30 +10,36 @@ and being training data are separate things, and `robots.txt` separates them.
 
 ---
 
-## 0 · Cloudflare's Managed robots.txt
+## 0 · Google-Extended, Gemini, and Cloudflare's Managed robots.txt
+
+**The token that actually gates Gemini is `Google-Extended`.** It is not a
+separate crawler and it is not training-only. Google's own crawler list says
+publishers use it to control whether crawled content may be used **for Gemini
+training *and* for grounding in Gemini Apps** (feeding the Search index to the
+model at prompt time). `Disallow: /` for `Google-Extended` is why Gemini
+answers "lithifyte.com isn't accessible or indexed / private / unreleased /
+blocked" while Googlebot is still allowed and the public site returns 200.
+
+Google does not offer a robots.txt split between those two uses. Lithifyte's
+position is still "cite us, don't train": `Content-Signal: ai-train=no` stays,
+and training-only crawlers (GPTBot, ClaudeBot, CCBot, …) stay disallowed.
+`Google-Extended` is listed with the **answer engines** because blocking it
+makes Gemini refuse to ground on the site. `www/rev2/robots.txt` and the app
+host `robots.txt` both `Allow` it.
 
 Cloudflare's **Managed robots.txt** is enabled on the `lithifyte.com` zone. It
-prepends its own block list to whatever `robots.txt` we serve.
+prepends its own block list, which **includes `Google-Extended`**. Even after
+our file allows Gemini, the live `/robots.txt` still contains Cloudflare's
+`Disallow` until that setting is off. Turn it off — this is an unblock, not
+tidiness:
 
-**What it actually costs us — measured, not assumed.** Read the served file
-before deciding this is urgent. Cloudflare's block list is
-`Amazonbot, Applebot-Extended, Bytespider, CCBot, ClaudeBot,
-CloudflareBrowserRenderingCrawler, Google-Extended, GPTBot, meta-externalagent`
-— which is *the same set of training crawlers our own policy blocks*. The
-answer engines we care about (OAI-SearchBot, ChatGPT-User, Claude-SearchBot,
-Claude-User, PerplexityBot, DuckAssistBot) appear in neither block list and are
-covered by `User-agent: *` → `Allow: /` in both. **They were never being turned
-away.**
-
-So this is a correctness fix, not an unblocking. It is still worth doing:
-
-- The served file ends up with **two `User-agent: *` groups carrying different
+- Cloudflare's prepended `User-agent: Google-Extended` / `Disallow: /` is the
+  Gemini grounding opt-out.
+- The served file also has **two `User-agent: *` groups with different
   `Content-Signal` lines** — Cloudflare's `search=yes,ai-train=no,use=reference`
-  and ours `search=yes, ai-input=yes, ai-train=no`. A parser that takes the
-  first group gets a policy missing `ai-input=yes`, which is the signal that
-  says "quoting this in an answer is fine".
-- Our repo file stops being the source of truth for what the site says, which
-  makes every future change to it unreliable.
+  (no `ai-input`) and ours `search=yes, ai-input=yes, ai-train=no`. A parser
+  that takes the first group never sees "quoting this in an answer is fine".
+- Our repo file stops being the source of truth for what the site says.
 
 Check what is actually live:
 
@@ -46,9 +52,17 @@ If you see a `# BEGIN Cloudflare Managed content` block, it is still on.
 
 **To turn it off:** Cloudflare dashboard → select the `lithifyte.com` zone →
 **AI Crawl Control** (previously under Security → Bots) → **Managed robots.txt**
-→ off. Do it for the zone; both hosts are on it. Then confirm with the curl
-commands above that the live file matches `www/rev2/robots.txt` and
-`robots.txt` in the repo root.
+→ off. Direct link pattern: Security Settings → filter **Bot traffic** →
+**Set your preference to block training in robots.txt**. Do it for the zone;
+both hosts are on it. Then confirm with the curl commands above that the live
+file matches `www/rev2/robots.txt` and `robots.txt` in the repo root, and that
+`Google-Extended` is `Allow: /` with no earlier `Disallow`.
+
+Gemini still needs the pages in **Google Search**. IndexNow does not notify
+Google. After robots.txt is clean: Search Console → inspect `https://lithifyte.com/`
+and **Request indexing**, and confirm the sitemap `https://lithifyte.com/sitemap.xml`
+is submitted on the domain property. Give Gemini a recrawl window after that;
+the canned "not accessible or indexed" reply can lag the file change by hours.
 
 There is also an **agent-readiness** panel on the same Cloudflare screen,
 scored by isitagentready.com. Scan the site directly rather than trusting the
@@ -234,6 +248,7 @@ rank quickly, and the AI answer engines only cite pages they have crawled.
 | Query impressions | GSC → Performance | Long-tail question queries first — "how big should an emergency fund be" before "budgeting app" |
 | AI citations | Ask ChatGPT/Claude/Perplexity a question the library answers | Lithifyte pages cited by URL |
 | Crawl activity | Cloudflare → Analytics, filtered by user agent | `OAI-SearchBot`, `PerplexityBot`, `Claude-SearchBot` present and not 403ing |
+| Gemini | Ask Gemini "what is lithifyte.com?" | It cites lithifyte.com. If it says the domain is private/unindexed, `Google-Extended` is still `Disallow` (ours or Cloudflare Managed) or Search Console has not indexed the URL yet |
 
 Do not chase keyword volume for the head terms — "budgeting app" is contested
 by companies with marketing budgets. The library is aimed at the questions

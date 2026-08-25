@@ -4,11 +4,13 @@
 # read this site and quote it. Training crawlers are not. Being findable and
 # being training data are different things, and this file separates them.
 #
-# ⚠ Cloudflare's "Managed robots.txt" feature PREPENDS its own block list to
-# this file at the edge, including Disallow rules for the answer engines we
-# explicitly allow below. If the live file at https://lithifyte.com/robots.txt
-# does not match this one, that setting is still on. Turn it off under
-# Cloudflare → the lithifyte.com zone → AI Crawl Control → Managed robots.txt.
+# ⚠ Cloudflare's "Managed robots.txt" PREPENDS a block that Disallows
+# Google-Extended. That token is how Gemini decides whether it may ground an
+# answer on this site — not a training-only crawler. If the live file at
+# https://lithifyte.com/robots.txt still contains a Cloudflare Managed block,
+# turn the setting off: Cloudflare → lithifyte.com → AI Crawl Control →
+# Managed robots.txt. Until it is off, Gemini will keep saying the site is
+# private or unindexed even though Googlebot is allowed.
 
 # ── Content signals (spec: contentsignals.org) ─────────────────────────────
 # search   — building a search index and returning links and short excerpts
@@ -45,6 +47,11 @@ Allow: /
 # ── AI answer engines: allowed, because they cite ──────────────────────────
 # These fetch a page to answer a question and link back to it. That is the
 # modern equivalent of a search result and we want to be in it.
+#
+# Google-Extended is Google's product token for Gemini Apps grounding (and,
+# bundled by Google, also Gemini training). There is no robots.txt split
+# between those two. Blocking it is what makes Gemini report lithifyte.com as
+# inaccessible. Content-Signal above still says ai-train=no.
 
 User-agent: OAI-SearchBot
 Allow: /
@@ -73,17 +80,27 @@ Allow: /
 User-agent: Google-CloudVertexBot
 Allow: /
 
+User-agent: Google-Extended
+Content-Signal: search=yes, ai-input=yes, ai-train=no
+Allow: /
+
+User-agent: Google-Agent
+Allow: /
+
+User-agent: Google-GeminiNotebook
+Allow: /
+
 # ── Model training crawlers: not allowed ───────────────────────────────────
 # No objection to being read and quoted. The objection is to a corpus that
 # absorbs the work and returns nothing — no link, no attribution, no reader.
+# Google-Extended is intentionally not in this list: see the answer-engine
+# section. Applebot-Extended is Apple Intelligence training, not Applebot
+# search, so it stays here.
 
 User-agent: GPTBot
 Disallow: /
 
 User-agent: ClaudeBot
-Disallow: /
-
-User-agent: Google-Extended
 Disallow: /
 
 User-agent: Applebot-Extended

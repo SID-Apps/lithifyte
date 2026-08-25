@@ -8,9 +8,9 @@
 #
 # The written tutorial IS a document, so it stays crawlable.
 #
-# ⚠ Cloudflare's "Managed robots.txt" prepends its own AI block list to this
-# file at the edge. If the live file does not match this one, that setting is
-# still enabled for this zone — turn it off in AI Crawl Control.
+# ⚠ Cloudflare's "Managed robots.txt" prepends a Google-Extended Disallow to
+# this file. Gemini uses that token for grounding. Turn the setting off under
+# Cloudflare → lithifyte.com zone → AI Crawl Control → Managed robots.txt.
 
 # ── Content signals (spec: contentsignals.org) ─────────────────────────────
 User-agent: *
@@ -44,15 +44,27 @@ Allow: /tutorial
 Disallow: /$
 Disallow: /demo
 
+# Google-Extended is Gemini grounding (and, bundled, Gemini training). Allow
+# it on the tutorial the same way as the other answer engines. Content-Signal
+# still says ai-train=no.
+
+User-agent: Google-Extended
+Content-Signal: search=yes, ai-input=yes, ai-train=no
+Allow: /tutorial
+Disallow: /$
+Disallow: /demo
+
+User-agent: Google-Agent
+Allow: /tutorial
+Disallow: /$
+Disallow: /demo
+
 # ── Model training crawlers: not allowed ───────────────────────────────────
 
 User-agent: GPTBot
 Disallow: /
 
 User-agent: ClaudeBot
-Disallow: /
-
-User-agent: Google-Extended
 Disallow: /
 
 User-agent: Applebot-Extended
