@@ -1,5 +1,7 @@
-README.md
-Lithifyte-Immersive-Rev2.dc.html
-wrangler.toml
-worker.js
-.wrangler
+*.bak
+*.bak.*
+**/*.bak
+**/*.bak.*
+.git
+**/.git
+.assetsignore

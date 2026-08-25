@@ -1,0 +1,144 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1f33">
+<title>Photograph — Lithifyte</title>
+<style>
+  :root { color-scheme: dark; --bg:#0b1f33; --ink:#e8f4ff; --muted:#8fb3cc; --line:rgba(56,189,248,.28); --btn:#38bdf8; --btn-ink:#042033; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--ink); font: 16px/1.45 system-ui, -apple-system, sans-serif; }
+  main { max-width: 28rem; margin: 0 auto; padding: 24px 20px calc(24px + env(safe-area-inset-bottom)); }
+  h1 { font-size: 1.35rem; letter-spacing: -.02em; margin: 0 0 8px; }
+  p { color: var(--muted); margin: 0 0 16px; }
+  .card { border: 1px solid var(--line); border-radius: 16px; padding: 16px; background: rgba(4,18,36,.6); }
+  button, label.btn { display: block; width: 100%; padding: 14px 16px; border: 0; border-radius: 12px; font: 650 16px/1.2 inherit; cursor: pointer; text-align: center; }
+  .primary { background: var(--btn); color: var(--btn-ink); }
+  .ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); margin-top: 10px; }
+  input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+  #preview { width: 100%; border-radius: 12px; margin: 12px 0; display: none; background: #000; }
+  #status { min-height: 1.4em; }
+  .err { color: #fca5a5; }
+  .ok { color: #86efac; }
+</style>
+<main>
+  <p style="font: 600 12px/1 ui-monospace, monospace; letter-spacing: .16em; text-transform: uppercase; color: #a78bfa; margin: 0 0 10px">Lithifyte</p>
+  <h1 id="heading">Photograph the statement</h1>
+  <p id="lead">This page is a camera for the Lithifyte tab open on your computer. The photo sits in a one-time slot for ten minutes, then is deleted. It is not stored as your ledger.</p>
+  <div class="card">
+    <p id="status">Checking this link…</p>
+    <img id="preview" alt="Last photo">
+    <input id="file" type="file" accept="image/*" capture="environment">
+    <label class="btn primary" id="shot" for="file" hidden>Take a photo</label>
+    <button class="ghost" id="more" type="button" hidden>Add another page</button>
+    <button class="primary" id="done" type="button" hidden>Send to computer</button>
+  </div>
+</main>
+<script>
+(function () {
+  const ACCESS = 'https://access.lithifyte.com';
+  const token = (location.hash || '').replace(/^#/, '').trim();
+  const isReceipt = new URLSearchParams(location.search).get('kind') === 'receipt';
+  const $ = (id) => document.getElementById(id);
+  const status = (msg, cls) => { $('status').className = cls || ''; $('status').textContent = msg; };
+  if (isReceipt) {
+    document.title = 'Photograph a receipt — Lithifyte';
+    $('heading').textContent = 'Photograph the receipt';
+    $('lead').textContent = 'This page is a camera for the Lithifyte tab open on your computer. One photo of the till slip is enough. It sits in a one-time slot for ten minutes, then is deleted.';
+  }
+  if (!token || token.length < 16) {
+    $('lead').textContent = 'Open Lithifyte on your computer, choose “Photograph with your phone” or “Log a receipt”, and scan the QR that appears.';
+    status('No camera link on this page.', 'err');
+    return;
+  }
+
+  async function downscale(file) {
+    const bmp = await createImageBitmap(file).catch(async () => {
+      const url = URL.createObjectURL(file);
+      try {
+        const img = await new Promise((res, rej) => {
+          const el = new Image();
+          el.onload = () => res(el);
+          el.onerror = () => rej(new Error('Could not read that photo. If it is HEIC, take a new one with the button on this page.'));
+          el.src = url;
+        });
+        const cv = document.createElement('canvas');
+        cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+        cv.getContext('2d').drawImage(img, 0, 0);
+        const blob = await new Promise((r) => cv.toBlob(r, 'image/jpeg', 0.85));
+        if (!blob) throw new Error('Could not convert that photo.');
+        return createImageBitmap(blob);
+      } finally { URL.revokeObjectURL(url); }
+    });
+    const max = 1800;
+    const s = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    const cv = document.createElement('canvas');
+    cv.width = Math.round(bmp.width * s); cv.height = Math.round(bmp.height * s);
+    cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
+    if (bmp.close) bmp.close();
+    const b64 = cv.toDataURL('image/jpeg', 0.85).replace(/^data:[^,]*,/, '');
+    $('preview').src = 'data:image/jpeg;base64,' + b64;
+    $('preview').style.display = 'block';
+    cv.width = cv.height = 0;
+    return b64;
+  }
+
+  async function push(image, done) {
+    const res = await fetch(ACCESS + '/capture/push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, image, done: !!done }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 410) throw new Error(data.message || 'This link expired. Scan a new QR from the computer.');
+    if (!res.ok) throw new Error(data.message || data.error || ('HTTP ' + res.status));
+    return data;
+  }
+
+  $('shot').hidden = false;
+  status(isReceipt
+    ? 'Point the camera at the receipt. Fill the frame, avoid glare.'
+    : 'Point the camera at the statement. Fill the frame, avoid glare.');
+
+  $('file').addEventListener('change', async () => {
+    const f = $('file').files[0];
+    $('file').value = '';
+    if (!f) return;
+    try {
+      status('Sending page…');
+      const b64 = await downscale(f);
+      const out = await push(b64, isReceipt);
+      status((isReceipt ? 'Receipt' : ('Page ' + out.n + ' of ' + out.max)) + ' on the computer.', 'ok');
+      $('more').hidden = isReceipt || out.done || out.n >= out.max;
+      $('done').hidden = false;
+      $('shot').hidden = true;
+      if (out.done) {
+        $('more').hidden = true;
+        status('Sent. Go back to the computer — Lithifyte will read the page.', 'ok');
+      }
+    } catch (e) {
+      status((e && e.message) || e, 'err');
+    }
+  });
+
+  $('more').onclick = () => { $('shot').hidden = false; $('file').click(); };
+
+  $('done').onclick = async () => {
+    try {
+      status('Sending to the computer…');
+      const res = await fetch(ACCESS + '/capture/done', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || data.error || 'Could not send');
+      status('Sent. You can close this tab and go back to the computer.', 'ok');
+      $('more').hidden = true;
+      $('done').hidden = true;
+      $('shot').hidden = true;
+    } catch (e) {
+      status((e && e.message) || e, 'err');
+    }
+  };
+})();
+</script>

@@ -482,6 +482,7 @@
     <nav class="hd-nav" aria-label="Primary">
       <a href="#ask">Ask</a>
       <a href="#proof">Proof</a>
+      <a href="#import">Import</a>
       <a href="#map">The map</a>
       <a href="#privacy">Privacy</a>
       <a href="#freeplan">Price</a>
@@ -492,6 +493,7 @@
          and away from the reading links on the left. -->
     <div class="hd-actions">
       <a class="hd-cta" href="https://app.lithifyte.com/demo" data-lf-cta="sample" data-lf-from="header">Try the sample</a>
+      <a class="hd-cta" href="https://app.lithifyte.com/?capture=1" data-lf-cta="capture" data-lf-from="header">Capture</a>
       <a class="hd-cta primary" href="https://access.lithifyte.com/" data-lf-cta="signin" data-lf-from="header">Sign in</a>
     </div>
     <!-- phone only: one tap target instead of nine -->
@@ -503,6 +505,7 @@
   <div class="hd-menu" id="hdMenu" hidden>
     <a href="#ask">Ask</a>
     <a href="#proof">Proof</a>
+    <a href="#import">Import</a>
     <a href="#map">The map</a>
     <a href="#flow">Flow</a>
     <a href="#privacy">Privacy</a>
@@ -511,6 +514,7 @@
     <a href="/how-it-works">How it works</a>
     <a href="/learn">Learn</a>
     <a href="/faq">FAQ</a>
+    <a class="hd-menu-cta" href="https://app.lithifyte.com/?capture=1">Capture your first transaction</a>
     <a class="hd-menu-cta" href="https://app.lithifyte.com/demo">▶ Explore the sample</a>
   </div>
   <div class="hd-scrim" hidden></div>
@@ -527,10 +531,10 @@
                this month — bump it with version.json when a release lands. -->
           <a class="hero-badge" href="#ask"><i>NEW</i> Lithifyte Pro — our own hosted model · v3.2.0</a>
           <h1 style="margin:22px 0 18px;line-height:1.02;letter-spacing:-.025em;font:800 clamp(38px,7.4vw,80px) 'Geist',system-ui,sans-serif;text-shadow:0 2px 40px rgba(2,11,26,.9)">Everything you've<br>ever spent, mapped.</h1>
-          <p style="font-size:clamp(16px,2.2vw,20px);line-height:1.6;color:#a9c4de;margin:0 auto;max-width:26em;font-weight:400;text-shadow:0 1px 20px #020b1a">Drop a bank statement. It's read in this tab and never uploaded. Then ask it anything.</p>
+          <p style="font-size:clamp(16px,2.2vw,20px);line-height:1.6;color:#a9c4de;margin:0 auto;max-width:26em;font-weight:400;text-shadow:0 1px 20px #020b1a">Drop a CSV or a text PDF. It&rsquo;s read in this tab and never uploaded. Or photograph a statement or a receipt &mdash; five hosted pages are included after you sign in.</p>
           <div style="margin-top:28px;display:flex;flex-wrap:wrap;gap:12px;justify-content:center">
-            <a href="https://app.lithifyte.com/demo" data-lf-cta="sample" data-lf-from="hero" style="display:inline-flex;align-items:center;gap:8px;border-radius:12px;padding:14px 22px;font:600 14px 'Geist Mono',ui-monospace,monospace;letter-spacing:.02em;color:#fff;background:linear-gradient(135deg, rgba(14,165,233,.95), rgba(29,78,216,.95));border:1px solid rgba(125,211,252,.6);box-shadow:0 0 30px rgba(56,189,248,.3)">▶ Explore the sample</a>
-            <a href="https://access.lithifyte.com/" data-lf-cta="signin" data-lf-from="hero" style="display:inline-flex;align-items:center;gap:8px;border-radius:12px;padding:14px 22px;font:600 14px 'Geist Mono',ui-monospace,monospace;letter-spacing:.02em;color:#e8f1ff;background:rgba(4,18,36,.5);border:1px solid rgba(56,189,248,.35)">Sign in free</a>
+            <a href="https://app.lithifyte.com/?capture=1" data-lf-cta="capture" data-lf-from="hero" style="display:inline-flex;align-items:center;gap:8px;border-radius:12px;padding:14px 22px;font:600 14px 'Geist Mono',ui-monospace,monospace;letter-spacing:.02em;color:#fff;background:linear-gradient(135deg, rgba(14,165,233,.95), rgba(29,78,216,.95));border:1px solid rgba(125,211,252,.6);box-shadow:0 0 30px rgba(56,189,248,.3)">Capture your first transaction</a>
+            <a href="https://app.lithifyte.com/demo" data-lf-cta="sample" data-lf-from="hero" style="display:inline-flex;align-items:center;gap:8px;border-radius:12px;padding:14px 22px;font:600 14px 'Geist Mono',ui-monospace,monospace;letter-spacing:.02em;color:#e8f1ff;background:rgba(4,18,36,.5);border:1px solid rgba(56,189,248,.35)">▶ Explore the sample</a>
           </div>
           <p class="hero-fine">Free core forever · one HTML file · AGPL-3.0</p>
           <div class="hero-scroll" style="margin-top:26px;align-items:center;gap:12px;font:500 12px 'Geist Mono',ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:#8fb0d0"><i style="width:22px;height:36px;border:1px solid rgba(56,189,248,.32);border-radius:12px;position:relative;display:inline-block"><b style="position:absolute;left:50%;top:8px;width:3px;height:8px;border-radius:2px;background:#38bdf8;transform:translateX(-50%);animation:scrollpulse 1.8s ease-in-out infinite"></b></i> Or scroll for the tour</div>
@@ -712,6 +716,22 @@
 
           <p class="pv-foot">Asking the co-pilot a question is the one exception, and it says so: hosted AI sends only the slice the answer needs — never the statement file. Commands-only and a local model send nothing at all.</p>
         </div>
+    </section>
+
+    <section data-chapter data-scene="import" data-label="Import" id="import" style="position:relative;height:134vh">
+      <div style="position:sticky;top:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:96px 24px 64px">
+        <div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 62% 70% at 50% 50%, rgba(56,189,248,.10), transparent 70%)"></div>
+        <div data-copy style="position:relative;width:min(920px,100%);opacity:0;transform:translateY(26px);transition:opacity .9s cubic-bezier(.16,1,.3,1), transform .9s cubic-bezier(.16,1,.3,1)">
+          <p style="font:600 12px 'Geist Mono',ui-monospace,monospace;letter-spacing:.18em;text-transform:uppercase;color:#a78bfa;margin:0 0 14px">Import</p>
+          <h2 style="margin:0 0 12px;line-height:1.06;letter-spacing:-.02em;font:700 clamp(28px,4.6vw,46px) 'Geist',system-ui,sans-serif;color:#eaf6ff">Your statements, however they arrive.</h2>
+          <p style="margin:0 0 26px;max-width:64ch;font:400 clamp(15px,1.7vw,17px)/1.6 'Geist',system-ui,sans-serif;color:#8fb3cc">Most banks hand you a CSV or a PDF you can select text in &mdash; those never leave this browser. For a paper statement, a scan, or a till receipt, sign in and point your phone at it. Five hosted pages are included.</p>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px"><div style="border:1px solid rgba(56,189,248,.22);border-radius:14px;background:rgba(4,18,36,.72);padding:18px 20px"><h3 style="margin:0 0 8px;font:600 15px 'Geist',system-ui,sans-serif;color:#e8f4ff">Exports and text PDFs</h3><p style="margin:0;font:400 14px/1.55 'Geist',system-ui,sans-serif;color:#8fb3cc">A CSV, a spreadsheet, or a PDF with selectable text is read <b style="color:#c8e4ff">in your browser</b>. Nothing is uploaded, there is no limit, and it costs nothing.</p></div><div style="border:1px solid rgba(56,189,248,.22);border-radius:14px;background:rgba(4,18,36,.72);padding:18px 20px"><h3 style="margin:0 0 8px;font:600 15px 'Geist',system-ui,sans-serif;color:#e8f4ff">Scans and photos</h3><p style="margin:0;font:400 14px/1.55 'Geist',system-ui,sans-serif;color:#8fb3cc">No text to read? Photograph the page. A model you run locally stays on this device. Otherwise Lithifyte&rsquo;s AI reads it on our server &mdash; the image is <b style="color:#c8e4ff">never stored</b>. Five hosted pages free.</p></div><div style="border:1px solid rgba(56,189,248,.22);border-radius:14px;background:rgba(4,18,36,.72);padding:18px 20px"><h3 style="margin:0 0 8px;font:600 15px 'Geist',system-ui,sans-serif;color:#e8f4ff">Receipt tracker</h3><p style="margin:0;font:400 14px/1.55 'Geist',system-ui,sans-serif;color:#8fb3cc">A till slip is one purchase, not a bank table. Photograph it &mdash; shop, date and total land in a <b style="color:#c8e4ff">Receipts cash account</b>. Same free pages as a statement.</p></div><div style="border:1px solid rgba(56,189,248,.22);border-radius:14px;background:rgba(4,18,36,.72);padding:18px 20px"><h3 style="margin:0 0 8px;font:600 15px 'Geist',system-ui,sans-serif;color:#e8f4ff">Checked before it lands</h3><p style="margin:0;font:400 14px/1.55 'Geist',system-ui,sans-serif;color:#8fb3cc">Every statement figure is reconciled against the printed opening and closing balances. If the rows do not add up, <b style="color:#c8e4ff">it is not imported</b> &mdash; you are shown which line disagrees.</p></div></div>
+          <div style="margin-top:22px;display:flex;flex-wrap:wrap;gap:12px">
+            <a href="https://app.lithifyte.com/?capture=1" data-lf-cta="capture" data-lf-from="import" style="display:inline-flex;align-items:center;gap:8px;border-radius:12px;padding:14px 22px;font:600 14px 'Geist Mono',ui-monospace,monospace;letter-spacing:.02em;color:#fff;background:linear-gradient(135deg, rgba(14,165,233,.95), rgba(29,78,216,.95));border:1px solid rgba(125,211,252,.6);box-shadow:0 0 30px rgba(56,189,248,.3)">Capture your first transaction</a>
+            <a href="/capturing-your-first-transaction" style="display:inline-flex;align-items:center;gap:8px;border-radius:12px;padding:14px 22px;font:600 14px 'Geist Mono',ui-monospace,monospace;letter-spacing:.02em;color:#e8f1ff;background:rgba(4,18,36,.5);border:1px solid rgba(56,189,248,.35)">How it works</a>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section data-chapter data-scene="approach" data-label="Living map" id="approach" style="position:relative;height:128vh">
@@ -933,9 +953,10 @@
         <div data-copy style="position:relative;width:min(560px,100%);text-align:center;opacity:0;transform:translateY(26px);transition:opacity .9s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1)">
           <p style="font:600 12px 'Geist Mono',ui-monospace,monospace;letter-spacing:.18em;text-transform:uppercase;color:#38bdf8;margin:0 0 14px">11 — Docking complete</p>
           <h2 style="margin:0 0 14px;line-height:1.04;letter-spacing:-.02em;font:800 clamp(34px,6vw,60px) 'Geist',system-ui,sans-serif;text-shadow:0 2px 40px #020b1a">Enter the map.</h2>
-          <p style="font-size:clamp(16px,2.1vw,20px);line-height:1.6;color:#a9c4de;margin:0 auto 30px;max-width:32em;font-weight:500;text-shadow:0 1px 16px #020b1a">Start with the sample household, or sign in free with email. We store your address for identity and privacy-safe product usage — never your bank data.</p>
+          <p style="font-size:clamp(16px,2.1vw,20px);line-height:1.6;color:#a9c4de;margin:0 auto 30px;max-width:32em;font-weight:500;text-shadow:0 1px 16px #020b1a">Start with the sample household, photograph a first transaction, or sign in free with email. We store your address for identity and privacy-safe product usage — never your bank data.</p>
           <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center">
-            <a href="https://app.lithifyte.com/demo" data-lf-cta="sample" data-lf-from="dock" style="flex:0 1 220px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;padding:16px 22px;font:600 15px 'Geist Mono',ui-monospace,monospace;letter-spacing:.02em;color:#fff;background:linear-gradient(135deg, rgba(14,165,233,.95), rgba(29,78,216,.95));border:1px solid rgba(125,211,252,.6);box-shadow:0 0 30px rgba(56,189,248,.3)">▶ Explore the sample</a>
+            <a href="https://app.lithifyte.com/?capture=1" data-lf-cta="capture" data-lf-from="dock" style="flex:0 1 220px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;padding:16px 22px;font:600 15px 'Geist Mono',ui-monospace,monospace;letter-spacing:.02em;color:#fff;background:linear-gradient(135deg, rgba(14,165,233,.95), rgba(29,78,216,.95));border:1px solid rgba(125,211,252,.6);box-shadow:0 0 30px rgba(56,189,248,.3)">Capture your first transaction</a>
+            <a href="https://app.lithifyte.com/demo" data-lf-cta="sample" data-lf-from="dock" style="flex:0 1 220px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;padding:16px 22px;font:600 15px 'Geist Mono',ui-monospace,monospace;letter-spacing:.02em;color:#e8f1ff;background:rgba(4,18,36,.5);border:1px solid rgba(56,189,248,.35)">▶ Explore the sample</a>
             <a href="https://access.lithifyte.com/" data-lf-cta="signin" data-lf-from="dock" style="flex:0 1 220px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;padding:16px 22px;font:600 15px 'Geist Mono',ui-monospace,monospace;letter-spacing:.02em;color:#e8f1ff;background:rgba(4,18,36,.5);border:1px solid rgba(56,189,248,.35)">◈ Sign in free</a>
           </div>
           <p style="margin:22px auto 0;max-width:34em;font:500 12.5px 'Geist Mono',ui-monospace,monospace;color:#8fb0d0;line-height:1.55">Magic-link sign-in — no password, no bank credentials.<br>Identity at access.lithifyte.com; map at app.lithifyte.com; finance stays in your browser.</p>

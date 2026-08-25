@@ -6,6 +6,8 @@ Licence: content CC-BY-4.0 · software AGPL-3.0-or-later
 
 Bank statements are written for banks, not for you. Once you know what the columns mean, why one shop appears under six names, and how to check a statement reconciles, the rest of personal finance gets considerably easier.
 
+If you only have paper, [photograph the page](/capturing-your-first-transaction) — Lithifyte copies the print and checks it against the statement’s own totals before you confirm. A CSV export is still the more reliable file.
+
 ## Why they are so hard to read
 
 A bank statement is a legal record of account movements, designed to be complete and unambiguous for the bank. It is not designed to help you understand your own behaviour. That is why it lists a card terminal identifier instead of a shop name, why it splits one shopping trip across two lines, and why the same supermarket appears under six different strings.

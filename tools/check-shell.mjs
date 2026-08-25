@@ -63,6 +63,7 @@ ok('app: relay sends convId for Grok cache', /convId:\s*opts\.convId/.test(app))
 ok('app: demo skips hosted consume', /!sample && purpose === 'chat'|!window\.__lfDemo/.test(app) && /__lfDemo/.test(app));
 ok('app: cloud vault block', /id="cloudVaultBlock"/.test(app));
 ok('app: hosted chrome wrapper', /id="hostedChrome"/.test(app));
+ok('app: sign out at the bottom of the nav rail', /id="navSignOut"/.test(app) && /id="spaceIcoRail"/.test(app));
 // Retired 2026-08-14. This asserts the ABSENCE of a tax-pack applier: the
 // shell must not carry code that writes statutory rates into FISCAL from a
 // remote pack, because Lithifyte ships no tax figures for any jurisdiction.
@@ -195,12 +196,41 @@ const banned = [
   /Bank data never leaves your device/i,
   /Financial data is never sent to a server/i,
   /your bank data never leaves/i,
+  /Drop a bank statement\. It's read in this tab and never uploaded/i,
 ];
 for (const re of banned) {
   ok('landing: no absolute claim ' + re.source, !re.test(land), re.test(land) ? 'still present' : '');
 }
 ok('landing: honest hosted-AI slice', /slice a question needs/i.test(land));
 ok('landing: drop/start still points at the sample', /app\.lithifyte\.com\/demo/.test(land));
+ok('landing: CSV/text-PDF never uploaded, not all statements', /Drop a CSV or a text PDF/i.test(land));
+ok('landing: scan lane is named', /Photograph the page|scans and photos/i.test(land));
+ok('landing: capture first transaction CTA', /app\.lithifyte\.com\/\?capture=1/.test(land) && /Capture your first transaction/.test(land));
+ok('landing: receipt tracker named', /Receipt tracker/i.test(land));
+ok('app: extract lib + local vision path', /window\.LfExtract/.test(app) && /extractLocal/.test(app) && /pdfTextGrid/.test(app));
+ok('app: phone photograph pairing', /id="upPhoneBtn"/.test(app) && /Photograph with your phone/.test(app) && /id="ccAttachPop"/.test(app));
+ok('app: first-capture overlay + receipt button', /id="firstCaptureOverlay"/.test(app) && /id="firstCapUpload"/.test(app) && /id="upReceiptBtn"/.test(app) && /id="ccAttachReceipt"/.test(app));
+ok('app: new accounts do not inherit another sign-in\'s IDB uploads', /dd-owner-migrated-v1/.test(app) && /claimed === email/.test(app));
+ok('app: hosted stores namespaced per sign-in', /lf-owner/.test(app) && /STORE_NS/.test(app));
+ok('app: self-test does not persist chats', /__ddTestMode/.test(app));
+ok('app: phone capture file is outside the wrap', /id="lfCapFile"/.test(app));
+ok('app: receipt extract client', /extractReceipt/.test(app) && /finaliseReceipt/.test(app) && /handleReceipt/.test(app));
+ok('app: capture.html exists', existsSync(join(ROOT, 'capture.html')));
+ok('app: hosted extract does not invent consumeLane', !/window\.consumeLane/.test(app));
+
+const privPath = resolve(join(ROOT, 'www/rev2/privacy.html'));
+const priv = mustRead(privPath, 'privacy');
+ok('privacy: does not claim there is no API that accepts financial data', !/no API that accepts financial data/i.test(priv));
+ok('privacy: names the scan lane', /scan or a photo/i.test(priv) && /not stored/i.test(priv));
+ok('privacy: names the local-model alternative', /Ollama/i.test(priv));
+ok('site: photographing-statements notice exists', existsSync(join(ROOT, 'www/content/photographing-statements.md')));
+ok('app: scan acknowledgement overlay', /id="scanAckOverlay"/.test(app) && /id="ccAttachPop"/.test(app));
+ok('app: no standalone Take a photo control', !/id="upCamBtn"/.test(app) && !/id="upCam"/.test(app));
+
+const secPath = resolve(join(ROOT, 'www/content/security-and-privacy.md'));
+const sec = mustRead(secPath, 'security-and-privacy.md');
+ok('security md: no "no endpoint that accepts a statement"', !/no endpoint that accepts a statement/i.test(sec));
+ok('security md: scan lane disclosed', /page image is sent to a GPU/i.test(sec) || /scan or a photo/i.test(sec));
 
 if (fails.length) {
   console.error('\n' + fails.length + ' check(s) failed.');

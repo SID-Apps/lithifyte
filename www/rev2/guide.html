@@ -63,7 +63,7 @@
       "publisher": {
         "@id": "https://lithifyte.com/#organization"
       },
-      "dateModified": "2026-08-14",
+      "dateModified": "2026-08-25",
       "@type": "WebPage"
     }
   ]
@@ -117,7 +117,7 @@
 <main class="page">
 <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span class="sep">/</span> <span aria-current="page">Guide</span></nav>
   <h1>The Lithifyte guide</h1>
-  <p class="updated">Updated 14 August 2026</p>
+  <p class="updated">Updated 25 August 2026</p>
   <p class="lede">A complete feature reference, ordered the way you actually encounter things: get data in, make it trustworthy, understand it, then plan with it. There is also an interactive version inside the app with an Ask box.</p>
 
 <h2 id="before-you-start">Before you start</h2>
@@ -125,7 +125,9 @@
 <p>If you would rather look before you type anything, the <a href="https://app.lithifyte.com/demo" rel="noopener">sample household</a> is a fully populated invented family: two earners, four accounts, two years of transactions, with the messy bits (merchant name variants, standing orders, an annual insurance renewal, a holiday spike) deliberately left in. Its storage is separate, so exploring it can never touch real data you add later.</p>
 <h2 id="1-getting-data-in">1 · Getting data in</h2>
 <p><strong>Set up the skeleton first.</strong> Name the people in your household and the accounts they hold. Everything else hangs off this, and getting it right early saves re-work.</p>
-<p><strong>Then import a statement.</strong> Export whatever your bank gives you — CSV, tab- or semicolon-separated, or Excel <code>.xlsx</code>. The spreadsheet is unzipped and read inside your browser, with no library and nothing uploaded, so the privacy promise holds for it too.</p>
+<p><strong>Then import a statement.</strong> Export whatever your bank gives you — CSV, tab- or semicolon-separated, Excel <code>.xlsx</code>, or a PDF with selectable text. Those are unzipped and read inside your browser, with nothing uploaded.</p>
+<p>A <strong>scan or a phone photo</strong> of a paper statement is different: there is no text layer, so a vision model has to read the page. Point Lithifyte at a model you run (Settings → your own model) and the photo stays on this device. Otherwise Lithifyte’s server reads it, never stores the image, and checks the figures against the statement’s own totals before you see a preview. Hosted reads are 5 free pages, then Plus. Either way, nothing reaches your dashboard until you confirm the preview.</p>
+<p>A <strong>till receipt</strong> is the same camera, a smaller job: shop, date, amount paid, into a Receipts cash account. From the website, <a href="https://app.lithifyte.com/?capture=1" rel="noopener">Capture your first transaction</a> signs you in, includes those free pages, and opens the camera path. In the app: <strong>Log a receipt</strong>, or the ＋ menu in chat.</p>
 <p>Press <strong>Prepare &amp; preview</strong>, which is two steps:</p>
 <ol><li><strong>Columns.</strong> Known exports are recognised outright. A Revolut statement maps in one click on every copy — completed date, fees folded into their own rows, anything not <code>COMPLETED</code> held back. On the official host, Plus adds maintained maps for AIB, Bank of Ireland, Permanent TSB and N26; they stay overridable. Anything else is matched on column-name synonyms. <strong>Every decision is yours to change</strong>: what each column is, the header row (a preamble of bank blurb is skipped automatically), the date order — decided from the whole column rather than row by row, so one 13th "month" settles it — the decimal mark, whether to swap the two directions, and rules for holding rows back.</li><li><strong>Preview.</strong> Your raw file on the left, exactly what will be stored on the right, with totals, the date range, and every row that will <em>not</em> be imported named with its reason. The preview is not a rehearsal — it renders the same result the import saves, simply not saved yet. Nothing reaches your dashboard until you press the button.</li></ol>
 <p><strong>Where the statement carries a running balance, the importer walks it.</strong> If every step agrees with the amounts it read, the mapping is <em>proven</em> correct rather than assumed — and the balance implied before the first row is offered as that account's <strong>opening balance</strong>, which is the number your cash, net-worth and goal figures are built on. It never overwrites an opening balance you already set without telling you.</p>
@@ -166,15 +168,18 @@
 <h2 id="where-to-go-next">Where to go next</h2>
 <p>The <a href="/learn">learn library</a> covers the money side rather than the software side — how budgets, forecasts, debt payoff and net worth actually work, in plain language. Inside the app, the tutorial walks the same ground interactively and includes an Ask box for questions about the product.</p>
 <aside class="cta"><h2>Try it</h2><p>The sample household is fully populated with invented data — no sign-up, nothing to upload. When you are ready to use your own statements, sign-in is a magic link and holds no financial data.</p><p><a class="btn" href="https://app.lithifyte.com/demo">Explore the sample household</a> <a class="btn ghost" href="https://access.lithifyte.com/">Sign in free</a></p></aside>
-<aside class="related"><h2>Keep reading</h2><ul><li><a href="/how-it-works">How Lithifyte works</a> <span class="rel-d">You upload a bank statement to a web page. The page reads it in your browser, works out who spent what and where it went, and draws the result as a living map. No file is transmitted, because there is no server on the other end to receive it.</span></li><li><a href="/learn">Learn — plain-language money guides</a> <span class="rel-d">Personal finance is mostly a small number of ideas explained badly. These guides explain them properly: what a budget really is, why most of them fail in the second month, how debt payoff maths works, and what your own spending is trying to tell you. Read one in five minutes.</span></li><li><a href="/faq">Frequently asked questions</a> <span class="rel-d">Short, direct answers. If a question you have is not here, the [guide](/guide) goes deeper and the [source code](https://github.com/SID-Apps/lithifyte) settles any argument about what the software actually does.</span></li></ul></aside>
+<aside class="related"><h2>Keep reading</h2><ul><li><a href="/how-it-works">How Lithifyte works</a> <span class="rel-d">Drop a CSV or a text PDF — it is read in this tab and never uploaded. Or photograph a statement or a till receipt after you sign in. The map, budgets and forecasts are computed on your device. Hosted photo reading is five pages free then Plus.</span></li><li><a href="/capturing-your-first-transaction">Capture your first transaction</a> <span class="rel-d">Sign in at app.lithifyte.com/?capture=1. Choose Upload a file (CSV, Excel or a text PDF — never uploaded) or Take a photo (QR on a computer, camera on a phone). Confirm the preview before anything is saved. Five hosted photo pages are free.</span></li><li><a href="/photographing-statements">Photographing a bank statement</a> <span class="rel-d">A photographed statement cannot be read in the browser. If you ask Lithifyte to read it, the page image is sent to a GPU we run (or to a model on your machine), transcribed, checked against the statement’s own totals, and offered to you as a preview. The image is not stored. Hosted reading is five pages for free, then Plus.</span></li><li><a href="/logging-receipts">Logging a till receipt</a> <span class="rel-d">Photograph a till slip. Lithifyte copies the shop, the date and the amount paid. It does not invent a running balance. Confirm the preview and the purchase lands in a Receipts cash account. One hosted page per successful read.</span></li><li><a href="/learn">Learn — plain-language money guides</a> <span class="rel-d">Personal finance is mostly a small number of ideas explained badly. These guides explain them properly: what a budget really is, why most of them fail in the second month, how debt payoff maths works, and what your own spending is trying to tell you. Read one in five minutes.</span></li><li><a href="/faq">Frequently asked questions</a> <span class="rel-d">Short, direct answers. If a question you have is not here, the [guide](/guide) goes deeper and the [source code](https://github.com/SID-Apps/lithifyte) settles any argument about what the software actually does.</span></li></ul></aside>
 </main>
 
 <footer class="site">
   <span>© 2026 Lithifyte · <a href="https://www.sid-labs.com">SID Labs</a></span>
   <a href="/how-it-works">How it works</a>
+  <a href="/capturing-your-first-transaction">Capture</a>
   <a href="/learn">Learn</a>
   <a href="/faq">FAQ</a>
   <a href="/security-and-privacy">Security</a>
+  <a href="/photographing-statements">Photo import</a>
+  <a href="/logging-receipts">Receipts</a>
   <a href="/open-source">Open source</a>
   <a href="/commercial">Plus</a>
   <a href="/privacy">Privacy</a>

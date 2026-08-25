@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Photographing a bank statement — Lithifyte</title>
+<meta name="description" content="What happens when Lithifyte reads a photo or a scanned PDF of a bank statement — what leaves your device, what we do not store, how the figures are checked, and how the five free pages work.">
+<link rel="canonical" href="https://lithifyte.com/photographing-statements">
+<meta name="theme-color" content="#020b1a">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+<meta name="keywords" content="photograph bank statement, scan PDF import, Lithifyte photo disclaimer, statement OCR privacy">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Lithifyte">
+<meta property="og:url" content="https://lithifyte.com/photographing-statements">
+<meta property="og:title" content="Photographing a bank statement">
+<meta property="og:description" content="What happens when Lithifyte reads a photo or a scanned PDF of a bank statement — what leaves your device, what we do not store, how the figures are checked, and how the five free pages work.">
+<meta property="og:image" content="https://lithifyte.com/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Photographing a bank statement">
+<meta name="twitter:description" content="What happens when Lithifyte reads a photo or a scanned PDF of a bank statement — what leaves your device, what we do not store, how the figures are checked, and how the five free pages work.">
+<meta name="twitter:image" content="https://lithifyte.com/og.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/page.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://lithifyte.com/photographing-statements#breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://lithifyte.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Photo import",
+          "item": "https://lithifyte.com/photographing-statements"
+        }
+      ]
+    },
+    {
+      "@id": "https://lithifyte.com/photographing-statements#page",
+      "url": "https://lithifyte.com/photographing-statements",
+      "name": "Photographing a bank statement",
+      "description": "What happens when Lithifyte reads a photo or a scanned PDF of a bank statement — what leaves your device, what we do not store, how the figures are checked, and how the five free pages work.",
+      "inLanguage": "en",
+      "isPartOf": {
+        "@id": "https://lithifyte.com/#website"
+      },
+      "breadcrumb": {
+        "@id": "https://lithifyte.com/photographing-statements#breadcrumb"
+      },
+      "publisher": {
+        "@id": "https://lithifyte.com/#organization"
+      },
+      "dateModified": "2026-08-25",
+      "@type": "WebPage"
+    },
+    {
+      "@type": "HowTo",
+      "@id": "https://lithifyte.com/photographing-statements#howto",
+      "name": "Photograph a bank statement into Lithifyte",
+      "description": "What happens when Lithifyte reads a photo or a scanned PDF of a bank statement — what leaves your device, what we do not store, how the figures are checked, and how the five free pages work.",
+      "totalTime": "PT8M",
+      "step": [
+        {
+          "@type": "HowToStep",
+          "position": 1,
+          "name": "Sign in and choose Take a photo",
+          "text": "Open app.lithifyte.com/?capture=1 and sign in. Tick the notice on this page the first time."
+        },
+        {
+          "@type": "HowToStep",
+          "position": 2,
+          "name": "Photograph the page",
+          "text": "On a computer scan the QR. On a phone use the camera. Fill the frame and avoid glare."
+        },
+        {
+          "@type": "HowToStep",
+          "position": 3,
+          "name": "Confirm the totals",
+          "text": "Code checks opening movement and closing. If they disagree the statement is not imported. Confirm the preview to save."
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="site">
+  <a class="brand" href="/"><img src="/icon-192.png" alt="" width="28" height="28"> LITHIFYTE</a>
+  <nav class="site" aria-label="Site">
+    <a href="/how-it-works">How it works</a>
+    <a href="/learn">Learn</a>
+    <a href="/guide">Guide</a>
+    <a href="/faq">FAQ</a>
+    <a href="https://app.lithifyte.com/demo">Sample</a>
+    <a href="https://access.lithifyte.com/">Sign in</a>
+  </nav>
+  <button class="nav-burger" type="button" aria-expanded="false" aria-controls="siteMenu" aria-label="Menu">
+    <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+  </button>
+</header>
+<div class="nav-menu" id="siteMenu" hidden>
+  <a href="/how-it-works">How it works</a>
+  <a href="/learn">Learn</a>
+  <a href="/guide">Guide</a>
+  <a href="/faq">FAQ</a>
+  <a href="https://app.lithifyte.com/demo">Sample</a>
+  <a href="https://access.lithifyte.com/">Sign in</a>
+</div>
+<div class="nav-scrim" hidden></div>
+<script>
+/* Mobile menu — plain and self-contained; these are static content pages. */
+(function(){
+  var b=document.querySelector('.nav-burger'), m=document.getElementById('siteMenu'), s=document.querySelector('.nav-scrim');
+  if(!b||!m||!s) return;
+  m.removeAttribute('hidden'); s.removeAttribute('hidden');   /* CSS owns visibility */
+  function isOpen(){ return b.getAttribute('aria-expanded')==='true'; }
+  function set(open){
+    b.setAttribute('aria-expanded', open?'true':'false');
+    m.classList.toggle('open', open); s.classList.toggle('open', open);
+    document.body.style.overflow = open?'hidden':'';
+  }
+  b.addEventListener('click',function(e){ e.preventDefault(); e.stopPropagation(); set(!isOpen()); });
+  s.addEventListener('click',function(){ set(false); });
+  m.addEventListener('click',function(e){ if(e.target.closest('a')) set(false); });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&isOpen()){ set(false); b.focus(); } });
+  window.addEventListener('resize',function(){ if(isOpen()&&window.innerWidth>760) set(false); });
+})();
+</script>
+
+<main class="page">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span class="sep">/</span> <span aria-current="page">Photo import</span></nav>
+  <h1>Photographing a bank statement</h1>
+  <p class="updated">Updated 25 August 2026</p>
+  <p class="lede">A photographed statement cannot be read in the browser. If you ask Lithifyte to read it, the page image is sent to a GPU we run (or to a model on your machine), transcribed, checked against the statement’s own totals, and offered to you as a preview. The image is not stored. Hosted reading is five pages for free, then Plus.</p>
+
+<h2 id="the-short-version">The short version</h2>
+<p>A CSV, a spreadsheet, or a PDF with selectable text is read <strong>in your browser</strong>. Nothing is uploaded.</p>
+<p>A <strong>photograph</strong> or a <strong>scanned PDF</strong> has no text the browser can trust. If you choose to import one, Lithifyte uses a vision model to copy what is printed, then <strong>code</strong> (not the model) checks that the figures add up. You still confirm every row before anything is saved.</p>
+<p>A <strong>till receipt</strong> uses the same path with a smaller contract: shop name, date, and the amount paid. It is not treated as a bank table (there is no running balance to walk). The purchase lands in a <strong>Receipts (cash)</strong> account after you confirm.</p>
+<p>This page is the notice the app asks you to acknowledge the first time you use that path. You can re-read it here at any time.</p>
+<p>To try it: <a href="https://app.lithifyte.com/?capture=1" rel="noopener">Capture your first transaction</a> — sign in, five hosted pages are included, then photograph a statement or a receipt with your phone.</p>
+<h2 id="what-you-are-agreeing-to">What you are agreeing to</h2>
+<p>When you press <strong>Read</strong> on a photo or a scan:</p>
+<ol><li><strong>The page image leaves this browser</strong> and is sent to a graphics processor we operate, unless you have pointed Lithifyte at a vision model on your own machine (Ollama, LM Studio, or any compatible endpoint). A local model never hits our servers.</li><li><strong>We do not store the image.</strong> It exists for the seconds it takes to transcribe. If you used <strong>Photograph with your phone</strong>, the JPEG sits in a one-time pairing slot for at most ten minutes so your computer tab can collect it, then that slot is deleted.</li><li><strong>We do not store the transcription as a ledger.</strong> Candidate rows come back to your browser. Nothing is written to your dashboard until you confirm the importer preview.</li><li><strong>The model is not allowed to invent money.</strong> It copies printed strings. Dates, signed amounts and account masking are done in code. If opening balance, movement and closing balance do not agree, the statement is <strong>not imported</strong> and you are shown which line disagrees.</li><li><strong>The image never goes to a third-party model provider</strong> on the hosted path. It is read on hardware we run. Your own model, if configured, stays on your computer.</li></ol>
+<p>CSV, Excel and text-layer PDFs are <strong>not</strong> covered by this notice. They never take this path.</p>
+<h2 id="who-can-use-hosted-photo-import">Who can use hosted photo import</h2>
+<div class="tablewrap"><table><thead><tr><th>Account</th><th>Hosted photo / scan pages</th></tr></thead><tbody><tr><td>Not signed in</td><td>Not available — sign in first</td></tr><tr><td>Free, after trial</td><td><strong>5 pages, once</strong>, lifetime. A failed read is not counted</td></tr><tr><td>7-day trial, or Lithifyte Plus</td><td>Unlimited hosted pages</td></tr><tr><td>Your own local vision model</td><td>Unlimited, and the image never leaves this device</td></tr></tbody></table></div>
+<p>Five pages is enough to try a real statement. After that, hosted reading is part of <a href="/commercial">Lithifyte Plus</a> (€9 / month or €90 / year). Export of data you already imported is never gated.</p>
+<h2 id="photograph-with-your-phone">Photograph with your phone</h2>
+<p>On a computer you can show a QR code instead of using this machine’s files. Scanning it opens a small camera page on the phone. The phone does not need to sign in: possessing the QR is the capability, and the slot is bound to the signed-in computer session.</p>
+<p>The photo is not your ledger. It is a JPEG in transit, then gone. The same QR works for a receipt — one photo, then Send.</p>
+<h2 id="what-we-cannot-promise">What we cannot promise</h2>
+<p>A photograph is not a bank export. Glare, a cropped total, a folded corner or a column the model reads as the wrong direction will fail the arithmetic check — by design. The confirm screen is load-bearing. Do not treat this as unattended import.</p>
+<p>If the check fails, retake the photo straighter and in better light, or import the bank’s CSV.</p>
+<h2 id="how-to-revoke">How to revoke</h2>
+<p>In the app: <strong>Settings → AI &amp; what left this device → Forget photo-import acknowledgement</strong>. The next photograph will show this notice again. Revoking does not delete transactions you already confirmed.</p>
+<p>The full privacy model, including the co-pilot and the encrypted vault, is on <a href="/security-and-privacy">Security and privacy</a>.</p>
+<aside class="cta"><h2>Try it</h2><p>The sample household is fully populated with invented data — no sign-up, nothing to upload. When you are ready to use your own statements, sign-in is a magic link and holds no financial data.</p><p><a class="btn" href="https://app.lithifyte.com/demo">Explore the sample household</a> <a class="btn ghost" href="https://access.lithifyte.com/">Sign in free</a></p></aside>
+<aside class="related"><h2>Keep reading</h2><ul><li><a href="/capturing-your-first-transaction">Capture your first transaction</a> <span class="rel-d">Sign in at app.lithifyte.com/?capture=1. Choose Upload a file (CSV, Excel or a text PDF — never uploaded) or Take a photo (QR on a computer, camera on a phone). Confirm the preview before anything is saved. Five hosted photo pages are free.</span></li><li><a href="/logging-receipts">Logging a till receipt</a> <span class="rel-d">Photograph a till slip. Lithifyte copies the shop, the date and the amount paid. It does not invent a running balance. Confirm the preview and the purchase lands in a Receipts cash account. One hosted page per successful read.</span></li><li><a href="/security-and-privacy">Security and privacy, in technical terms</a> <span class="rel-d">The claim is narrow and testable: there is no finance database, so your ledger is never stored by us. CSV and text PDFs never leave the tab. A scan or photo you choose to send is read on our GPU (or on a model you run) and discarded. Hosted chat sends only the slice a question needs. All of that is set out below.</span></li><li><a href="/commercial">Plus and commercial licensing</a> <span class="rel-d">The calculator is free forever. Official Lithifyte sells the living product — AI, vault, bank presets — and a commercial licence of the Engine for white-label use.</span></li><li><a href="/faq">Frequently asked questions</a> <span class="rel-d">Short, direct answers. If a question you have is not here, the [guide](/guide) goes deeper and the [source code](https://github.com/SID-Apps/lithifyte) settles any argument about what the software actually does.</span></li><li><a href="/guide">The Lithifyte guide</a> <span class="rel-d">A complete feature reference, ordered the way you actually encounter things: get data in, make it trustworthy, understand it, then plan with it. There is also an interactive version inside the app with an Ask box.</span></li></ul></aside>
+</main>
+
+<footer class="site">
+  <span>© 2026 Lithifyte · <a href="https://www.sid-labs.com">SID Labs</a></span>
+  <a href="/how-it-works">How it works</a>
+  <a href="/capturing-your-first-transaction">Capture</a>
+  <a href="/learn">Learn</a>
+  <a href="/faq">FAQ</a>
+  <a href="/security-and-privacy">Security</a>
+  <a href="/photographing-statements">Photo import</a>
+  <a href="/logging-receipts">Receipts</a>
+  <a href="/open-source">Open source</a>
+  <a href="/commercial">Plus</a>
+  <a href="/privacy">Privacy</a>
+  <a href="/terms">Terms</a>
+  <a href="https://github.com/SID-Apps/lithifyte">Source (AGPL-3.0)</a>
+</footer>
+</body>
+</html>

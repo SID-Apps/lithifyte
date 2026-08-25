@@ -9,8 +9,10 @@ summary: Bank statements are written for banks, not for you. Once you know what 
 keywords: [how to read a bank statement, bank statement columns explained, CSV bank export, reconcile bank statement, understand bank transactions]
 about: [Bank statement, Personal finance, Reconciliation]
 updated: 2026-08-09
-related: [categorise-spending, find-money-leaks, what-is-a-budget]
+related: [categorise-spending, find-money-leaks, what-is-a-budget, photographing-statements, capturing-your-first-transaction]
 ---
+
+If you only have paper, [photograph the page](/capturing-your-first-transaction) — Lithifyte copies the print and checks it against the statement’s own totals before you confirm. A CSV export is still the more reliable file.
 
 ## Why they are so hard to read
 

@@ -1,10 +1,10 @@
 # How Lithifyte works
 
 Source: https://lithifyte.com/how-it-works
-Updated: 2026-08-13
+Updated: 2026-08-25
 Licence: content CC-BY-4.0 · software AGPL-3.0-or-later
 
-You upload a bank statement to a web page. The page reads it in your browser, works out who spent what and where it went, and draws the result as a living map. No file is transmitted, because there is no server on the other end to receive it.
+Drop a CSV or a text PDF — it is read in this tab and never uploaded. Or photograph a statement or a till receipt after you sign in. The map, budgets and forecasts are computed on your device. Hosted photo reading is five pages free then Plus.
 
 ## The short version
 
@@ -15,7 +15,7 @@ That single decision explains nearly everything else about the product — why t
 ## What actually happens when you use it
 
 1. **The page loads.** It is a single self-contained HTML file — the interface, the charts and the entire calculation engine, delivered in one request.
-2. **You add a statement.** Your browser reads the file from your disk — CSV or Excel `.xlsx`, whichever your bank gives you. It is parsed in memory by JavaScript running on your machine, and a preview shows you exactly what will be stored before anything is. No upload happens at any point.
+2. **You add a statement.** A CSV, spreadsheet or PDF with selectable text is read **in this browser**. A photograph or a scanned PDF has no text the browser can trust: if you ask, a vision model copies what is printed, **code** checks the figures, and you still confirm the preview. How to start: [Capture your first transaction](/capturing-your-first-transaction). What a photo does: [Photographing a bank statement](/photographing-statements).
 3. **The engine enriches it.** Every transaction is matched against your categorisation rules, merchant names are normalised so that `TESCO STORES 3184` and `TESCO EXPRESS` become one merchant, transfers between your own accounts are detected and paired so they do not read as income and spending, and recurring payments are identified by their cadence.
 4. **The results are stored locally.** In your browser's localStorage and IndexedDB, on that device, optionally encrypted at rest behind a passphrase you choose.
 5. **Everything you see is computed from that.** Budgets, forecasts, the debt planner, net worth and the money map are all functions of the same enriched data, recalculated as it changes.
@@ -47,9 +47,9 @@ Two things make it worth trusting. The model never produces a number — it work
 
 ## What it does not do
 
-It does not connect to your bank by default. It does not give financial advice, recommend products, or take a commission from anyone. It does not have a premium tier that unlocks your own numbers — Plus is hosted AI, an encrypted vault, and pack updates. There is no finance backend. The places anything about your money can leave the browser are: hosted AI (after you consent, only the slice that question needs) and an optional encrypted backup you choose to store on Drive or in the Plus vault (ciphertext we cannot read).
+It does not connect to your bank by default. It does not give financial advice, recommend products, or take a commission from anyone. It does not have a premium tier that unlocks your own numbers — Plus is hosted AI, an encrypted vault, and pack updates. There is no finance backend. The places anything about your money can leave the browser are: hosted AI (after you consent, only the slice that question needs); a **photo or scanned PDF you chose to send** (read on our GPU or yours, not stored, confirmed before save); and an optional encrypted backup you choose to store on Drive or in the Plus vault (ciphertext we cannot read).
 
-Statement import is the supported path in, and it is deliberate rather than a limitation to apologise for: a file you exported yourself is a file no third party had to be trusted with.
+CSV and text-PDF import is still the private default: a file you exported yourself is a file no third party had to be trusted with. Paper is optional, metered, and tickable.
 
 Commands-only and a local model keep even the co-pilot on your own machine.
 

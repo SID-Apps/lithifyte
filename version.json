@@ -1,8 +1,8 @@
 {
-  "version": "3.19.0",
-  "released": "2026-08-24",
-  "notes": "Classic restore from the registry; Audit chips; Forecast in household language; Budget seeded from lived-on months.",
+  "version": "3.21.3",
+  "released": "2026-08-25",
+  "notes": "New accounts no longer inherit another sign-in's uploads. Capture chooser is Upload / Take a photo / Receipt and stays on screen until that path actually starts. First-run onboarding returns when the ledger is empty.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "80ea20ba6c5c50f162d6fbb9cdba1930e8b6b65584b2343b2ca2841f0fa7e717"
+  "sha256": "c60429ca18f67013f2b6cc4ed2c3d2df606dc4dbee83a79bae4fa5089700e8c6"
 }

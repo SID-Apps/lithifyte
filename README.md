@@ -20,7 +20,7 @@ Lithifyte turns your bank statements into a **full financial neural map** of you
 
 1. **Open the app** — either the hosted page, or download `index.html` and open it locally (the local file unlocks a couple of extras, see below).
 2. Drop a statement to start. We will create a household for you if you skip the labels. A goal is optional.
-3. **Statements** are your bank's own export — CSV, tab-separated or Excel `.xlsx`, whatever shape it comes in. Press **Prepare & preview**: the importer works out which column is which, you correct anything it got wrong, and it shows you every finished transaction beside your raw file *before* anything is saved. See [Reading your statement](#reading-your-statement).
+3. **Statements** are your bank's own export — CSV, tab-separated, Excel `.xlsx`, or a PDF with selectable text, read in the browser. A **scan or phone photo** is optional: sign in, agree to [how a page image is handled](https://lithifyte.com/photographing-statements), and confirm the preview. A till receipt uses the same camera. Start at [Capture your first transaction](https://app.lithifyte.com/?capture=1). See [Reading your statement](#reading-your-statement).
 4. Re-uploading is always safe: duplicates are detected and skipped.
 5. **Export a backup** (Settings → Backup) once you have real data in. That file is your durability story — optionally encrypted with a passphrase.
 
@@ -48,7 +48,7 @@ The self-test in the footer runs ~210 behavioural checks on every load. If it is
 
 ## Reading your statement
 
-Upload the file your bank actually gives you. **CSV, tab- or semicolon-separated, or Excel `.xlsx`** — the spreadsheet is unzipped and read *in your browser*, with no library and nothing uploaded, so the privacy promise holds for it too.
+Upload the file your bank actually gives you. **CSV, tab- or semicolon-separated, Excel `.xlsx`, or a PDF with selectable text** — read *in your browser*, so the privacy promise holds for those files. A **photograph or scanned PDF** cannot be read in the tab: hosted vision copies the print (five pages free, then Plus) or your own local model does. A till receipt is shop, date and amount paid into a Receipts cash account. How-tos: [Capture](https://lithifyte.com/capturing-your-first-transaction) · [Photo import](https://lithifyte.com/photographing-statements) · [Receipts](https://lithifyte.com/logging-receipts).
 
 **Prepare & preview** is a two-step flow:
 

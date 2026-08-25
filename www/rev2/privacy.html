@@ -78,14 +78,14 @@
        ══════════════════════════════════════════════════════════════════ -->
   <p><strong>Data controller and contact.</strong> For questions about this policy, or to exercise any of the rights below, email <a href="mailto:signin@lithifyte.com">signin@lithifyte.com</a>. Lithifyte is operated from Ireland. If you are in the EU/EEA and are not satisfied with our response, you may complain to your national supervisory authority; in Ireland that is the <a href="https://www.dataprotection.ie">Data Protection Commission</a>.</p>
 
-  <h2>Your financial data: never collected</h2>
-  <p>Lithifyte is a client-only application. All computation — importing statements, categorising spending, budgets, forecasts, net worth — happens in your browser. Your data is kept in your browser's local storage (localStorage and IndexedDB) on your device, and in backup files you export yourself.</p>
+  <h2>Your financial data: never stored by us</h2>
+  <p>Lithifyte is a client-only calculator. There is <strong>no finance database</strong> on our side &mdash; we never keep your ledger, and we could not reconstruct it from what we hold. All computation (categorising, budgets, forecasts, net worth) happens in your browser. Your data is kept in your browser's local storage (localStorage and IndexedDB) on your device, and in backup files you export yourself.</p>
   <ul>
-    <li>There is <strong>no application backend</strong> and no API that accepts financial data.</li>
-    <li>Bank statements you import are parsed locally and never uploaded.</li>
+    <li>Bank statements you import as CSV, spreadsheet, or a PDF with selectable text are parsed locally in your browser and never uploaded.</li>
+    <li>If you choose to import a <strong>scan or a photo</strong>, that page image is sent to Lithifyte&rsquo;s own GPU so a vision model can transcribe it. You acknowledge a written notice first (<a href="/photographing-statements">Photographing a bank statement</a>). The image never goes to a third party, is <strong>not stored</strong> (it exists only for the seconds it takes to read), and the figures it produces are checked against the statement&rsquo;s own totals before anything is imported. A till receipt uses the same path for shop, date and amount paid (<a href="/logging-receipts">Logging a receipt</a>). If you have configured your own local model (Ollama, LM Studio), the photo stays on your device instead. <strong>Photograph with your phone</strong> on a computer shows a QR: the photo sits in a one-time slot for ten minutes so this tab can read it, then the slot is deleted. How-to: <a href="/capturing-your-first-transaction">Capture your first transaction</a>.</li>
     <li>Optional encrypted backups use your browser's built-in Web Crypto; the passphrase never leaves your device.</li>
-    <li>The optional <strong>local</strong> AI categoriser talks to a model you run (Ollama, LM Studio). The optional <strong>hosted</strong> Lithifyte AI sends merchant names only (no amounts) after you consent, through a pass-through relay that does not store the prompt.</li>
-    <li>You can confirm all of this by watching your browser's network tab while using the app.</li>
+    <li>The optional <strong>local</strong> AI (categoriser and scan reader) talks to a model you run. The optional <strong>hosted</strong> Lithifyte AI sends only the slice a question needs, after you consent, through a pass-through relay that does not store the prompt.</li>
+    <li>You can confirm all of this by watching your browser's network tab while using the app. A CSV import sends nothing; a consented scan sends a page image to our relay and nothing else.</li>
   </ul>
 
   <h2>What we do collect: identity and product usage (hosted only)</h2>

@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>How Lithifyte works — Lithifyte</title>
-<meta name="description" content="Lithifyte reads your bank statements in the browser, builds a live map of your money, and computes budgets, forecasts, debt plans and net worth on your device. Nothing is uploaded.">
+<meta name="description" content="Lithifyte reads CSV and text PDFs in the browser, can photograph a paper statement or receipt after you agree, and computes budgets, forecasts and net worth on your device. There is no finance database.">
 <link rel="canonical" href="https://lithifyte.com/how-it-works">
 <meta name="theme-color" content="#020b1a">
 <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
-<meta name="keywords" content="household finance software, private budgeting app, bank statement analysis, offline finance app, open source money manager">
+<meta name="keywords" content="household finance software, private budgeting app, bank statement analysis, photograph bank statement, offline finance app, open source money manager">
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -16,11 +16,11 @@
 <meta property="og:site_name" content="Lithifyte">
 <meta property="og:url" content="https://lithifyte.com/how-it-works">
 <meta property="og:title" content="How Lithifyte works">
-<meta property="og:description" content="Lithifyte reads your bank statements in the browser, builds a live map of your money, and computes budgets, forecasts, debt plans and net worth on your device. Nothing is uploaded.">
+<meta property="og:description" content="Lithifyte reads CSV and text PDFs in the browser, can photograph a paper statement or receipt after you agree, and computes budgets, forecasts and net worth on your device. There is no finance database.">
 <meta property="og:image" content="https://lithifyte.com/og.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="How Lithifyte works">
-<meta name="twitter:description" content="Lithifyte reads your bank statements in the browser, builds a live map of your money, and computes budgets, forecasts, debt plans and net worth on your device. Nothing is uploaded.">
+<meta name="twitter:description" content="Lithifyte reads CSV and text PDFs in the browser, can photograph a paper statement or receipt after you agree, and computes budgets, forecasts and net worth on your device. There is no finance database.">
 <meta name="twitter:image" content="https://lithifyte.com/og.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,7 +52,7 @@
       "@id": "https://lithifyte.com/how-it-works#page",
       "url": "https://lithifyte.com/how-it-works",
       "name": "How Lithifyte works",
-      "description": "Lithifyte reads your bank statements in the browser, builds a live map of your money, and computes budgets, forecasts, debt plans and net worth on your device. Nothing is uploaded.",
+      "description": "Lithifyte reads CSV and text PDFs in the browser, can photograph a paper statement or receipt after you agree, and computes budgets, forecasts and net worth on your device. There is no finance database.",
       "inLanguage": "en",
       "isPartOf": {
         "@id": "https://lithifyte.com/#website"
@@ -63,55 +63,37 @@
       "publisher": {
         "@id": "https://lithifyte.com/#organization"
       },
-      "dateModified": "2026-08-13",
+      "dateModified": "2026-08-25",
       "@type": "WebPage"
     },
     {
       "@type": "HowTo",
       "@id": "https://lithifyte.com/how-it-works#howto",
       "name": "Set up Lithifyte with your own bank statements",
-      "description": "Lithifyte reads your bank statements in the browser, builds a live map of your money, and computes budgets, forecasts, debt plans and net worth on your device. Nothing is uploaded.",
+      "description": "Lithifyte reads CSV and text PDFs in the browser, can photograph a paper statement or receipt after you agree, and computes budgets, forecasts and net worth on your device. There is no finance database.",
       "totalTime": "PT15M",
       "step": [
         {
           "@type": "HowToStep",
           "position": 1,
           "name": "Open the app",
-          "text": "Go to app.lithifyte.com or download index.html and open it from your own disk. There is no account step."
+          "text": "Go to app.lithifyte.com/?capture=1 or download index.html. On the hosted app sign in so photo pages can be metered."
         },
         {
           "@type": "HowToStep",
           "position": 2,
-          "name": "Add the people and accounts",
-          "text": "Name the people in your household and the accounts they hold. This is the skeleton the map hangs on."
+          "name": "Import however it arrives",
+          "text": "Drop a CSV Excel or text PDF — read in the browser. Or photograph a paper page or till slip. Confirm the preview before anything is saved."
         },
         {
           "@type": "HowToStep",
           "position": 3,
-          "name": "Import a statement",
-          "text": "Export a CSV or .xlsx from your bank and drop it in. Press Prepare & preview: it maps the columns"
-        },
-        {
-          "@type": "HowToStep",
-          "position": 4,
-          "name": "you correct anything it got wrong",
-          "text": "you correct anything it got wrong"
-        },
-        {
-          "@type": "HowToStep",
-          "position": 5,
-          "name": "and you see every finished transaction before it is saved.",
-          "text": "and you see every finished transaction before it is saved."
-        },
-        {
-          "@type": "HowToStep",
-          "position": 6,
           "name": "Check the categories",
           "text": "Fix anything miscategorised once and write a rule so it stays fixed. Transfers between your own accounts are matched and excluded from spending."
         },
         {
           "@type": "HowToStep",
-          "position": 7,
+          "position": 4,
           "name": "Set a goal or a budget",
           "text": "Give it something to aim at. The forecast and the pace-based budget both build on your real history rather than a round number."
         }
@@ -168,14 +150,14 @@
 <main class="page">
 <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span class="sep">/</span> <span aria-current="page">How it works</span></nav>
   <h1>How Lithifyte works</h1>
-  <p class="updated">Updated 13 August 2026</p>
-  <p class="lede">You upload a bank statement to a web page. The page reads it in your browser, works out who spent what and where it went, and draws the result as a living map. No file is transmitted, because there is no server on the other end to receive it.</p>
+  <p class="updated">Updated 25 August 2026</p>
+  <p class="lede">Drop a CSV or a text PDF — it is read in this tab and never uploaded. Or photograph a statement or a till receipt after you sign in. The map, budgets and forecasts are computed on your device. Hosted photo reading is five pages free then Plus.</p>
 
 <h2 id="the-short-version">The short version</h2>
 <p>Most finance apps work by connecting to your bank, copying your transactions onto their servers, and showing you a view of that copy. Lithifyte inverts it. The analysis engine is delivered to you as a web page, and your data stays where it already is: on your device.</p>
 <p>That single decision explains nearly everything else about the product — why the Engine costs nothing, why it is one file you can download and keep, and why nobody at Lithifyte can look at your spending even if asked to. Sign-in on the hosted app is identity only. Plus is hosted intelligence and maintained packs, not a lock on your numbers.</p>
 <h2 id="what-actually-happens-when-you-use-it">What actually happens when you use it</h2>
-<ol><li><strong>The page loads.</strong> It is a single self-contained HTML file — the interface, the charts and the entire calculation engine, delivered in one request.</li><li><strong>You add a statement.</strong> Your browser reads the file from your disk — CSV or Excel <code>.xlsx</code>, whichever your bank gives you. It is parsed in memory by JavaScript running on your machine, and a preview shows you exactly what will be stored before anything is. No upload happens at any point.</li><li><strong>The engine enriches it.</strong> Every transaction is matched against your categorisation rules, merchant names are normalised so that <code>TESCO STORES 3184</code> and <code>TESCO EXPRESS</code> become one merchant, transfers between your own accounts are detected and paired so they do not read as income and spending, and recurring payments are identified by their cadence.</li><li><strong>The results are stored locally.</strong> In your browser's localStorage and IndexedDB, on that device, optionally encrypted at rest behind a passphrase you choose.</li><li><strong>Everything you see is computed from that.</strong> Budgets, forecasts, the debt planner, net worth and the money map are all functions of the same enriched data, recalculated as it changes.</li></ol>
+<ol><li><strong>The page loads.</strong> It is a single self-contained HTML file — the interface, the charts and the entire calculation engine, delivered in one request.</li><li><strong>You add a statement.</strong> A CSV, spreadsheet or PDF with selectable text is read <strong>in this browser</strong>. A photograph or a scanned PDF has no text the browser can trust: if you ask, a vision model copies what is printed, <strong>code</strong> checks the figures, and you still confirm the preview. How to start: <a href="/capturing-your-first-transaction">Capture your first transaction</a>. What a photo does: <a href="/photographing-statements">Photographing a bank statement</a>.</li><li><strong>The engine enriches it.</strong> Every transaction is matched against your categorisation rules, merchant names are normalised so that <code>TESCO STORES 3184</code> and <code>TESCO EXPRESS</code> become one merchant, transfers between your own accounts are detected and paired so they do not read as income and spending, and recurring payments are identified by their cadence.</li><li><strong>The results are stored locally.</strong> In your browser's localStorage and IndexedDB, on that device, optionally encrypted at rest behind a passphrase you choose.</li><li><strong>Everything you see is computed from that.</strong> Budgets, forecasts, the debt planner, net worth and the money map are all functions of the same enriched data, recalculated as it changes.</li></ol>
 <h2 id="the-map-is-the-point">The map is the point</h2>
 <p>Every other view in the app is a report. The map is the model.</p>
 <p>Your household sits at the centre. People branch from it, accounts branch from people, categories and merchants branch from accounts, and money flows along the edges. Because it is one connected structure rather than a series of separate screens, you can see the things that separate screens hide: that two people are quietly funding the same subscription, that one account is doing all the work, that a category you think of as small has more merchant nodes hanging off it than your grocery spend.</p>
@@ -186,8 +168,8 @@
 <p>There is a co-pilot in the app — Ctrl/Cmd+K — that you can ask in plain language: <em>how have groceries gone this year</em>, <em>show me the cashflow</em>, <em>design a wedding budget from the last twelve months</em>. It answers, it opens the right section for you, and it can draft a budget or goal in a <strong>sandbox</strong> that changes nothing until you press Apply.</p>
 <p>Two things make it worth trusting. The model never produces a number — it works out what you asked for, the engine computes the figures on your device, and the answer renders from those. Hosted Lithifyte AI is available after you consent per lane (chat, categorise, PDF). Commands-only and a model running on your own machine send nothing. What is sent, and to whom, is set out plainly in <a href="/security-and-privacy">security and privacy</a>.</p>
 <h2 id="what-it-does-not-do">What it does not do</h2>
-<p>It does not connect to your bank by default. It does not give financial advice, recommend products, or take a commission from anyone. It does not have a premium tier that unlocks your own numbers — Plus is hosted AI, an encrypted vault, and pack updates. There is no finance backend. The places anything about your money can leave the browser are: hosted AI (after you consent, only the slice that question needs) and an optional encrypted backup you choose to store on Drive or in the Plus vault (ciphertext we cannot read).</p>
-<p>Statement import is the supported path in, and it is deliberate rather than a limitation to apologise for: a file you exported yourself is a file no third party had to be trusted with.</p>
+<p>It does not connect to your bank by default. It does not give financial advice, recommend products, or take a commission from anyone. It does not have a premium tier that unlocks your own numbers — Plus is hosted AI, an encrypted vault, and pack updates. There is no finance backend. The places anything about your money can leave the browser are: hosted AI (after you consent, only the slice that question needs); a <strong>photo or scanned PDF you chose to send</strong> (read on our GPU or yours, not stored, confirmed before save); and an optional encrypted backup you choose to store on Drive or in the Plus vault (ciphertext we cannot read).</p>
+<p>CSV and text-PDF import is still the private default: a file you exported yourself is a file no third party had to be trusted with. Paper is optional, metered, and tickable.</p>
 <p>Commands-only and a local model keep even the co-pilot on your own machine.</p>
 <h2 id="two-ways-to-run-it">Two ways to run it</h2>
 <p><strong>Hosted</strong> — open <a href="https://app.lithifyte.com" rel="noopener">app.lithifyte.com</a>. Sign-in is Google or a magic link, so the official app can recognise you, meter Lithifyte AI, and offer Plus. It holds no financial data in the clear. Privacy-safe product events (which sections get used, never amounts) stay on the hosted build.</p>
@@ -195,15 +177,18 @@
 <h2 id="getting-your-data-back-out">Getting your data back out</h2>
 <p>Everything exports. Encrypted backups, plain CSV and Excel packs, and a full JSON backup containing every store the app holds. If you stop using Lithifyte tomorrow, you leave with all of it — which is the only real test of whether software respects you.</p>
 <aside class="cta"><h2>Try it</h2><p>The sample household is fully populated with invented data — no sign-up, nothing to upload. When you are ready to use your own statements, sign-in is a magic link and holds no financial data.</p><p><a class="btn" href="https://app.lithifyte.com/demo">Explore the sample household</a> <a class="btn ghost" href="https://access.lithifyte.com/">Sign in free</a></p></aside>
-<aside class="related"><h2>Keep reading</h2><ul><li><a href="/guide">The Lithifyte guide</a> <span class="rel-d">A complete feature reference, ordered the way you actually encounter things: get data in, make it trustworthy, understand it, then plan with it. There is also an interactive version inside the app with an Ask box.</span></li><li><a href="/security-and-privacy">Security and privacy, in technical terms</a> <span class="rel-d">The claim is narrow and testable: there is no finance backend, so statements are never stored by us. The one exception is hosted AI, which you consent to per lane and which sends only the slice that question needs — that is set out in full below, along with the parts we cannot fix.</span></li><li><a href="/faq">Frequently asked questions</a> <span class="rel-d">Short, direct answers. If a question you have is not here, the [guide](/guide) goes deeper and the [source code](https://github.com/SID-Apps/lithifyte) settles any argument about what the software actually does.</span></li></ul></aside>
+<aside class="related"><h2>Keep reading</h2><ul><li><a href="/capturing-your-first-transaction">Capture your first transaction</a> <span class="rel-d">Sign in at app.lithifyte.com/?capture=1. Choose Upload a file (CSV, Excel or a text PDF — never uploaded) or Take a photo (QR on a computer, camera on a phone). Confirm the preview before anything is saved. Five hosted photo pages are free.</span></li><li><a href="/photographing-statements">Photographing a bank statement</a> <span class="rel-d">A photographed statement cannot be read in the browser. If you ask Lithifyte to read it, the page image is sent to a GPU we run (or to a model on your machine), transcribed, checked against the statement’s own totals, and offered to you as a preview. The image is not stored. Hosted reading is five pages for free, then Plus.</span></li><li><a href="/logging-receipts">Logging a till receipt</a> <span class="rel-d">Photograph a till slip. Lithifyte copies the shop, the date and the amount paid. It does not invent a running balance. Confirm the preview and the purchase lands in a Receipts cash account. One hosted page per successful read.</span></li><li><a href="/guide">The Lithifyte guide</a> <span class="rel-d">A complete feature reference, ordered the way you actually encounter things: get data in, make it trustworthy, understand it, then plan with it. There is also an interactive version inside the app with an Ask box.</span></li><li><a href="/security-and-privacy">Security and privacy, in technical terms</a> <span class="rel-d">The claim is narrow and testable: there is no finance database, so your ledger is never stored by us. CSV and text PDFs never leave the tab. A scan or photo you choose to send is read on our GPU (or on a model you run) and discarded. Hosted chat sends only the slice a question needs. All of that is set out below.</span></li><li><a href="/faq">Frequently asked questions</a> <span class="rel-d">Short, direct answers. If a question you have is not here, the [guide](/guide) goes deeper and the [source code](https://github.com/SID-Apps/lithifyte) settles any argument about what the software actually does.</span></li></ul></aside>
 </main>
 
 <footer class="site">
   <span>© 2026 Lithifyte · <a href="https://www.sid-labs.com">SID Labs</a></span>
   <a href="/how-it-works">How it works</a>
+  <a href="/capturing-your-first-transaction">Capture</a>
   <a href="/learn">Learn</a>
   <a href="/faq">FAQ</a>
   <a href="/security-and-privacy">Security</a>
+  <a href="/photographing-statements">Photo import</a>
+  <a href="/logging-receipts">Receipts</a>
   <a href="/open-source">Open source</a>
   <a href="/commercial">Plus</a>
   <a href="/privacy">Privacy</a>

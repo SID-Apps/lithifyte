@@ -7,9 +7,9 @@ schema: faq
 description: Direct answers about Lithifyte — what it costs, where your data lives, which banks work, whether it can see your money, and how it compares to a spreadsheet or a bank-linked app.
 summary: Short, direct answers. If a question you have is not here, the [guide](/guide) goes deeper and the [source code](https://github.com/SID-Apps/lithifyte) settles any argument about what the software actually does.
 keywords: [Lithifyte FAQ, private budgeting app questions, is my bank data safe, free budgeting software]
-updated: 2026-08-14
+updated: 2026-08-25
 priority: 0.9
-related: [how-it-works, security-and-privacy, open-source]
+related: [how-it-works, security-and-privacy, photographing-statements, open-source]
 ---
 
 ## Cost and licensing
@@ -32,7 +32,9 @@ Yes, under the AGPL-3.0-or-later: read it, change it, run it, redistribute it. I
 
 We never store your statements. There is no finance backend. The hosted app holds the email you sign in with (Google or magic link), a plan/quota counter, and privacy-safe product events.
 
-The exception is hosted AI. When you ask Lithifyte AI a question, **the slice that question needs** is sent to the model provider for that request — not the ledger. Notes are not dumped wholesale; account names are aliased. Commands-only and a local/your-own model send nothing. Optional Google Drive backup writes an encrypted snapshot to a private app folder only this app can see. See [security and privacy](/security-and-privacy).
+The exception is hosted AI. When you ask Lithifyte AI a question, **the slice that question needs** is sent to the model provider for that request — not the ledger. Notes are not dumped wholesale; account names are aliased. Commands-only and a local/your-own model send nothing. Optional Google Drive backup writes an encrypted snapshot to a private app folder only this app can see.
+
+A **photographed statement or receipt** is a second exception, and only if you ask for it. The page image is read on a GPU we run (or on a model you run), not stored, and checked before you confirm — statements against their own totals, receipts for a shop, date and amount paid. Hosted reading is five pages for free, then Plus. Start from [Capture your first transaction](https://app.lithifyte.com/?capture=1). The notice the app asks you to tick is published at [Photographing a bank statement](/photographing-statements). See also [security and privacy](/security-and-privacy).
 
 ### What happens if Lithifyte disappears tomorrow?
 
@@ -70,7 +72,9 @@ No. Budgets, goals and forecasts it designs live in a sandbox alongside your rea
 
 ### Which banks does it support?
 
-Any bank that lets you export a statement, which is effectively all of them. Lithifyte reads CSV, tab- and semicolon-separated files, Excel `.xlsx`, and text-layer PDFs — parsed in your browser. You can also pick a file you already saved in Google Drive. Scanned (image-only) PDFs are not supported yet.
+Any bank that lets you export a statement, which is effectively all of them. Lithifyte reads CSV, tab- and semicolon-separated files, Excel `.xlsx`, and text-layer PDFs — parsed in your browser. You can also pick a file you already saved in Google Drive.
+
+A **scanned (image-only) PDF or a phone photo** is a different path: you agree first, a vision model copies the print, and code checks the statement’s own totals before you confirm. Five hosted pages free, then Plus. A till receipt uses the same camera for shop, date and amount paid. How-tos: [Capture your first transaction](/capturing-your-first-transaction), [Photographing a bank statement](/photographing-statements), [Logging a receipt](/logging-receipts).
 
 Press **Prepare & preview** and it works out which column is which, shows you every finished transaction beside your raw file, and lets you correct any decision it got wrong — date order, decimal mark, which column is money in, which rows to hold back. Known exports are recognised outright; a Revolut statement maps in one click. Where the file carries a running balance it walks it, which *proves* the mapping was read correctly rather than assuming, and offers the opening balance it can derive. Nothing is saved until you approve the preview, and no row is ever dropped in silence.
 
@@ -107,6 +111,18 @@ Fix it once, then write a rule from the merchant name so it stays fixed. Rules s
 ### Do I need to be good with spreadsheets?
 
 No, and that is rather the point. A spreadsheet makes you build the model; Lithifyte builds it and lets you interrogate it. If you like spreadsheets, everything exports to one.
+
+### How do I photograph a statement from my computer?
+
+Choose **Take a photo**. A QR appears. Scan it with your phone, fill the frame, send. The phone does not sign in. The JPEG sits in a ten-minute slot and is deleted after this tab collects it. Full notice: [Photographing a bank statement](/photographing-statements).
+
+### How do I log a till receipt?
+
+**Log a receipt** (Capture chooser, People, or chat ＋). One photo of the slip. Confirm shop, date and total. It lands in a Receipts cash account. [Logging a receipt](/logging-receipts).
+
+### If I sign out and into another account on this computer, do I see the same data?
+
+No. On the hosted app each sign-in keeps its own household in this browser. A new account starts empty (the welcome drop zone). The previous account’s data stays on this computer under that email — it is not uploaded to us. A passphrase lock is still the right move on a shared device.
 
 ### Does it work on a phone?
 

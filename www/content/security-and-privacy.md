@@ -4,28 +4,30 @@ shortTitle: Security
 slug: security-and-privacy
 section: product
 description: The full technical privacy model behind Lithifyte — what is stored, where, how it is encrypted, what the servers hold, and the residual risks we cannot solve for you.
-summary: The claim is narrow and testable: there is no finance backend, so statements are never stored by us. The one exception is hosted AI, which you consent to per lane and which sends only the slice that question needs — that is set out in full below, along with the parts we cannot fix.
+summary: The claim is narrow and testable: there is no finance database, so your ledger is never stored by us. CSV and text PDFs never leave the tab. A scan or photo you choose to send is read on our GPU (or on a model you run) and discarded. Hosted chat sends only the slice a question needs. All of that is set out below.
 keywords: [local first finance app, browser storage encryption, financial data privacy, AES-GCM PBKDF2, zero server finance]
-updated: 2026-08-14
+updated: 2026-08-25
 priority: 0.8
-related: [open-source, how-it-works, faq]
+related: [open-source, how-it-works, faq, photographing-statements]
 ---
 
 ## The architecture, stated plainly
 
-Lithifyte is delivered as a single HTML file containing the interface and the entire calculation engine. When you import a statement, your browser reads the file from your disk and parses it in memory on your machine. The results are written to that browser's own storage.
+Lithifyte is delivered as a single HTML file containing the interface and the entire calculation engine. When you import a CSV, a spreadsheet, or a PDF with selectable text, your browser reads the file from your disk and parses it in memory on your machine. The results are written to that browser's own storage.
 
-There is no finance API. Not an encrypted one, not a temporary one, not one that "only processes and discards". The absence is the design: a service that never receives data cannot leak it, be subpoenaed for it, change its mind about it in a future privacy policy, or lose it in a breach.
+There is **no finance database**. Not an encrypted one, not a temporary one. We never keep your ledger, so we cannot leak it, be subpoenaed for it, change our mind about it in a future privacy policy, or lose it in a breach.
 
-You do not have to take this on faith. Open your browser's network tab and import a statement. Nothing carrying the file goes out.
+You do not have to take this on faith. Open your browser's network tab and import a CSV. Nothing carrying the file goes out.
 
-**Three deliberate exceptions, all yours to consent to, all off until you act.**
+**Four deliberate exceptions, all yours to consent to, all off until you act.**
 
 The first is **hosted AI**. A language model cannot answer a question about your money without being told something about your money. That section is below, in full, because a privacy claim with a quiet asterisk is worse than no claim at all. The honest sentence is: **we never store your data, and when you ask the AI a question, the part needed to answer it is sent to the model provider for that request.** Commands-only and a local model send nothing.
 
-The second is **exchange rates**, and it is far smaller. Press *Refresh rates* in Wealth → Currency and the app asks a public European Central Bank rate feed ([frankfurter.dev](https://api.frankfurter.dev/v1/latest)) for a plain list of reference rates. That request carries **no account, no balance, no transaction, and no identifier** — it is the same request any visitor to that site makes, and the reply is a table of numbers. It happens only when you press the button, never on load, and typing rates in by hand works offline and always has. We mention a request this small because the alternative is you finding it in the network tab and wondering what else went unmentioned.
+The scan lane is the second, and it is the one that actually uploads a file. **A scanned PDF or a phone photo has no text to parse on-device**, so if you press Read, the page image is sent to a GPU we run. You acknowledge a written notice first ([Photographing a bank statement](/photographing-statements)). The image is not stored — it exists for the seconds it takes to transcribe — and the figures it produces are checked in code (statement totals, or a receipt’s shop / date / amount) before anything is offered to you. If you have pointed Lithifyte at a vision model on your own machine, that photo never leaves the device. This lane is not a finance API: it returns candidate rows, you confirm them, and the ledger stays in the browser.
 
-The third is **update checks**, and only on a self-hosted copy — the hosted app is whatever we deployed, so there is nothing there for you to update. Turn it on and Lithifyte asks **GitHub**, once a week at most, whether a newer version has been published. It deliberately does not ask us: if the check came to lithifyte.com we would end up holding a log of every self-hosted install's address and version, which is exactly the count [we say we do not keep](/open-source). Asking GitHub means we learn nothing, and that is a stronger promise than "we only log a version".
+The third is **exchange rates**, and it is far smaller. Press *Refresh rates* in Wealth → Currency and the app asks a public European Central Bank rate feed ([frankfurter.dev](https://api.frankfurter.dev/v1/latest)) for a plain list of reference rates. That request carries **no account, no balance, no transaction, and no identifier** — it is the same request any visitor to that site makes, and the reply is a table of numbers. It happens only when you press the button, never on load, and typing rates in by hand works offline and always has. We mention a request this small because the alternative is you finding it in the network tab and wondering what else went unmentioned.
+
+The fourth is **update checks**, and only on a self-hosted copy — the hosted app is whatever we deployed, so there is nothing there for you to update. Turn it on and Lithifyte asks **GitHub**, once a week at most, whether a newer version has been published. It deliberately does not ask us: if the check came to lithifyte.com we would end up holding a log of every self-hosted install's address and version, which is exactly the count [we say we do not keep](/open-source). Asking GitHub means we learn nothing, and that is a stronger promise than "we only log a version".
 
 If an update exists you are told, and nothing more happens until you press Download. The file is then fetched and its SHA-256 checked against the published manifest before you are offered it — **a mismatch refuses outright rather than warning**, because installing bytes we have not verified would be a hole we dug ourselves. Your data lives in the browser, not the file, so replacing the file keeps every transaction, budget and rule.
 
@@ -34,7 +36,8 @@ If an update exists you are told, and nothing more happens until you press Downl
 | Data | Location | Leaves your device? |
 |---|---|---|
 | Transactions, accounts, people, categories, rules | `localStorage` in your browser | No |
-| Uploaded statement files, encrypted vault blob | IndexedDB in your browser | No |
+| Uploaded statement files (CSV / spreadsheet / text PDF) | IndexedDB in your browser | No |
+| Scan / photo of a statement (only if you press Read) | In-memory on our GPU, then discarded | Yes — the page image, for seconds. Not stored. A local vision model sends nothing. |
 | Budgets, goals, debts, holdings, assets, notes | `localStorage` in your browser | No |
 | Backups you export | Wherever you save the file | Only if you move it |
 | Your email address (hosted sign-in only) | Cloudflare KV, on our side | It is already ours to hold |
@@ -61,7 +64,7 @@ The co-pilot is a chat panel inside the app that can answer questions about your
 
 Household notes are **not** sent on every turn. The model can ask for a scoped note. Real account names are replaced with aliases at the boundary. IBANs, emails and long account numbers are stripped. Settings shows a **disclosure log**: what left, when, to which provider, at which tier — never the prompt itself.
 
-**Consent is per capability.** Chat, categorisation and PDF parse each ask once, and each can be revoked in Settings.
+**Consent is per capability.** Chat, categorisation, text-PDF parse and scan/photo each ask, and each can be revoked in Settings. A local vision model is a separate choice: it never hits our relay.
 
 **Who receives it depends entirely on which model you chose:**
 
@@ -102,16 +105,16 @@ The Engine in the public repository is one file. The official host adds a small 
 - **The site** serves static pages. No account, no cookie required to read anything.
 - **Sign-in** issues a magic link (or Google) and sets a session cookie so the hosted app recognises you. Identity, never a ledger. Rate-limited; tokens are single-purpose.
 - **Digest mail** takes an email that your *browser* has already composed and posts it to a mail provider. The body is not stored.
-- **The AI relay** forwards a co-pilot request to the model provider and returns the answer. Pass-through only.
+- **The AI relay** forwards a co-pilot request to the model provider and returns the answer. Pass-through only. For a consented scan, it forwards a page image to a GPU we run, runs an arithmetic check in code, and returns candidate rows — the image is not stored.
 - **The encrypted vault** (Plus) stores a backup envelope you already encrypted in the browser. We do not have the passphrase and cannot read it.
 - **Packs** (Plus) are bank column maps — how to read a given bank's export — delivered as a maintained update channel. They contain no tax figures, because Lithifyte ships none.
 
-There is deliberately no endpoint that accepts a statement or a plaintext ledger. Adding one would be a different product and this page would say so. The Cloud workers are not published in the Engine repository.
+There is deliberately no endpoint that accepts a ledger or stores a statement. The scan lane accepts a **page image you consented to send**, transcribes it, checks the arithmetic, and returns candidate rows. The image is not written. Adding a finance database would be a different product and this page would say so. The Cloud workers are not published in the Engine repository.
 
 ## Verifying any of this yourself
 
 - **Read the file.** The application is one HTML file. Search it for `fetch(` and check every result.
-- **Watch the network.** DevTools → Network, then import a statement. Nothing with your data in it is sent. Do the same while using the co-pilot and you will see exactly what context each message carries — it is the same tab, and we would rather you looked.
+- **Watch the network.** DevTools → Network, then import a CSV. Nothing with your data in it is sent. Import a scan after pressing Read and you will see a page image go to our relay and a JSON statement come back — that is the scan lane, and we would rather you looked. Do the same while using the co-pilot and you will see exactly what context each message carries.
 - **Pull the plug.** Turn off your network and keep using it. Everything except the optional sign-in check and a remote co-pilot model keeps working.
 - **Diff the deployment.** The hosted file is byte-comparable with the one in the public repository.
 - **Run the self-tests.** The app ships hundreds of behavioural checks that run in your browser, on your data, and show you the result.

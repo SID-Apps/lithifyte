@@ -6,6 +6,7 @@ export default {
     // pretty paths
     if (path === '/demo') path = '/demo.html';
     if (path === '/tutorial') path = '/tutorial.html';
+    if (path === '/capture') path = '/capture.html';
     if (path === '/') path = '/index.html';
     // try asset
     let res = await env.ASSETS.fetch(new Request(new URL(path, url.origin), request));

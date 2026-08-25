@@ -1,7 +1,7 @@
 # Plus and commercial licensing
 
 Source: https://lithifyte.com/commercial
-Updated: 2026-08-14
+Updated: 2026-08-25
 Licence: content CC-BY-4.0 · software AGPL-3.0-or-later
 
 The calculator is free forever. Official Lithifyte sells the living product — AI, vault, bank presets — and a commercial licence of the Engine for white-label use.
@@ -22,13 +22,13 @@ Import, categorise, the money map, budgets, forecast, wealth, full export, Comma
 |---|---|---|
 | Engine, map, budgets, export | Yes | Yes |
 | Hosted Lithifyte AI | 20 questions / week after trial | Unlimited |
-| PDF statement parse via Lithifyte AI | No | Yes |
+| Scan / photo statement or receipt parse (hosted vision) | 5 pages once, then Plus. Your own local vision model is free. | Unlimited hosted pages |
 | Encrypted cloud vault | No (local + Drive still work) | Yes — ciphertext we cannot read |
 | Bank import presets | Revolut + the manual column mapper | A maintained, growing library across regions — still fully overridable |
 | Currency and exchange rates | Yes — your currency, your locale, live reference rates | Same |
 | Tax calculators | Yes — on rates **you** enter. Lithifyte ships none. | Same |
 
-Start from the hosted app → Settings → Lithifyte Plus. Your own model is always free.
+Start from the hosted app → Settings → Lithifyte Plus. Your own model is always free. Photograph and scan import asks you to acknowledge [how a page image is handled](/photographing-statements) before the first hosted read.
 
 ## Commercial licence of the Engine
 

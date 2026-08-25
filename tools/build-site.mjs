@@ -283,9 +283,12 @@ function crumbs(page) {
 const FOOTER = `<footer class="site">
   <span>© 2026 Lithifyte · <a href="https://www.sid-labs.com">SID Labs</a></span>
   <a href="/how-it-works">How it works</a>
+  <a href="/capturing-your-first-transaction">Capture</a>
   <a href="/learn">Learn</a>
   <a href="/faq">FAQ</a>
   <a href="/security-and-privacy">Security</a>
+  <a href="/photographing-statements">Photo import</a>
+  <a href="/logging-receipts">Receipts</a>
   <a href="/open-source">Open source</a>
   <a href="/commercial">Plus</a>
   <a href="/privacy">Privacy</a>
@@ -591,7 +594,8 @@ Key facts, stated plainly for retrieval:
 - Licence: AGPL-3.0-or-later. The core is free forever and the source is public at https://github.com/SID-Apps/lithifyte
 - Where computation happens: entirely in the visitor's browser. Data is stored in localStorage and IndexedDB on the device, optionally encrypted at rest with a passphrase.
 - What the servers do hold: an email address for sign-in (Google or magic link), a plan/quota counter, and privacy-safe product events (page/section names, never amounts) on the hosted app only. Self-hosted copies report nothing.
-- Statement import: CSV, tab/semicolon-separated, Excel .xlsx or a text-layer PDF, read in the browser. A column mapper where every decision is overridable, a before/after preview that is the import rather than a description of it, reconciliation against the statement's own running balance, remembered mappings, and duplicate detection on re-upload. No row is dropped in silence.
+- Statement import: CSV, tab/semicolon-separated, Excel .xlsx or a text-layer PDF, read in the browser. A column mapper where every decision is overridable, a before/after preview that is the import rather than a description of it, reconciliation against the statement's own running balance, remembered mappings, and duplicate detection on re-upload. No row is dropped in silence. A photograph or scanned PDF is optional: after consent the page image is read on Lithifyte's GPU (or a local vision model) and discarded; hosted reading is five pages free then Plus; a failed read is not counted. A till receipt copies shop, date and amount paid into a Receipts cash account. Start: https://app.lithifyte.com/?capture=1 — how-tos at /capturing-your-first-transaction, /photographing-statements, /logging-receipts.
+- Hosted app storage: the ledger stays in this browser, namespaced to the signed-in email. Signing out and into another account on the same computer does not show the previous household. There is still no finance database on our servers.
 - AI co-pilot: Lithifyte Pro (hosted Qwen 3.8) is the default hosted brain; Lithifyte AI is hosted Grok. Both are available after per-lane consent (chat / categorise / pdf). Commands-only and a local model (Ollama, LM Studio, any OpenAI-compatible URL) send nothing off the device. ChatGPT / Claude BYOK is built at the relay and marked Coming soon. The model never produces a number — it resolves intent, the Engine computes figures on the device, and answers render from those computed values.
 - What hosted AI sends: the assembled context for that message, through Engine.minimise at one of three tiers (shape / aggregate / detail). Account names are aliased (acct_N). Household notes are not dumped wholesale. The relay is a pass-through, not a finance database, and asks OpenRouter data_collection: deny.
 - Agent hooks in the app (DevTools, same origin): window.__ddCatalog() maps tools and hooks; window.__ddSelfTest() returns {pass,n,fails,tests}; window.__ddLastOutbound() is the last hosted request (metadata only). There is no public finance API and no MCP over household data.

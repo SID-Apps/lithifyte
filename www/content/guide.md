@@ -6,9 +6,9 @@ section: product
 description: Every part of Lithifyte in the order you meet it — importing statements, cleaning categories, reading the map, budgets, forecasts, debt payoff, net worth, backups and the self-tests.
 summary: A complete feature reference, ordered the way you actually encounter things: get data in, make it trustworthy, understand it, then plan with it. There is also an interactive version inside the app with an Ask box.
 keywords: [Lithifyte guide, how to import bank statement CSV, budgeting software tutorial, net worth tracker guide]
-updated: 2026-08-14
+updated: 2026-08-25
 priority: 0.9
-related: [how-it-works, learn, faq]
+related: [how-it-works, capturing-your-first-transaction, photographing-statements, logging-receipts, learn, faq]
 ---
 
 ## Before you start
@@ -21,7 +21,11 @@ If you would rather look before you type anything, the [sample household](https:
 
 **Set up the skeleton first.** Name the people in your household and the accounts they hold. Everything else hangs off this, and getting it right early saves re-work.
 
-**Then import a statement.** Export whatever your bank gives you — CSV, tab- or semicolon-separated, or Excel `.xlsx`. The spreadsheet is unzipped and read inside your browser, with no library and nothing uploaded, so the privacy promise holds for it too.
+**Then import a statement.** Export whatever your bank gives you — CSV, tab- or semicolon-separated, Excel `.xlsx`, or a PDF with selectable text. Those are unzipped and read inside your browser, with nothing uploaded.
+
+A **scan or a phone photo** of a paper statement is different: there is no text layer, so a vision model has to read the page. Point Lithifyte at a model you run (Settings → your own model) and the photo stays on this device. Otherwise Lithifyte’s server reads it, never stores the image, and checks the figures against the statement’s own totals before you see a preview. Hosted reads are 5 free pages, then Plus. Either way, nothing reaches your dashboard until you confirm the preview.
+
+A **till receipt** is the same camera, a smaller job: shop, date, amount paid, into a Receipts cash account. From the website, [Capture your first transaction](https://app.lithifyte.com/?capture=1) signs you in, includes those free pages, and opens the camera path. In the app: **Log a receipt**, or the ＋ menu in chat.
 
 Press **Prepare & preview**, which is two steps:
 

@@ -3,15 +3,15 @@ title: How Lithifyte works
 shortTitle: How it works
 slug: how-it-works
 section: product
-description: Lithifyte reads your bank statements in the browser, builds a live map of your money, and computes budgets, forecasts, debt plans and net worth on your device. Nothing is uploaded.
-summary: You upload a bank statement to a web page. The page reads it in your browser, works out who spent what and where it went, and draws the result as a living map. No file is transmitted, because there is no server on the other end to receive it.
-keywords: [household finance software, private budgeting app, bank statement analysis, offline finance app, open source money manager]
-updated: 2026-08-13
+description: Lithifyte reads CSV and text PDFs in the browser, can photograph a paper statement or receipt after you agree, and computes budgets, forecasts and net worth on your device. There is no finance database.
+summary: Drop a CSV or a text PDF — it is read in this tab and never uploaded. Or photograph a statement or a till receipt after you sign in. The map, budgets and forecasts are computed on your device. Hosted photo reading is five pages free then Plus.
+keywords: [household finance software, private budgeting app, bank statement analysis, photograph bank statement, offline finance app, open source money manager]
+updated: 2026-08-25
 priority: 0.9
 howto_name: Set up Lithifyte with your own bank statements
 howto_time: PT15M
-howto_steps: [Open the app|Go to app.lithifyte.com or download index.html and open it from your own disk. There is no account step., Add the people and accounts|Name the people in your household and the accounts they hold. This is the skeleton the map hangs on., Import a statement|Export a CSV or .xlsx from your bank and drop it in. Press Prepare & preview: it maps the columns, you correct anything it got wrong, and you see every finished transaction before it is saved., Check the categories|Fix anything miscategorised once and write a rule so it stays fixed. Transfers between your own accounts are matched and excluded from spending., Set a goal or a budget|Give it something to aim at. The forecast and the pace-based budget both build on your real history rather than a round number.]
-related: [guide, security-and-privacy, faq]
+howto_steps: [Open the app|Go to app.lithifyte.com/?capture=1 or download index.html. On the hosted app sign in so photo pages can be metered., Import however it arrives|Drop a CSV Excel or text PDF — read in the browser. Or photograph a paper page or till slip. Confirm the preview before anything is saved., Check the categories|Fix anything miscategorised once and write a rule so it stays fixed. Transfers between your own accounts are matched and excluded from spending., Set a goal or a budget|Give it something to aim at. The forecast and the pace-based budget both build on your real history rather than a round number.]
+related: [capturing-your-first-transaction, photographing-statements, logging-receipts, guide, security-and-privacy, faq]
 ---
 
 ## The short version
@@ -23,7 +23,7 @@ That single decision explains nearly everything else about the product — why t
 ## What actually happens when you use it
 
 1. **The page loads.** It is a single self-contained HTML file — the interface, the charts and the entire calculation engine, delivered in one request.
-2. **You add a statement.** Your browser reads the file from your disk — CSV or Excel `.xlsx`, whichever your bank gives you. It is parsed in memory by JavaScript running on your machine, and a preview shows you exactly what will be stored before anything is. No upload happens at any point.
+2. **You add a statement.** A CSV, spreadsheet or PDF with selectable text is read **in this browser**. A photograph or a scanned PDF has no text the browser can trust: if you ask, a vision model copies what is printed, **code** checks the figures, and you still confirm the preview. How to start: [Capture your first transaction](/capturing-your-first-transaction). What a photo does: [Photographing a bank statement](/photographing-statements).
 3. **The engine enriches it.** Every transaction is matched against your categorisation rules, merchant names are normalised so that `TESCO STORES 3184` and `TESCO EXPRESS` become one merchant, transfers between your own accounts are detected and paired so they do not read as income and spending, and recurring payments are identified by their cadence.
 4. **The results are stored locally.** In your browser's localStorage and IndexedDB, on that device, optionally encrypted at rest behind a passphrase you choose.
 5. **Everything you see is computed from that.** Budgets, forecasts, the debt planner, net worth and the money map are all functions of the same enriched data, recalculated as it changes.
@@ -55,9 +55,9 @@ Two things make it worth trusting. The model never produces a number — it work
 
 ## What it does not do
 
-It does not connect to your bank by default. It does not give financial advice, recommend products, or take a commission from anyone. It does not have a premium tier that unlocks your own numbers — Plus is hosted AI, an encrypted vault, and pack updates. There is no finance backend. The places anything about your money can leave the browser are: hosted AI (after you consent, only the slice that question needs) and an optional encrypted backup you choose to store on Drive or in the Plus vault (ciphertext we cannot read).
+It does not connect to your bank by default. It does not give financial advice, recommend products, or take a commission from anyone. It does not have a premium tier that unlocks your own numbers — Plus is hosted AI, an encrypted vault, and pack updates. There is no finance backend. The places anything about your money can leave the browser are: hosted AI (after you consent, only the slice that question needs); a **photo or scanned PDF you chose to send** (read on our GPU or yours, not stored, confirmed before save); and an optional encrypted backup you choose to store on Drive or in the Plus vault (ciphertext we cannot read).
 
-Statement import is the supported path in, and it is deliberate rather than a limitation to apologise for: a file you exported yourself is a file no third party had to be trusted with.
+CSV and text-PDF import is still the private default: a file you exported yourself is a file no third party had to be trusted with. Paper is optional, metered, and tickable.
 
 Commands-only and a local model keep even the co-pilot on your own machine.
 
