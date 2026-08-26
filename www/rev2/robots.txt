@@ -90,6 +90,28 @@ Allow: /
 User-agent: Google-GeminiNotebook
 Allow: /
 
+# xAI / Grok. xAI has not published an official crawler split. Directories
+# list GrokBot as training-adjacent and xAI-Grok / Grok-DeepSearch / xAI-Bot
+# as live search. Blocking GrokBot is the same own-goal as blocking
+# Google-Extended: Grok then treats the site as unavailable. Allow the
+# family; Content-Signal still says ai-train=no.
+
+User-agent: xAI-Grok
+Allow: /
+
+User-agent: Grok-DeepSearch
+Allow: /
+
+User-agent: xAI-Bot
+Allow: /
+
+User-agent: Grok
+Allow: /
+
+User-agent: GrokBot
+Content-Signal: search=yes, ai-input=yes, ai-train=no
+Allow: /
+
 # ── Model training crawlers: not allowed ───────────────────────────────────
 # No objection to being read and quoted. The objection is to a corpus that
 # absorbs the work and returns nothing — no link, no attribution, no reader.

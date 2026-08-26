@@ -76,6 +76,33 @@ and **Request indexing**, and confirm the sitemap `https://lithifyte.com/sitemap
 is submitted on the domain property. Give Gemini a recrawl window after that;
 the canned "not accessible or indexed" reply can lag the file change by hours.
 
+### Grok (xAI)
+
+xAI has not published a crawler list comparable to Google's. Directories report
+these robots.txt tokens:
+
+| Token | Usually described as |
+|---|---|
+| `xAI-Grok` | Live Grok Search fetch |
+| `Grok-DeepSearch` | Multi-step research with citations |
+| `xAI-Bot` / `Grok` | Generic xAI retrieval |
+| `GrokBot` | Training-adjacent; also the token most "block Grok" recipes use |
+
+Lithifyte **Allows** all of them. Blocking `GrokBot` because a directory labelled
+it "training" is the same mistake as blocking `Google-Extended`. Content-Signal
+still says `ai-train=no`. Live fetches that spoof Chrome ignore robots.txt
+anyway — they already get the public HTML (200, no interstitial).
+
+What actually makes the site usable by Grok, in order:
+
+1. Public HTML with the prose in the source (already true of every content page).
+2. `/llms.txt`, `/llms-full.txt`, and `Accept: text/markdown` twins (already).
+3. Explicit `Allow` for the tokens above (landing + app `/tutorial`).
+4. Cloudflare **Block AI Scrapers** off, **Managed robots.txt** off (already).
+5. Mentions **off-site**, especially on X. Grok's strongest corpus is the X
+   firehose, not the open web. A crawlable lithifyte.com is necessary and not
+   sufficient.
+
 There is also an **agent-readiness** panel on the same Cloudflare screen,
 scored by isitagentready.com. Scan the site directly rather than trusting the
 panel's cached result, which goes stale the moment you deploy:
@@ -332,6 +359,7 @@ rank quickly, and the AI answer engines only cite pages they have crawled.
 | AI citations | Ask ChatGPT/Claude/Perplexity a question the library answers | Lithifyte pages cited by URL |
 | Crawl activity | Cloudflare → Analytics, filtered by user agent | `OAI-SearchBot`, `PerplexityBot`, `Claude-SearchBot` present and not 403ing |
 | Gemini | Ask Gemini "what is lithifyte.com?" | It cites lithifyte.com. If it says the domain is private/unindexed, `Google-Extended` is still `Disallow` (ours or Cloudflare Managed) or Search Console has not indexed the URL yet |
+| Grok | Ask Grok "what is lithifyte.com?" | It cites lithifyte.com or quotes `/llms.txt`. If it cannot see the site, check `GrokBot`/`xAI-Grok` are `Allow` and Cloudflare is not challenging the fetch |
 
 Do not chase keyword volume for the head terms — "budgeting app" is contested
 by companies with marketing budgets. The library is aimed at the questions

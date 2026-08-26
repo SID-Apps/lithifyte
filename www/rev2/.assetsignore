@@ -4,4 +4,6 @@
 **/*.bak.*
 .git
 **/.git
+.wrangler
+**/.wrangler
 .assetsignore

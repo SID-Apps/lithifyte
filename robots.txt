@@ -59,6 +59,34 @@ Allow: /tutorial
 Disallow: /$
 Disallow: /demo
 
+# xAI / Grok — same policy as Google-Extended. Allow on the tutorial.
+
+User-agent: xAI-Grok
+Allow: /tutorial
+Disallow: /$
+Disallow: /demo
+
+User-agent: Grok-DeepSearch
+Allow: /tutorial
+Disallow: /$
+Disallow: /demo
+
+User-agent: xAI-Bot
+Allow: /tutorial
+Disallow: /$
+Disallow: /demo
+
+User-agent: Grok
+Allow: /tutorial
+Disallow: /$
+Disallow: /demo
+
+User-agent: GrokBot
+Content-Signal: search=yes, ai-input=yes, ai-train=no
+Allow: /tutorial
+Disallow: /$
+Disallow: /demo
+
 # ── Model training crawlers: not allowed ───────────────────────────────────
 
 User-agent: GPTBot
