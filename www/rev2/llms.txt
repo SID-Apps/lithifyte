@@ -17,6 +17,7 @@ Key facts, stated plainly for retrieval:
 
 ## Product
 
+- [Lithifyte — a free budgeting app that runs in your browser](https://lithifyte.com/budgeting-app): Lithifyte is a free, open-source budgeting app. It runs as a single HTML file in your browser, reads your bank statements on your device, and computes budgets, forecasts, debt payoff plans and net worth locally. The core is AGPL-3.0-or-later and free forever, there are no ads, and your ledger is never uploaded.
 - [Capture your first transaction](https://lithifyte.com/capturing-your-first-transaction): Sign in at app.lithifyte.com/?capture=1. Choose Upload a file (CSV, Excel or a text PDF — never uploaded) or Take a photo (QR on a computer, camera on a phone). Confirm the preview before anything is saved. Five hosted photo pages are free.
 - [Plus and commercial licensing](https://lithifyte.com/commercial): The calculator is free forever. Official Lithifyte sells the living product — AI, vault, bank presets — and a commercial licence of the Engine for white-label use.
 - [Frequently asked questions](https://lithifyte.com/faq): Short, direct answers. If a question you have is not here, the [guide](https://lithifyte.com/guide) goes deeper and the [source code](https://github.com/SID-Apps/lithifyte) settles any argument about what the software actually does.
@@ -45,6 +46,7 @@ Key facts, stated plainly for retrieval:
 - [Net worth, explained without the jargon](https://lithifyte.com/learn/net-worth): Net worth is everything you own minus everything you owe. It is the only single number that captures your whole financial position — and its value lies almost entirely in watching it move, not in what it says today.
 - [Why 50/30/20 breaks, and what to do instead](https://lithifyte.com/learn/why-50-30-20-breaks): 50/30/20 is a useful teaching device and a poor operating budget. It assumes housing costs that many people do not have, splits needs from wants along a line that does not exist, and ignores the annual bills that actually break budgets.
 - [Plain-English money glossary](https://lithifyte.com/learn/glossary): Every term you are likely to meet on a statement, in a loan document or in a budgeting guide, defined plainly and without circularity. Definitions first, context second.
+- [Free YNAB alternatives, compared honestly](https://lithifyte.com/learn/free-ynab-alternatives): There is no free app that is YNAB with the price removed. There are free apps that are better than YNAB at one specific thing — self-hosting, local-only data, double-entry, statement analysis — and worse at the others. This page says which is which, including where Lithifyte loses.
 
 ## Policies
 

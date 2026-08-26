@@ -12,6 +12,18 @@ and being training data are separate things, and `robots.txt` separates them.
 
 ## 0 · Google-Extended, Gemini, and Cloudflare's Managed robots.txt
 
+> **Status, 2026-08-26: RESOLVED. Managed robots.txt is off.**
+>
+> Verified on both hosts: the live file now opens with our own header, there is
+> exactly one `User-agent: *` group, `Google-Extended` is `Allow: /` with no
+> earlier `Disallow`, and `CloudflareBrowserRenderingCrawler` is no longer
+> blocked. Everything below is kept because the toggle can be re-enabled by a
+> future dashboard change and the symptom is invisible from the repo.
+>
+> Re-check with `curl -s https://lithifyte.com/robots.txt | grep -c 'BEGIN Cloudflare Managed'`
+> — it must return `0`. Note this was always a zone toggle: **no deploy fixes
+> it**, so do not spend a deploy trying if it comes back.
+
 **The token that actually gates Gemini is `Google-Extended`.** It is not a
 separate crawler and it is not training-only. Google's own crawler list says
 publishers use it to control whether crawled content may be used **for Gemini
@@ -186,6 +198,7 @@ Frontmatter fields that matter:
 | `section` | `product` or `learn` — decides the URL and the hub |
 | `group`, `order` | Placement on the `/learn` hub (`GROUP_ORDER` in the script sets the group sequence) |
 | `schema` | `faq` builds FAQPage from the `###` headings; `glossary` builds DefinedTermSet |
+| `mainEntity` | `software` points the page's WebPage node at the homepage's `#software` @id. Use it on entity pages so they reinforce one SoftwareApplication instead of declaring rival ones |
 | `related` | Slugs for the "keep reading" block |
 | `updated` | Drives `dateModified` and the sitemap `lastmod` — **bump it when you edit** |
 
@@ -236,6 +249,76 @@ because pushing `main` auto-deploys the app. Either ship it deliberately (it is
 self-tested at 235/235) or stage selectively. Once it does ship, the import
 section of `www/content/guide.md` should gain the XLSX reader, the column
 mapper and reconciliation — it currently describes only what is live.
+
+## 6b · The bottleneck is external, not on this site
+
+**Measured 2026-08-26.** Layers 1 and 2 of this runbook are done to a standard
+almost no site of this size reaches. They are producing nothing, and the reason
+is not on the site.
+
+- A web search for the exact string `lithifyte.com` returns the Merriam-Webster
+  entry for *lithify*, the Wikipedia article on **lithification**, and
+  **lithify.com** (a rocks-and-minerals shop). Not us.
+- A search for `Lithifyte budgeting app` returns NerdWallet, Actual Budget and
+  Kiplinger. Not us.
+- The GitHub repo is public, correctly topic-tagged, and sits at **0 stars**.
+
+Nothing on the internet points here. That is the whole finding. More articles
+do not fix it — 16 were live and unlinked when this was measured, and thirty
+more would have multiplied the same zero.
+
+**The brand name is also a permanent tax.** *Lithifyte* is one letter from
+*lithify*, which has Merriam-Webster and OED entries, a Wikipedia article, and
+an active commercial domain. Engines will autocorrect and entity resolution
+will collide. Never ship the bare brand word without the category attached to
+it — that is why `/budgeting-app` exists and why the homepage `<title>` now
+says what the thing is.
+
+### The one lever left, in priority order
+
+All free. Ranked by how heavily the source is quoted back by models.
+
+1. **AlternativeTo.net** — submit as a free/open-source YNAB alternative. This
+   is literally the page models quote for "alternatives to X".
+2. **awesome-selfhosted** and **awesome-privacy** PRs — high authority, densely
+   crawled, and present in training corpora, which is the one route to being
+   named without a search.
+3. **Show HN** — single HTML file, AGPL, bank data never leaves the browser.
+   That is an HN-shaped story and it is true.
+4. **opensourcealternative.to**, Privacy Guides discussion.
+5. Reddit: r/selfhosted, r/privacy, r/plaintextaccounting, r/ireland —
+   disclosing authorship.
+
+Each also produces a real backlink, which is what layers 1 and 2 have been
+waiting for.
+
+### Resolved — `lithifyte-com.pages.dev` deleted 2026-08-26
+
+The Cloudflare **Pages** project `lithifyte-com` still serves a ~1-month-old
+copy of the whole marketing site, with **no robots.txt, no canonical, and a 200
+for every path** — `/budgeting-app` and `/zzz-nonsense` both return the old
+homepage. Unlimited soft-404 duplicates on an indexable host.
+
+It was not the cause of anything in Search Console (the domain property covers
+`lithifyte.com` only), but it diluted external signal. **The Pages project was
+deleted on 2026-08-26**; `lithifyte-com.pages.dev` no longer resolves.
+
+Checked before deleting, and worth repeating if a mirror is ever recreated: the
+project had **no custom domains** (only `lithifyte-com.pages.dev`), and both
+`lithifyte.com` and `www.lithifyte.com` were served by the `lithifyte-landing`
+Worker — confirmed by both returning the *new* homepage `<title>` while the
+Pages copy still returned the old one. If a mirror is wanted again, give it a
+blanket-`Disallow` robots.txt and a canonical to the apex before it goes live.
+
+### The trade to keep stating out loud
+
+`GPTBot` and `ClaudeBot` are disallowed, and that stays. Be clear what it buys
+and costs: Lithifyte can be **cited when a model searches**, and can never be
+**recommended from memory**. "What is the best free budgeting app?" asked
+without a search tool will not say Lithifyte, by construction. That is the
+price of the position and it is payable — but it is exactly why third-party
+mentions, which *are* in the corpora, matter more here than for a site that
+lets the training crawlers in.
 
 ## 7 · What to watch, and what not to expect
 

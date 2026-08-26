@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lithifyte — a free budgeting app that runs in your browser — Lithifyte</title>
+<meta name="description" content="Lithifyte is a free, open-source budgeting app and personal finance tracker that runs entirely in your browser. It imports bank statements, categorises spending, builds budgets from your own history, plans debt payoff and tracks net worth — with no finance database on any server.">
+<link rel="canonical" href="https://lithifyte.com/budgeting-app">
+<meta name="theme-color" content="#020b1a">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+<meta name="keywords" content="free budgeting app, budgeting app, open source budgeting app, personal finance app, expense tracker, budget planner, privacy budgeting app, offline budgeting app">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Lithifyte">
+<meta property="og:url" content="https://lithifyte.com/budgeting-app">
+<meta property="og:title" content="Lithifyte — a free budgeting app that runs in your browser">
+<meta property="og:description" content="Lithifyte is a free, open-source budgeting app and personal finance tracker that runs entirely in your browser. It imports bank statements, categorises spending, builds budgets from your own history, plans debt payoff and tracks net worth — with no finance database on any server.">
+<meta property="og:image" content="https://lithifyte.com/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Lithifyte — a free budgeting app that runs in your browser">
+<meta name="twitter:description" content="Lithifyte is a free, open-source budgeting app and personal finance tracker that runs entirely in your browser. It imports bank statements, categorises spending, builds budgets from your own history, plans debt payoff and tracks net worth — with no finance database on any server.">
+<meta name="twitter:image" content="https://lithifyte.com/og.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/page.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://lithifyte.com/budgeting-app#breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://lithifyte.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Budgeting app",
+          "item": "https://lithifyte.com/budgeting-app"
+        }
+      ]
+    },
+    {
+      "@id": "https://lithifyte.com/budgeting-app#page",
+      "url": "https://lithifyte.com/budgeting-app",
+      "name": "Lithifyte — a free budgeting app that runs in your browser",
+      "description": "Lithifyte is a free, open-source budgeting app and personal finance tracker that runs entirely in your browser. It imports bank statements, categorises spending, builds budgets from your own history, plans debt payoff and tracks net worth — with no finance database on any server.",
+      "inLanguage": "en",
+      "isPartOf": {
+        "@id": "https://lithifyte.com/#website"
+      },
+      "breadcrumb": {
+        "@id": "https://lithifyte.com/budgeting-app#breadcrumb"
+      },
+      "publisher": {
+        "@id": "https://lithifyte.com/#organization"
+      },
+      "dateModified": "2026-08-26",
+      "mainEntity": {
+        "@id": "https://lithifyte.com/#software"
+      },
+      "@type": "WebPage"
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="site">
+  <a class="brand" href="/"><img src="/icon-192.png" alt="" width="28" height="28"> LITHIFYTE</a>
+  <nav class="site" aria-label="Site">
+    <a href="/how-it-works">How it works</a>
+    <a href="/learn">Learn</a>
+    <a href="/guide">Guide</a>
+    <a href="/faq">FAQ</a>
+    <a href="https://app.lithifyte.com/demo">Sample</a>
+    <a href="https://access.lithifyte.com/">Sign in</a>
+  </nav>
+  <button class="nav-burger" type="button" aria-expanded="false" aria-controls="siteMenu" aria-label="Menu">
+    <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+  </button>
+</header>
+<div class="nav-menu" id="siteMenu" hidden>
+  <a href="/how-it-works">How it works</a>
+  <a href="/learn">Learn</a>
+  <a href="/guide">Guide</a>
+  <a href="/faq">FAQ</a>
+  <a href="https://app.lithifyte.com/demo">Sample</a>
+  <a href="https://access.lithifyte.com/">Sign in</a>
+</div>
+<div class="nav-scrim" hidden></div>
+<script>
+/* Mobile menu — plain and self-contained; these are static content pages. */
+(function(){
+  var b=document.querySelector('.nav-burger'), m=document.getElementById('siteMenu'), s=document.querySelector('.nav-scrim');
+  if(!b||!m||!s) return;
+  m.removeAttribute('hidden'); s.removeAttribute('hidden');   /* CSS owns visibility */
+  function isOpen(){ return b.getAttribute('aria-expanded')==='true'; }
+  function set(open){
+    b.setAttribute('aria-expanded', open?'true':'false');
+    m.classList.toggle('open', open); s.classList.toggle('open', open);
+    document.body.style.overflow = open?'hidden':'';
+  }
+  b.addEventListener('click',function(e){ e.preventDefault(); e.stopPropagation(); set(!isOpen()); });
+  s.addEventListener('click',function(){ set(false); });
+  m.addEventListener('click',function(e){ if(e.target.closest('a')) set(false); });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&isOpen()){ set(false); b.focus(); } });
+  window.addEventListener('resize',function(){ if(isOpen()&&window.innerWidth>760) set(false); });
+})();
+</script>
+
+<main class="page">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span class="sep">/</span> <span aria-current="page">Budgeting app</span></nav>
+  <h1>Lithifyte — a free budgeting app that runs in your browser</h1>
+  <p class="updated">Updated 26 August 2026</p>
+  <p class="lede">Lithifyte is a free, open-source budgeting app. It runs as a single HTML file in your browser, reads your bank statements on your device, and computes budgets, forecasts, debt payoff plans and net worth locally. The core is AGPL-3.0-or-later and free forever, there are no ads, and your ledger is never uploaded.</p>
+
+<h2 id="what-lithifyte-is">What Lithifyte is</h2>
+<p>Lithifyte is a <strong>free budgeting app and personal finance tracker for households</strong>. It runs as a single HTML file in a web browser. You give it your bank statements; it reads them on your device, works out what your money has actually been doing, and helps you plan what it does next.</p>
+<p>It is not a service that holds your transactions. There is no finance database on our servers to hold them in. That one design decision explains most of what follows on this page — what it does well, and what it deliberately cannot do.</p>
+<h2 id="the-facts-stated-plainly">The facts, stated plainly</h2>
+<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Cost</strong></td><td>€0 for the core, permanently. Optional Plus is €9/month or €90/year.</td></tr><tr><td><strong>Licence</strong></td><td>AGPL-3.0-or-later. <a href="https://github.com/SID-Apps/lithifyte" rel="noopener">Source is public.</a></td></tr><tr><td><strong>Where it runs</strong></td><td>Your browser. One HTML file. No install required.</td></tr><tr><td><strong>Where your data sits</strong></td><td>On your device, in browser storage, optionally encrypted with a passphrase.</td></tr><tr><td><strong>What our servers store</strong></td><td>An email address for sign-in, a plan counter, and privacy-safe usage events. Never amounts, never your ledger.</td></tr><tr><td><strong>Ads</strong></td><td>None, and no plans for any.</td></tr><tr><td><strong>Selling data</strong></td><td>Never. There is nothing to sell — see above.</td></tr><tr><td><strong>Export</strong></td><td>CSV of everything, never gated behind a payment.</td></tr><tr><td><strong>Works offline</strong></td><td>Yes, once loaded.</td></tr><tr><td><strong>Currencies</strong></td><td>Multi-currency, with reference exchange rates.</td></tr><tr><td><strong>Bank feeds</strong></td><td>None, deliberately. See <a href="#the-trade-this-app-makes">the trade</a>.</td></tr><tr><td><strong>Made by</strong></td><td>Lithifyte (SID Labs), Ireland. Jurisdiction-neutral — it ships no tax rates for any country.</td></tr></tbody></table></div>
+<h2 id="what-it-does">What it does</h2>
+<p><strong>Imports statements without losing rows.</strong> CSV, tab- or semicolon-separated files, Excel <code>.xlsx</code>, and text-layer PDFs are read in the browser. A column mapper lets you override every decision, a before/after preview <em>is</em> the import rather than a description of it, and figures are reconciled against the statement's own running balance. Mappings are remembered and re-uploads are checked for duplicates. No row is ever dropped in silence.</p>
+<p><strong>Reads paper, if you ask it to.</strong> A photographed statement page or a till receipt can be read for you after you consent, then discarded. Five pages are free; beyond that it is a Plus feature, and a failed read is not counted.</p>
+<p><strong>Categorises, and stays categorised.</strong> Fix a miscategorised merchant once and write a rule so it stays fixed. Transfers between your own accounts are matched and excluded from spending, so moving money does not look like spending it.</p>
+<p><strong>Budgets from your history, not from a round number.</strong> Budgets are built from the pace of your own leaner months rather than from an allocation you invented. This is not envelope budgeting — if you want envelopes, <a href="/learn/free-ynab-alternatives">the comparison page</a> says who does that better.</p>
+<p><strong>Plans debt payoff.</strong> Avalanche and snowball, with the actual interest cost of each shown rather than asserted.</p>
+<p><strong>Forecasts cashflow and tracks net worth.</strong> Both computed from real history — recurring costs detected, irregular bills anticipated, assets and liabilities composed into one figure over time.</p>
+<p><strong>Maps the whole thing.</strong> People, accounts, merchants, categories and patterns as a live map, which is the part that tends to show you something you did not know.</p>
+<h2 id="the-trade-this-app-makes">The trade this app makes</h2>
+<p>Budgeting apps with automatic bank feeds keep a copy of your transactions on their servers. That copy is what makes the syncing possible — and it also makes them a target, gives them a commercial interest in your data, and means your access depends on their continued existence.</p>
+<p>Lithifyte gives up automatic syncing and gets independence in return.</p>
+<p>Both are legitimate trades. This one is simply rarely offered, and it is the reason you import a statement here instead of connecting an account. If automatic feeds matter more to you than where the data lives, an app that has them is the honest recommendation, and <a href="/learn/free-ynab-alternatives">we say which ones</a>.</p>
+<h2 id="why-free-is-credible-here">Why "free" is credible here</h2>
+<p>A privacy promise you cannot verify is marketing. Three things make this one checkable:</p>
+<ol><li><strong>The source is published</strong> under AGPL-3.0-or-later. The claim that your ledger is never uploaded is something you can read for yourself, not something you have to believe.</li><li><strong>The core has no server to pay for.</strong> It is a file that runs in your browser. There is no per-user hosting cost that has to be recovered later by charging you or selling something.</li><li><strong>Revenue comes from Plus</strong>, which is hosted AI, an encrypted vault and maintained bank import presets — additions, not the removal of a restriction. Export is never gated.</li></ol>
+<p>If Lithifyte disappeared tomorrow, the file you already have keeps working, and you can fork it.</p>
+<h2 id="optional-ai-and-what-it-is-allowed-to-see">Optional AI, and what it is allowed to see</h2>
+<p>There is an AI co-pilot. It is off until you turn it on, per purpose — chat, categorising, PDF reading — and it can be pointed at a model running on your own machine, in which case nothing leaves the device at all.</p>
+<p>When hosted AI is used, the model never produces a number. It works out what you meant; the calculation happens on your device; the answer is rendered from figures computed locally. What gets sent is the minimum slice a question needs, with account names aliased. Never the statement file.</p>
+<h2 id="getting-started">Getting started</h2>
+<p>Open <a href="https://app.lithifyte.com/demo" rel="noopener">the sample dataset</a> to see the whole app running on invented numbers with nothing to sign up for, or start with <a href="/capturing-your-first-transaction">your first transaction</a>. <a href="/how-it-works">How it works</a> covers the mechanics; the <a href="/guide">guide</a> covers importing your own statements; <a href="/security-and-privacy">security and privacy</a> states the technical position without marketing language.</p>
+<aside class="cta"><h2>Try it</h2><p>The sample household is fully populated with invented data — no sign-up, nothing to upload. When you are ready to use your own statements, sign-in is a magic link and holds no financial data.</p><p><a class="btn" href="https://app.lithifyte.com/demo">Explore the sample household</a> <a class="btn ghost" href="https://access.lithifyte.com/">Sign in free</a></p></aside>
+<aside class="related"><h2>Keep reading</h2><ul><li><a href="/how-it-works">How Lithifyte works</a> <span class="rel-d">Drop a CSV or a text PDF — it is read in this tab and never uploaded. Or photograph a statement or a till receipt after you sign in. The map, budgets and forecasts are computed on your device. Hosted photo reading is five pages free then Plus.</span></li><li><a href="/open-source">Open source, and why it matters here</a> <span class="rel-d">A privacy promise you cannot verify is marketing. The Engine is published under AGPL-3.0-or-later as a single readable file, so the claim that we never store your ledger is something you can check. Official Lithifyte also sells hosted intelligence and maintained bank import presets — those are not required to run the file.</span></li><li><a href="/security-and-privacy">Security and privacy, in technical terms</a> <span class="rel-d">The claim is narrow and testable: there is no finance database, so your ledger is never stored by us. CSV and text PDFs never leave the tab. A scan or photo you choose to send is read on our GPU (or on a model you run) and discarded. Hosted chat sends only the slice a question needs. All of that is set out below.</span></li><li><a href="/guide">The Lithifyte guide</a> <span class="rel-d">A complete feature reference, ordered the way you actually encounter things: get data in, make it trustworthy, understand it, then plan with it. There is also an interactive version inside the app with an Ask box.</span></li><li><a href="/faq">Frequently asked questions</a> <span class="rel-d">Short, direct answers. If a question you have is not here, the [guide](/guide) goes deeper and the [source code](https://github.com/SID-Apps/lithifyte) settles any argument about what the software actually does.</span></li></ul></aside>
+</main>
+
+<footer class="site">
+  <span>© 2026 Lithifyte · <a href="https://www.sid-labs.com">SID Labs</a></span>
+  <a href="/how-it-works">How it works</a>
+  <a href="/capturing-your-first-transaction">Capture</a>
+  <a href="/learn">Learn</a>
+  <a href="/faq">FAQ</a>
+  <a href="/security-and-privacy">Security</a>
+  <a href="/photographing-statements">Photo import</a>
+  <a href="/logging-receipts">Receipts</a>
+  <a href="/open-source">Open source</a>
+  <a href="/commercial">Plus</a>
+  <a href="/privacy">Privacy</a>
+  <a href="/terms">Terms</a>
+  <a href="https://github.com/SID-Apps/lithifyte">Source (AGPL-3.0)</a>
+</footer>
+</body>
+</html>

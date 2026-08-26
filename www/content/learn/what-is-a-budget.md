@@ -9,7 +9,7 @@ summary: A budget is a **prediction**, not a permission slip. You are guessing w
 keywords: [what is a budget, budgeting basics, how budgets work, budget vs spending plan]
 about: [Budget, Personal finance, Money management]
 updated: 2026-08-09
-related: [make-a-budget-that-survives, categorise-spending, why-50-30-20-breaks]
+related: [make-a-budget-that-survives, categorise-spending, why-50-30-20-breaks, free-ynab-alternatives]
 ---
 
 ## The definition most people carry around

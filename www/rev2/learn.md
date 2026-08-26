@@ -40,3 +40,4 @@ Start anywhere. If you are not sure where, start with [what a budget actually is
 ## Reference
 
 - [Plain-English money glossary](/learn/glossary) — Every term you are likely to meet on a statement, in a loan document or in a budgeting guide, defined plainly and without circularity. Definitions first, context second.
+- [Free YNAB alternatives, compared honestly](/learn/free-ynab-alternatives) — There is no free app that is YNAB with the price removed. There are free apps that are better than YNAB at one specific thing — self-hosting, local-only data, double-entry, statement analysis — and worse at the others. This page says which is which, including where Lithifyte loses.

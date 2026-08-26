@@ -11,7 +11,7 @@ priority: 0.9
 howto_name: Set up Lithifyte with your own bank statements
 howto_time: PT15M
 howto_steps: [Open the app|Go to app.lithifyte.com/?capture=1 or download index.html. On the hosted app sign in so photo pages can be metered., Import however it arrives|Drop a CSV Excel or text PDF — read in the browser. Or photograph a paper page or till slip. Confirm the preview before anything is saved., Check the categories|Fix anything miscategorised once and write a rule so it stays fixed. Transfers between your own accounts are matched and excluded from spending., Set a goal or a budget|Give it something to aim at. The forecast and the pace-based budget both build on your real history rather than a round number.]
-related: [capturing-your-first-transaction, photographing-statements, logging-receipts, guide, security-and-privacy, faq]
+related: [budgeting-app, capturing-your-first-transaction, photographing-statements, logging-receipts, guide, security-and-privacy, faq]
 ---
 
 ## The short version

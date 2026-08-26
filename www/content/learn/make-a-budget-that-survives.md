@@ -9,7 +9,7 @@ summary: Most budgets fail for structural reasons, not moral ones: the numbers w
 keywords: [how to make a budget, realistic budget, budget from bank statement, budgeting method, pace based budget]
 about: [Budget, Personal finance, Saving]
 updated: 2026-08-09
-related: [what-is-a-budget, sinking-funds, categorise-spending]
+related: [what-is-a-budget, sinking-funds, categorise-spending, free-ynab-alternatives]
 ---
 
 ## Step 1 — Get twelve months of history

@@ -9,7 +9,7 @@ summary: Short, direct answers. If a question you have is not here, the [guide](
 keywords: [Lithifyte FAQ, private budgeting app questions, is my bank data safe, free budgeting software]
 updated: 2026-08-25
 priority: 0.9
-related: [how-it-works, security-and-privacy, photographing-statements, open-source]
+related: [how-it-works, budgeting-app, security-and-privacy, photographing-statements, open-source]
 ---
 
 ## Cost and licensing

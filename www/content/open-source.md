@@ -8,7 +8,7 @@ summary: A privacy promise you cannot verify is marketing. The Engine is publish
 keywords: [open source budgeting app, AGPL finance software, self-hosted personal finance, auditable financial software]
 updated: 2026-08-14
 priority: 0.8
-related: [security-and-privacy, how-it-works, guide]
+related: [security-and-privacy, how-it-works, budgeting-app, guide]
 ---
 
 ## The licence

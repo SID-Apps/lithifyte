@@ -329,6 +329,11 @@ function schemaFor(page) {
     dateModified: page.updated,
   };
 
+  // An entity page says, in schema, which thing it is about. Reusing the
+  // homepage's @id rather than declaring a second SoftwareApplication is the
+  // difference between reinforcing one entity and inventing a rival one.
+  if (page.mainEntity === 'software') base.mainEntity = { '@id': `${ORIGIN}/#software` };
+
   if (page.schema === 'faq') {
     graph.push({ ...base, '@type': 'FAQPage', mainEntity: page.faq.map((f) => ({
       '@type': 'Question',
