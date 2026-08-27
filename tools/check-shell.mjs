@@ -63,6 +63,11 @@ ok('app: relay sends convId for Grok cache', /convId:\s*opts\.convId/.test(app))
 ok('app: demo skips hosted consume', /!sample && purpose === 'chat'|!window\.__lfDemo/.test(app) && /__lfDemo/.test(app));
 ok('app: cloud vault block', /id="cloudVaultBlock"/.test(app));
 ok('app: hosted chrome wrapper', /id="hostedChrome"/.test(app));
+ok('app: plus overlay is Signal-shaped', /id="plusOverlay"/.test(app) && /class="plus-box"/.test(app) && /class="plus-plan plus-plan-main"/.test(app) && /class="plus-row"/.test(app) && !/#plusOverlay[\s\S]{0,1200}<ul/.test(app));
+ok('app: window.plusOpen assigned', /window\.plusOpen\s*=\s*plusOpen/.test(app));
+ok('app: sign-in gate uses lf-gate-card', /lf-gate-card/.test(app) && /lf-gate-mark/.test(app) && /lf-gate-submit/.test(app));
+ok('app: space view applied before first paint', /data-view/.test(app) && /html\[data-view="space"\]/.test(app) && /dd-fcast-v1/.test(app));
+ok('app: gate waits for space boot', /__lfReleaseGate/.test(app) && /__lfAppReady/.test(app));
 ok('app: sign out at the bottom of the nav rail', /id="navSignOut"/.test(app) && /id="spaceIcoRail"/.test(app));
 // Retired 2026-08-14. This asserts the ABSENCE of a tax-pack applier: the
 // shell must not carry code that writes statutory rates into FISCAL from a

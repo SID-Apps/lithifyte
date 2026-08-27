@@ -1,8 +1,8 @@
 {
-  "version": "3.21.3",
-  "released": "2026-08-25",
-  "notes": "New accounts no longer inherit another sign-in's uploads. Capture chooser is Upload / Take a photo / Receipt and stays on screen until that path actually starts. First-run onboarding returns when the ledger is empty.",
+  "version": "3.21.5",
+  "released": "2026-08-27",
+  "notes": "Do not flash Classic on launch: html[data-view=space] hides .wrap before first paint, and the sign-in gate stays up until Space.enter().",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "c60429ca18f67013f2b6cc4ed2c3d2df606dc4dbee83a79bae4fa5089700e8c6"
+  "sha256": "7868415be994e7732c7abed73f349886efc2fe300c284bda43f1522c9687c93c"
 }

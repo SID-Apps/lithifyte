@@ -40,6 +40,46 @@
 })();
 </script>
 <script>
+/* ── view, applied before the first paint ────────────────────────────────
+   Space is the default. Classic is an explicit opt-out stored on FCONF.view
+   inside dd-fcast-v1 (namespaced per sample / signed-in email). The class
+   body.space is added much later, after a 1.5MB IIFE — until then .wrap is
+   the classic scrolling page, so a signed-in load (gate drops as soon as
+   /me returns) flashes Classic, then Space. This attribute hides .wrap
+   first, the same way the theme script sets data-theme. */
+(function(){
+  var KEY = 'dd-fcast-v1';
+  function classicStored(){
+    try {
+      var path = location.pathname || '';
+      var demo = /^\/demo/.test(path) || /demo\.html$/i.test(path);
+      var keys = [];
+      if (demo) keys.push(KEY + '-demo');
+      else {
+        var owner = '';
+        try { owner = String(sessionStorage.getItem('lf-owner') || '').trim().toLowerCase(); } catch (e) {}
+        if (owner && owner.indexOf('@') > 0) keys.push(KEY + '::' + owner);
+        keys.push(KEY + '::__signedout');
+        keys.push(KEY);
+      }
+      for (var i = 0; i < keys.length; i++){
+        var raw = localStorage.getItem(keys[i]);
+        if (!raw) continue;
+        try {
+          var o = JSON.parse(raw);
+          if (o && o.view === 'classic') return true;
+          if (o && o.view === 'space') return false;
+        } catch (e) {}
+      }
+    } catch (e) {}
+    return false;
+  }
+  var mobile = false;
+  try { mobile = !!(window.matchMedia && window.matchMedia('(max-width: 720px)').matches); } catch (e) {}
+  document.documentElement.setAttribute('data-view', (!classicStored() || mobile) ? 'space' : 'classic');
+})();
+</script>
+<script>
 /* Hosted sign-in gate — app.lithifyte.com only. Identity, not a finance
    lock: the app is open source and all data is client-side. The hosted blank
    shell asks visitors to sign in (Google or email) so we can retain them and
@@ -51,7 +91,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '3.21.3';
+  var APP_VER = '3.21.5';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -128,16 +168,33 @@
     if (ov || state === 'open') return;
     ov = document.createElement('div');
     ov.id = 'lfGate';
-    ov.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:#020b1a;display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,sans-serif;color:#e8f1ff;text-align:center';
-    ov.innerHTML = '<div style="opacity:.7;font-size:14px;letter-spacing:.08em">Checking sign-in…</div>';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:24px';
+    ov.innerHTML = '<div class="lf-gate-wait">Checking sign-in…</div>';
     (document.body || document.documentElement).appendChild(ov);
+  }
+  var gateTracked = false;
+  function dismissGate(){
+    if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
+    ov = null;
+    if (!gateTracked) {
+      gateTracked = true;
+      window.__lfTrack('gate_open', { path: 'app' });
+    }
   }
   function open(){
     state = 'open';
-    if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
-    ov = null;
-    window.__lfTrack('gate_open', { path: 'app' });
+    /* Do not uncover the page until Space.enter() (or classic boot) has
+       run — otherwise /me resolving mid-parse reveals the classic .wrap. */
+    if (window.__lfAppReady) { dismissGate(); return; }
+    if (ov) {
+      ov.setAttribute('data-hold', '1');
+      ov.innerHTML = '';
+    }
   }
+  window.__lfReleaseGate = function(){
+    window.__lfAppReady = true;
+    if (state === 'open') dismissGate();
+  };
   function bindGateForm(){
     var form = document.getElementById('lfGateForm');
     if (!form) return;
@@ -173,27 +230,26 @@
     var google = cfg && cfg.google;
     var googleHref = 'https://access.lithifyte.com/auth/google' + (captureIntent ? '?next=capture' : '');
     var lead = justTried
-      ? 'We could not see a session cookie after your sign-in. Open the link in <b style="color:#e8f1ff">Chrome or Safari</b> (not only the email app’s built-in browser).'
+      ? 'We could not see a session cookie after your sign-in. Open the link in <b>Chrome or Safari</b> (not only the email app’s built-in browser).'
       : captureIntent
-      ? 'Photograph a statement or a receipt after you sign in. <b style="color:#e8f1ff">Five hosted pages are included</b> (a failed read is not counted). CSV imports stay unlimited and never leave this browser.'
+      ? 'Photograph a statement or a receipt after you sign in. <b>Five hosted pages are included</b> (a failed read is not counted). CSV imports stay unlimited and never leave this browser.'
       : 'Free to start. Your ledger stays in this browser. Sign in so we can remember you and so hosted AI can be metered — we never store statements.';
     ov.innerHTML =
-      '<div style="width:min(420px,100%);background:rgba(4,18,36,.85);border:1px solid rgba(56,189,248,.28);border-radius:16px;padding:30px 26px;box-shadow:0 0 60px rgba(56,189,248,.12);text-align:left">' +
-        '<div style="display:flex;align-items:center;justify-content:center;gap:10px;font-weight:800;font-size:14px;letter-spacing:.06em;margin-bottom:18px;text-align:center">' +
-          '<span style="position:relative;width:26px;height:26px;border-radius:7px;border:1px solid #38bdf8;background:linear-gradient(135deg,#0ea5e9,#1d4ed8);display:inline-block"><span style="position:absolute;inset:6px;border-radius:50%;border:1.5px solid rgba(255,255,255,.85)"></span></span>LITHIFYTE</div>' +
-        '<h1 style="margin:0 0 8px;font-size:24px;line-height:1.15;letter-spacing:-.01em;text-align:center">' + (justTried ? 'Almost there — finish sign-in' : (captureIntent ? 'Sign in to photograph a statement' : 'Sign in to open your money map')) + '</h1>' +
-        '<p style="margin:0 0 18px;color:#8fb0d0;font-size:13.5px;line-height:1.55;text-align:center">' + lead + '</p>' +
+      '<div class="lf-gate-card" role="dialog" aria-modal="true" aria-labelledby="lfGateTitle">' +
+        '<div class="lf-gate-brand"><span class="lf-gate-mark" aria-hidden="true"></span>LITHIFYTE</div>' +
+        '<h1 id="lfGateTitle">' + (justTried ? 'Almost there — finish sign-in' : (captureIntent ? 'Sign in to photograph a statement' : 'Sign in to open your money map')) + '</h1>' +
+        '<p class="lf-gate-lead">' + lead + '</p>' +
         (google
-          ? '<a href="' + googleHref + '" style="display:block;padding:13px 16px;border-radius:10px;background:#fff;color:#111;font-weight:600;font-size:14px;text-decoration:none;border:1px solid #dadce0;text-align:center;margin-bottom:10px">Continue with Google</a>' +
-            '<p style="margin:0 0 12px;text-align:center;color:#5a7694;font-size:11.5px">or use email</p>'
+          ? '<a href="' + googleHref + '" class="lf-gate-google">Continue with Google</a>' +
+            '<p class="lf-gate-or">or use email</p>'
           : '') +
         '<form id="lfGateForm">' +
-          '<input id="lfGateEmail" type="email" required placeholder="you@example.com" autocomplete="email" style="width:100%;box-sizing:border-box;padding:12px 14px;border-radius:10px;border:1px solid rgba(56,189,248,.28);background:rgba(2,11,26,.65);color:#e8f1ff;font-size:15px">' +
-          '<button type="submit" style="width:100%;margin-top:10px;padding:13px 16px;border-radius:10px;background:linear-gradient(135deg,#0ea5e9,#1d4ed8);color:#fff;font-weight:600;font-size:14px;border:1px solid rgba(125,211,252,.55);cursor:pointer">Email me a sign-in link</button>' +
+          '<input id="lfGateEmail" class="lf-gate-input" type="email" required placeholder="you@example.com" autocomplete="email">' +
+          '<button type="submit" class="lf-gate-submit">Email me a sign-in link</button>' +
         '</form>' +
-        '<p id="lfGateStatus" style="margin:10px 0 0;color:#8fb0d0;font-size:12.5px;min-height:1.3em"></p>' +
-        '<a href="/demo" id="lfGateDemo" style="display:block;margin-top:10px;padding:12px 16px;border-radius:10px;background:rgba(2,11,26,.5);color:#e8f1ff;font-weight:600;font-size:13.5px;text-decoration:none;border:1px solid rgba(56,189,248,.3);text-align:center">Explore the sample household instead</a>' +
-        '<p style="margin:16px 0 0;color:#5a7694;font-size:11.5px;text-align:center"><a href="https://lithifyte.com/privacy" style="color:#5a7694">Privacy</a> · <a href="https://lithifyte.com/terms" style="color:#5a7694">Terms</a> · <a href="https://github.com/SID-Apps/lithifyte" style="color:#5a7694">Source</a></p>' +
+        '<p id="lfGateStatus"></p>' +
+        '<a href="/demo" id="lfGateDemo" class="lf-gate-ghost">Explore the sample household instead</a>' +
+        '<p class="lf-gate-fine"><a href="https://lithifyte.com/privacy">Privacy</a> · <a href="https://lithifyte.com/terms">Terms</a> · <a href="https://github.com/SID-Apps/lithifyte">Source</a></p>' +
       '</div>';
     bindGateForm();
   }
@@ -927,6 +983,14 @@ So, when you change a stored shape:
   body.space .wrap{display:none}
   #spaceStage{display:none}
   body.space #spaceStage{display:block; position:fixed; inset:0; z-index:0; background:var(--sv-stage)}
+  /* Pre-paint: hide Classic the instant the parser reaches .wrap, before
+     Space.enter() can add body.space. Empty #spaceStage is the map colour,
+     not the scrolling document. */
+  html[data-view="space"]{background:var(--sv-stage, #020b1a)}
+  html[data-view="space"] body{overflow:hidden; background:var(--sv-stage, #020b1a)}
+  html[data-view="space"] .wrap{display:none !important}
+  html[data-view="space"] #spaceStage{display:block; position:fixed; inset:0; z-index:0; background:var(--sv-stage, #020b1a)}
+  #lfGate[data-hold]{background:var(--sv-stage, var(--page))}
   body.space #spaceStage .graph-card{position:absolute; inset:0; border:none; border-radius:0; margin:0}
   body.space .graph-fs-btn{display:none}
   /* phone first run — the three routes that work from a phone */
@@ -2146,6 +2210,77 @@ So, when you change a stored shape:
   #plusOverlay{position:fixed; inset:0; z-index:99; display:flex; align-items:center; justify-content:center; padding:20px;
     background:color-mix(in srgb, var(--page) 58%, transparent); backdrop-filter:blur(14px) saturate(1.1); -webkit-backdrop-filter:blur(14px) saturate(1.1)}
   #plusOverlay[hidden]{display:none}
+  /* Plus paywall — Signal language (Geist, tiles, rows, prose behind ?).
+     Scoped here so Classic and Space share one card; do not reuse .wiz-box. */
+  .plus-box{width:min(420px, 96vw); max-height:92vh; overflow:auto; background:var(--surface);
+    border:1px solid var(--border-strong); border-radius:16px; padding:20px 20px 18px;
+    box-shadow:0 22px 60px rgba(0,0,0,.35)}
+  .plus-head{display:flex; align-items:center; justify-content:space-between; gap:10px}
+  .plus-kicker{font:600 11px/1 var(--font-mono); letter-spacing:.14em; text-transform:uppercase; color:var(--muted)}
+  .plus-box .sig-qm{border-color:var(--border-strong); color:var(--ink)}
+  .plus-box .sig-qm:hover, .plus-box .sig-qm[aria-expanded="true"]{background:var(--chip)}
+  .plus-box h3{margin:10px 0 0; font:600 22px/1.15 var(--font-sans); letter-spacing:-.02em}
+  .plus-why{margin:10px 0 0; font:400 13px/1.55 var(--font-sans); color:var(--ink-2)}
+  .plus-why[hidden]{display:none}
+  .plus-plans{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:16px 0 4px}
+  .plus-plan{appearance:none; text-align:left; cursor:pointer; padding:14px 16px; border-radius:14px;
+    background:var(--chip); border:1px solid var(--border-strong); color:var(--ink); font:inherit}
+  .plus-plan:hover{border-color:var(--ink-2)}
+  .plus-plan:focus-visible{outline:2px solid var(--ink); outline-offset:3px}
+  .plus-plan b{display:block; font:600 22px/1.1 var(--font-mono); letter-spacing:-.03em; font-variant-numeric:tabular-nums}
+  .plus-plan small{display:block; margin-top:6px; font:500 9.5px/1.5 var(--font-mono); letter-spacing:.11em;
+    text-transform:uppercase; color:var(--muted)}
+  .plus-plan.plus-plan-main{background:var(--ink); color:var(--page); border-color:var(--ink)}
+  .plus-plan.plus-plan-main small{color:color-mix(in srgb, var(--page) 70%, var(--ink))}
+  .plus-plan.plus-plan-main:hover{border-color:var(--ink)}
+  .plus-rows{display:flex; flex-direction:column; gap:0; margin:12px 0 8px}
+  .plus-row{display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+    padding:10px 2px; border-bottom:1px solid var(--grid)}
+  .plus-row:last-child{border-bottom:none}
+  .plus-row .plus-nm{min-width:0; font:500 13.5px/1.3 var(--font-sans); color:var(--ink)}
+  .plus-row .plus-nm small{display:block; font:400 11.5px/1.45 var(--font-sans); color:var(--muted);
+    letter-spacing:0; text-transform:none; margin-top:3px}
+  .plus-row .plus-val{flex:0 0 auto; font:500 11px/1 var(--font-mono); letter-spacing:.08em;
+    text-transform:uppercase; color:var(--ink-2)}
+  .plus-fine{margin:0 0 4px; font:400 12px/1.5 var(--font-sans); color:var(--muted)}
+  .plus-nav{display:flex; gap:8px; align-items:center; margin-top:8px}
+  @media (max-width:420px){
+    .plus-plans{grid-template-columns:1fr}
+  }
+
+  /* Hosted sign-in gate — same Geist / theme tokens as the app, not the old
+     Syne + cyan-glow landing card. Inline layout on #lfGate is a bootstrap
+     so the overlay sits correctly before this stylesheet parses. */
+  #lfGate{position:fixed; inset:0; z-index:2147483000; display:flex; align-items:center; justify-content:center;
+    padding:24px; background:var(--page); color:var(--ink); font:15px/1.55 var(--font-sans);
+    -webkit-font-smoothing:antialiased; text-align:center}
+  #lfGate .lf-gate-wait{font:500 13.5px var(--font-sans); color:var(--muted); letter-spacing:.04em}
+  #lfGate .lf-gate-card{width:min(420px,100%); background:var(--surface); border:1px solid var(--border-strong);
+    border-radius:16px; padding:28px 24px 22px; box-shadow:0 22px 60px rgba(0,0,0,.28); text-align:left}
+  #lfGate .lf-gate-brand{display:flex; align-items:center; justify-content:center; gap:10px;
+    font:600 13px/1 var(--font-sans); letter-spacing:.12em; margin-bottom:18px}
+  #lfGate .lf-gate-mark{position:relative; width:16px; height:16px; border-radius:4px; border:1px solid var(--ink); flex:0 0 16px}
+  #lfGate .lf-gate-mark::after{content:""; position:absolute; inset:4px; border-radius:50%; border:1.4px solid var(--ink)}
+  #lfGate h1{margin:0 0 8px; font:600 24px/1.15 var(--font-sans); letter-spacing:-.02em; text-align:center}
+  #lfGate .lf-gate-lead{margin:0 0 18px; color:var(--ink-2); font-size:13.5px; line-height:1.55; text-align:center}
+  #lfGate .lf-gate-google{display:block; padding:12px 16px; border-radius:8px; background:#fff; color:#111;
+    font:600 14px var(--font-sans); text-decoration:none; border:1px solid var(--border-strong); text-align:center; margin-bottom:10px}
+  #lfGate .lf-gate-or{margin:0 0 12px; text-align:center; color:var(--muted); font:500 11.5px var(--font-sans)}
+  #lfGate .lf-gate-input{width:100%; box-sizing:border-box; padding:12px 14px; border-radius:8px;
+    border:1px solid var(--border-strong); background:var(--page); color:var(--ink); font:500 15px var(--font-sans)}
+  #lfGate .lf-gate-input:focus{outline:2px solid var(--ink); outline-offset:2px}
+  #lfGate .lf-gate-submit{width:100%; margin-top:10px; padding:13px 16px; border-radius:8px; border:1px solid var(--ink);
+    background:var(--ink); color:var(--page); font:600 14px var(--font-sans); cursor:pointer}
+  #lfGate .lf-gate-submit:hover{filter:brightness(1.06)}
+  #lfGate #lfGateStatus{margin:10px 0 0; color:var(--muted); font-size:12.5px; min-height:1.3em}
+  #lfGate .lf-gate-ghost{display:block; margin-top:10px; padding:12px 16px; border-radius:8px;
+    background:transparent; color:var(--ink); font:600 13.5px var(--font-sans); text-decoration:none;
+    border:1px solid var(--border-strong); text-align:center}
+  #lfGate .lf-gate-ghost:hover{border-color:var(--ink-2)}
+  #lfGate .lf-gate-fine{margin:16px 0 0; color:var(--muted); font-size:11.5px; text-align:center}
+  #lfGate .lf-gate-fine a{color:var(--muted)}
+  #lfGate .lf-gate-fine a:hover{color:var(--ink)}
+  #lfGate .lf-gate-lead b{color:var(--ink); font-weight:600}
   .imp-box{width:min(1080px, 97vw); max-height:93vh; display:flex; flex-direction:column;
     background:var(--surface); border:1px solid var(--border-strong,#334155); border-radius:14px;
     padding:16px 20px 18px; box-shadow:0 18px 60px rgba(0,0,0,.42)}
@@ -3907,23 +4042,33 @@ rewrite the static advice cards if the picture has changed.</div>
 <div class="tip" id="tip"></div>
 
 <div id="plusOverlay" hidden>
-  <div class="wiz-box" role="dialog" aria-modal="true" aria-labelledby="plusTitle">
-    <div class="wiz-kicker">Lithifyte Plus</div>
+  <div class="plus-box" role="dialog" aria-modal="true" aria-labelledby="plusTitle">
+    <div class="plus-head">
+      <div class="plus-kicker">Lithifyte Plus</div>
+      <button type="button" class="sig-qm" id="plusWhyBtn" aria-label="What Plus is" aria-expanded="false" aria-controls="plusWhy">?</button>
+    </div>
     <h3 id="plusTitle">Hosted intelligence, when you want it</h3>
-    <p class="wiz-sub" id="plusWhy">The Engine, import, budgets, export and Commands-only stay free forever. Plus is the living product: hosted Lithifyte AI, PDF parse, an encrypted cloud vault we cannot read, and a maintained library of bank import presets.</p>
-    <ul class="hint" style="padding-left:18px;line-height:1.55;margin:0 0 12px">
-      <li>7 days unlimited after you first sign in</li>
-      <li>Then 20 hosted questions a week on Free</li>
-      <li>Encrypted cloud vault + a maintained library of bank import presets</li>
-      <li>€9 / month, or €90 / year (11 months)</li>
-      <li>Your own model (Ollama / Qwen) is always free</li>
-    </ul>
+    <p class="plus-why" id="plusWhy" hidden>The Engine, import, budgets, export and Commands-only stay free forever. Plus is hosted Lithifyte AI, PDF parse, an encrypted cloud vault we cannot read, and a maintained library of bank import presets.</p>
+    <div class="plus-plans" role="group" aria-label="Plans">
+      <button class="plus-plan plus-plan-main" id="plusMonth" type="button">
+        <b>€9</b>
+        <small>month</small>
+      </button>
+      <button class="plus-plan" id="plusYear" type="button">
+        <b>€90</b>
+        <small>year · 11 months</small>
+      </button>
+    </div>
+    <div class="plus-rows">
+      <div class="plus-row"><span class="plus-nm">Hosted Lithifyte AI<small>20 questions a week on Free after the trial</small></span><span class="plus-val">Unlimited</span></div>
+      <div class="plus-row"><span class="plus-nm">Photo / scan pages<small>5 hosted pages once, then Plus</small></span><span class="plus-val">Unlimited</span></div>
+      <div class="plus-row"><span class="plus-nm">Encrypted cloud vault<small>Ciphertext we cannot read</small></span><span class="plus-val">Plus</span></div>
+      <div class="plus-row"><span class="plus-nm">Bank import presets<small>Revolut + mapper stay free</small></span><span class="plus-val">Library</span></div>
+    </div>
+    <p class="plus-fine">Your own model and Commands-only stay free. Export is never gated. 7-day trial after first sign-in.</p>
     <p class="wiz-err" id="plusStatus"></p>
-    <div class="wiz-nav">
+    <div class="plus-nav">
       <button class="btn" id="plusClose" type="button">Not now</button>
-      <span class="wiz-spacer"></span>
-      <button class="btn" id="plusYear" type="button">€90 / year</button>
-      <button class="btn primary" id="plusMonth" type="button">€9 / month</button>
     </div>
   </div>
 </div>
@@ -4449,7 +4594,7 @@ rewrite the static advice cards if the picture has changed.</div>
      ]},
     {title:'Your account', deck:'Hosted features only',
      rows:[
-      {name:'Lithifyte Plus', sub:'Cloud vault and bank-import presets', adopt:'plusOpenBtn'},
+      {name:'Lithifyte Plus', sub:'Hosted AI, vault, bank-import presets', adopt:'plusOpenBtn'},
       {name:'Sign out', sub:'This browser', adopt:'acctSignOut'}
      ]},
     {title:'Google Drive', deck:'Your Drive, your files',
@@ -18492,6 +18637,31 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         || h.slice(0, 120);
     });
 
+    T('plus overlay: Signal tiles and rows, not a wizard bullet list', () => {
+      const el = document.getElementById('plusOverlay');
+      if (!el) return 'no #plusOverlay';
+      if (el.querySelector('ul')) return 'bullet list still in the paywall';
+      if (el.querySelector('.wiz-box')) return 'still a wiz-box';
+      const month = document.getElementById('plusMonth');
+      const year = document.getElementById('plusYear');
+      const why = document.getElementById('plusWhy');
+      if (!month || !year) return 'plan tiles missing';
+      if (!month.classList.contains('plus-plan') || !year.classList.contains('plus-plan'))
+        return 'plan tiles are not .plus-plan';
+      if (!el.querySelector('.plus-row')) return 'expected Plus rows';
+      if (!why || !why.hidden) return 'prose should start behind ?';
+      return true;
+    });
+    T('plusCopy: a quota reason is a short title, not a paragraph', () => {
+      if (typeof window.__ddPlusCopy !== 'function') return 'window.__ddPlusCopy missing';
+      if (typeof window.plusOpen !== 'function') return 'window.plusOpen missing';
+      const c = window.__ddPlusCopy('This week’s free hosted questions are used up.');
+      const v = window.__ddPlusCopy('The encrypted cloud vault is a Plus feature (included in your trial).');
+      const p = window.__ddPlusCopy('Statement extraction');
+      return (c.title.length < 72 && /used up/i.test(c.title) &&
+              /vault/i.test(v.title) && /photo/i.test(p.title))
+        || JSON.stringify({c, v, p});
+    });
     T('signal: shapes are rebuilt when the theme moves, not left on old colours', () => {
       // an SVG stroke is an attribute, not a stylesheet rule — nothing restyles
       // it, so a card that is not re-rendered keeps the palette it was born with
@@ -20216,6 +20386,19 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     T('space: section labels default on', () => {
       if (FCONF.navLabels === false) return true;
       return document.body.classList.contains('nav-labels') || 'rail has no section names';
+    });
+    T('boot: space hides classic wrap (no first-frame classic)', () => {
+      const mobile = window.matchMedia && window.matchMedia('(max-width: 720px)').matches;
+      if (FCONF.view === 'classic' && !mobile) {
+        return document.documentElement.getAttribute('data-view') === 'classic'
+          || 'classic opt-out did not set data-view=classic';
+      }
+      const wrap = document.querySelector('.wrap');
+      if (!wrap) return 'no .wrap';
+      const disp = getComputedStyle(wrap).display;
+      if (disp !== 'none') return 'classic wrap is visible (display ' + disp + ')';
+      return document.documentElement.getAttribute('data-view') === 'space'
+        || 'html[data-view=space] missing';
     });
     T('agent: catalog lists tools and hooks', () => {
       const c = window.__ddCatalog && window.__ddCatalog();
@@ -23005,12 +23188,46 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       return e;
     } catch (e) { return window.__lfEntitlement; }
   }
-  function plusOpen(reason){
-    const el = document.getElementById('plusOverlay');
-    const why = document.getElementById('plusWhy');
-    if (why) why.textContent = reason || 'Hosted Lithifyte AI is included in your 7-day trial, then 20 questions a week on Free, or unlimited on Plus.';
-    if (el) el.hidden = false;
+  function plusCopy(reason){
+    const r = String(reason || '').trim();
+    if (/week|question|quota used|Upgrade to continue/i.test(r))
+      return {title:"This week’s hosted questions are used up",
+              why:r || 'Hosted Lithifyte AI is 20 questions a week on Free after the trial, unlimited on Plus.'};
+    if (/PDF/i.test(r))
+      return {title:'PDF parse is Plus', why:r};
+    if (/vault/i.test(r))
+      return {title:'The cloud vault is Plus', why:r};
+    if (/photo|scan|extract|Statement extraction|5 free/i.test(r))
+      return {title:'Hosted photo pages are used up', why:r};
+    return {title:'Hosted intelligence, when you want it',
+            why:r || 'The Engine, import, budgets, export and Commands-only stay free forever. Plus is hosted Lithifyte AI, PDF parse, an encrypted cloud vault we cannot read, and a maintained library of bank import presets.'};
   }
+  function plusClose(){
+    const el = document.getElementById('plusOverlay');
+    if (el) el.hidden = true;
+    const whyBtn = document.getElementById('plusWhyBtn');
+    const why = document.getElementById('plusWhy');
+    if (whyBtn) whyBtn.setAttribute('aria-expanded', 'false');
+    if (why) why.hidden = true;
+  }
+  function plusOpen(reason){
+    const copy = plusCopy(reason);
+    const el = document.getElementById('plusOverlay');
+    const title = document.getElementById('plusTitle');
+    const why = document.getElementById('plusWhy');
+    const st = document.getElementById('plusStatus');
+    if (title) title.textContent = copy.title;
+    if (why) why.textContent = copy.why;
+    if (st) st.textContent = '';
+    if (el){
+      el.hidden = false;
+      const close = document.getElementById('plusClose');
+      if (close) try { close.focus(); } catch (e) {}
+    }
+  }
+  window.plusOpen = plusOpen;
+  window.plusClose = plusClose;
+  window.__ddPlusCopy = plusCopy;
   async function startCheckout(period){
     const st = document.getElementById('plusStatus');
     if (st) st.textContent = 'Opening checkout…';
@@ -23330,10 +23547,22 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const plusX = document.getElementById('plusClose');
       const plusM = document.getElementById('plusMonth');
       const plusY = document.getElementById('plusYear');
+      const plusWhyBtn = document.getElementById('plusWhyBtn');
+      const plusEl = document.getElementById('plusOverlay');
       if (plusBtn) plusBtn.addEventListener('click', () => plusOpen());
-      if (plusX) plusX.addEventListener('click', () => { const el = document.getElementById('plusOverlay'); if (el) el.hidden = true; });
+      if (plusX) plusX.addEventListener('click', () => plusClose());
       if (plusM) plusM.addEventListener('click', () => startCheckout('month'));
       if (plusY) plusY.addEventListener('click', () => startCheckout('year'));
+      if (plusWhyBtn) plusWhyBtn.addEventListener('click', () => {
+        const why = document.getElementById('plusWhy');
+        const open = plusWhyBtn.getAttribute('aria-expanded') === 'true';
+        plusWhyBtn.setAttribute('aria-expanded', open ? 'false' : 'true');
+        if (why) why.hidden = open;
+      });
+      if (plusEl) plusEl.addEventListener('click', (e) => { if (e.target === plusEl) plusClose(); });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && plusEl && !plusEl.hidden) plusClose();
+      });
       function doSignOut(){
         fetch('https://access.lithifyte.com/logout', {method:'POST', credentials:'include'}).finally(() => {
           window.__lfSignedIn = false; window.__lfMe = null;
@@ -27524,6 +27753,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       else if (panel.classList.contains('open')) closePanel();
     });
     function enter(){
+      document.documentElement.setAttribute('data-view', 'space');
       document.body.classList.add('space');
       // Cards that render differently per view read body.space at render time,
       // and the first render happens BEFORE this class exists — so without a
@@ -27559,6 +27789,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       try { setTimeout(signalRestoreClassic, 0); } catch (e) {}
       closePanel(); closeMini();
       document.body.classList.remove('space');
+      document.documentElement.setAttribute('data-view', 'classic');
       restore(document.getElementById('graphCard'));
       const ob = document.getElementById('onboarding');
       if (homes.has(ob)) restore(ob);
@@ -28590,7 +28821,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   // On a phone the Space shell IS the mobile shell, so a stored desktop
   // preference for classic must not strand someone in a sideways-scrolling
   // table page; classic stays reachable from Settings.
-  if (FCONF.view !== 'classic' || MOBILE_Q.matches) Space.enter();
+  try {
+    if (FCONF.view !== 'classic' || MOBILE_Q.matches) Space.enter();
+  } finally {
+    try { if (window.__lfReleaseGate) window.__lfReleaseGate(); } catch (e) {}
+  }
   try { bootCaptureIntent(); } catch (e) {}
 })();
 </script>
