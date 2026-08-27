@@ -91,7 +91,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '3.21.5';
+  var APP_VER = '3.22.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -2212,40 +2212,91 @@ So, when you change a stored shape:
   #plusOverlay[hidden]{display:none}
   /* Plus paywall — Signal language (Geist, tiles, rows, prose behind ?).
      Scoped here so Classic and Space share one card; do not reuse .wiz-box. */
-  .plus-box{width:min(420px, 96vw); max-height:92vh; overflow:auto; background:var(--surface);
-    border:1px solid var(--border-strong); border-radius:16px; padding:20px 20px 18px;
-    box-shadow:0 22px 60px rgba(0,0,0,.35)}
+  .plus-box{width:min(680px, 96vw); max-height:92vh; overflow:auto; background:var(--surface);
+    border:1px solid var(--border-strong); border-radius:18px; padding:22px 22px 18px;
+    box-shadow:0 30px 80px rgba(0,0,0,.38)}
   .plus-head{display:flex; align-items:center; justify-content:space-between; gap:10px}
   .plus-kicker{font:600 11px/1 var(--font-mono); letter-spacing:.14em; text-transform:uppercase; color:var(--muted)}
   .plus-box .sig-qm{border-color:var(--border-strong); color:var(--ink)}
   .plus-box .sig-qm:hover, .plus-box .sig-qm[aria-expanded="true"]{background:var(--chip)}
-  .plus-box h3{margin:10px 0 0; font:600 22px/1.15 var(--font-sans); letter-spacing:-.02em}
-  .plus-why{margin:10px 0 0; font:400 13px/1.55 var(--font-sans); color:var(--ink-2)}
+  .plus-box h3{margin:10px 0 0; font:600 25px/1.15 var(--font-sans); letter-spacing:-.025em; max-width:34ch; text-wrap:balance}
+  .plus-why{margin:10px 0 0; font:400 13px/1.55 var(--font-sans); color:var(--ink-2); max-width:62ch}
   .plus-why[hidden]{display:none}
-  .plus-plans{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:16px 0 4px}
-  .plus-plan{appearance:none; text-align:left; cursor:pointer; padding:14px 16px; border-radius:14px;
-    background:var(--chip); border:1px solid var(--border-strong); color:var(--ink); font:inherit}
-  .plus-plan:hover{border-color:var(--ink-2)}
-  .plus-plan:focus-visible{outline:2px solid var(--ink); outline-offset:3px}
-  .plus-plan b{display:block; font:600 22px/1.1 var(--font-mono); letter-spacing:-.03em; font-variant-numeric:tabular-nums}
-  .plus-plan small{display:block; margin-top:6px; font:500 9.5px/1.5 var(--font-mono); letter-spacing:.11em;
-    text-transform:uppercase; color:var(--muted)}
+
+  /* Three tiers. The year tile is the recommendation and carries the trial. */
+  .plus-plans{display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin:18px 0 0; align-items:stretch}
+  .plus-plan{position:relative; appearance:none; text-align:left; cursor:pointer; padding:16px 15px 14px;
+    border-radius:14px; background:var(--chip); border:1px solid var(--border-strong); color:var(--ink);
+    font:inherit; display:flex; flex-direction:column; gap:2px;
+    transition:border-color .15s ease, transform .15s ease, box-shadow .15s ease}
+  .plus-plan:hover{border-color:var(--ink-2); transform:translateY(-2px)}
+  .plus-plan:focus-visible{outline:2px solid var(--violet); outline-offset:3px}
+  .plus-plan .plus-tier{font:600 10px/1 var(--font-mono); letter-spacing:.13em; text-transform:uppercase;
+    color:var(--muted); margin-bottom:9px}
+  .plus-plan b{display:block; font:600 30px/1.05 var(--font-mono); letter-spacing:-.04em;
+    font-variant-numeric:tabular-nums}
+  .plus-plan .plus-per{font:500 11px/1.4 var(--font-mono); letter-spacing:.06em; color:var(--muted); margin-top:3px}
+  .plus-plan small{display:block; margin-top:9px; font:400 11.5px/1.45 var(--font-sans);
+    letter-spacing:0; text-transform:none; color:var(--ink-2)}
+
+  /* Recommended: inked, so the eye lands here first. */
   .plus-plan.plus-plan-main{background:var(--ink); color:var(--page); border-color:var(--ink)}
-  .plus-plan.plus-plan-main small{color:color-mix(in srgb, var(--page) 70%, var(--ink))}
+  .plus-plan.plus-plan-main .plus-tier{color:color-mix(in srgb, var(--page) 62%, var(--ink))}
+  .plus-plan.plus-plan-main .plus-per,
+  .plus-plan.plus-plan-main small{color:color-mix(in srgb, var(--page) 78%, var(--ink))}
   .plus-plan.plus-plan-main:hover{border-color:var(--ink)}
-  .plus-rows{display:flex; flex-direction:column; gap:0; margin:12px 0 8px}
-  .plus-row{display:flex; align-items:baseline; justify-content:space-between; gap:12px;
-    padding:10px 2px; border-bottom:1px solid var(--grid)}
+  .plus-badge{position:absolute; top:-9px; right:10px; padding:3px 8px; border-radius:999px;
+    background:var(--violet); color:#fff; font:600 9.5px/1.5 var(--font-mono);
+    letter-spacing:.1em; text-transform:uppercase; white-space:nowrap}
+
+  /* Selection is explicit — one CTA converts, so a mis-tap never charges anyone. */
+  .plus-plan[aria-pressed="true"]{border-color:var(--violet); box-shadow:0 0 0 2px var(--violet) inset}
+  .plus-plan[aria-pressed="true"].plus-plan-main{box-shadow:0 0 0 2px var(--violet) inset}
+
+  .plus-matrix{margin:16px 0 0; border-top:1px solid var(--grid)}
+  .plus-matrix-head{display:grid; grid-template-columns:1fr 92px 92px; gap:12px; padding:10px 2px 8px;
+    border-bottom:1px solid var(--grid)}
+  .plus-matrix-head span{font:600 9.5px/1 var(--font-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--muted)}
+  .plus-matrix-head span+span{text-align:right}
+  .plus-rows{display:flex; flex-direction:column; gap:0; margin:0}
+  .plus-row{display:grid; grid-template-columns:1fr 92px 92px; gap:12px; align-items:baseline;
+    padding:9px 2px; border-bottom:1px solid var(--grid)}
   .plus-row:last-child{border-bottom:none}
-  .plus-row .plus-nm{min-width:0; font:500 13.5px/1.3 var(--font-sans); color:var(--ink)}
+  .plus-row .plus-nm{min-width:0; font:500 13.5px/1.35 var(--font-sans); color:var(--ink)}
   .plus-row .plus-nm small{display:block; font:400 11.5px/1.45 var(--font-sans); color:var(--muted);
     letter-spacing:0; text-transform:none; margin-top:3px}
-  .plus-row .plus-val{flex:0 0 auto; font:500 11px/1 var(--font-mono); letter-spacing:.08em;
-    text-transform:uppercase; color:var(--ink-2)}
-  .plus-fine{margin:0 0 4px; font:400 12px/1.5 var(--font-sans); color:var(--muted)}
-  .plus-nav{display:flex; gap:8px; align-items:center; margin-top:8px}
-  @media (max-width:420px){
+  .plus-row .plus-val{text-align:right; font:500 11px/1.4 var(--font-mono); letter-spacing:.05em;
+    color:var(--ink-2); font-variant-numeric:tabular-nums}
+  .plus-row .plus-val.is-yes{color:var(--ink); font-weight:600}
+  .plus-row .plus-val.is-no{color:var(--muted)}
+
+  .plus-fine{margin:12px 0 0; font:400 12px/1.55 var(--font-sans); color:var(--muted); max-width:62ch}
+  .plus-nav{display:flex; gap:10px; align-items:center; margin-top:14px;
+    position:sticky; bottom:-18px; padding:12px 0 4px; background:var(--surface);
+    box-shadow:0 -14px 18px -6px var(--surface)}
+  .plus-cta{flex:1 1 auto; padding:14px 18px; border-radius:11px; border:1px solid var(--ink);
+    background:var(--ink); color:var(--page); font:600 14.5px var(--font-sans); cursor:pointer;
+    letter-spacing:-.005em; transition:filter .15s ease, transform .15s ease}
+  .plus-cta:hover{filter:brightness(1.08); transform:translateY(-1px)}
+  .plus-cta:focus-visible{outline:2px solid var(--violet); outline-offset:3px}
+  .plus-cta[data-plan="free"]{background:transparent; color:var(--ink); border-color:var(--border-strong)}
+  .plus-cta-sub{display:block; margin-top:3px; font:500 11px var(--font-mono); letter-spacing:.05em;
+    color:color-mix(in srgb, var(--page) 72%, var(--ink))}
+  .plus-cta[data-plan="free"] .plus-cta-sub{color:var(--muted)}
+
+  @media (prefers-reduced-motion:reduce){
+    .plus-plan, .plus-cta{transition:none}
+    .plus-plan:hover, .plus-cta:hover{transform:none}
+  }
+  @media (max-width:560px){
     .plus-plans{grid-template-columns:1fr}
+    .plus-plan{flex-direction:row; align-items:baseline; gap:10px; flex-wrap:wrap; padding:13px 14px}
+    .plus-plan .plus-tier{margin-bottom:0; flex:1 0 100%}
+    .plus-plan small{margin-top:4px; flex:1 0 100%}
+    .plus-badge{top:-8px; right:8px}
+    .plus-matrix-head, .plus-row{grid-template-columns:1fr 74px 74px; gap:10px}
+    .plus-row .plus-val, .plus-matrix-head span{font-size:10px; letter-spacing:.03em}
+    .plus-nav{flex-wrap:wrap}
   }
 
   /* Hosted sign-in gate — same Geist / theme tokens as the app, not the old
@@ -4050,24 +4101,67 @@ rewrite the static advice cards if the picture has changed.</div>
     <h3 id="plusTitle">Hosted intelligence, when you want it</h3>
     <p class="plus-why" id="plusWhy" hidden>The Engine, import, budgets, export and Commands-only stay free forever. Plus is hosted Lithifyte AI, PDF parse, an encrypted cloud vault we cannot read, and a maintained library of bank import presets.</p>
     <div class="plus-plans" role="group" aria-label="Plans">
-      <button class="plus-plan plus-plan-main" id="plusMonth" type="button">
-        <b>€9</b>
-        <small>month</small>
+      <button class="plus-plan" id="plusFree" type="button" aria-pressed="false" data-plan="free">
+        <span class="plus-tier">Free</span>
+        <b>&euro;0</b>
+        <span class="plus-per">forever</span>
+        <small>Everything computed on this device, for as long as you want it.</small>
       </button>
-      <button class="plus-plan" id="plusYear" type="button">
-        <b>€90</b>
-        <small>year · 11 months</small>
+      <button class="plus-plan" id="plusMonth" type="button" aria-pressed="false" data-plan="month">
+        <span class="plus-tier">Plus &middot; monthly</span>
+        <b>&euro;9</b>
+        <span class="plus-per">per month</span>
+        <small>Cancel any time. Your ledger stays yours either way.</small>
+      </button>
+      <button class="plus-plan plus-plan-main" id="plusYear" type="button" aria-pressed="true" data-plan="year">
+        <span class="plus-badge">7 days free</span>
+        <span class="plus-tier">Plus &middot; yearly</span>
+        <b>&euro;90</b>
+        <span class="plus-per">per year</span>
+        <small>That&rsquo;s &euro;7.50 a month &mdash; two months free, you save &euro;18.</small>
       </button>
     </div>
-    <div class="plus-rows">
-      <div class="plus-row"><span class="plus-nm">Hosted Lithifyte AI<small>20 questions a week on Free after the trial</small></span><span class="plus-val">Unlimited</span></div>
-      <div class="plus-row"><span class="plus-nm">Photo / scan pages<small>5 hosted pages once, then Plus</small></span><span class="plus-val">Unlimited</span></div>
-      <div class="plus-row"><span class="plus-nm">Encrypted cloud vault<small>Ciphertext we cannot read</small></span><span class="plus-val">Plus</span></div>
-      <div class="plus-row"><span class="plus-nm">Bank import presets<small>Revolut + mapper stay free</small></span><span class="plus-val">Library</span></div>
+    <div class="plus-matrix">
+      <div class="plus-matrix-head" aria-hidden="true">
+        <span>What you get</span><span>Free</span><span>Plus</span>
+      </div>
+      <div class="plus-rows">
+        <div class="plus-row">
+          <span class="plus-nm">Import CSV, Excel and text PDFs<small>Read in this tab &mdash; never uploaded, no page limit</small></span>
+          <span class="plus-val is-yes">Unlimited</span><span class="plus-val is-yes">Unlimited</span>
+        </div>
+        <div class="plus-row">
+          <span class="plus-nm">Budgets, forecasts, debt payoff, net worth<small>The whole Engine, computed on your device</small></span>
+          <span class="plus-val is-yes">Everything</span><span class="plus-val is-yes">Everything</span>
+        </div>
+        <div class="plus-row">
+          <span class="plus-nm">Photograph a statement or receipt<small>Hosted vision read; a failed read is never counted</small></span>
+          <span class="plus-val">5 pages</span><span class="plus-val is-yes">Unlimited</span>
+        </div>
+        <div class="plus-row">
+          <span class="plus-nm">Hosted Lithifyte AI<small>Your own local model stays free and unmetered</small></span>
+          <span class="plus-val">20 a week</span><span class="plus-val is-yes">Unlimited</span>
+        </div>
+        <div class="plus-row">
+          <span class="plus-nm">Encrypted cloud vault<small>Ciphertext we cannot read, on our servers</small></span>
+          <span class="plus-val is-no">&mdash;</span><span class="plus-val is-yes">Included</span>
+        </div>
+        <div class="plus-row">
+          <span class="plus-nm">Bank import presets<small>Revolut and the column mapper stay free</small></span>
+          <span class="plus-val">Mapper</span><span class="plus-val is-yes">Full library</span>
+        </div>
+        <div class="plus-row">
+          <span class="plus-nm">Export everything you have<small>CSV of every account, never gated</small></span>
+          <span class="plus-val is-yes">Always</span><span class="plus-val is-yes">Always</span>
+        </div>
+      </div>
     </div>
-    <p class="plus-fine">Your own model and Commands-only stay free. Export is never gated. 7-day trial after first sign-in.</p>
+    <p class="plus-fine">The five hosted pages are a lifetime allowance on Free, and they only apply to photographs and scans &mdash; CSV, Excel and text PDFs have no limit and never leave this browser. Export is never gated, on any plan.</p>
     <p class="wiz-err" id="plusStatus"></p>
     <div class="plus-nav">
+      <button class="plus-cta" id="plusCta" type="button" data-plan="year">Start 7 days free
+        <span class="plus-cta-sub">then &euro;90 a year &middot; cancel any time</span>
+      </button>
       <button class="btn" id="plusClose" type="button">Not now</button>
     </div>
   </div>
@@ -18645,12 +18739,37 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const month = document.getElementById('plusMonth');
       const year = document.getElementById('plusYear');
       const why = document.getElementById('plusWhy');
+      const free = document.getElementById('plusFree');
       if (!month || !year) return 'plan tiles missing';
+      if (!free) return 'no Free tier tile';
       if (!month.classList.contains('plus-plan') || !year.classList.contains('plus-plan'))
         return 'plan tiles are not .plus-plan';
       if (!el.querySelector('.plus-row')) return 'expected Plus rows';
       if (!why || !why.hidden) return 'prose should start behind ?';
       return true;
+    });
+    T('plus overlay: tiles select, one CTA converts, and Free never charges', () => {
+      if (typeof window.__ddPlusSelect !== 'function') return 'window.__ddPlusSelect missing';
+      const cta = document.getElementById('plusCta');
+      if (!cta) return 'no #plusCta';
+      const before = cta.dataset.plan;
+      try {
+        window.__ddPlusSelect('year');
+        const y = document.getElementById('plusYear');
+        if (cta.dataset.plan !== 'year') return 'CTA did not follow the year tile';
+        if (!y || y.getAttribute('aria-pressed') !== 'true') return 'year tile not pressed';
+        if (!/7 days free/i.test(cta.textContent)) return 'year CTA lost the trial';
+        window.__ddPlusSelect('free');
+        if (cta.dataset.plan !== 'free') return 'CTA did not follow the Free tile';
+        if (/\u20ac9\b/.test(cta.textContent)) return 'Free CTA is quoting a price';
+        window.__ddPlusSelect('month');
+        if (cta.dataset.plan !== 'month') return 'CTA did not follow the month tile';
+        const pressed = ['plusFree','plusMonth','plusYear']
+          .filter((id) => { const t = document.getElementById(id);
+                            return t && t.getAttribute('aria-pressed') === 'true'; });
+        if (pressed.length !== 1) return 'expected exactly one selected tile, got ' + pressed.length;
+        return true;
+      } finally { window.__ddPlusSelect(before || 'year'); }
     });
     T('plusCopy: a quota reason is a short title, not a paragraph', () => {
       if (typeof window.__ddPlusCopy !== 'function') return 'window.__ddPlusCopy missing';
@@ -23219,15 +23338,41 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     if (title) title.textContent = copy.title;
     if (why) why.textContent = copy.why;
     if (st) st.textContent = '';
+    plusSelect('year');
     if (el){
       el.hidden = false;
       const close = document.getElementById('plusClose');
       if (close) try { close.focus(); } catch (e) {}
     }
   }
+  const PLUS_CTA = {
+    free:  {label:'Keep using Free',   sub:'No card, no expiry \u00b7 5 hosted pages included'},
+    month: {label:'Continue \u2014 \u20ac9 a month', sub:'Cancel any time \u00b7 billed monthly'},
+    year:  {label:'Start 7 days free', sub:'then \u20ac90 a year \u00b7 cancel any time'}
+  };
+  function plusSelect(plan){
+    if (!PLUS_CTA[plan]) plan = 'year';
+    ['free','month','year'].forEach((p) => {
+      const t = document.getElementById('plus' + p.charAt(0).toUpperCase() + p.slice(1));
+      if (t) t.setAttribute('aria-pressed', String(p === plan));
+    });
+    const cta = document.getElementById('plusCta');
+    if (cta){
+      const c = PLUS_CTA[plan];
+      cta.dataset.plan = plan;
+      cta.innerHTML = '';
+      cta.appendChild(document.createTextNode(c.label));
+      const sub = document.createElement('span');
+      sub.className = 'plus-cta-sub';
+      sub.textContent = c.sub;
+      cta.appendChild(sub);
+    }
+    return plan;
+  }
   window.plusOpen = plusOpen;
   window.plusClose = plusClose;
   window.__ddPlusCopy = plusCopy;
+  window.__ddPlusSelect = plusSelect;
   async function startCheckout(period){
     const st = document.getElementById('plusStatus');
     if (st) st.textContent = 'Opening checkout…';
@@ -23551,8 +23696,18 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const plusEl = document.getElementById('plusOverlay');
       if (plusBtn) plusBtn.addEventListener('click', () => plusOpen());
       if (plusX) plusX.addEventListener('click', () => plusClose());
-      if (plusM) plusM.addEventListener('click', () => startCheckout('month'));
-      if (plusY) plusY.addEventListener('click', () => startCheckout('year'));
+      // Tiles select; one CTA converts. A mis-tap on a price must never be a
+      // charge, and Free has to be a real choice rather than a dead card.
+      const plusF = document.getElementById('plusFree');
+      [plusF, plusM, plusY].forEach((tile) => {
+        if (tile) tile.addEventListener('click', () => window.__ddPlusSelect(tile.dataset.plan));
+      });
+      const plusCta = document.getElementById('plusCta');
+      if (plusCta) plusCta.addEventListener('click', () => {
+        const plan = plusCta.dataset.plan || 'year';
+        if (plan === 'free') { plusClose(); return; }
+        startCheckout(plan);
+      });
       if (plusWhyBtn) plusWhyBtn.addEventListener('click', () => {
         const why = document.getElementById('plusWhy');
         const open = plusWhyBtn.getAttribute('aria-expanded') === 'true';

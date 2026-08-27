@@ -1,8 +1,8 @@
 {
-  "version": "3.21.5",
+  "version": "3.22.0",
   "released": "2026-08-27",
-  "notes": "Do not flash Classic on launch: html[data-view=space] hides .wrap before first paint, and the sign-in gate stays up until Space.enter().",
+  "notes": "Paywall: three tiers (Free, EUR9/month, EUR90/year with a 7-day trial), an honest Free-vs-Plus matrix, and tile selection with a single converting CTA.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "7868415be994e7732c7abed73f349886efc2fe300c284bda43f1522c9687c93c"
+  "sha256": "132a4cdba0dfc7cc4dabddbc2de34a50ca35c203e6aca1907ad87553237c7534"
 }
