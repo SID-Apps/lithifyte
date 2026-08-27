@@ -141,11 +141,11 @@ Do these once:
 
 1. **Submit both sitemaps** — Sitemaps → add `sitemap.xml`, and add
    `https://app.lithifyte.com/sitemap.xml`.
-2. **Inspect the key URLs** and request indexing: `/`, `/how-it-works`, `/faq`,
-   `/guide`, `/learn`. Everything else will be discovered from the sitemap and
-   the internal links.
-3. **Check Page Indexing** a week later. Expect the app shell and `/demo` to
-   appear as *Excluded by robots.txt* — that is deliberate, not a fault.
+2. **Request indexing by hand, one URL at a time.** See §1a — on this domain it
+   is the *only* thing that has ever worked, and the sitemap alone has never
+   produced a single crawl.
+3. **Check Page Indexing** a week later, remembering the report itself lags
+   about a week behind reality.
 4. **Confirm the rich results.** Use the [Rich Results
    Test](https://search.google.com/test/rich-results) on `/faq` (FAQPage) and
    any learn article (Article). All schema on the site is generated and was
@@ -153,6 +153,78 @@ Do these once:
    check is worth doing once.
 
 Then check monthly: which queries bring impressions, and which pages get them.
+
+## 1a · Request indexing — the procedure that actually works
+
+**Evidence, read out of GSC on 2026-08-27** (report dated 21/08):
+
+| | |
+|---|---|
+| Indexed | **6** — `/`, `/how-it-works`, `/faq`, `/guide`, `/learn` (all crawled 9 Aug) and `app.lithifyte.com/` |
+| Discovered, not indexed | **21** — `Last crawled: N/A` on every single row |
+
+Those five lithifyte.com URLs are **exactly** the five that step 2 of §1 told you
+to submit by hand. Manual requests: **5 for 5.** Sitemap-only discovery:
+**0 for 21.** Discovery was never the problem — `lithifyte.com/sitemap.xml` was
+last read 27 Aug, Success, 30 pages found. Google knows the URLs and declines to
+spend crawl budget on a young domain with no inbound links.
+
+So the queue has to be jumped by hand until links exist.
+
+### The loop
+
+1. Search Console → confirm the property selector reads **lithifyte.com**.
+2. Paste a full `https://` URL into the **"Inspect any URL in 'lithifyte.com'"**
+   bar at the top of the page. Enter.
+3. It returns **"URL is not on Google."** That is the expected state, not a fault.
+4. Click **REQUEST INDEXING**. A live test runs for ~1 minute, then
+   *"Indexing requested — URL added to a priority crawl queue."*
+5. Next URL. About 30 seconds each once you have a rhythm.
+
+### Rules
+
+- **Daily cap is roughly 10–12 per property.** "Quota exceeded" means stop; it
+  resets in 24h. Spread a full site over three days.
+- **Never re-request the same URL** — it does nothing and burns quota.
+- **Do not touch running Validation jobs.** Four were started 25/08.
+- **It queues a crawl, it does not index.** Expect days, and add the report's
+  own ~1 week lag on top.
+- **There is no bulk route.** IndexNow (§2) reaches Bing, Yandex, Seznam and
+  Naver. Google has no equivalent endpoint. Manual is genuinely it.
+
+### Priority order
+
+Highest search intent first, and always any page that is new:
+
+1. `/budgeting-app`, `/learn/free-ynab-alternatives` — the entity and comparison pages
+2. `/open-source`, `/security-and-privacy`, `/commercial`
+3. The `/learn` articles — `emergency-fund`, `avalanche-vs-snowball`,
+   `why-50-30-20-breaks`, `what-is-a-budget`, `make-a-budget-that-survives`,
+   `glossary`, then the rest
+4. `/capturing-your-first-transaction`, `/photographing-statements`,
+   `/logging-receipts`, `/privacy`, `/terms`
+
+**This is a workaround, not a fix.** The reason it is needed is the absence of
+inbound links — see §6b. Once a few exist, Google crawls new pages unprompted
+and this section stops being necessary. Do it after publishing anything new, and
+do it the same day a new backlink lands.
+
+### The other three "not indexed" buckets are all correct behaviour
+
+Verified 2026-08-27; none of these needs fixing:
+
+| Bucket | n | What it actually is |
+|---|---|---|
+| Excluded by `noindex` | 1 | `https://access.lithifyte.com/` — the magic-link sign-in host. Correct. |
+| Crawled, not indexed | 1 | `https://access.lithifyte.com/me` — an account endpoint. Correct. |
+| Alternative page with proper canonical | 3 | `http://www.`, `https://www.` and `http://` homepage variants, all canonicalising to `https://lithifyte.com/`. Working as designed. |
+
+**One real discrepancy:** §1 used to predict the app shell would show as
+*Excluded by robots.txt*. It does not — `app.lithifyte.com/` is **indexed**,
+crawled 4 Aug, despite `Disallow: /$` in the app host's robots.txt. Either the
+crawl predates that rule or the `$` anchor is not doing what was intended.
+Decide whether it matters (it is the shell, not user data) rather than assuming
+the runbook's old expectation is being met.
 
 ## 2 · Bing, and IndexNow
 
@@ -257,7 +329,7 @@ for u in / /how-it-works /faq /guide /learn /learn/glossary /llms.txt /sitemap.x
 done
 ```
 
-## 6 · Two gates that are not SEO but block on the same deploys
+## 6 · Gates that are not SEO but block on the same deploys
 
 **Mail from-address.** The private Cloud access worker sends from
 `Lithifyte <signin@lithifyte.com>`. **`lithifyte.com` must be a verified domain
@@ -269,13 +341,14 @@ to Cloudflare DNS → wait for *Verified*. Confirm with:
 dig +short TXT resend._domainkey.lithifyte.com
 ```
 
-**Rev 1.8 is uncommitted.** `index.html` and `demo.html` in the repo root carry
-the built-but-unshipped Rev 1.8 statement importer. A `git add -A` while
-committing this SEO work will ship Rev 1.8 to production at the same time,
-because pushing `main` auto-deploys the app. Either ship it deliberately (it is
-self-tested at 235/235) or stage selectively. Once it does ship, the import
-section of `www/content/guide.md` should gain the XLSX reader, the column
-mapper and reconciliation — it currently describes only what is live.
+**~~Rev 1.8 is uncommitted~~ — resolved.** That warning is retired: the app is
+well past it (`version.json` 3.21.x) and `www/content/guide.md` already
+documents the XLSX reader and reconciliation. The *general* hazard it described
+is still live and still worth respecting:
+
+> Pushing `main` auto-deploys `app.lithifyte.com`. A `git add -A` while
+> committing docs or marketing work can ship unrelated app changes with it.
+> Check `git status` and stage deliberately.
 
 ## 6b · The bottleneck is external, not on this site
 
@@ -354,7 +427,7 @@ rank quickly, and the AI answer engines only cite pages they have crawled.
 
 | Signal | Where | Healthy looks like |
 |---|---|---|
-| Pages indexed | GSC → Page Indexing | 20+ valid, app shell and `/demo` excluded by robots |
+| Pages indexed | GSC → Page Indexing | 20+ valid. `/demo` excluded by robots. **`app.lithifyte.com/` is currently *indexed*, not excluded** — see §1a; do not treat that as the healthy state without deciding you want it |
 | Query impressions | GSC → Performance | Long-tail question queries first — "how big should an emergency fund be" before "budgeting app" |
 | AI citations | Ask ChatGPT/Claude/Perplexity a question the library answers | Lithifyte pages cited by URL |
 | Crawl activity | Cloudflare → Analytics, filtered by user agent | `OAI-SearchBot`, `PerplexityBot`, `Claude-SearchBot` present and not 403ing |
