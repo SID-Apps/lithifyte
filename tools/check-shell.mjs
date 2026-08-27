@@ -63,7 +63,17 @@ ok('app: relay sends convId for Grok cache', /convId:\s*opts\.convId/.test(app))
 ok('app: demo skips hosted consume', /!sample && purpose === 'chat'|!window\.__lfDemo/.test(app) && /__lfDemo/.test(app));
 ok('app: cloud vault block', /id="cloudVaultBlock"/.test(app));
 ok('app: hosted chrome wrapper', /id="hostedChrome"/.test(app));
-ok('app: plus overlay is Signal-shaped', /id="plusOverlay"/.test(app) && /class="plus-box"/.test(app) && /class="plus-plan plus-plan-main"/.test(app) && /class="plus-row"/.test(app) && !/#plusOverlay[\s\S]{0,1200}<ul/.test(app));
+// The old form of this check also did `!/#plusOverlay[\s\S]{0,1200}<ul/`, a
+// proximity test meant to catch a regression to wizard prose-and-bullets. It
+// could not tell markup from prose and fired on a source comment that merely
+// mentioned a list tag. The paywall's own runtime guard now enforces the real
+// rule precisely — every list inside the overlay must be a .plus-rows card
+// list — so this one asserts structure it can actually see.
+ok('app: plus overlay is a three-card pricing block',
+  /id="plusOverlay"/.test(app) && /class="plus-box"/.test(app) &&
+  /class="plus-plan plus-plan-main"/.test(app) && /class="plus-row"/.test(app) &&
+  /id="plusFree"/.test(app) && /id="plusMonth"/.test(app) && /id="plusYear"/.test(app) &&
+  /class="plus-choose/.test(app) && !/id="plusOverlay"[\s\S]{0,4000}wiz-box/.test(app));
 ok('app: window.plusOpen assigned', /window\.plusOpen\s*=\s*plusOpen/.test(app));
 ok('app: sign-in gate uses lf-gate-card', /lf-gate-card/.test(app) && /lf-gate-mark/.test(app) && /lf-gate-submit/.test(app));
 ok('app: space view applied before first paint', /data-view/.test(app) && /html\[data-view="space"\]/.test(app) && /dd-fcast-v1/.test(app));
