@@ -56,6 +56,7 @@
       "@id": "https://lithifyte.com/#software",
       "name": "Lithifyte",
       "url": "https://lithifyte.com/",
+      "softwareVersion": "3.21.5",
       "applicationCategory": "FinanceApplication",
       "applicationSubCategory": "Personal budgeting and net worth tracking",
       "operatingSystem": "Any modern web browser (Chrome, Firefox, Edge, Safari)",
@@ -527,9 +528,11 @@
       <div style="position:sticky;top:0;height:100vh;display:flex;align-items:center;justify-content:center;padding:64px 24px 132px">
         <div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 60% 58% at 50% 46%, rgba(2,11,26,.72), rgba(2,11,26,0) 68%)"></div>
         <div data-copy style="position:relative;width:min(900px,100%);text-align:center;opacity:0;transform:translateY(26px);transition:opacity 1s cubic-bezier(.2,.7,.2,1), transform 1s cubic-bezier(.2,.7,.2,1)">
-          <!-- Release badge. It is the one place the page says what shipped
-               this month — bump it with version.json when a release lands. -->
-          <a class="hero-badge" href="#ask"><i>NEW</i> Lithifyte Pro — our own hosted model · v3.2.0</a>
+          <!-- Release badge. data-lf-ver / #lfVer / JSON-LD softwareVersion are
+               written by tools/set-version.mjs from version.json. The landing
+               Worker also rewrites them from the live app's /version.json so
+               lithifyte.com cannot show a different number than the app. -->
+          <a class="hero-badge" id="heroVer" href="https://app.lithifyte.com" data-lf-ver="3.21.5"><i>LIVE</i> v<span id="lfVer">3.21.5</span></a>
           <h1 style="margin:22px 0 18px;line-height:1.02;letter-spacing:-.025em;font:800 clamp(38px,7.4vw,80px) 'Geist',system-ui,sans-serif;text-shadow:0 2px 40px rgba(2,11,26,.9)">Everything you've<br>ever spent, mapped.</h1>
           <p style="font-size:clamp(16px,2.2vw,20px);line-height:1.6;color:#a9c4de;margin:0 auto;max-width:26em;font-weight:400;text-shadow:0 1px 20px #020b1a">Drop a CSV or a text PDF. It&rsquo;s read in this tab and never uploaded. Or photograph a statement or a receipt &mdash; five hosted pages are included after you sign in.</p>
           <div style="margin-top:28px;display:flex;flex-wrap:wrap;gap:12px;justify-content:center">

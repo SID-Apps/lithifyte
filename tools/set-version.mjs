@@ -33,6 +33,8 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const MANIFEST = join(ROOT, 'version.json');
 const APP = join(ROOT, 'index.html');
+const LANDING = join(ROOT, 'www', 'rev2', 'index.html');
+const LANDING_MANIFEST = join(ROOT, 'www', 'rev2', 'version.json');
 
 const args = process.argv.slice(2);
 const CHECK = args.includes('--check');
@@ -51,6 +53,22 @@ const appVersionOf = (file) => {
   return m ? m[2] : null;
 };
 
+const landingVersionOf = (html) => {
+  const m = html.match(/id="lfVer">([^<]+)/);
+  return m ? m[1] : null;
+};
+
+const syncLanding = (version, manifestText) => {
+  if (manifestText) writeFileSync(LANDING_MANIFEST, manifestText);
+  if (!existsSync(LANDING)) return;
+  let s = readFileSync(LANDING, 'utf8');
+  const next = s
+    .replace(/data-lf-ver="[^"]*"/, `data-lf-ver="${version}"`)
+    .replace(/(id="lfVer">)[^<]*/, `$1${version}`)
+    .replace(/"softwareVersion"\s*:\s*"[^"]*"/, `"softwareVersion": "${version}"`);
+  if (next !== s) writeFileSync(LANDING, next);
+};
+
 const sha256 = (file) =>
   createHash('sha256').update(readFileSync(file)).digest('hex');
 
@@ -63,7 +81,9 @@ if (STAMP) {
     process.exit(1);
   }
   man.sha256 = existsSync(APP) ? sha256(APP) : null;
-  writeFileSync(MANIFEST, JSON.stringify(man, null, 2) + '\n');
+  const stamped = JSON.stringify(man, null, 2) + '\n';
+  writeFileSync(MANIFEST, stamped);
+  syncLanding(man.version, stamped);
   console.log(`stamped sha256 ${man.sha256} for ${man.version}`);
   process.exit(0);
 }
@@ -82,6 +102,16 @@ if (CHECK || !version) {
   line(!!man.version, `version.json declares a version (${man.version || 'missing'})`);
   line(inApp != null, `index.html carries APP_VER (${inApp || 'missing'})`);
   line(man.version === inApp, `they agree (${man.version} vs ${inApp})`);
+  if (existsSync(LANDING)) {
+    const landVer = landingVersionOf(readFileSync(LANDING, 'utf8'));
+    line(landVer != null, `landing hero carries a version (${landVer || 'missing'})`);
+    line(landVer === man.version, `landing hero agrees (${landVer} vs ${man.version})`);
+  }
+  if (existsSync(LANDING_MANIFEST)) {
+    let landMan;
+    try { landMan = JSON.parse(readFileSync(LANDING_MANIFEST, 'utf8')); } catch (e) { landMan = {}; }
+    line(landMan.version === man.version, `www/rev2/version.json agrees (${landMan.version || 'missing'} vs ${man.version})`);
+  }
   if (man.sha256 && existsSync(APP)) {
     const actual = sha256(APP);
     line(
@@ -135,7 +165,10 @@ const next = {
   sha256: existsSync(APP) ? sha256(APP) : null,
 };
 
-writeFileSync(MANIFEST, JSON.stringify(next, null, 2) + '\n');
+const manifestText = JSON.stringify(next, null, 2) + '\n';
+writeFileSync(MANIFEST, manifestText);
+syncLanding(version, manifestText);
 console.log(`  set   version.json → ${prev || '(none)'} → ${version}`);
 console.log(`  sha256 ${next.sha256}`);
 console.log('\nRebuild demo if the shell changed, then run: node tools/check-shell.mjs index.html');
+console.log('Landing lithifyte.com is a separate deploy: cd www/rev2 && wrangler deploy');

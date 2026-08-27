@@ -2,8 +2,9 @@
  * lithifyte.com — static assets, plus markdown for agents.
  *
  * The site is still a static asset deployment. This worker sits in front of it
- * for exactly one reason: when a client says it wants markdown, give it
- * markdown. An agent fetching /learn/emergency-fund gets 13KB of styled HTML it
+ * for two reasons: markdown negotiation, and keeping the homepage version
+ * badge identical to the live app (it rewrites from app.lithifyte.com/version.json).
+ * An agent fetching /learn/emergency-fund gets 13KB of styled HTML it
  * has to strip; the same page as markdown is the prose and nothing else.
  *
  * Two ways to ask, both answering from the same generated .md twins:
@@ -16,6 +17,29 @@
  */
 
 const MD = 'text/markdown; charset=utf-8';
+const APP_VERSION_URL = 'https://app.lithifyte.com/version.json';
+const VER_RE = /^\d+\.\d+\.\d+$/;
+
+function applyLiveVersion(html, ver) {
+  return html
+    .replace(/data-lf-ver="[^"]*"/, 'data-lf-ver="' + ver + '"')
+    .replace(/(id="lfVer">)[^<]*/, '$1' + ver)
+    .replace(/"softwareVersion"\s*:\s*"[^"]*"/, '"softwareVersion": "' + ver + '"');
+}
+
+async function liveAppVersion() {
+  try {
+    const r = await fetch(APP_VERSION_URL, {
+      headers: { accept: 'application/json' },
+      cf: { cacheTtl: 60, cacheEverything: true },
+    });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return j && VER_RE.test(j.version) ? j.version : null;
+  } catch {
+    return null;
+  }
+}
 
 // Does this client actually prefer markdown, rather than merely accepting
 // anything at all? A browser sends text/html first; an agent asking for
@@ -70,15 +94,28 @@ export default {
       // instead of scraping the page.
       const type = res.headers.get('content-type') || '';
       const twin = type.includes('text/html') ? twinPath(url.pathname) : null;
-      if (twin) {
+      const home = url.pathname === '/' || url.pathname === '/index.html';
+      if (twin || home) {
         const headers = new Headers(res.headers);
-        const existing = headers.get('link');
-        const alt = `<${url.origin}${twin}>; rel="alternate"; type="text/markdown"`;
-        // _headers already names the twin on some paths; do not say it twice.
-        if (!existing || !existing.includes(`${twin}>`)) {
-          headers.set('link', existing ? `${existing}, ${alt}` : alt);
+        if (twin) {
+          const existing = headers.get('link');
+          const alt = `<${url.origin}${twin}>; rel="alternate"; type="text/markdown"`;
+          // _headers already names the twin on some paths; do not say it twice.
+          if (!existing || !existing.includes(`${twin}>`)) {
+            headers.set('link', existing ? `${existing}, ${alt}` : alt);
+          }
+          headers.set('vary', 'Accept');
         }
-        headers.set('vary', 'Accept');
+        // Homepage version badge: rewrite from the live app so lithifyte.com
+        // cannot advertise a different number than app.lithifyte.com.
+        if (home && type.includes('text/html') && res.ok) {
+          const ver = await liveAppVersion();
+          if (ver) {
+            const html = applyLiveVersion(await res.text(), ver);
+            headers.set('Cache-Control', 'public, max-age=60');
+            return new Response(html, { status: res.status, statusText: res.statusText, headers });
+          }
+        }
         return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
       }
       return res;

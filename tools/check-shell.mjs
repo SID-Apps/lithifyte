@@ -207,6 +207,17 @@ for (const re of banned) {
   ok('landing: no absolute claim ' + re.source, !re.test(land), re.test(land) ? 'still present' : '');
 }
 ok('landing: honest hosted-AI slice', /slice a question needs/i.test(land));
+ok('landing: hero version matches version.json', (() => {
+  let man;
+  try { man = JSON.parse(readFileSync(join(ROOT, 'version.json'), 'utf8')); }
+  catch (e) { return false; }
+  const m = land.match(/id="lfVer">([^<]+)/);
+  const d = land.match(/data-lf-ver="([^"]+)"/);
+  const sv = land.match(/"softwareVersion"\s*:\s*"([^"]+)"/);
+  return !!(man.version && m && m[1] === man.version && d && d[1] === man.version && sv && sv[1] === man.version);
+})());
+ok('landing: worker rewrites badge from live app version.json', /app\.lithifyte\.com\/version\.json/.test(mustRead(join(ROOT, 'www', 'rev2', 'worker.js'), 'landing worker')) && /id="lfVer"/.test(land));
+ok('app worker: version.json is CORS-readable', /version\.json/.test(mustRead(join(ROOT, 'app-worker.js'), 'app worker')) && /Access-Control-Allow-Origin/.test(mustRead(join(ROOT, 'app-worker.js'), 'app worker')));
 ok('landing: drop/start still points at the sample', /app\.lithifyte\.com\/demo/.test(land));
 ok('landing: CSV/text-PDF never uploaded, not all statements', /Drop a CSV or a text PDF/i.test(land));
 ok('landing: scan lane is named', /Photograph the page|scans and photos/i.test(land));
