@@ -1,8 +1,8 @@
 {
-  "version": "3.22.0",
+  "version": "3.23.0",
   "released": "2026-08-27",
-  "notes": "Paywall: three tiers (Free, EUR9/month, EUR90/year with a 7-day trial), an honest Free-vs-Plus matrix, and tile selection with a single converting CTA.",
+  "notes": "Paywall in colour: violet hero tier and CTA, amber trial badge, green/violet/amber matrix values. The ? toggle is now an x close, Not now is gone, and the lede says what Plus is instead of echoing the title.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "132a4cdba0dfc7cc4dabddbc2de34a50ca35c203e6aca1907ad87553237c7534"
+  "sha256": "7cb54f98d8309751ef19ff13e46b4387e033fd77120046efe090eaccb0d9c7ee"
 }

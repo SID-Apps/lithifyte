@@ -91,7 +91,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '3.22.0';
+  var APP_VER = '3.23.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -2212,15 +2212,34 @@ So, when you change a stored shape:
   #plusOverlay[hidden]{display:none}
   /* Plus paywall — Signal language (Geist, tiles, rows, prose behind ?).
      Scoped here so Classic and Space share one card; do not reuse .wiz-box. */
-  .plus-box{width:min(680px, 96vw); max-height:92vh; overflow:auto; background:var(--surface);
+  .plus-box:focus{outline:none}
+  .plus-box{--plus-accent:#4a3aa7; --plus-accent-2:#6d4fd6; --plus-on-accent:#fff;
+    --plus-good:var(--good-text);
+    width:min(680px, 96vw); max-height:92vh; overflow:auto; background:var(--surface);
     border:1px solid var(--border-strong); border-radius:18px; padding:22px 22px 18px;
     box-shadow:0 30px 80px rgba(0,0,0,.38)}
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]) .plus-box{--plus-accent:#5b46c9; --plus-accent-2:#7d5ef0;
+      /* #0ca30c is only ~5:1 on the dark surface, and these cells are 11px mono */
+      --plus-good:#3ecf4a}
+  }
+  :root[data-theme="dark"] .plus-box{--plus-accent:#5b46c9; --plus-accent-2:#7d5ef0; --plus-good:#3ecf4a}
+
   .plus-head{display:flex; align-items:center; justify-content:space-between; gap:10px}
+  .plus-x{appearance:none; width:32px; height:32px; flex:0 0 32px; border-radius:9px; cursor:pointer;
+    background:transparent; border:1px solid var(--border-strong); color:var(--ink-2);
+    font:400 20px/1 var(--font-sans); display:flex; align-items:center; justify-content:center;
+    transition:background .15s ease, color .15s ease, border-color .15s ease}
+  .plus-x:hover{background:var(--chip); color:var(--ink); border-color:var(--ink-2)}
+  .plus-x:focus-visible{outline:2px solid var(--plus-accent); outline-offset:2px}
   .plus-kicker{font:600 11px/1 var(--font-mono); letter-spacing:.14em; text-transform:uppercase; color:var(--muted)}
   .plus-box .sig-qm{border-color:var(--border-strong); color:var(--ink)}
   .plus-box .sig-qm:hover, .plus-box .sig-qm[aria-expanded="true"]{background:var(--chip)}
   .plus-box h3{margin:10px 0 0; font:600 25px/1.15 var(--font-sans); letter-spacing:-.025em; max-width:34ch; text-wrap:balance}
-  .plus-why{margin:10px 0 0; font:400 13px/1.55 var(--font-sans); color:var(--ink-2); max-width:62ch}
+  .plus-why{margin:9px 0 0; padding:9px 12px; border-radius:10px; max-width:62ch;
+    font:400 13px/1.55 var(--font-sans); color:var(--ink-2);
+    background:color-mix(in srgb, var(--plus-accent) 9%, transparent);
+    border-left:2px solid var(--plus-accent)}
   .plus-why[hidden]{display:none}
 
   /* Three tiers. The year tile is the recommendation and carries the trial. */
@@ -2230,7 +2249,7 @@ So, when you change a stored shape:
     font:inherit; display:flex; flex-direction:column; gap:2px;
     transition:border-color .15s ease, transform .15s ease, box-shadow .15s ease}
   .plus-plan:hover{border-color:var(--ink-2); transform:translateY(-2px)}
-  .plus-plan:focus-visible{outline:2px solid var(--violet); outline-offset:3px}
+  .plus-plan:focus-visible{outline:2px solid var(--plus-accent); outline-offset:3px}
   .plus-plan .plus-tier{font:600 10px/1 var(--font-mono); letter-spacing:.13em; text-transform:uppercase;
     color:var(--muted); margin-bottom:9px}
   .plus-plan b{display:block; font:600 30px/1.05 var(--font-mono); letter-spacing:-.04em;
@@ -2240,18 +2259,25 @@ So, when you change a stored shape:
     letter-spacing:0; text-transform:none; color:var(--ink-2)}
 
   /* Recommended: inked, so the eye lands here first. */
-  .plus-plan.plus-plan-main{background:var(--ink); color:var(--page); border-color:var(--ink)}
-  .plus-plan.plus-plan-main .plus-tier{color:color-mix(in srgb, var(--page) 62%, var(--ink))}
+  .plus-plan.plus-plan-main{border-color:var(--plus-accent); color:var(--plus-on-accent);
+    background:linear-gradient(152deg, var(--plus-accent-2) 0%, var(--plus-accent) 62%);
+    box-shadow:0 10px 30px -10px color-mix(in srgb, var(--plus-accent) 70%, transparent)}
+  .plus-plan.plus-plan-main .plus-tier{color:color-mix(in srgb, var(--plus-on-accent) 74%, transparent)}
   .plus-plan.plus-plan-main .plus-per,
-  .plus-plan.plus-plan-main small{color:color-mix(in srgb, var(--page) 78%, var(--ink))}
-  .plus-plan.plus-plan-main:hover{border-color:var(--ink)}
-  .plus-badge{position:absolute; top:-9px; right:10px; padding:3px 8px; border-radius:999px;
-    background:var(--violet); color:#fff; font:600 9.5px/1.5 var(--font-mono);
-    letter-spacing:.1em; text-transform:uppercase; white-space:nowrap}
+  .plus-plan.plus-plan-main small{color:color-mix(in srgb, var(--plus-on-accent) 88%, transparent)}
+  .plus-plan.plus-plan-main:hover{border-color:var(--plus-accent);
+    box-shadow:0 16px 38px -12px color-mix(in srgb, var(--plus-accent) 82%, transparent)}
+  .plus-badge{position:absolute; top:-9px; right:10px; padding:3px 9px; border-radius:999px;
+    background:var(--warning); color:#3a2600; font:700 9.5px/1.5 var(--font-mono);
+    letter-spacing:.1em; text-transform:uppercase; white-space:nowrap;
+    box-shadow:0 3px 10px -2px color-mix(in srgb, var(--warning) 60%, transparent)}
 
   /* Selection is explicit — one CTA converts, so a mis-tap never charges anyone. */
-  .plus-plan[aria-pressed="true"]{border-color:var(--violet); box-shadow:0 0 0 2px var(--violet) inset}
-  .plus-plan[aria-pressed="true"].plus-plan-main{box-shadow:0 0 0 2px var(--violet) inset}
+  .plus-plan[aria-pressed="true"]{border-color:var(--plus-accent);
+    box-shadow:0 0 0 2px var(--plus-accent) inset}
+  .plus-plan[aria-pressed="true"].plus-plan-main{
+    box-shadow:0 0 0 2px color-mix(in srgb, var(--plus-on-accent) 85%, transparent) inset,
+               0 14px 36px -12px color-mix(in srgb, var(--plus-accent) 80%, transparent)}
 
   .plus-matrix{margin:16px 0 0; border-top:1px solid var(--grid)}
   .plus-matrix-head{display:grid; grid-template-columns:1fr 92px 92px; gap:12px; padding:10px 2px 8px;
@@ -2267,25 +2293,30 @@ So, when you change a stored shape:
     letter-spacing:0; text-transform:none; margin-top:3px}
   .plus-row .plus-val{text-align:right; font:500 11px/1.4 var(--font-mono); letter-spacing:.05em;
     color:var(--ink-2); font-variant-numeric:tabular-nums}
-  .plus-row .plus-val.is-yes{color:var(--ink); font-weight:600}
+  .plus-row .plus-val.is-yes{color:var(--plus-good); font-weight:600}
+  .plus-row .plus-val.is-plus{color:var(--plus-accent); font-weight:600}
   .plus-row .plus-val.is-no{color:var(--muted)}
+  .plus-row .plus-val.is-cap{color:var(--serious)}
 
   .plus-fine{margin:12px 0 0; font:400 12px/1.55 var(--font-sans); color:var(--muted); max-width:62ch}
   .plus-nav{display:flex; gap:10px; align-items:center; margin-top:14px;
     position:sticky; bottom:-18px; padding:12px 0 4px; background:var(--surface);
     box-shadow:0 -14px 18px -6px var(--surface)}
-  .plus-cta{flex:1 1 auto; padding:14px 18px; border-radius:11px; border:1px solid var(--ink);
-    background:var(--ink); color:var(--page); font:600 14.5px var(--font-sans); cursor:pointer;
+  .plus-cta{flex:1 1 auto; padding:14px 18px; border-radius:11px; border:1px solid var(--plus-accent);
+    background:linear-gradient(152deg, var(--plus-accent-2) 0%, var(--plus-accent) 70%);
+    color:var(--plus-on-accent); font:600 14.5px var(--font-sans); cursor:pointer;
+    box-shadow:0 10px 26px -12px color-mix(in srgb, var(--plus-accent) 85%, transparent);
     letter-spacing:-.005em; transition:filter .15s ease, transform .15s ease}
   .plus-cta:hover{filter:brightness(1.08); transform:translateY(-1px)}
-  .plus-cta:focus-visible{outline:2px solid var(--violet); outline-offset:3px}
-  .plus-cta[data-plan="free"]{background:transparent; color:var(--ink); border-color:var(--border-strong)}
+  .plus-cta:focus-visible{outline:2px solid var(--plus-accent); outline-offset:3px}
+  .plus-cta[data-plan="free"]{background:none; color:var(--ink); border-color:var(--border-strong);
+    box-shadow:none}
   .plus-cta-sub{display:block; margin-top:3px; font:500 11px var(--font-mono); letter-spacing:.05em;
-    color:color-mix(in srgb, var(--page) 72%, var(--ink))}
+    color:color-mix(in srgb, var(--plus-on-accent) 82%, transparent)}
   .plus-cta[data-plan="free"] .plus-cta-sub{color:var(--muted)}
 
   @media (prefers-reduced-motion:reduce){
-    .plus-plan, .plus-cta{transition:none}
+    .plus-plan, .plus-cta, .plus-x{transition:none}
     .plus-plan:hover, .plus-cta:hover{transform:none}
   }
   @media (max-width:560px){
@@ -4096,7 +4127,7 @@ rewrite the static advice cards if the picture has changed.</div>
   <div class="plus-box" role="dialog" aria-modal="true" aria-labelledby="plusTitle">
     <div class="plus-head">
       <div class="plus-kicker">Lithifyte Plus</div>
-      <button type="button" class="sig-qm" id="plusWhyBtn" aria-label="What Plus is" aria-expanded="false" aria-controls="plusWhy">?</button>
+      <button type="button" class="plus-x" id="plusClose" aria-label="Close">&times;</button>
     </div>
     <h3 id="plusTitle">Hosted intelligence, when you want it</h3>
     <p class="plus-why" id="plusWhy" hidden>The Engine, import, budgets, export and Commands-only stay free forever. Plus is hosted Lithifyte AI, PDF parse, an encrypted cloud vault we cannot read, and a maintained library of bank import presets.</p>
@@ -4136,19 +4167,19 @@ rewrite the static advice cards if the picture has changed.</div>
         </div>
         <div class="plus-row">
           <span class="plus-nm">Photograph a statement or receipt<small>Hosted vision read; a failed read is never counted</small></span>
-          <span class="plus-val">5 pages</span><span class="plus-val is-yes">Unlimited</span>
+          <span class="plus-val is-cap">5 pages</span><span class="plus-val is-plus">Unlimited</span>
         </div>
         <div class="plus-row">
           <span class="plus-nm">Hosted Lithifyte AI<small>Your own local model stays free and unmetered</small></span>
-          <span class="plus-val">20 a week</span><span class="plus-val is-yes">Unlimited</span>
+          <span class="plus-val is-cap">20 a week</span><span class="plus-val is-plus">Unlimited</span>
         </div>
         <div class="plus-row">
           <span class="plus-nm">Encrypted cloud vault<small>Ciphertext we cannot read, on our servers</small></span>
-          <span class="plus-val is-no">&mdash;</span><span class="plus-val is-yes">Included</span>
+          <span class="plus-val is-no">&mdash;</span><span class="plus-val is-plus">Included</span>
         </div>
         <div class="plus-row">
           <span class="plus-nm">Bank import presets<small>Revolut and the column mapper stay free</small></span>
-          <span class="plus-val">Mapper</span><span class="plus-val is-yes">Full library</span>
+          <span class="plus-val is-cap">Mapper</span><span class="plus-val is-plus">Full library</span>
         </div>
         <div class="plus-row">
           <span class="plus-nm">Export everything you have<small>CSV of every account, never gated</small></span>
@@ -4162,7 +4193,6 @@ rewrite the static advice cards if the picture has changed.</div>
       <button class="plus-cta" id="plusCta" type="button" data-plan="year">Start 7 days free
         <span class="plus-cta-sub">then &euro;90 a year &middot; cancel any time</span>
       </button>
-      <button class="btn" id="plusClose" type="button">Not now</button>
     </div>
   </div>
 </div>
@@ -18714,7 +18744,22 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (!month.classList.contains('plus-plan') || !year.classList.contains('plus-plan'))
         return 'plan tiles are not .plus-plan';
       if (!el.querySelector('.plus-row')) return 'expected Plus rows';
-      if (!why || !why.hidden) return 'prose should start behind ?';
+      if (!why) return 'no #plusWhy';
+      if (el.querySelector('#plusWhyBtn')) return 'the ? toggle should be gone';
+      const x = document.getElementById('plusClose');
+      if (!x || !x.classList.contains('plus-x')) return 'no × close control';
+      if (/not now/i.test(el.textContent)) return '"Not now" should be gone';
+      // opened cold there is nothing to explain; opened on a quota wall there is
+      const wasHidden = el.hidden;
+      const title = document.getElementById('plusTitle');
+      window.plusOpen('This week\u2019s free hosted questions are used up.');
+      const t = title.textContent, lede = why.textContent, ledeShown = !why.hidden;
+      window.plusClose();
+      el.hidden = wasHidden;
+      if (!/used up/i.test(t)) return 'the title should carry the reason';
+      if (!ledeShown) return 'the lede should render';
+      if (lede === t) return 'lede is echoing the title';
+      if (!/free forever/i.test(lede)) return 'lede should say what Plus is';
       return true;
     });
     T('plus overlay: tiles select, one CTA converts, and Free never charges', () => {
@@ -23293,9 +23338,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   function plusClose(){
     const el = document.getElementById('plusOverlay');
     if (el) el.hidden = true;
-    const whyBtn = document.getElementById('plusWhyBtn');
     const why = document.getElementById('plusWhy');
-    if (whyBtn) whyBtn.setAttribute('aria-expanded', 'false');
     if (why) why.hidden = true;
   }
   function plusOpen(reason){
@@ -23305,15 +23348,21 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     const why = document.getElementById('plusWhy');
     const st = document.getElementById('plusStatus');
     if (title) title.textContent = copy.title;
-    if (why) why.textContent = copy.why;
+    // The title carries the reason. The lede says what Plus is — echoing the
+    // reason back under a heading that already states it reads as a stutter.
+    if (why){
+      why.textContent = PLUS_LEDE;
+      why.hidden = false;
+    }
     if (st) st.textContent = '';
     plusSelect('year');
     if (el){
       el.hidden = false;
-      const close = document.getElementById('plusClose');
-      if (close) try { close.focus(); } catch (e) {}
+      const box = el.querySelector('.plus-box');
+      if (box) try { box.setAttribute('tabindex', '-1'); box.focus({preventScroll:true}); } catch (e) {}
     }
   }
+  const PLUS_LEDE = 'The Engine, import, budgets, forecasts and export stay free forever. Plus adds hosted Lithifyte AI, unlimited page reads, an encrypted vault we cannot read, and the maintained bank-import library.';
   const PLUS_CTA = {
     free:  {label:'Keep using Free',   sub:'No card, no expiry \u00b7 5 hosted pages included'},
     month: {label:'Continue \u2014 \u20ac9 a month', sub:'Cancel any time \u00b7 billed monthly'},
@@ -23661,7 +23710,6 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const plusX = document.getElementById('plusClose');
       const plusM = document.getElementById('plusMonth');
       const plusY = document.getElementById('plusYear');
-      const plusWhyBtn = document.getElementById('plusWhyBtn');
       const plusEl = document.getElementById('plusOverlay');
       if (plusBtn) plusBtn.addEventListener('click', () => plusOpen());
       if (plusX) plusX.addEventListener('click', () => plusClose());
@@ -23676,12 +23724,6 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         const plan = plusCta.dataset.plan || 'year';
         if (plan === 'free') { plusClose(); return; }
         startCheckout(plan);
-      });
-      if (plusWhyBtn) plusWhyBtn.addEventListener('click', () => {
-        const why = document.getElementById('plusWhy');
-        const open = plusWhyBtn.getAttribute('aria-expanded') === 'true';
-        plusWhyBtn.setAttribute('aria-expanded', open ? 'false' : 'true');
-        if (why) why.hidden = open;
       });
       if (plusEl) plusEl.addEventListener('click', (e) => { if (e.target === plusEl) plusClose(); });
       document.addEventListener('keydown', (e) => {
