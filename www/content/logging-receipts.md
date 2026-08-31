@@ -35,7 +35,7 @@ Item lines are optional. Dense tables that cannot be copied faithfully are skipp
 
 ## How a page image is handled
 
-The same notice as a photographed statement: the JPEG is sent to a GPU we run (or to a model you run locally), **not stored**, and nothing is saved until you confirm. Full text: [Photographing a bank statement](/photographing-statements).
+The same notice as a photographed statement: the JPEG is read by Lithifyte Pro (or by a model you run locally), **not stored**, and nothing is saved until you confirm. Full text: [Photographing a bank statement](/photographing-statements).
 
 A successful hosted read counts as **one page** against the five free pages (unlimited on the trial, Plus, or a local model). A failed read is not counted.
 

@@ -10,7 +10,7 @@ Short, direct answers. If a question you have is not here, the [guide](/guide) g
 
 ### Is Lithifyte free?
 
-The application that analyses your money is free forever under the AGPL-3.0-or-later licence: import, categorise, budgets, forecasts, the map, Commands-only co-pilot, and full export. Hosted Lithifyte AI is the paid lane — 7 days unlimited after you sign in, then 20 questions a week on Free, or unlimited on Plus (€9/month or €90/year). Your own model (Ollama, a fine-tuned Qwen, any compatible URL) is always free. We never gate export of your data.
+The application that analyses your money is free forever under the AGPL-3.0-or-later licence: import, categorise, budgets, forecasts, the map, Commands-only co-pilot, and full export. Hosted Lithifyte Pro is the paid lane — 7 days unlimited after you sign in, then 20 questions a week on Free, or unlimited on Plus (€9/month or €90/year). Your own model (Ollama, LM Studio, any OpenAI-compatible URL) is always free. We never gate export of your data.
 
 ### What is the catch?
 
@@ -26,9 +26,9 @@ Yes, under the AGPL-3.0-or-later: read it, change it, run it, redistribute it. I
 
 We never store your statements. There is no finance backend. The hosted app holds the email you sign in with (Google or magic link), a plan/quota counter, and privacy-safe product events.
 
-The exception is hosted AI. When you ask Lithifyte AI a question, **the slice that question needs** is sent to the model provider for that request — not the ledger. Notes are not dumped wholesale; account names are aliased. Commands-only and a local/your-own model send nothing. Optional Google Drive backup writes an encrypted snapshot to a private app folder only this app can see.
+The exception is hosted AI. When you ask Lithifyte Pro a question, **the slice that question needs** is sent for that request — not the ledger. Notes are not dumped wholesale; account names are aliased. Commands-only and a local/your-own model send nothing. Optional Google Drive backup writes an encrypted snapshot to a private app folder only this app can see.
 
-A **photographed statement or receipt** is a second exception, and only if you ask for it. The page image is read on a GPU we run (or on a model you run), not stored, and checked before you confirm — statements against their own totals, receipts for a shop, date and amount paid. Hosted reading is five pages for free, then Plus. Start from [Capture your first transaction](https://app.lithifyte.com/?capture=1). The notice the app asks you to tick is published at [Photographing a bank statement](/photographing-statements). See also [security and privacy](/security-and-privacy).
+A **photographed statement or receipt** is a second exception, and only if you ask for it. The page image is read by Lithifyte Pro (or by a model you run), not stored, and checked before you confirm — statements against their own totals, receipts for a shop, date and amount paid. Hosted reading is five pages for free, then Plus. Start from [Capture your first transaction](https://app.lithifyte.com/?capture=1). The notice the app asks you to tick is published at [Photographing a bank statement](/photographing-statements). See also [security and privacy](/security-and-privacy).
 
 ### What happens if Lithifyte disappears tomorrow?
 
@@ -48,11 +48,11 @@ The hosted app records privacy-safe product events — that a section was opened
 
 ### What is the AI co-pilot, and do I have to use it?
 
-It is a chat panel inside the app, opened with Ctrl/Cmd+K. You can ask about your money in plain language, have it open any section for you, and design a budget or goal in a **sandbox** that changes nothing until you press Apply. Commands-only works with no model. Hosted Lithifyte AI is optional and metered.
+It is a chat panel inside the app, opened with Ctrl/Cmd+K. You can ask about your money in plain language, have it open any section for you, and design a budget or goal in a **sandbox** that changes nothing until you press Apply. Commands-only works with no model. Hosted Lithifyte Pro is optional and metered.
 
 ### Which AI models can I use?
 
-**Lithifyte Pro** (hosted Qwen 3.8 on our GPU, the default); **Lithifyte AI** (hosted Grok); **your own model** via an OpenAI-compatible URL (Ollama, LM Studio, any compatible URL); or Commands-only. ChatGPT / Claude BYOK is built at the relay and marked Coming soon in the picker. A local or self-hosted model is the option where nothing about your finances leaves your machine.
+Three, and only three. **Lithifyte Pro** — our own model, the default, no key to paste. **Your own model** via an OpenAI-compatible endpoint (Ollama, LM Studio, or any custom URL you point it at). Or **Commands-only**, which uses no model at all and still runs every tool. We do not resell a third-party chatbot. A model you run yourself is the option where nothing about your finances leaves your machine.
 
 ### Can the AI make up numbers?
 

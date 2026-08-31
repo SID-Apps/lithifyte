@@ -91,7 +91,7 @@
      Finance data NEVER leaves the browser. Events are allowlisted enums only.
      Telemetry is OFF for file://, self-host, and non-app hosts. */
   var ACCESS = 'https://access.lithifyte.com';
-  var APP_VER = '3.24.0';
+  var APP_VER = '3.25.0';
   var host = location.hostname;
   var isHostedApp = host === 'app.lithifyte.com';
   var isDemoPath = /^\/demo/.test(location.pathname);
@@ -3070,10 +3070,10 @@ So, when you change a stored shape:
     <div class="card" style="margin-top:14px" id="lmCard">
       <div class="section-head" style="margin-bottom:8px">
         <h2 style="font-size:17px">AI categoriser</h2>
-        <p><b>Nothing is applied automatically</b> — every suggestion you accept becomes an ordinary rule you can reorder or delete. Savings, rent and anything gambling-shaped are flagged for your judgement. <b>Lithifyte AI</b> (hosted) sees merchant names and your category list only — no amounts, no dates, no notes. A local model (Ollama, LM Studio) stays on this machine and may use richer context. Ollama: start with <code>OLLAMA_ORIGINS=*</code>. The hosted artifact blocks localhost — open the downloaded file for a local model.</p>
+        <p><b>Nothing is applied automatically</b> — every suggestion you accept becomes an ordinary rule you can reorder or delete. Savings, rent and anything gambling-shaped are flagged for your judgement. <b>Lithifyte Pro</b> (hosted) sees merchant names and your category list only — no amounts, no dates, no notes. A local model (Ollama, LM Studio) stays on this machine and may use richer context. Ollama: start with <code>OLLAMA_ORIGINS=*</code>. The hosted artifact blocks localhost — open the downloaded file for a local model.</p>
       </div>
       <div class="filter-row" style="align-items:center">
-        <button class="btn primary" id="lm-run-hosted" type="button">Suggest with Lithifyte AI</button>
+        <button class="btn primary" id="lm-run-hosted" type="button">Suggest with Lithifyte Pro</button>
         <input id="lm-endpoint" class="inp" placeholder="http://localhost:11434/v1/chat/completions" style="min-width:240px" aria-label="Local model endpoint URL">
         <input id="lm-model" class="inp" placeholder="model, e.g. llama3.1:8b" style="max-width:170px" aria-label="Model name">
         <button class="btn small" id="lm-test" type="button">Test local</button>
@@ -3705,10 +3705,10 @@ So, when you change a stored shape:
     </div>
     </div>
     <h3 style="margin:18px 0 8px">AI &amp; what left this device</h3>
-    <p class="hint" style="margin:0 0 10px">The ledger never lives on our servers. With consent, Lithifyte AI can read every panel and make reversible edits (budgets, goals, rules, notes). Imported statement amounts are never changed. Commands-only and a local model send nothing. Hosted intelligence, the encrypted vault and maintained bank-import presets are Plus; the Engine stays free forever, and export is never gated.</p>
+    <p class="hint" style="margin:0 0 10px">The ledger never lives on our servers. With consent, Lithifyte Pro can read every panel and make reversible edits (budgets, goals, rules, notes). Imported statement amounts are never changed. Commands-only and a local model send nothing. Hosted intelligence, the encrypted vault and maintained bank-import presets are Plus; the Engine stays free forever, and export is never gated.</p>
     <label class="hint" style="display:flex; align-items:flex-start; gap:8px; margin:0 0 10px; cursor:pointer">
       <input type="checkbox" id="aiAssistantVision" style="margin-top:3px">
-      <span>Lithifyte AI may read every panel and edit budgets, goals, rules and notes on my behalf. Statement amounts stay immutable. I can revoke this anytime.</span>
+      <span>Lithifyte Pro may read every panel and edit budgets, goals, rules and notes on my behalf. Statement amounts stay immutable. I can revoke this anytime.</span>
     </label>
     <div class="filter-row" style="margin:0 0 8px; flex-wrap:wrap; gap:8px">
       <button class="btn" id="aiConsentRevoke" type="button">Revoke AI consent</button>
@@ -3946,7 +3946,7 @@ rewrite the static advice cards if the picture has changed.</div>
         </button>
       </div>
       <button type="button" class="model-btn" id="modelBtn" aria-expanded="false" aria-haspopup="true"
-              title="Which model answers — Lithifyte Pro is our Qwen; Lithifyte AI is Grok">
+              title="Which model answers — Lithifyte Pro is our own model; or point it at an endpoint you run">
         <span id="modelLbl">Pro</span><span class="caret" aria-hidden="true">▾</span>
       </button>
       <span class="cc-gap"></span>
@@ -3958,18 +3958,15 @@ rewrite the static advice cards if the picture has changed.</div>
   <!-- model popover: the single home for model config (was: composer foot + chat-panel foot) -->
   <div class="model-pop" id="modelPop" hidden role="menu" aria-label="Model">
     <p class="pop-label">Model</p>
-    <!-- Bring-your-own-key providers are built and still answer at the relay,
-         but they are not offered yet: disabled + "Coming soon". LM_OFFERED in
-         the Companion is the single source of truth — if you re-enable one
-         there, drop its disabled attribute here too. -->
+    <!-- Three choices, and only three: no model at all, our own model, or an
+         endpoint you run. Third-party brains (Grok, ChatGPT, Claude) are not
+         named here and are not offered — LM_OFFERED in the Companion is the
+         single source of truth, and it coerces any stored one back to
+         lithifyte-pro. Do not re-add an <option> without flipping it there. -->
     <select id="cp-provider" aria-label="AI model provider">
       <option value="off">Commands only</option>
       <option value="lithifyte-pro">Lithifyte Pro</option>
-      <option value="lithifyte">Lithifyte AI</option>
-      <option value="xai" disabled>Grok (xAI) — Coming soon</option>
-      <option value="openai" disabled>ChatGPT (OpenAI) — Coming soon</option>
-      <option value="anthropic" disabled>Claude — Coming soon</option>
-      <option value="openai_compat">Your own model (Ollama / Qwen)</option>
+      <option value="openai_compat">Your own model (custom endpoint)</option>
     </select>
     <div id="modelExtra">
       <input id="cp-model" class="inp" placeholder="Model name (optional)" aria-label="Model name">
@@ -3978,7 +3975,7 @@ rewrite the static advice cards if the picture has changed.</div>
     </div>
     <!-- kept for the saveLmForm() binding; the popover saves as you type -->
     <button type="button" id="cp-saveLm" hidden aria-hidden="true">Save</button>
-    <p class="pop-note"><span id="cp-lmStatus">Lithifyte Pro is our hosted Qwen. Lithifyte AI is Grok. The question’s slice is sent for that request, not stored by us. Commands only never leaves this device.</span></p>
+    <p class="pop-note"><span id="cp-lmStatus">Lithifyte Pro is our own model. The question’s slice is sent for that request, not stored by us. Commands only never leaves this device, and a custom endpoint goes only where you point it.</span></p>
   </div>
 </div>
 <!-- legacy id for tests -->
@@ -4149,7 +4146,7 @@ rewrite the static advice cards if the picture has changed.</div>
         <ul class="plus-rows">
           <li class="plus-row"><span class="plus-tick">&check;</span><span>Everything in Free</span></li>
           <li class="plus-row"><span class="plus-tick">&check;</span><span><b>Unlimited</b> photo and scan pages</span></li>
-          <li class="plus-row"><span class="plus-tick">&check;</span><span><b>Unlimited</b> hosted Lithifyte AI</span></li>
+          <li class="plus-row"><span class="plus-tick">&check;</span><span><b>Unlimited</b> hosted Lithifyte Pro</span></li>
           <li class="plus-row"><span class="plus-tick">&check;</span><span>Encrypted cloud vault we cannot read</span></li>
           <li class="plus-row"><span class="plus-tick">&check;</span><span>Maintained bank-import library</span></li>
           <li class="plus-row"><span class="plus-tick">&check;</span><span>Your ledger still never leaves the browser</span></li>
@@ -4238,7 +4235,7 @@ rewrite the static advice cards if the picture has changed.</div>
 <div id="aiConsentOverlay" hidden>
   <div class="wiz-box" role="dialog" aria-modal="true" aria-labelledby="aiConsentTitle">
     <div class="wiz-kicker">Before this request leaves the device</div>
-    <h3 id="aiConsentTitle">Send this to Lithifyte AI?</h3>
+    <h3 id="aiConsentTitle">Send this to Lithifyte Pro?</h3>
     <p class="wiz-sub" id="aiConsentBody"></p>
     <ul id="aiConsentPoints" class="hint" style="margin:0 0 14px; padding-left:18px; line-height:1.55"></ul>
     <div class="wiz-nav">
@@ -5253,15 +5250,16 @@ rewrite the static advice cards if the picture has changed.</div>
   if (lmStore.apiKey == null) lmStore.apiKey = '';
   if (lmStore.useLm == null) lmStore.useLm = true;
   if (!lmStore.consent || typeof lmStore.consent !== 'object') lmStore.consent = {};
-  // Which providers the picker may actually select. The BYOK ones are built and
-  // still work at the relay, but read "Coming soon" until they are turned on —
-  // flip a value here and drop the matching `disabled` in #cp-provider to ship
-  // one. Anyone carrying a saved BYOK choice from an older build (or hand-editing
-  // storage) lands back on Lithifyte Pro rather than a provider that silently
-  // never answers. A saved `lithifyte` stays Grok — that is still offered.
-  const LM_OFFERED = {off:true, 'lithifyte-pro':true, lithifyte:true, xai:false, openai:false, anthropic:false, openai_compat:true};
+  // Which providers the picker may actually select: no model, our own model,
+  // or an endpoint you run. Third-party brains are not offered. The ids stay
+  // listed as `false` on purpose — that is what coerces a choice saved by an
+  // older build (or hand-edited into storage) back to Lithifyte Pro instead of
+  // leaving the co-pilot pointed at a provider that silently never answers.
+  // `lithifyte` was the hosted-Grok lane; a household still carrying it lands
+  // on Lithifyte Pro.
+  const LM_OFFERED = {off:true, 'lithifyte-pro':true, lithifyte:false, xai:false, openai:false, anthropic:false, openai_compat:true};
   function lmProviderOf(p){ return LM_OFFERED[p] ? p : 'lithifyte-pro'; }
-  function isHostedLm(p){ return p === 'lithifyte-pro' || p === 'lithifyte'; }
+  function isHostedLm(p){ return p === 'lithifyte-pro'; }
   function hostedProviderOf(){
     const p = lmProviderOf(lmStore.provider || 'lithifyte-pro');
     return isHostedLm(p) ? p : 'lithifyte-pro';
@@ -10731,7 +10729,7 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
     const shape = Engine.minimise.shape({merchants: cands.map(c => c.merchant), categories: allowed});
     const leaks = Engine.minimise.leaks('shape', shape);
     if (leaks.length){ lmStatus('✗ Shape payload failed the leak check (' + leaks.join(', ') + ').'); return; }
-    lmStatus('Asking Lithifyte AI about ' + shape.merchants.length + ' merchant name' + (shape.merchants.length === 1 ? '' : 's') + '… (no amounts sent)');
+    lmStatus('Asking Lithifyte Pro about ' + shape.merchants.length + ' merchant name' + (shape.merchants.length === 1 ? '' : 's') + '… (no amounts sent)');
     const user = 'Allowed categories (use EXACTLY these strings): ' + JSON.stringify(shape.categories) + '\n' +
       'Merchant names to categorise:\n' + JSON.stringify(shape.merchants) +
       '\nReply with the JSON array only.';
@@ -10743,7 +10741,7 @@ Discipline: if genuinely unsure, answer "Uncategorized" with confidence <= 0.3. 
       if (!parsed.ok){ lmStatus('✗ The model replied but ' + esc(parsed.error) + ' — try again.'); return; }
       await lmApplyParsed(cands, parsed);
     }catch(e){
-      lmStatus('✗ Lithifyte AI is unavailable: ' + esc(e.message || e));
+      lmStatus('✗ Lithifyte Pro is unavailable: ' + esc(e.message || e));
     }
   });
 
@@ -12616,7 +12614,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const guessed = Engine.pdfGuessGrid(extracted.text);
       if (guessed.length) return guessed;
       file._pdfText = extracted.text;
-      throw {code:'pdf-no-table', text: extracted.text, message:'This PDF has selectable text but no obvious transaction table. Use “Parse with Lithifyte AI” to propose rows, then confirm them.'};
+      throw {code:'pdf-no-table', text: extracted.text, message:'This PDF has selectable text but no obvious transaction table. Use “Parse with Lithifyte Pro” to propose rows, then confirm them.'};
     }
     const text = await decodeStatement(file);
     return parseDelim(text, sniffDelim(text));
@@ -13242,7 +13240,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           const go = document.createElement('button');
           go.type = 'button';
           go.className = 'btn small';
-          go.textContent = 'Parse with Lithifyte AI';
+          go.textContent = 'Parse with Lithifyte Pro';
           go.addEventListener('click', () => parsePdfWithAi(file, err.text, setStatus));
           if (status) { status.appendChild(go); }
           return;
@@ -13268,7 +13266,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
     async function parsePdfWithAi(file, text, setStatus){
       if (!(await aiAskConsent('pdf'))){ setStatus('Not sent — consent declined.'); return; }
-      setStatus('Sending scrubbed statement text to Lithifyte AI…');
+      setStatus('Sending scrubbed statement text to Lithifyte Pro…');
       const scrubbed = Engine.minimise.scrub(String(text || '')).slice(0, 12000);
       const leaks = Engine.minimise.leaks('detail', scrubbed);
       if (leaks.indexOf('iban') >= 0 || leaks.indexOf('email') >= 0){
@@ -20379,10 +20377,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         return getComputedStyle(stack).pointerEvents === 'none' || 'toasts still take clicks over the panel';
       } finally { if (!wasOpen) window.__ddSpace.open('close'); }
     });
-    // ── model picker: hosted Pro + Lithifyte AI are selectable; BYOK is not (P8) ──
-    // These assert behaviour, not markup: a picker that still *lands on* BYOK Grok
-    // passes any structural check while sending the co-pilot to a provider that
-    // has no key and never answers.
+    // ── model picker: only Commands only, Lithifyte Pro and your own endpoint ──
+    // These assert behaviour, not markup. A picker that still *lands on* a
+    // third-party brain passes any structural check while sending the co-pilot
+    // somewhere we no longer offer — and one that still lists Grok/ChatGPT/
+    // Claude leaks them back into the user's view.
     T('model picker: coming-soon options are disabled in the DOM', () => {
       const sel = document.getElementById('cp-provider');
       if (!sel) return 'no #cp-provider';
@@ -20395,11 +20394,21 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       const bad = [...sel.options].filter(o => o.disabled && !/coming soon/i.test(o.textContent));
       return !bad.length || bad.map(o => o.value).join(', ') + ' lacks the label';
     });
-    T('model picker: a saved Grok/Claude/GPT choice lands on Lithifyte Pro', () => {
+    T('model picker: third-party brains are not listed at all', () => {
+      const sel = document.getElementById('cp-provider');
+      if (!sel) return 'no #cp-provider';
+      const ids = [...sel.options].map(o => o.value);
+      const leaked = ids.filter(v => ['lithifyte', 'xai', 'openai', 'anthropic'].indexOf(v) >= 0);
+      if (leaked.length) return 'picker still offers ' + leaked.join(', ');
+      const named = [...sel.options].filter(o => /grok|chatgpt|openai|claude|anthropic|lithifyte ai/i.test(o.textContent));
+      if (named.length) return 'option text names ' + named.map(o => o.textContent.trim()).join(' / ');
+      return ids.join(',') === 'off,lithifyte-pro,openai_compat' || 'options are ' + ids.join(',');
+    });
+    T('model picker: a saved third-party or withdrawn choice lands on Lithifyte Pro', () => {
       const sel = document.getElementById('cp-provider');
       const keep = lmStore.provider;
       try {
-        const bad = ['xai', 'anthropic', 'openai'].filter(p => {
+        const bad = ['lithifyte', 'xai', 'anthropic', 'openai'].filter(p => {
           lmStore.provider = p;
           Companion.syncLmForm();
           return lmStore.provider !== 'lithifyte-pro' || (sel && sel.value !== 'lithifyte-pro');
@@ -20407,18 +20416,48 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         return !bad.length || bad.join(', ') + ' survived';
       } finally { lmStore.provider = keep; Companion.syncLmForm(); }
     });
-    T('model picker: Lithifyte Pro and Lithifyte AI are both selectable', () => {
+    T('model picker: Lithifyte Pro and your own endpoint are both selectable', () => {
       const sel = document.getElementById('cp-provider');
       if (!sel) return 'no #cp-provider';
       const keep = lmStore.provider;
       try {
-        for (const id of ['lithifyte-pro', 'lithifyte']) {
+        for (const id of ['lithifyte-pro', 'openai_compat']) {
           lmStore.provider = id;
           Companion.syncLmForm();
           if (lmStore.provider !== id || sel.value !== id) return id + ' became ' + lmStore.provider;
         }
         return true;
       } finally { lmStore.provider = keep; Companion.syncLmForm(); }
+    });
+    // The note under the picker names one model now, so it has to follow the
+    // selection. It is written only by saveLmForm(); a `change` handler that
+    // calls syncLmForm() alone leaves the previous provider's sentence on
+    // screen, which reads as a privacy claim about the wrong destination.
+    T('model picker: the note follows the selection', () => {
+      const sel = document.getElementById('cp-provider');
+      const note = document.getElementById('cp-lmStatus');
+      if (!sel || !note) return 'no #cp-provider or #cp-lmStatus';
+      const keep = {p: lmStore.provider, e: lmStore.endpoint};
+      const seen = {};
+      try {
+        for (const id of ['off', 'lithifyte-pro', 'openai_compat']) {
+          sel.value = id;
+          sel.dispatchEvent(new Event('change', {bubbles:true}));
+          seen[id] = (note.textContent || '').trim();
+        }
+      } finally {
+        // Restoring the in-memory object is not enough: the change handler
+        // persists, so the last provider this test poked would survive the
+        // page load that ran it. Put the real choice back through the same
+        // handler, which rewrites storage as well as the form.
+        lmStore.endpoint = keep.e;
+        sel.value = keep.p;
+        sel.dispatchEvent(new Event('change', {bubbles:true}));
+      }
+      if (!/nothing leaves this device/i.test(seen.off)) return 'off note: ' + seen.off;
+      if (!/^Lithifyte Pro/.test(seen['lithifyte-pro'])) return 'pro note: ' + seen['lithifyte-pro'];
+      if (/Lithifyte Pro/.test(seen.openai_compat)) return 'custom endpoint still credited to Pro: ' + seen.openai_compat;
+      return true;
     });
     T('model picker: Commands only still selectable', () => {
       const keep = lmStore.provider;
@@ -20428,7 +20467,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         return lmStore.provider === 'off' || 'off was coerced to ' + lmStore.provider;
       } finally { lmStore.provider = keep; Companion.syncLmForm(); }
     });
-    await AT('hosted model: request carries no key and no client model name', async () => {
+    // A household that chose the old third-party hosted lane before it was withdrawn
+    // still has `lithifyte` in localStorage. The relay would still answer it,
+    // so nothing throws — the outbound call is the only place the migration is
+    // observable, which is why this asserts the body and not the picker.
+    await AT('withdrawn hosted lane: a stored `lithifyte` goes out as lithifyte-pro', async () => {
       const keep = {p: lmStore.provider, k: lmStore.apiKey, m: lmStore.model, f: window.fetch};
       let seen = null;
       try {
@@ -20452,11 +20495,11 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         window.fetch = keep.f; lmStore.provider = keep.p; lmStore.apiKey = keep.k; lmStore.model = keep.m;
       }
       if (!seen) return 'no /chat request was made';
-      if (seen.body.provider !== 'lithifyte') return 'provider was ' + seen.body.provider;
+      if (seen.body.provider !== 'lithifyte-pro') return 'provider was ' + seen.body.provider;
       if (seen.headers['X-Api-Key']) return 'a browser API key was sent to the relay';
       if (seen.body.model) return 'client model "' + seen.body.model + '" overrode the hosted model';
       const lo = window.__ddLastOutbound && window.__ddLastOutbound();
-      if (lo && lo.provider && lo.provider !== 'lithifyte') return 'lastOutbound provider was ' + lo.provider;
+      if (lo && lo.provider && lo.provider !== 'lithifyte-pro') return 'lastOutbound provider was ' + lo.provider;
       return seen.url.indexOf('https://') === 0 || 'relay call was not https';
     });
     await AT('hosted Pro: request is lithifyte-pro with no key and no client model', async () => {
@@ -23102,8 +23145,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
   // assembled by Engine.minimise and recorded (metadata only) in discloseStore.
   const AI_LANES = {
     chat: {
-      title: 'Let Lithifyte AI act as your assistant',
-      dest: 'Grok (xAI) via the Lithifyte relay, or Cloudflare Workers AI if that route is unavailable',
+      title: 'Let Lithifyte Pro act as your assistant',
+      dest: 'Lithifyte Pro — our own model, through the Lithifyte relay',
       points: [
         'The assistant can read a compact view of every panel (cashflow, budget, goals, forecast, pulse, net worth, leaks, notes, rules) and open any of them.',
         'It can make reversible edits on your behalf: budget lines, goals, categorisation rules, notes, and applying a sandbox draft you asked for.',
@@ -23114,8 +23157,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       ]
     },
     categorise: {
-      title: 'Suggest categories with Lithifyte AI',
-      dest: 'OpenRouter via the Lithifyte relay (merchant names + category list only)',
+      title: 'Suggest categories with Lithifyte Pro',
+      dest: 'Lithifyte Pro, through the Lithifyte relay (merchant names + category list only)',
       points: [
         'Only uncategorised merchant names and your existing category list leave the device. No amounts, dates, balances or notes.',
         'Suggestions become ordinary rules only when you accept them.',
@@ -23123,8 +23166,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       ]
     },
     pdf: {
-      title: 'Parse this statement with Lithifyte AI',
-      dest: 'OpenRouter via the Lithifyte relay (scrubbed statement text)',
+      title: 'Parse this statement with Lithifyte Pro',
+      dest: 'Lithifyte Pro, through the Lithifyte relay (scrubbed statement text)',
       points: [
         'The PDF is read in this browser. Account numbers, IBANs and emails are stripped before anything is sent.',
         'The original file never leaves the device. The model only proposes rows; you confirm them in the same preview as a CSV.',
@@ -23136,7 +23179,6 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     const p = lmProviderOf(lmStore.provider || 'lithifyte-pro');
     if (p === 'off') return 'commands-only';
     if (p === 'lithifyte-pro') return 'lithifyte-pro';
-    if (p === 'lithifyte') return 'lithifyte-hosted';
     if (p === 'openai_compat'){
       const ep = String(lmStore.endpoint || '');
       if (/^https?:\/\/(localhost|127\.0\.0\.1)/i.test(ep)) return 'local';
@@ -23301,7 +23343,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     const r = String(reason || '').trim();
     if (/week|question|quota used|Upgrade to continue/i.test(r))
       return {title:"This week’s hosted questions are used up",
-              why:r || 'Hosted Lithifyte AI is 20 questions a week on Free after the trial, unlimited on Plus.'};
+              why:r || 'Hosted Lithifyte Pro is 20 questions a week on Free after the trial, unlimited on Plus.'};
     if (/PDF/i.test(r))
       return {title:'PDF parse is Plus', why:r};
     if (/vault/i.test(r))
@@ -23309,7 +23351,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     if (/photo|scan|extract|Statement extraction|5 free/i.test(r))
       return {title:'Hosted photo pages are used up', why:r};
     return {title:'Hosted intelligence, when you want it',
-            why:r || 'The Engine, import, budgets, export and Commands-only stay free forever. Plus is hosted Lithifyte AI, PDF parse, an encrypted cloud vault we cannot read, and a maintained library of bank import presets.'};
+            why:r || 'The Engine, import, budgets, export and Commands-only stay free forever. Plus is hosted Lithifyte Pro, PDF parse, an encrypted cloud vault we cannot read, and a maintained library of bank import presets.'};
   }
   function plusClose(){
     const el = document.getElementById('plusOverlay');
@@ -23337,7 +23379,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (box) try { box.setAttribute('tabindex', '-1'); box.focus({preventScroll:true}); } catch (e) {}
     }
   }
-  const PLUS_LEDE = 'The Engine, import, budgets, forecasts and export stay free forever. Plus adds hosted Lithifyte AI, unlimited page reads, an encrypted vault we cannot read, and the maintained bank-import library.';
+  const PLUS_LEDE = 'The Engine, import, budgets, forecasts and export stay free forever. Plus adds hosted Lithifyte Pro, unlimited page reads, an encrypted vault we cannot read, and the maintained bank-import library.';
   window.plusOpen = plusOpen;
   window.plusClose = plusClose;
   window.__ddPlusCopy = plusCopy;
@@ -23382,7 +23424,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         throw new Error('Hosted quota used — switch to Commands only, your own model, or Plus.');
       }
       if (ent && purpose === 'pdf' && ent.lanes && !ent.lanes.pdf){
-        plusOpen('PDF parse with Lithifyte AI is a Plus feature (or included in your trial).');
+        plusOpen('PDF parse with Lithifyte Pro is a Plus feature (or included in your trial).');
         throw new Error('PDF parse needs Plus or an active trial.');
       }
     }
@@ -24712,7 +24754,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
 
     function run(intent){
-      if (!intent) return {ok:false, tool:null, say:'I did not catch that. Try “show cashflow”, “how has groceries done”, or enable Lithifyte AI for freer chat.', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
+      if (!intent) return {ok:false, tool:null, say:'I did not catch that. Try “show cashflow”, “how has groceries done”, or enable Lithifyte Pro for freer chat.', provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
       const t = intent.tool, a = intent.args || {};
       if (t === 'greet'){
         return {ok:true, tool:t, say: greetSay(), provenance:'greet', data:null, actions:[], suggestions:suggestions(), links:[]};
@@ -24731,7 +24773,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           '• design a budget from my last 12 months (sandbox)',
           '• propose rules for uncategorised merchants (sandbox)',
           '',
-          'Hosted Lithifyte AI, with consent, can read every panel and make reversible edits (budget, goals, rules, notes). Statement amounts never change. Revoke in Settings.',
+          'Hosted Lithifyte Pro, with consent, can read every panel and make reversible edits (budget, goals, rules, notes). Statement amounts never change. Revoke in Settings.',
           'Numbers always come from Lithifyte’s Engine, never invented.',
           'Inspect: window.__ddCatalog() · window.__ddLastOutbound() · window.__ddSelfTest()'
         ].join('\n'), provenance:'help', data:{tools:registry().map(x=>x.id)}, actions:[], suggestions:suggestions(), links:[]};
@@ -25501,7 +25543,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       return {ok:false, tool:t, say:'Unknown tool ' + t, provenance:null, data:null, actions:[], suggestions:suggestions(), links:[]};
     }
     function writeDenied(tool){
-      return {ok:false, tool, say:'I can only change the household when Lithifyte AI assistant consent is on (Settings). Imported statement amounts are never edited either way.',
+      return {ok:false, tool, say:'I can only change the household when Lithifyte Pro assistant consent is on (Settings). Imported statement amounts are never edited either way.',
               provenance:'consent', data:null, actions:[], suggestions:['help'], links:[]};
     }
     function appVision(){
@@ -26075,7 +26117,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       appendMsg(chat, 'assistant', say);
       touchChat(chat, []);
       return {ok:true, tool:'greet', say,
-        provenance: spoken ? 'Lithifyte AI · greeting' : (greetCache ? 'greeting (this session)' : 'greeting'),
+        provenance: spoken ? 'Lithifyte Pro · greeting' : (greetCache ? 'greeting (this session)' : 'greeting'),
         data:{spoken}, actions:[], suggestions:suggestions(), links:[], chatId: chat.id};
     }
     async function askLm(userText, understanding){
@@ -26284,7 +26326,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
             if (!q) q = askFor(needSlots[0], u && u.intent);
             appendMsg(chat, 'assistant', q);
             touchChat(chat, []);
-            return {ok:true, tool:'lm_ask', say:q, asked:q, provenance:'Lithifyte AI · needs ' + needSlots.join(', '),
+            return {ok:true, tool:'lm_ask', say:q, asked:q, provenance:'Lithifyte Pro · needs ' + needSlots.join(', '),
               data:{steps, missing:needSlots}, actions:[], suggestions:suggestions(), links: chat.links || [], chatId: chat.id};
           }
           messages.push({role:'assistant', content: raw});
@@ -26391,14 +26433,14 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
           if (!/\?\s*$/.test(String(say).trim())) say = say && say.length > 8 ? tidySay(say).replace(/[.\s]*$/, '?') : q;
           asked = true;
           appendMsg(chat, 'assistant', say);
-          return {ok:true, tool:'lm_ask', say, asked:say, provenance:'Lithifyte AI · needs ' + needSlots.join(', '),
+          return {ok:true, tool:'lm_ask', say, asked:say, provenance:'Lithifyte Pro · needs ' + needSlots.join(', '),
             data:{steps, missing:needSlots}, actions:[], suggestions:suggestions(), links: chat.links || [], chatId: chat.id};
         }
         say = Engine.minimise.revealText(tidySay(say), acctMap());
         appendMsg(chat, 'assistant', say);
         touchChat(chat, []);
         return {ok:true, tool:'lm_final', say,
-          provenance: 'Lithifyte AI · tools: ' + (steps.map(s=>s.tool).join(', ') || 'none') + (fallbackUsed ? ' · Engine wrote this answer' : ''),
+          provenance: 'Lithifyte Pro · tools: ' + (steps.map(s=>s.tool).join(', ') || 'none') + (fallbackUsed ? ' · Engine wrote this answer' : ''),
           data:{steps, fallbackUsed}, actions:[], suggestions:suggestions(), links: chat.links || [], apply: pendingApply, chatId: chat.id};
       }
       const last = steps[steps.length - 1];
@@ -26407,7 +26449,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (needSlots.length && !steps.length){
         const q = askFor(needSlots[0], u && u.intent);
         appendMsg(chat, 'assistant', q);
-        return {ok:true, tool:'lm_ask', say:q, asked:q, provenance:'Lithifyte AI · needs ' + needSlots.join(', '),
+        return {ok:true, tool:'lm_ask', say:q, asked:q, provenance:'Lithifyte Pro · needs ' + needSlots.join(', '),
           data:{steps, missing:needSlots}, actions:[], suggestions:suggestions(), links: chat.links || [], chatId: chat.id};
       }
       // Ran out of rounds. The user asked a real question and the Engine has
@@ -26420,7 +26462,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       fallbackUsed = true;
       say = Engine.minimise.revealText(say, acctMap());
       appendMsg(chat, 'assistant', say);
-      return {ok:true, tool:'lm_final', say, provenance:'Lithifyte AI · Engine wrote this answer (tool rounds exhausted)', data:{steps, fallbackUsed}, actions:[], suggestions:suggestions(), links: chat.links || [], apply: pendingApply, chatId: chat.id};
+      return {ok:true, tool:'lm_final', say, provenance:'Lithifyte Pro · Engine wrote this answer (tool rounds exhausted)', data:{steps, fallbackUsed}, actions:[], suggestions:suggestions(), links: chat.links || [], apply: pendingApply, chatId: chat.id};
     }
 
     async function handle(q){
@@ -26821,8 +26863,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
     }
     // The composer button names whatever is actually answering. "Auto" is the
     // default (Lithifyte picks); anything else names the provider you chose.
-    const LM_LABEL = {off:'Commands only', 'lithifyte-pro':'Pro', lithifyte:'Lithifyte AI', xai:'Grok',
-                      openai:'GPT', anthropic:'Claude', openai_compat:'Local'};
+    const LM_LABEL = {off:'Commands only', 'lithifyte-pro':'Pro', openai_compat:'Your endpoint'};
     function syncLmForm(){
       const p = document.getElementById('cp-provider');
       const m = document.getElementById('cp-model');
@@ -26861,10 +26902,8 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
       if (st) st.textContent = lmStore.provider === 'off'
         ? 'Commands only — nothing leaves this device.'
         : lmStore.provider === 'lithifyte-pro'
-        ? 'Lithifyte Pro — our Qwen 3.8, on our GPU. The question’s slice is sent for that request; we do not store it.'
-        : lmStore.provider === 'lithifyte'
-        ? 'Lithifyte AI — hosted Grok. The question’s slice is sent to xAI for that request; we do not store it.'
-        : 'Saved in this browser. Hosted AI sends the slice each question needs; we do not store it.';
+        ? 'Lithifyte Pro — our own model. The question’s slice is sent for that request; we do not store it.'
+        : 'Saved in this browser. The slice each question needs goes to the endpoint you set, and nowhere else.';
       if (resync !== false) syncLmForm();
     }
     function open(prefill, chatId){
@@ -27164,12 +27203,12 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
         try { if (window.__ddSyncCam) setTimeout(window.__ddSyncCam, 0); } catch (e) {}
       });
       if (saveBtn) saveBtn.addEventListener('click', saveLmForm);
-      if (prov) prov.addEventListener('change', ()=>{
-        lmStore.provider = lmProviderOf(prov.value);
-        lmStore.useLm = lmStore.provider !== 'off';
-        syncLmForm();
-        save(LS.lm, lmStore);
-      });
+      // saveLmForm() is a superset of the old body here (it writes the same
+      // fields, then syncs) and it is the only thing that rewrites #cp-lmStatus.
+      // Without it the note under the picker kept describing the provider you
+      // just switched away from — visible the moment the note stopped being a
+      // generic three-way sentence and started naming one model.
+      if (prov) prov.addEventListener('change', ()=> saveLmForm(true));
       // ── model popover: the one home for model config ──
       // There is no Save button by design — the fields persist as you type,
       // which is how the rest of the app already behaves.
@@ -28048,7 +28087,7 @@ ${JSON.stringify(assetStore.items, null, 1)}` : ''}
        body:'Type a question and press Enter. Ask for a category (“how has groceries done”), your balances, next month’s outlook, or a section by name. Answers are computed by Lithifyte’s own Engine from your data — the model narrates, it never invents a number. The chips underneath are built from your actual figures, so they change as your data does.'},
       {part:8, dock:'map', target:'#modelBtn', title:'Which model answers',
        loc:'Message box → Lithifyte',
-       body:'Lithifyte Pro is the default hosted brain — our Qwen 3.8, no key to paste. Lithifyte AI is Grok, still on the same picker. You can also point it at your own model (Ollama, any OpenAI-compatible URL). Claude and GPT BYOK are still Coming soon. Commands only uses no model at all — the tools still work.'},
+       body:'Lithifyte Pro is the default — our own model, no key to paste. You can also point Lithifyte at a model you run yourself (Ollama, LM Studio, any OpenAI-compatible URL), which keeps everything on your machine. Commands only uses no model at all — the tools still work.'},
       {part:8, dock:'map', target:'#spaceDock', title:'The conversation lives in the rail',
        loc:'Co-pilot rail',
        body:'Send a message and the rail becomes the thread, with the message box docked at its foot. ✦ New chat starts a fresh one; Recents lists the previous conversations and ✕ closes back to that list. ⬚ widens the rail when an answer needs room. Ask for a section and it opens on the right while the map stays live behind the glass — end of tour, explore freely.'}

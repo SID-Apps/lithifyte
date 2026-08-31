@@ -4,7 +4,7 @@ Source: https://lithifyte.com/security-and-privacy
 Updated: 2026-08-25
 Licence: content CC-BY-4.0 · software AGPL-3.0-or-later
 
-The claim is narrow and testable: there is no finance database, so your ledger is never stored by us. CSV and text PDFs never leave the tab. A scan or photo you choose to send is read on our GPU (or on a model you run) and discarded. Hosted chat sends only the slice a question needs. All of that is set out below.
+The claim is narrow and testable: there is no finance database, so your ledger is never stored by us. CSV and text PDFs never leave the tab. A scan or photo you choose to send is read by Lithifyte Pro (or by a model you run) and discarded. Hosted chat sends only the slice a question needs. All of that is set out below.
 
 ## The architecture, stated plainly
 
@@ -18,7 +18,7 @@ You do not have to take this on faith. Open your browser's network tab and impor
 
 The first is **hosted AI**. A language model cannot answer a question about your money without being told something about your money. That section is below, in full, because a privacy claim with a quiet asterisk is worse than no claim at all. The honest sentence is: **we never store your data, and when you ask the AI a question, the part needed to answer it is sent to the model provider for that request.** Commands-only and a local model send nothing.
 
-The scan lane is the second, and it is the one that actually uploads a file. **A scanned PDF or a phone photo has no text to parse on-device**, so if you press Read, the page image is sent to a GPU we run. You acknowledge a written notice first ([Photographing a bank statement](/photographing-statements)). The image is not stored — it exists for the seconds it takes to transcribe — and the figures it produces are checked in code (statement totals, or a receipt’s shop / date / amount) before anything is offered to you. If you have pointed Lithifyte at a vision model on your own machine, that photo never leaves the device. This lane is not a finance API: it returns candidate rows, you confirm them, and the ledger stays in the browser.
+The scan lane is the second, and it is the one that actually uploads a file. **A scanned PDF or a phone photo has no text to parse on-device**, so if you press Read, the page image is sent to Lithifyte Pro, our own model. You acknowledge a written notice first ([Photographing a bank statement](/photographing-statements)). The image is not stored — it exists for the seconds it takes to transcribe — and the figures it produces are checked in code (statement totals, or a receipt’s shop / date / amount) before anything is offered to you. If you have pointed Lithifyte at a vision model on your own machine, that photo never leaves the device. This lane is not a finance API: it returns candidate rows, you confirm them, and the ledger stays in the browser.
 
 The third is **exchange rates**, and it is far smaller. Press *Refresh rates* in Wealth → Currency and the app asks a public European Central Bank rate feed ([frankfurter.dev](https://api.frankfurter.dev/v1/latest)) for a plain list of reference rates. That request carries **no account, no balance, no transaction, and no identifier** — it is the same request any visitor to that site makes, and the reply is a table of numbers. It happens only when you press the button, never on load, and typing rates in by hand works offline and always has. We mention a request this small because the alternative is you finding it in the network tab and wondering what else went unmentioned.
 
@@ -32,7 +32,7 @@ If an update exists you are told, and nothing more happens until you press Downl
 |---|---|---|
 | Transactions, accounts, people, categories, rules | `localStorage` in your browser | No |
 | Uploaded statement files (CSV / spreadsheet / text PDF) | IndexedDB in your browser | No |
-| Scan / photo of a statement (only if you press Read) | In-memory on our GPU, then discarded | Yes — the page image, for seconds. Not stored. A local vision model sends nothing. |
+| Scan / photo of a statement (only if you press Read) | In memory at Lithifyte Pro, then discarded | Yes — the page image, for seconds. Not stored. A local vision model sends nothing. |
 | Budgets, goals, debts, holdings, assets, notes | `localStorage` in your browser | No |
 | Backups you export | Wherever you save the file | Only if you move it |
 | Your email address (hosted sign-in only) | Cloudflare KV, on our side | It is already ours to hold |
@@ -47,7 +47,7 @@ Self-hosted copies write nothing to the email or product-event rows. The code th
 
 ## The AI co-pilot, stated without spin
 
-The co-pilot is a chat panel inside the app that can answer questions about your finances and operate the app for you. **Commands-only** works with no model at all. **Lithifyte Pro** is the hosted default (our Qwen 3.8); **Lithifyte AI** is hosted Grok. A local model stays on your machine.
+The co-pilot is a chat panel inside the app that can answer questions about your finances and operate the app for you. **Commands-only** works with no model at all. **Lithifyte Pro** is the hosted default — our own model, developed for this app. A local model stays on your machine. There is no third-party chatbot in the picker.
 
 **What is sent, when you use hosted AI.** Not your ledger. Every request is assembled by one function (`Engine.minimise`) at one of three tiers:
 
@@ -67,9 +67,7 @@ Household notes are **not** sent on every turn. The model can ask for a scoped n
 |---|---|
 | Commands only | Nowhere |
 | A local model — Ollama, LM Studio, any OpenAI-compatible endpoint on your machine | Nowhere. It stays on your computer. This is the private option |
-| Your own API key — Anthropic, OpenAI, xAI (built, marked Coming soon in the picker) | To that provider, under your own account and their terms |
-| **Lithifyte Pro** (hosted Qwen 3.8, default) | Through our relay to a GPU we run. The relay does not store the prompt. The slice does not go to xAI or OpenRouter |
-| **Lithifyte AI** (hosted Grok) | Through our relay to xAI (Grok). If Grok cannot answer, OpenRouter is tried with `data_collection: deny`, then Cloudflare Workers AI rather than a training-allowed free model |
+| **Lithifyte Pro** (our own model, the default) | Through our relay to Lithifyte Pro and nowhere else. The relay does not store the prompt, and the slice is not passed on to a third-party model provider |
 
 **What the relay is, and is not.** It is a pass-through: it forwards the request and returns the answer. It counts tokens to meter usage later. It does **not** store your ledger, the prompt, or the answer. It is not a step toward a finance database. If that ever changed it would be a different product and this page would say so.
 
@@ -100,7 +98,7 @@ The Engine in the public repository is one file. The official host adds a small 
 - **The site** serves static pages. No account, no cookie required to read anything.
 - **Sign-in** issues a magic link (or Google) and sets a session cookie so the hosted app recognises you. Identity, never a ledger. Rate-limited; tokens are single-purpose.
 - **Digest mail** takes an email that your *browser* has already composed and posts it to a mail provider. The body is not stored.
-- **The AI relay** forwards a co-pilot request to the model provider and returns the answer. Pass-through only. For a consented scan, it forwards a page image to a GPU we run, runs an arithmetic check in code, and returns candidate rows — the image is not stored.
+- **The AI relay** forwards a co-pilot request to the model provider and returns the answer. Pass-through only. For a consented scan, it forwards a page image to Lithifyte Pro, runs an arithmetic check in code, and returns candidate rows — the image is not stored.
 - **The encrypted vault** (Plus) stores a backup envelope you already encrypted in the browser. We do not have the passphrase and cannot read it.
 - **Packs** (Plus) are bank column maps — how to read a given bank's export — delivered as a maintained update channel. They contain no tax figures, because Lithifyte ships none.
 

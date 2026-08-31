@@ -1,6 +1,6 @@
 # Lithifyte — full content library
 
-Every page on lithifyte.com as plain markdown, generated 2026-08-26. Canonical HTML lives at https://lithifyte.com. Licence: content CC-BY-4.0, software AGPL-3.0-or-later.
+Every page on lithifyte.com as plain markdown, generated 2026-08-31. Canonical HTML lives at https://lithifyte.com. Licence: content CC-BY-4.0, software AGPL-3.0-or-later.
 
 
 
@@ -153,7 +153,7 @@ Import, categorise, the money map, budgets, forecast, wealth, full export, Comma
 | Included | Free / self-hosted | Plus (and 7-day trial) |
 |---|---|---|
 | Engine, map, budgets, export | Yes | Yes |
-| Hosted Lithifyte AI | 20 questions / week after trial | Unlimited |
+| Hosted Lithifyte Pro | 20 questions / week after trial | Unlimited |
 | Scan / photo statement or receipt parse (hosted vision) | 5 pages once, then Plus. Your own local vision model is free. | Unlimited hosted pages |
 | Encrypted cloud vault | No (local + Drive still work) | Yes — ciphertext we cannot read |
 | Bank import presets | Revolut + the manual column mapper | A maintained, growing library across regions — still fully overridable |
@@ -184,7 +184,7 @@ Short, direct answers. If a question you have is not here, the [guide](/guide) g
 
 ### Is Lithifyte free?
 
-The application that analyses your money is free forever under the AGPL-3.0-or-later licence: import, categorise, budgets, forecasts, the map, Commands-only co-pilot, and full export. Hosted Lithifyte AI is the paid lane — 7 days unlimited after you sign in, then 20 questions a week on Free, or unlimited on Plus (€9/month or €90/year). Your own model (Ollama, a fine-tuned Qwen, any compatible URL) is always free. We never gate export of your data.
+The application that analyses your money is free forever under the AGPL-3.0-or-later licence: import, categorise, budgets, forecasts, the map, Commands-only co-pilot, and full export. Hosted Lithifyte Pro is the paid lane — 7 days unlimited after you sign in, then 20 questions a week on Free, or unlimited on Plus (€9/month or €90/year). Your own model (Ollama, LM Studio, any OpenAI-compatible URL) is always free. We never gate export of your data.
 
 ### What is the catch?
 
@@ -200,9 +200,9 @@ Yes, under the AGPL-3.0-or-later: read it, change it, run it, redistribute it. I
 
 We never store your statements. There is no finance backend. The hosted app holds the email you sign in with (Google or magic link), a plan/quota counter, and privacy-safe product events.
 
-The exception is hosted AI. When you ask Lithifyte AI a question, **the slice that question needs** is sent to the model provider for that request — not the ledger. Notes are not dumped wholesale; account names are aliased. Commands-only and a local/your-own model send nothing. Optional Google Drive backup writes an encrypted snapshot to a private app folder only this app can see.
+The exception is hosted AI. When you ask Lithifyte Pro a question, **the slice that question needs** is sent for that request — not the ledger. Notes are not dumped wholesale; account names are aliased. Commands-only and a local/your-own model send nothing. Optional Google Drive backup writes an encrypted snapshot to a private app folder only this app can see.
 
-A **photographed statement or receipt** is a second exception, and only if you ask for it. The page image is read on a GPU we run (or on a model you run), not stored, and checked before you confirm — statements against their own totals, receipts for a shop, date and amount paid. Hosted reading is five pages for free, then Plus. Start from [Capture your first transaction](https://app.lithifyte.com/?capture=1). The notice the app asks you to tick is published at [Photographing a bank statement](/photographing-statements). See also [security and privacy](/security-and-privacy).
+A **photographed statement or receipt** is a second exception, and only if you ask for it. The page image is read by Lithifyte Pro (or by a model you run), not stored, and checked before you confirm — statements against their own totals, receipts for a shop, date and amount paid. Hosted reading is five pages for free, then Plus. Start from [Capture your first transaction](https://app.lithifyte.com/?capture=1). The notice the app asks you to tick is published at [Photographing a bank statement](/photographing-statements). See also [security and privacy](/security-and-privacy).
 
 ### What happens if Lithifyte disappears tomorrow?
 
@@ -222,11 +222,11 @@ The hosted app records privacy-safe product events — that a section was opened
 
 ### What is the AI co-pilot, and do I have to use it?
 
-It is a chat panel inside the app, opened with Ctrl/Cmd+K. You can ask about your money in plain language, have it open any section for you, and design a budget or goal in a **sandbox** that changes nothing until you press Apply. Commands-only works with no model. Hosted Lithifyte AI is optional and metered.
+It is a chat panel inside the app, opened with Ctrl/Cmd+K. You can ask about your money in plain language, have it open any section for you, and design a budget or goal in a **sandbox** that changes nothing until you press Apply. Commands-only works with no model. Hosted Lithifyte Pro is optional and metered.
 
 ### Which AI models can I use?
 
-**Lithifyte Pro** (hosted Qwen 3.8 on our GPU, the default); **Lithifyte AI** (hosted Grok); **your own model** via an OpenAI-compatible URL (Ollama, LM Studio, any compatible URL); or Commands-only. ChatGPT / Claude BYOK is built at the relay and marked Coming soon in the picker. A local or self-hosted model is the option where nothing about your finances leaves your machine.
+Three, and only three. **Lithifyte Pro** — our own model, the default, no key to paste. **Your own model** via an OpenAI-compatible endpoint (Ollama, LM Studio, or any custom URL you point it at). Or **Commands-only**, which uses no model at all and still runs every tool. We do not resell a third-party chatbot. A model you run yourself is the option where nothing about your finances leaves your machine.
 
 ### Can the AI make up numbers?
 
@@ -427,7 +427,7 @@ Press **Ctrl/Cmd+K** for the co-pilot. Ask in plain language — *how have groce
 
 Anything it designs lands in a **sandbox** beside your real data. You can iterate on it in the chat — *cut dining, protect rent* — and nothing touches your live stores until you press **Apply**. Conversations and scenarios are kept like notes: re-openable, linkable, included in your backups, and shown on the money map's outer ring so you can find the discussion that produced a decision months later.
 
-**Connect a model first.** **Lithifyte Pro** (hosted Qwen 3.8, the default) or **Lithifyte AI** (hosted Grok) need no key; any OpenAI-compatible endpoint, including Ollama or LM Studio on your own machine, stays local. The local option is the one where nothing about your finances leaves your computer — see [security and privacy](/security-and-privacy) for exactly what is sent in each case.
+**Connect a model first.** **Lithifyte Pro** — our own model, the default — needs no key; any OpenAI-compatible endpoint, including Ollama or LM Studio on your own machine, stays local. The local option is the one where nothing about your finances leaves your computer — see [security and privacy](/security-and-privacy) for exactly what is sent in each case.
 
 **The model never produces a number.** It works out what you asked for, the engine computes the figures, and the answer renders from those computed values. If a figure appears in a co-pilot answer, it came from the same code that draws your charts.
 
@@ -492,11 +492,11 @@ You can search it, drag it, isolate a person, and watch it redraw as you change 
 
 There is a co-pilot in the app — Ctrl/Cmd+K — that you can ask in plain language: *how have groceries gone this year*, *show me the cashflow*, *design a wedding budget from the last twelve months*. It answers, it opens the right section for you, and it can draft a budget or goal in a **sandbox** that changes nothing until you press Apply.
 
-Two things make it worth trusting. The model never produces a number — it works out what you asked for, the engine computes the figures on your device, and the answer renders from those. Hosted Lithifyte AI is available after you consent per lane (chat, categorise, PDF). Commands-only and a model running on your own machine send nothing. What is sent, and to whom, is set out plainly in [security and privacy](/security-and-privacy).
+Two things make it worth trusting. The model never produces a number — it works out what you asked for, the engine computes the figures on your device, and the answer renders from those. Hosted Lithifyte Pro is available after you consent per lane (chat, categorise, PDF). Commands-only and a model running on your own machine send nothing. What is sent, and to whom, is set out plainly in [security and privacy](/security-and-privacy).
 
 ## What it does not do
 
-It does not connect to your bank by default. It does not give financial advice, recommend products, or take a commission from anyone. It does not have a premium tier that unlocks your own numbers — Plus is hosted AI, an encrypted vault, and pack updates. There is no finance backend. The places anything about your money can leave the browser are: hosted AI (after you consent, only the slice that question needs); a **photo or scanned PDF you chose to send** (read on our GPU or yours, not stored, confirmed before save); and an optional encrypted backup you choose to store on Drive or in the Plus vault (ciphertext we cannot read).
+It does not connect to your bank by default. It does not give financial advice, recommend products, or take a commission from anyone. It does not have a premium tier that unlocks your own numbers — Plus is hosted AI, an encrypted vault, and pack updates. There is no finance backend. The places anything about your money can leave the browser are: hosted AI (after you consent, only the slice that question needs); a **photo or scanned PDF you chose to send** (read by Lithifyte Pro, or by a model you run, not stored, confirmed before save); and an optional encrypted backup you choose to store on Drive or in the Plus vault (ciphertext we cannot read).
 
 CSV and text-PDF import is still the private default: a file you exported yourself is a file no third party had to be trusted with. Paper is optional, metered, and tickable.
 
@@ -504,7 +504,7 @@ Commands-only and a local model keep even the co-pilot on your own machine.
 
 ## Two ways to run it
 
-**Hosted** — open [app.lithifyte.com](https://app.lithifyte.com). Sign-in is Google or a magic link, so the official app can recognise you, meter Lithifyte AI, and offer Plus. It holds no financial data in the clear. Privacy-safe product events (which sections get used, never amounts) stay on the hosted build.
+**Hosted** — open [app.lithifyte.com](https://app.lithifyte.com). Sign-in is Google or a magic link, so the official app can recognise you, meter Lithifyte Pro, and offer Plus. It holds no financial data in the clear. Privacy-safe product events (which sections get used, never amounts) stay on the hosted build.
 
 **Self-hosted** — download `index.html` from [the repository](https://github.com/SID-Apps/lithifyte) and open it from your own disk, a USB stick, or a server you control. It works offline. It reports nothing. The Engine is the same file. You do not get hosted AI, the cloud vault, or live tax/bank-pack updates — those are the official product, not a crippled calculator.
 
@@ -543,7 +543,7 @@ Item lines are optional. Dense tables that cannot be copied faithfully are skipp
 
 ## How a page image is handled
 
-The same notice as a photographed statement: the JPEG is sent to a GPU we run (or to a model you run locally), **not stored**, and nothing is saved until you confirm. Full text: [Photographing a bank statement](/photographing-statements).
+The same notice as a photographed statement: the JPEG is read by Lithifyte Pro (or by a model you run locally), **not stored**, and nothing is saved until you confirm. Full text: [Photographing a bank statement](/photographing-statements).
 
 A successful hosted read counts as **one page** against the five free pages (unlimited on the trial, Plus, or a local model). A failed read is not counted.
 
@@ -592,7 +592,7 @@ There is no build step and no dependency tree.
 2. Open it — from your disk, a USB stick, a private server, whatever you like.
 3. That is the whole procedure.
 
-It runs offline. It reports nothing. The Engine, importer, map, budgets, forecast, wealth, export and Commands-only are the same as the hosted app. What you give up is the **living product**: magic-link / Google sign-in, Lithifyte AI, the encrypted cloud vault, and the maintained library of bank import presets. Those are Lithifyte Plus on the official host. They are conveniences, not a lock on your numbers.
+It runs offline. It reports nothing. The Engine, importer, map, budgets, forecast, wealth, export and Commands-only are the same as the hosted app. What you give up is the **living product**: magic-link / Google sign-in, Lithifyte Pro, the encrypted cloud vault, and the maintained library of bank import presets. Those are Lithifyte Plus on the official host. They are conveniences, not a lock on your numbers.
 
 The project keeps no count of self-hosted installs. Telemetry is hostname-gated and does not run from a file.
 
@@ -635,7 +635,7 @@ A commercial licence of the Engine (white-label, closed embed) is [documented se
 URL: https://lithifyte.com/photographing-statements
 Updated: 2026-08-25
 
-A photographed statement cannot be read in the browser. If you ask Lithifyte to read it, the page image is sent to a GPU we run (or to a model on your machine), transcribed, checked against the statement’s own totals, and offered to you as a preview. The image is not stored. Hosted reading is five pages for free, then Plus.
+A photographed statement cannot be read in the browser. If you ask Lithifyte to read it, the page image is read by Lithifyte Pro (or by a model on your machine), transcribed, checked against the statement’s own totals, and offered to you as a preview. The image is not stored. Hosted reading is five pages for free, then Plus.
 
 ## The short version
 
@@ -698,7 +698,7 @@ The full privacy model, including the co-pilot and the encrypted vault, is on [S
 URL: https://lithifyte.com/security-and-privacy
 Updated: 2026-08-25
 
-The claim is narrow and testable: there is no finance database, so your ledger is never stored by us. CSV and text PDFs never leave the tab. A scan or photo you choose to send is read on our GPU (or on a model you run) and discarded. Hosted chat sends only the slice a question needs. All of that is set out below.
+The claim is narrow and testable: there is no finance database, so your ledger is never stored by us. CSV and text PDFs never leave the tab. A scan or photo you choose to send is read by Lithifyte Pro (or by a model you run) and discarded. Hosted chat sends only the slice a question needs. All of that is set out below.
 
 ## The architecture, stated plainly
 
@@ -712,7 +712,7 @@ You do not have to take this on faith. Open your browser's network tab and impor
 
 The first is **hosted AI**. A language model cannot answer a question about your money without being told something about your money. That section is below, in full, because a privacy claim with a quiet asterisk is worse than no claim at all. The honest sentence is: **we never store your data, and when you ask the AI a question, the part needed to answer it is sent to the model provider for that request.** Commands-only and a local model send nothing.
 
-The scan lane is the second, and it is the one that actually uploads a file. **A scanned PDF or a phone photo has no text to parse on-device**, so if you press Read, the page image is sent to a GPU we run. You acknowledge a written notice first ([Photographing a bank statement](/photographing-statements)). The image is not stored — it exists for the seconds it takes to transcribe — and the figures it produces are checked in code (statement totals, or a receipt’s shop / date / amount) before anything is offered to you. If you have pointed Lithifyte at a vision model on your own machine, that photo never leaves the device. This lane is not a finance API: it returns candidate rows, you confirm them, and the ledger stays in the browser.
+The scan lane is the second, and it is the one that actually uploads a file. **A scanned PDF or a phone photo has no text to parse on-device**, so if you press Read, the page image is sent to Lithifyte Pro, our own model. You acknowledge a written notice first ([Photographing a bank statement](/photographing-statements)). The image is not stored — it exists for the seconds it takes to transcribe — and the figures it produces are checked in code (statement totals, or a receipt’s shop / date / amount) before anything is offered to you. If you have pointed Lithifyte at a vision model on your own machine, that photo never leaves the device. This lane is not a finance API: it returns candidate rows, you confirm them, and the ledger stays in the browser.
 
 The third is **exchange rates**, and it is far smaller. Press *Refresh rates* in Wealth → Currency and the app asks a public European Central Bank rate feed ([frankfurter.dev](https://api.frankfurter.dev/v1/latest)) for a plain list of reference rates. That request carries **no account, no balance, no transaction, and no identifier** — it is the same request any visitor to that site makes, and the reply is a table of numbers. It happens only when you press the button, never on load, and typing rates in by hand works offline and always has. We mention a request this small because the alternative is you finding it in the network tab and wondering what else went unmentioned.
 
@@ -726,7 +726,7 @@ If an update exists you are told, and nothing more happens until you press Downl
 |---|---|---|
 | Transactions, accounts, people, categories, rules | `localStorage` in your browser | No |
 | Uploaded statement files (CSV / spreadsheet / text PDF) | IndexedDB in your browser | No |
-| Scan / photo of a statement (only if you press Read) | In-memory on our GPU, then discarded | Yes — the page image, for seconds. Not stored. A local vision model sends nothing. |
+| Scan / photo of a statement (only if you press Read) | In memory at Lithifyte Pro, then discarded | Yes — the page image, for seconds. Not stored. A local vision model sends nothing. |
 | Budgets, goals, debts, holdings, assets, notes | `localStorage` in your browser | No |
 | Backups you export | Wherever you save the file | Only if you move it |
 | Your email address (hosted sign-in only) | Cloudflare KV, on our side | It is already ours to hold |
@@ -741,7 +741,7 @@ Self-hosted copies write nothing to the email or product-event rows. The code th
 
 ## The AI co-pilot, stated without spin
 
-The co-pilot is a chat panel inside the app that can answer questions about your finances and operate the app for you. **Commands-only** works with no model at all. **Lithifyte Pro** is the hosted default (our Qwen 3.8); **Lithifyte AI** is hosted Grok. A local model stays on your machine.
+The co-pilot is a chat panel inside the app that can answer questions about your finances and operate the app for you. **Commands-only** works with no model at all. **Lithifyte Pro** is the hosted default — our own model, developed for this app. A local model stays on your machine. There is no third-party chatbot in the picker.
 
 **What is sent, when you use hosted AI.** Not your ledger. Every request is assembled by one function (`Engine.minimise`) at one of three tiers:
 
@@ -761,9 +761,7 @@ Household notes are **not** sent on every turn. The model can ask for a scoped n
 |---|---|
 | Commands only | Nowhere |
 | A local model — Ollama, LM Studio, any OpenAI-compatible endpoint on your machine | Nowhere. It stays on your computer. This is the private option |
-| Your own API key — Anthropic, OpenAI, xAI (built, marked Coming soon in the picker) | To that provider, under your own account and their terms |
-| **Lithifyte Pro** (hosted Qwen 3.8, default) | Through our relay to a GPU we run. The relay does not store the prompt. The slice does not go to xAI or OpenRouter |
-| **Lithifyte AI** (hosted Grok) | Through our relay to xAI (Grok). If Grok cannot answer, OpenRouter is tried with `data_collection: deny`, then Cloudflare Workers AI rather than a training-allowed free model |
+| **Lithifyte Pro** (our own model, the default) | Through our relay to Lithifyte Pro and nowhere else. The relay does not store the prompt, and the slice is not passed on to a third-party model provider |
 
 **What the relay is, and is not.** It is a pass-through: it forwards the request and returns the answer. It counts tokens to meter usage later. It does **not** store your ledger, the prompt, or the answer. It is not a step toward a finance database. If that ever changed it would be a different product and this page would say so.
 
@@ -794,7 +792,7 @@ The Engine in the public repository is one file. The official host adds a small 
 - **The site** serves static pages. No account, no cookie required to read anything.
 - **Sign-in** issues a magic link (or Google) and sets a session cookie so the hosted app recognises you. Identity, never a ledger. Rate-limited; tokens are single-purpose.
 - **Digest mail** takes an email that your *browser* has already composed and posts it to a mail provider. The body is not stored.
-- **The AI relay** forwards a co-pilot request to the model provider and returns the answer. Pass-through only. For a consented scan, it forwards a page image to a GPU we run, runs an arithmetic check in code, and returns candidate rows — the image is not stored.
+- **The AI relay** forwards a co-pilot request to the model provider and returns the answer. Pass-through only. For a consented scan, it forwards a page image to Lithifyte Pro, runs an arithmetic check in code, and returns candidate rows — the image is not stored.
 - **The encrypted vault** (Plus) stores a backup envelope you already encrypted in the browser. We do not have the passphrase and cannot read it.
 - **Packs** (Plus) are bank column maps — how to read a given bank's export — delivered as a maintained update channel. They contain no tax figures, because Lithifyte ships none.
 

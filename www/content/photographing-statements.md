@@ -4,7 +4,7 @@ shortTitle: Photo import
 slug: photographing-statements
 section: product
 description: What happens when Lithifyte reads a photo or a scanned PDF of a bank statement — what leaves your device, what we do not store, how the figures are checked, and how the five free pages work.
-summary: A photographed statement cannot be read in the browser. If you ask Lithifyte to read it, the page image is sent to a GPU we run (or to a model on your machine), transcribed, checked against the statement’s own totals, and offered to you as a preview. The image is not stored. Hosted reading is five pages for free, then Plus.
+summary: A photographed statement cannot be read in the browser. If you ask Lithifyte to read it, the page image is read by Lithifyte Pro (or by a model on your machine), transcribed, checked against the statement’s own totals, and offered to you as a preview. The image is not stored. Hosted reading is five pages for free, then Plus.
 keywords: [photograph bank statement, scan PDF import, Lithifyte photo disclaimer, statement OCR privacy]
 updated: 2026-08-25
 priority: 0.7

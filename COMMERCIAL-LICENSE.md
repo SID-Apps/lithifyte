@@ -13,7 +13,7 @@ If you cannot take AGPL obligations — you want to white-label the Engine, embe
 ## What it does not cover
 
 - The Lithifyte name, logo, or domains (trademark)
-- The hosted product at app.lithifyte.com (identity, Lithifyte AI, vault, billing)
+- The hosted product at app.lithifyte.com (identity, Lithifyte Pro, vault, billing)
 - Anyone else’s household data (we do not have it)
 
 ## How to ask

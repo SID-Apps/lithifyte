@@ -26,7 +26,7 @@ Import, categorise, the money map, budgets, forecast, wealth, full export, Comma
 | Included | Free / self-hosted | Plus (and 7-day trial) |
 |---|---|---|
 | Engine, map, budgets, export | Yes | Yes |
-| Hosted Lithifyte AI | 20 questions / week after trial | Unlimited |
+| Hosted Lithifyte Pro | 20 questions / week after trial | Unlimited |
 | Scan / photo statement or receipt parse (hosted vision) | 5 pages once, then Plus. Your own local vision model is free. | Unlimited hosted pages |
 | Encrypted cloud vault | No (local + Drive still work) | Yes — ciphertext we cannot read |
 | Bank import presets | Revolut + the manual column mapper | A maintained, growing library across regions — still fully overridable |

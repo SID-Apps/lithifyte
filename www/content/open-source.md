@@ -38,7 +38,7 @@ There is no build step and no dependency tree.
 2. Open it — from your disk, a USB stick, a private server, whatever you like.
 3. That is the whole procedure.
 
-It runs offline. It reports nothing. The Engine, importer, map, budgets, forecast, wealth, export and Commands-only are the same as the hosted app. What you give up is the **living product**: magic-link / Google sign-in, Lithifyte AI, the encrypted cloud vault, and the maintained library of bank import presets. Those are Lithifyte Plus on the official host. They are conveniences, not a lock on your numbers.
+It runs offline. It reports nothing. The Engine, importer, map, budgets, forecast, wealth, export and Commands-only are the same as the hosted app. What you give up is the **living product**: magic-link / Google sign-in, Lithifyte Pro, the encrypted cloud vault, and the maintained library of bank import presets. Those are Lithifyte Plus on the official host. They are conveniences, not a lock on your numbers.
 
 The project keeps no count of self-hosted installs. Telemetry is hostname-gated and does not run from a file.
 

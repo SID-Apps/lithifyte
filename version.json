@@ -1,8 +1,8 @@
 {
-  "version": "3.24.0",
-  "released": "2026-08-27",
-  "notes": "Paywall as a three-card pricing block: aurora bloom, centred headline, per-card tick lists and a labelled action in every card.",
+  "version": "3.25.0",
+  "released": "2026-08-31",
+  "notes": "Model picker is Commands only, Lithifyte Pro and your own endpoint. Third-party brains (Grok, ChatGPT, Claude) and the Lithifyte AI lane are withdrawn from the user's view; a stored choice coerces back to Lithifyte Pro.",
   "dataVersion": 3,
   "url": "https://raw.githubusercontent.com/SID-Apps/lithifyte/main/index.html",
-  "sha256": "e572dc7daf43377e3eb84fb430d9cb150d3680cacc55aa8a87a0c1fe0b047028"
+  "sha256": "da7f334a3bf1d04f58f8d45a744ccce43c612bc63d63d3753d406bb0a046c079"
 }

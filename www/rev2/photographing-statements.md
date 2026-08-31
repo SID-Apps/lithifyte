@@ -4,7 +4,7 @@ Source: https://lithifyte.com/photographing-statements
 Updated: 2026-08-25
 Licence: content CC-BY-4.0 · software AGPL-3.0-or-later
 
-A photographed statement cannot be read in the browser. If you ask Lithifyte to read it, the page image is sent to a GPU we run (or to a model on your machine), transcribed, checked against the statement’s own totals, and offered to you as a preview. The image is not stored. Hosted reading is five pages for free, then Plus.
+A photographed statement cannot be read in the browser. If you ask Lithifyte to read it, the page image is read by Lithifyte Pro (or by a model on your machine), transcribed, checked against the statement’s own totals, and offered to you as a preview. The image is not stored. Hosted reading is five pages for free, then Plus.
 
 ## The short version
 

@@ -256,7 +256,34 @@ ok('app: no standalone Take a photo control', !/id="upCamBtn"/.test(app) && !/id
 const secPath = resolve(join(ROOT, 'www/content/security-and-privacy.md'));
 const sec = mustRead(secPath, 'security-and-privacy.md');
 ok('security md: no "no endpoint that accepts a statement"', !/no endpoint that accepts a statement/i.test(sec));
-ok('security md: scan lane disclosed', /page image is sent to a GPU/i.test(sec) || /scan or a photo/i.test(sec));
+ok('security md: scan lane disclosed', /page image is sent to Lithifyte Pro/i.test(sec) || /scan or a photo/i.test(sec));
+
+// The model picker offers exactly three things: no model, our own model, or an
+// endpoint the household runs. Third-party brains were withdrawn from the
+// user's view on 2026-08-31 — a stale <option>, or a marketing page that still
+// names one, puts them straight back. `lithifyte` was the hosted-Grok lane and
+// must stay in LM_OFFERED as `false`, because that is what coerces a household
+// still carrying it back to Lithifyte Pro.
+ok('app: picker offers only off / lithifyte-pro / openai_compat', (() => {
+  const m = app.match(/<select id="cp-provider"[\s\S]*?<\/select>/);
+  if (!m) return false;
+  const vals = [...m[0].matchAll(/<option value="([^"]+)"/g)].map((x) => x[1]);
+  return vals.join(',') === 'off,lithifyte-pro,openai_compat';
+})());
+ok('app: withdrawn providers still coerce back to Lithifyte Pro',
+  /LM_OFFERED\s*=\s*\{[^}]*lithifyte:false[^}]*xai:false[^}]*openai:false[^}]*anthropic:false/.test(app.replace(/\s+/g, ' ').replace(/ *: */g, ':')));
+// Not a blanket ban on the word: source comments still record which model a
+// behaviour was measured against, and stripping those would lose the why. What
+// must not survive is the *brand* in copy the household reads — the picker's
+// own option text, and the retired "Lithifyte AI" name anywhere at all.
+ok('app: no Lithifyte AI name left in the shell', !/Lithifyte AI/.test(app));
+ok('app: picker option text names no third-party brain', (() => {
+  const m = app.match(/<select id="cp-provider"[\s\S]*?<\/select>/);
+  if (!m) return false;
+  return !/\b(Grok|ChatGPT|OpenAI|Anthropic|Claude|xAI)\b/i.test(m[0]);
+})());
+ok('landing: no Lithifyte AI or own-hardware claim',
+  !/Lithifyte AI/i.test(land) && !/own hardware/i.test(land));
 
 if (fails.length) {
   console.error('\n' + fails.length + ' check(s) failed.');
